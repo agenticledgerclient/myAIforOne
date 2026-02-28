@@ -1,0 +1,76 @@
+{
+  "service": {
+    "logLevel": "debug",
+    "logFile": "./logs/service.log"
+  },
+
+  "channels": {
+    "imessage": {
+      "enabled": true,
+      "driver": "imessage",
+      "config": {
+        "cliPath": "imsg",
+        "includeAttachments": false,
+        "debounceMs": 2000
+      }
+    },
+    "slack": {
+      "enabled": true,
+      "driver": "slack",
+      "config": {
+        "botToken": "xoxb-YOUR-BOT-TOKEN",
+        "appToken": "xapp-YOUR-APP-TOKEN",
+        "mode": "socket"
+      }
+    },
+    "whatsapp": {
+      "enabled": false,
+      "driver": "whatsapp",
+      "config": {}
+    }
+  },
+
+  "agents": {
+    "fic-show": {
+      "name": "FIC Show Agent",
+      "description": "Manages episode content for Finance Is Cooked YouTube show",
+      "workspace": "~/Desktop/APPs/financeiscooked",
+      "claudeMd": "./agents/fic-show/CLAUDE.md",
+      "memoryDir": "./agents/fic-show/memory",
+      "skills": ["update-episode"],
+      "mentionAliases": ["@producer"],
+      "autoCommit": true,
+      "autoCommitBranch": "main",
+      "allowedTools": [
+        "Read", "Edit", "Write",
+        "Glob", "Grep", "Bash"
+      ],
+      "routes": [
+        {
+          "channel": "imessage",
+          "match": {
+            "type": "chat_id",
+            "value": 0
+          },
+          "permissions": {
+            "allowFrom": ["*"],
+            "requireMention": true
+          }
+        },
+        {
+          "channel": "slack",
+          "match": {
+            "type": "channel_id",
+            "value": "YOUR_CHANNEL_ID"
+          },
+          "permissions": {
+            "allowFrom": ["*"],
+            "requireMention": true
+          }
+        }
+      ]
+    }
+  },
+
+  "defaultAgent": null
+}
