@@ -7,16 +7,20 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "test-message": "tsx src/test-message.ts"
+    "test-message": "tsx src/test-message.ts",
+    "whatsapp-login": "tsx src/whatsapp-login.ts"
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@types/qrcode-terminal": "^0.12.2",
     "tsx": "^4.0",
     "typescript": "^5.7"
   },
   "dependencies": {
     "@slack/events-api": "^3.0.1",
     "@slack/socket-mode": "^2.0.5",
-    "@slack/web-api": "^7.14.1"
+    "@slack/web-api": "^7.14.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "qrcode-terminal": "^0.12.0"
   }
 }

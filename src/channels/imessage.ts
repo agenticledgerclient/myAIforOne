@@ -130,8 +130,6 @@ export class IMessageDriver implements ChannelDriver {
       raw: messages.length === 1 ? first : messages,
     };
 
-    log.debug(`iMessage received from ${inbound.sender} in chat ${inbound.chatId}: ${text.slice(0, 100)}`);
-
     if (this.messageHandler) {
       this.messageHandler(inbound).catch((err) => {
         log.error(`Message handler error: ${err}`);

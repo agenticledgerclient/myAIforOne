@@ -6,6 +6,7 @@ import { resolveRoute } from "./router.js";
 import { executeAgent } from "./executor.js";
 import { IMessageDriver } from "./channels/imessage.js";
 import { SlackDriver } from "./channels/slack.js";
+import { WhatsAppDriver } from "./channels/whatsapp.js";
 import type { ChannelDriver, InboundMessage } from "./channels/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -37,7 +38,9 @@ async function main(): Promise<void> {
       case "slack":
         driver = new SlackDriver(channelCfg.config);
         break;
-      // Future: case "whatsapp": ...
+      case "whatsapp":
+        driver = new WhatsAppDriver(channelCfg.config);
+        break;
       default:
         log.warn(`Unknown channel driver "${channelCfg.driver}" for "${channelId}", skipping`);
         continue;
@@ -47,10 +50,7 @@ async function main(): Promise<void> {
     driver.onMessage(async (msg: InboundMessage) => {
       // Route to agent
       const match = resolveRoute(msg, config);
-      if (!match) {
-        log.debug(`No route for ${msg.channel}:${msg.chatId}`);
-        return;
-      }
+      if (!match) return;
 
       log.info(`${match.agentId} <- ${msg.sender}: ${msg.text.slice(0, 80)}`);
 
