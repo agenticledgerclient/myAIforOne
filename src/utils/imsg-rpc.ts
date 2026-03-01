@@ -21,6 +21,8 @@ export class ImsgRpcClient {
   private pending = new Map<number, PendingRequest>();
   private notificationHandler: ((notification: JsonRpcNotification) => void) | null = null;
   private cliPath: string;
+  private stopping = false;
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(cliPath = "imsg") {
     this.cliPath = cliPath;
@@ -40,38 +42,7 @@ export class ImsgRpcClient {
       );
     }
 
-    this.proc = spawn(this.cliPath, ["rpc"], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    this.proc.on("error", (err) => {
-      log.error(`imsg process error: ${err.message}`);
-    });
-
-    this.proc.on("close", (code) => {
-      log.warn(`imsg process exited with code ${code}`);
-      // Reject all pending requests
-      for (const [id, req] of this.pending) {
-        clearTimeout(req.timer);
-        req.reject(new Error("imsg process exited"));
-        this.pending.delete(id);
-      }
-    });
-
-    // Read stderr as warnings
-    if (this.proc.stderr) {
-      const stderrRl = createInterface({ input: this.proc.stderr });
-      stderrRl.on("line", (line) => {
-        if (line.trim()) log.warn(`imsg stderr: ${line}`);
-      });
-    }
-
-    // Read stdout line by line (newline-delimited JSON)
-    if (this.proc.stdout) {
-      this.rl = createInterface({ input: this.proc.stdout });
-      this.rl.on("line", (line) => this.handleLine(line));
-    }
-
+    await this.startProcess();
     log.info("imsg RPC client started");
   }
 
@@ -139,7 +110,58 @@ export class ImsgRpcClient {
     this.notificationHandler = handler;
   }
 
+  private async restart(): Promise<void> {
+    try {
+      this.rl?.close();
+      this.proc = null;
+      await this.startProcess();
+      // Re-subscribe to watch
+      await this.request("watch.subscribe", { attachments: false });
+      log.info("imsg RPC client restarted successfully");
+    } catch (err) {
+      log.error(`imsg restart failed: ${err} — retrying in 10s`);
+      this.restartTimer = setTimeout(() => this.restart(), 10_000);
+    }
+  }
+
+  private async startProcess(): Promise<void> {
+    this.proc = spawn(this.cliPath, ["rpc"], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    this.proc.on("error", (err) => {
+      log.error(`imsg process error: ${err.message}`);
+    });
+
+    this.proc.on("close", (code) => {
+      log.warn(`imsg process exited with code ${code}`);
+      for (const [id, req] of this.pending) {
+        clearTimeout(req.timer);
+        req.reject(new Error("imsg process exited"));
+        this.pending.delete(id);
+      }
+      if (!this.stopping) {
+        log.info("imsg process died — restarting in 3s...");
+        this.restartTimer = setTimeout(() => this.restart(), 3000);
+      }
+    });
+
+    if (this.proc.stderr) {
+      const stderrRl = createInterface({ input: this.proc.stderr });
+      stderrRl.on("line", (line) => {
+        if (line.trim()) log.warn(`imsg stderr: ${line}`);
+      });
+    }
+
+    if (this.proc.stdout) {
+      this.rl = createInterface({ input: this.proc.stdout });
+      this.rl.on("line", (line) => this.handleLine(line));
+    }
+  }
+
   async stop(): Promise<void> {
+    this.stopping = true;
+    if (this.restartTimer) clearTimeout(this.restartTimer);
     for (const [id, req] of this.pending) {
       clearTimeout(req.timer);
       req.reject(new Error("Client stopping"));

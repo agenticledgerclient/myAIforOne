@@ -54,20 +54,37 @@ async function main(): Promise<void> {
 
       log.info(`${match.agentId} <- ${msg.sender}: ${msg.text.slice(0, 80)}`);
 
-      // Send thinking indicator
-      await driver.send({
-        text: "On it...",
-        chatId: msg.chatId,
-      });
+      // Send thinking indicator (non-fatal if it fails)
+      try {
+        await driver.send({
+          text: "On it...",
+          chatId: msg.chatId,
+        });
+      } catch (err) {
+        log.warn(`Failed to send thinking indicator: ${err}`);
+      }
 
       // Execute agent
       const response = await executeAgent(match, msg, baseDir);
 
-      // Reply via originating channel
-      await driver.send({
-        text: response,
-        chatId: msg.chatId,
-      });
+      // Reply via originating channel (retry once on failure)
+      try {
+        await driver.send({
+          text: response,
+          chatId: msg.chatId,
+        });
+      } catch (err) {
+        log.warn(`Send failed, retrying in 2s: ${err}`);
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          await driver.send({
+            text: response,
+            chatId: msg.chatId,
+          });
+        } catch (retryErr) {
+          log.error(`Send retry failed: ${retryErr}`);
+        }
+      }
 
       log.info(`${match.agentId} -> ${msg.chatId}: ${response.slice(0, 80)}`);
     });

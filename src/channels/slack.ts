@@ -31,7 +31,12 @@ export class SlackDriver implements ChannelDriver {
     }
 
     this.web = new WebClient(botToken);
-    this.socket = new SocketModeClient({ appToken });
+    this.socket = new SocketModeClient({
+      appToken,
+      clientPingTimeout: 30_000,
+      serverPingTimeout: 30_000,
+      pingPongLoggingEnabled: false,
+    });
   }
 
   async start(): Promise<void> {

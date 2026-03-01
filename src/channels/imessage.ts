@@ -72,7 +72,7 @@ export class IMessageDriver implements ChannelDriver {
     await this.client.request("send", {
       text: msg.text,
       chat_id: Number(msg.chatId),
-    });
+    }, 30_000);
   }
 
   private handleRawMessage(raw: ImsgMessage): void {
