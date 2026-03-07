@@ -6,6 +6,16 @@ import type { ResolvedRoute } from "./router.js";
 import { formatMessage } from "./utils/message-formatter.js";
 import { log } from "./logger.js";
 
+interface ContentBlock {
+  type: "text" | "image";
+  text?: string;
+  source?: {
+    type: "base64";
+    media_type: string;
+    data: string;
+  };
+}
+
 export async function executeAgent(
   route: ResolvedRoute,
   msg: InboundMessage,
@@ -34,9 +44,45 @@ export async function executeAgent(
     existsSync(logPath) ? logPath : undefined,
   );
 
-  log.debug(`Executing ${agentId}: ${formattedMessage.slice(0, 200)}`);
+  // Build stdin payload — multimodal JSON if images attached, plain text otherwise
+  const hasImages = msg.attachments && msg.attachments.length > 0;
+  let stdinPayload: string;
 
-  // Build claude -p command (prompt piped via stdin to avoid arg issues with special chars)
+  if (hasImages) {
+    const contentBlocks: ContentBlock[] = [
+      { type: "text", text: formattedMessage },
+    ];
+
+    for (const att of msg.attachments!) {
+      try {
+        const imgBuffer = readFileSync(att.path);
+        const mimeType = att.mimeType || guessMimeType(att.path);
+        if (imgBuffer.length > 10_000_000) {
+          log.warn(`Skipping oversized image: ${att.path} (${imgBuffer.length} bytes)`);
+          continue;
+        }
+        contentBlocks.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: mimeType,
+            data: imgBuffer.toString("base64"),
+          },
+        });
+        log.debug(`Attached image: ${att.path} (${mimeType}, ${imgBuffer.length} bytes)`);
+      } catch (err) {
+        log.warn(`Failed to read attachment ${att.path}: ${err}`);
+      }
+    }
+
+    stdinPayload = JSON.stringify([{ role: "user", content: contentBlocks }]);
+    log.debug(`Executing ${agentId} with ${contentBlocks.length - 1} image(s): ${formattedMessage.slice(0, 200)}`);
+  } else {
+    stdinPayload = formattedMessage;
+    log.debug(`Executing ${agentId}: ${formattedMessage.slice(0, 200)}`);
+  }
+
+  // Build claude -p command
   const args = [
     "-p",
     "-",
@@ -57,7 +103,7 @@ export async function executeAgent(
   let response: string;
 
   try {
-    response = await spawnClaude(args, workspace, timeout, formattedMessage);
+    response = await spawnClaude(args, workspace, timeout, stdinPayload);
   } catch (err) {
     log.error(`Agent ${agentId} execution failed: ${err}`);
     return `Sorry, I ran into an error processing that request.`;
@@ -88,9 +134,10 @@ export async function executeAgent(
 
 function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    // Remove CLAUDECODE env var to avoid nesting detection
+    // Remove env vars that trigger Claude Code nesting detection
     const env = { ...process.env };
     delete env.CLAUDECODE;
+    delete env.CLAUDE_CODE_ENTRYPOINT;
 
     const proc = spawn("claude", args, {
       cwd,
@@ -123,7 +170,7 @@ function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: s
     proc.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) {
-        log.warn(`claude -p exited with code ${code}: ${stderr.slice(0, 500)}`);
+        log.warn(`claude -p exited with code ${code} stderr: ${stderr.slice(0, 500)} stdout: ${stdout.slice(0, 500)}`);
         reject(new Error(`claude -p exited with code ${code}`));
       } else {
         resolve(stdout.trim());
@@ -157,6 +204,19 @@ async function autoCommit(
   } catch (err) {
     log.warn(`Auto-commit failed for ${agentId}: ${err}`);
   }
+}
+
+function guessMimeType(path: string): string {
+  const ext = path.split(".").pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    heic: "image/heic",
+  };
+  return map[ext || ""] || "image/png";
 }
 
 function runGit(cwd: string, args: string[]): Promise<string> {

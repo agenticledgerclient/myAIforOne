@@ -48,8 +48,8 @@ export class IMessageDriver implements ChannelDriver {
       }
     });
 
-    // Subscribe to message watch
-    await this.client.request("watch.subscribe", { attachments: false });
+    // Subscribe to message watch (attachments enabled for image support)
+    await this.client.request("watch.subscribe", { attachments: true });
     log.info("iMessage driver started — watching for messages");
   }
 
@@ -76,7 +76,7 @@ export class IMessageDriver implements ChannelDriver {
   }
 
   private handleRawMessage(raw: ImsgMessage): void {
-    if (!raw.text?.trim()) return;
+    if (!raw.text?.trim() && !raw.attachments?.length) return;
 
     // Debounce: coalesce rapid messages from same sender in same chat
     const key = `${raw.chat_id}:${raw.sender}`;
@@ -123,10 +123,7 @@ export class IMessageDriver implements ChannelDriver {
             sender: first.reply_to_sender ?? undefined,
           }
         : undefined,
-      attachments: first.attachments?.map((a) => ({
-        path: a.path,
-        mimeType: a.mime_type,
-      })),
+      attachments: this.collectImageAttachments(messages),
       raw: messages.length === 1 ? first : messages,
     };
 
@@ -135,5 +132,21 @@ export class IMessageDriver implements ChannelDriver {
         log.error(`Message handler error: ${err}`);
       });
     }
+  }
+
+  private collectImageAttachments(messages: ImsgMessage[]): Array<{ path: string; mimeType?: string }> | undefined {
+    const imageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/heic"];
+    const attachments: Array<{ path: string; mimeType?: string }> = [];
+
+    for (const msg of messages) {
+      if (!msg.attachments?.length) continue;
+      for (const a of msg.attachments) {
+        if (a.mime_type && imageTypes.includes(a.mime_type)) {
+          attachments.push({ path: a.path, mimeType: a.mime_type });
+        }
+      }
+    }
+
+    return attachments.length > 0 ? attachments : undefined;
   }
 }

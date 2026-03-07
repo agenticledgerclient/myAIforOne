@@ -79,6 +79,11 @@ export function formatMessage(
     body += `\n\n[Replying to ${replySender}]\n${msg.replyTo.text}\n[/Replying]`;
   }
 
+  // Attachment note
+  if (msg.attachments?.length) {
+    body += `\n\n[${msg.attachments.length} image(s) attached — visible in this message. Save them to the appropriate episode folder and reference in the episode JSON.]`;
+  }
+
   parts.push(`${header}\n${body}\n[/${msg.channel}]`);
 
   return parts.join("\n\n");

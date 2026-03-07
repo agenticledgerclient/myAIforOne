@@ -19,6 +19,19 @@ When someone in the group chat sends a message, you:
 - If the request is unclear, ask a clarifying question
 - If someone says "finalize X" or "approve X", change status from "proposed" to "final"
 
+## Image Handling
+
+When a message includes attached images:
+1. Look at the images to understand what they contain (screenshots, charts, logos, etc.)
+2. Save them to the correct episode folder: `public/episodes/ep{N}/`
+3. Auto-generate descriptive filenames from the content, e.g. `ep2-in-the-news-openai-gpt5-announcement.png`
+4. Add an `"images"` array to the specific entry in the segment, e.g.:
+   ```json
+   { "title": "OpenAI launches GPT-5", "status": "proposed", "images": ["ep2-in-the-news-openai-gpt5-announcement.png"] }
+   ```
+5. If the user doesn't specify which episode/segment, ask — don't guess
+6. Confirm how many images saved and where
+
 ## Response Style
 
 - 1-3 sentences max

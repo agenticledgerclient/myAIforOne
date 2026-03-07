@@ -1,7 +1,18 @@
+import { writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { WebClient } from "@slack/web-api";
 import { SocketModeClient } from "@slack/socket-mode";
 import type { ChannelDriver, InboundMessage, OutboundMessage } from "./types.js";
 import { log } from "../logger.js";
+
+interface SlackFile {
+  id: string;
+  name: string;
+  mimetype: string;
+  url_private_download?: string;
+  size: number;
+}
 
 interface SlackMessageEvent {
   type: "message";
@@ -12,6 +23,7 @@ interface SlackMessageEvent {
   ts: string;
   thread_ts?: string;
   channel_type: "channel" | "group" | "im" | "mpim";
+  files?: SlackFile[];
 }
 
 export class SlackDriver implements ChannelDriver {
@@ -19,6 +31,7 @@ export class SlackDriver implements ChannelDriver {
 
   private web: WebClient;
   private socket: SocketModeClient;
+  private botToken: string;
   private messageHandler: ((msg: InboundMessage) => Promise<void>) | null = null;
   private botUserId: string | null = null;
 
@@ -30,6 +43,7 @@ export class SlackDriver implements ChannelDriver {
       throw new Error("Slack driver requires botToken and appToken in config");
     }
 
+    this.botToken = botToken;
     this.web = new WebClient(botToken);
     this.socket = new SocketModeClient({
       appToken,
@@ -81,13 +95,16 @@ export class SlackDriver implements ChannelDriver {
     });
   }
 
-  private handleEvent(event: SlackMessageEvent): void {
+  private async handleEvent(event: SlackMessageEvent): Promise<void> {
     // Skip bot's own messages, subtypes (edits, joins, etc.), and empty messages
     if (event.user === this.botUserId) return;
     if (event.subtype) return;
-    if (!event.text?.trim()) return;
+    if (!event.text?.trim() && !event.files?.length) return;
 
     const isGroup = event.channel_type === "channel" || event.channel_type === "group";
+
+    // Download image attachments from Slack
+    const attachments = await this.downloadFiles(event.files);
 
     const inbound: InboundMessage = {
       id: event.ts,
@@ -95,22 +112,58 @@ export class SlackDriver implements ChannelDriver {
       chatId: event.channel,
       chatType: isGroup ? "group" : "dm",
       sender: event.user,
-      text: event.text,
+      text: event.text || "",
       timestamp: Math.floor(parseFloat(event.ts) * 1000),
       isFromMe: false,
       isGroup,
       replyTo: event.thread_ts
         ? { id: event.thread_ts, text: "" }
         : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
       raw: event,
     };
 
-    log.debug(`Slack received from ${event.user} in ${event.channel}: ${event.text.slice(0, 100)}`);
+    log.debug(`Slack received from ${event.user} in ${event.channel}: ${(event.text || "").slice(0, 100)}${attachments.length ? ` [${attachments.length} image(s)]` : ""}`);
 
     if (this.messageHandler) {
       this.messageHandler(inbound).catch((err) => {
         log.error(`Slack message handler error: ${err}`);
       });
     }
+  }
+
+  private async downloadFiles(files?: SlackFile[]): Promise<Array<{ path: string; mimeType?: string }>> {
+    if (!files?.length) return [];
+
+    const imageFiles = files.filter((f) =>
+      f.mimetype?.startsWith("image/") && f.url_private_download && f.size < 10_000_000
+    );
+    if (imageFiles.length === 0) return [];
+
+    const downloadDir = join(tmpdir(), "channelToAgent-slack-images");
+    mkdirSync(downloadDir, { recursive: true });
+
+    const results: Array<{ path: string; mimeType?: string }> = [];
+
+    for (const file of imageFiles) {
+      try {
+        const resp = await fetch(file.url_private_download!, {
+          headers: { Authorization: `Bearer ${this.botToken}` },
+        });
+        if (!resp.ok) {
+          log.warn(`Failed to download Slack file ${file.name}: ${resp.status}`);
+          continue;
+        }
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        const localPath = join(downloadDir, `${file.id}-${file.name}`);
+        writeFileSync(localPath, buffer);
+        results.push({ path: localPath, mimeType: file.mimetype });
+        log.debug(`Downloaded Slack file: ${file.name} (${buffer.length} bytes)`);
+      } catch (err) {
+        log.warn(`Error downloading Slack file ${file.name}: ${err}`);
+      }
+    }
+
+    return results;
   }
 }
