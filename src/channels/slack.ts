@@ -8,10 +8,12 @@ import { log } from "../logger.js";
 
 interface SlackFile {
   id: string;
-  name: string;
-  mimetype: string;
+  name?: string;
+  mimetype?: string;
+  filetype?: string;
   url_private_download?: string;
-  size: number;
+  size?: number;
+  file_access?: string;
 }
 
 interface SlackMessageEvent {
@@ -96,9 +98,10 @@ export class SlackDriver implements ChannelDriver {
   }
 
   private async handleEvent(event: SlackMessageEvent): Promise<void> {
-    // Skip bot's own messages, subtypes (edits, joins, etc.), and empty messages
+    // Log raw event keys to debug file attachments
+    // Skip bot's own messages, most subtypes (edits, joins, etc.), and empty messages
     if (event.user === this.botUserId) return;
-    if (event.subtype) return;
+    if (event.subtype && event.subtype !== "file_share") return;
     if (!event.text?.trim() && !event.files?.length) return;
 
     const isGroup = event.channel_type === "channel" || event.channel_type === "group";
@@ -135,32 +138,50 @@ export class SlackDriver implements ChannelDriver {
   private async downloadFiles(files?: SlackFile[]): Promise<Array<{ path: string; mimeType?: string }>> {
     if (!files?.length) return [];
 
-    const imageFiles = files.filter((f) =>
-      f.mimetype?.startsWith("image/") && f.url_private_download && f.size < 10_000_000
-    );
-    if (imageFiles.length === 0) return [];
-
+    const imageTypes = ["png", "jpg", "jpeg", "gif", "webp", "heic", "bmp"];
     const downloadDir = join(tmpdir(), "channelToAgent-slack-images");
     mkdirSync(downloadDir, { recursive: true });
 
     const results: Array<{ path: string; mimeType?: string }> = [];
 
-    for (const file of imageFiles) {
+    for (const file of files) {
       try {
-        const resp = await fetch(file.url_private_download!, {
+        // Socket Mode gives minimal file info — fetch full details via API
+        const info = await this.web.files.info({ file: file.id });
+        const fullFile = info.file as Record<string, unknown> | undefined;
+        if (!fullFile) {
+          log.warn(`Slack files.info returned no file for ${file.id}`);
+          continue;
+        }
+
+        const mimetype = fullFile.mimetype as string | undefined;
+        const filetype = fullFile.filetype as string | undefined;
+        const name = (fullFile.name as string) || `${file.id}.${filetype || "png"}`;
+        const size = fullFile.size as number | undefined;
+        const downloadUrl = fullFile.url_private_download as string | undefined;
+
+        // Filter to images under 10MB
+        if (!mimetype?.startsWith("image/") && !imageTypes.includes(filetype || "")) continue;
+        if ((size || 0) > 10_000_000) continue;
+        if (!downloadUrl) {
+          log.warn(`No download URL for Slack file ${name}`);
+          continue;
+        }
+
+        const resp = await fetch(downloadUrl, {
           headers: { Authorization: `Bearer ${this.botToken}` },
         });
         if (!resp.ok) {
-          log.warn(`Failed to download Slack file ${file.name}: ${resp.status}`);
+          log.warn(`Failed to download Slack file ${name}: ${resp.status}`);
           continue;
         }
         const buffer = Buffer.from(await resp.arrayBuffer());
-        const localPath = join(downloadDir, `${file.id}-${file.name}`);
+        const localPath = join(downloadDir, `${file.id}-${name}`);
         writeFileSync(localPath, buffer);
-        results.push({ path: localPath, mimeType: file.mimetype });
-        log.debug(`Downloaded Slack file: ${file.name} (${buffer.length} bytes)`);
+        results.push({ path: localPath, mimeType: mimetype });
+        log.debug(`Downloaded Slack file: ${name} (${buffer.length} bytes)`);
       } catch (err) {
-        log.warn(`Error downloading Slack file ${file.name}: ${err}`);
+        log.warn(`Error downloading Slack file ${file.id}: ${err}`);
       }
     }
 
