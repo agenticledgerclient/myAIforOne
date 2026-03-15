@@ -103,6 +103,32 @@ function buildSkillIndex(skillNames: string[]): string {
   return lines.join("\n");
 }
 
+// ─── MCP key loader ──────────────────────────────────────────────────
+
+/**
+ * Load env vars from data/mcp-keys/<name>.env
+ * Format: KEY=value (one per line, # comments, blank lines ignored)
+ */
+function loadMcpKeys(baseDir: string, mcpName: string): Record<string, string> {
+  const envPath = join(baseDir, "data", "mcp-keys", `${mcpName}.env`);
+  if (!existsSync(envPath)) return {};
+
+  const vars: Record<string, string> = {};
+  try {
+    const content = readFileSync(envPath, "utf-8");
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx < 1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim();
+      if (val) vars[key] = val; // only include non-empty values
+    }
+  } catch { /* ignore */ }
+  return vars;
+}
+
 // ─── MCP config builder ─────────────────────────────────────────────
 
 function buildMcpConfigFile(
@@ -111,25 +137,52 @@ function buildMcpConfigFile(
   mcpRegistry: Record<string, McpServerConfig>,
   baseDir: string,
 ): string {
+  const home = process.env.HOME || process.env.USERPROFILE || "";
   const mcpServers: Record<string, any> = {};
 
   for (const name of mcpNames) {
     const def = mcpRegistry[name];
     if (def.type === "stdio") {
       const args = (def.args || []).map((a) =>
-        a.startsWith("~") ? a.replace("~", process.env.HOME || process.env.USERPROFILE || "") : a,
+        a.startsWith("~") ? a.replace("~", home) : a,
       );
+
+      // Merge env: config.json values < .env file values (file overrides)
+      const configEnv = { ...(def.env || {}) };
+      const fileEnv = loadMcpKeys(baseDir, name);
+
+      // Remove empty-string values from config (they're just templates)
+      const mergedEnv: Record<string, string> = {};
+      for (const [k, v] of Object.entries(configEnv)) {
+        if (v) mergedEnv[k] = v;
+      }
+      // File keys override config keys
+      Object.assign(mergedEnv, fileEnv);
+
       mcpServers[name] = {
         command: def.command,
         args,
-        env: def.env || {},
+        env: mergedEnv,
       };
     } else {
       const httpDef = def as McpServerHttp;
+
+      // For HTTP MCPs, check if headers have ${VAR} references and resolve from .env
+      const headers = { ...(httpDef.headers || {}) };
+      const fileEnv = loadMcpKeys(baseDir, name);
+      for (const [hk, hv] of Object.entries(headers)) {
+        if (typeof hv === "string" && hv.includes("${")) {
+          // Replace ${VAR_NAME} with value from .env file
+          headers[hk] = hv.replace(/\$\{(\w+)\}/g, (_, varName) => {
+            return fileEnv[varName] || process.env[varName] || "";
+          });
+        }
+      }
+
       mcpServers[name] = {
         type: def.type,
         url: httpDef.url,
-        headers: httpDef.headers || {},
+        headers,
       };
     }
   }
