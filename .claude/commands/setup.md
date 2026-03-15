@@ -150,22 +150,24 @@ Generate a random webhook secret: use `node -e "console.log(require('crypto').ra
 
 ## Step 5: Create First Agent
 
-Ask the user to create their first agent:
+Every setup gets a general-purpose agent. Just ask for a name and alias — everything else is pre-configured.
 
 ```
-Let's create your first agent — this is the Claude you'll chat with from your phone.
+Let's create your agent — this is the Claude you'll chat with from your phone.
 
-Agent name (e.g., "My Assistant"):
-Alias — the @mention trigger (e.g., "@assistant"):
-What should it do? (e.g., "General-purpose coding and research assistant"):
-Workspace — directory it can access (~ for everything, or a specific path):
+What do you want to call it? (default: "My Agent"):
+What @mention should trigger it? (default: "@agent"):
 ```
 
-Defaults:
-- Persistent: true
-- Streaming: true (for web UI)
-- Tools: all (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch)
-- MCPs: none initially
+That's it — just those two questions. Use defaults if they press enter.
+
+Pre-configured settings (don't ask, just set):
+- **Persistent:** true (remembers conversations)
+- **Streaming:** true (live output in web UI)
+- **Workspace:** ~ (full home directory access)
+- **Tools:** all (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch)
+- **MCPs:** none initially (they can add later from the web UI)
+- **Description:** "General-purpose Claude agent accessible from phone. Helps with coding, research, file management, and anything else."
 
 ## Step 6: Create Agent Folder
 
