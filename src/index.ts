@@ -2,11 +2,15 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
 import { configureLogger, log } from "./logger.js";
-import { resolveRoute } from "./router.js";
-import { executeAgent } from "./executor.js";
+import { resolveRoute, isPairingAttempt, pairSender } from "./router.js";
+import { executeAgent, executeAgentStreaming } from "./executor.js";
 import { IMessageDriver } from "./channels/imessage.js";
 import { SlackDriver } from "./channels/slack.js";
 import { WhatsAppDriver } from "./channels/whatsapp.js";
+import { TelegramDriver } from "./channels/telegram.js";
+import { DiscordDriver } from "./channels/discord.js";
+import { startWebUI } from "./web-ui.js";
+import { startCronJobs, stopCronJobs } from "./cron.js";
 import type { ChannelDriver, InboundMessage } from "./channels/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +25,7 @@ async function main(): Promise<void> {
   log.info("channelToAgentToClaude starting...");
 
   const drivers: ChannelDriver[] = [];
+  const driverMap = new Map<string, ChannelDriver>();
 
   // Initialize enabled channel drivers
   for (const [channelId, channelCfg] of Object.entries(config.channels)) {
@@ -41,6 +46,12 @@ async function main(): Promise<void> {
       case "whatsapp":
         driver = new WhatsAppDriver(channelCfg.config);
         break;
+      case "telegram":
+        driver = new TelegramDriver(channelCfg.config);
+        break;
+      case "discord":
+        driver = new DiscordDriver(channelCfg.config);
+        break;
       default:
         log.warn(`Unknown channel driver "${channelCfg.driver}" for "${channelId}", skipping`);
         continue;
@@ -48,39 +59,74 @@ async function main(): Promise<void> {
 
     // Wire up message handling
     driver.onMessage(async (msg: InboundMessage) => {
+      // Feature 4: DM pairing gate
+      if (isPairingAttempt(msg, config, baseDir)) {
+        pairSender(msg, baseDir);
+        try {
+          await driver.send({
+            text: "Paired successfully. You can now message my agents.",
+            chatId: msg.chatId,
+          });
+        } catch { /* ignore */ }
+        return;
+      }
+
       // Route to agent
-      const match = resolveRoute(msg, config);
+      const match = resolveRoute(msg, config, baseDir);
       if (!match) return;
 
       log.info(`${match.agentId} <- ${msg.sender}: ${msg.text.slice(0, 80)}`);
 
-      // Send thinking indicator (non-fatal if it fails)
+      // Feature 2: Typing indicator
+      if (driver.sendTyping) {
+        driver.sendTyping(msg.chatId).catch(() => {});
+      }
+
+      // Send thinking indicator
+      if (driver.sendTyping) {
+        driver.sendTyping(msg.chatId).catch(() => {});
+      }
       try {
-        await driver.send({
-          text: "On it...",
-          chatId: msg.chatId,
-        });
+        await driver.send({ text: "On it...", chatId: msg.chatId });
       } catch (err) {
         log.warn(`Failed to send thinking indicator: ${err}`);
       }
 
-      // Execute agent
-      const response = await executeAgent(match, msg, baseDir);
+      // Execute agent — streaming or regular
+      let response: string;
+
+      if (match.agentConfig.streaming) {
+        // Streaming mode: send status updates to phone channel
+        let lastStatus = "";
+        let fullText = "";
+        for await (const event of executeAgentStreaming(match, msg, baseDir, config.mcps)) {
+          if (event.type === "status" && event.data !== lastStatus) {
+            lastStatus = event.data;
+            // Send status updates (throttle — only unique ones)
+            if (driver.sendTyping) {
+              driver.sendTyping(msg.chatId).catch(() => {});
+            }
+          } else if (event.type === "text") {
+            fullText += event.data;
+          } else if (event.type === "done") {
+            response = event.data || fullText;
+          } else if (event.type === "error") {
+            response = `Error: ${event.data}`;
+          }
+        }
+        response = response! || fullText || "No response from agent.";
+      } else {
+        response = await executeAgent(match, msg, baseDir, config.mcps);
+      }
 
       // Reply via originating channel (retry once on failure)
       try {
-        await driver.send({
-          text: response,
-          chatId: msg.chatId,
-        });
+        await driver.send({ text: response, chatId: msg.chatId });
       } catch (err) {
         log.warn(`Send failed, retrying in 2s: ${err}`);
         await new Promise((r) => setTimeout(r, 2000));
         try {
-          await driver.send({
-            text: response,
-            chatId: msg.chatId,
-          });
+          await driver.send({ text: response, chatId: msg.chatId });
         } catch (retryErr) {
           log.error(`Send retry failed: ${retryErr}`);
         }
@@ -90,6 +136,7 @@ async function main(): Promise<void> {
     });
 
     drivers.push(driver);
+    driverMap.set(channelId, driver);
   }
 
   if (drivers.length === 0) {
@@ -102,6 +149,56 @@ async function main(): Promise<void> {
     await driver.start();
   }
 
+  // ─── Feature 7: Cron jobs ──────────────────────────────────────────
+  const cronMessageHandler = async (agentId: string, message: string, channel: string, chatId: string) => {
+    const agent = config.agents[agentId];
+    if (!agent) return;
+
+    // Build a synthetic inbound message for the executor
+    const syntheticMsg: InboundMessage = {
+      id: `cron-${Date.now()}`,
+      channel,
+      chatId,
+      chatType: "group",
+      sender: "cron",
+      senderName: "Scheduled Task",
+      text: message,
+      timestamp: Date.now(),
+      isFromMe: false,
+      isGroup: true,
+      raw: { type: "cron" },
+    };
+
+    const route = { agentId, agentConfig: agent, route: agent.routes[0] };
+    const response = await executeAgent(route, syntheticMsg, baseDir, config.mcps);
+
+    // Send response to the configured channel
+    const driver = driverMap.get(channel);
+    if (driver) {
+      try {
+        await driver.send({ text: response, chatId });
+      } catch (err) {
+        log.error(`Cron response send failed for ${agentId}: ${err}`);
+      }
+    }
+  };
+
+  startCronJobs(config, cronMessageHandler);
+
+  // ─── Feature 6 + 9: Web UI + Webhooks ─────────────────────────────
+  const webUI = config.service.webUI;
+  if (webUI?.enabled) {
+    startWebUI({
+      config,
+      baseDir,
+      port: webUI.port || 8080,
+      webhookSecret: webUI.webhookSecret,
+      onWebhookMessage: async (agentId, text, channel, chatId) => {
+        await cronMessageHandler(agentId, text, channel, chatId);
+      },
+    });
+  }
+
   const agentCount = Object.keys(config.agents).length;
   log.info(
     `channelToAgentToClaude running — ${agentCount} agent(s), ${drivers.length} channel(s)`
@@ -110,6 +207,7 @@ async function main(): Promise<void> {
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     log.info(`Received ${signal}, shutting down...`);
+    stopCronJobs();
     for (const driver of drivers) {
       await driver.stop();
     }

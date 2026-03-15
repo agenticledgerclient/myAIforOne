@@ -1,0 +1,7 @@
+{
+  "id": "fic-platform",
+  "name": "FIC Platform Agent",
+  "description": "Manages the financeiscooked platform via MCP tools (episodes, segments, slides, votes)",
+  "version": "1.0.0",
+  "created": "2026-03-12"
+}

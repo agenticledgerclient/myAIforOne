@@ -18,6 +18,34 @@ export interface RouteConfig {
   permissions: RoutePermissions;
 }
 
+// ─── MCP Server definitions ──────────────────────────────────────────
+
+export interface McpServerStdio {
+  type: "stdio";
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+export interface McpServerHttp {
+  type: "http" | "sse";
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export type McpServerConfig = McpServerStdio | McpServerHttp;
+
+// ─── Cron job config ─────────────────────────────────────────────────
+
+export interface CronJobConfig {
+  schedule: string;       // cron expression (e.g., "0 9 * * *")
+  message: string;        // message to send to the agent
+  channel: string;        // which channel to reply on
+  chatId: string;         // which chat to reply in
+}
+
+// ─── Agent config ────────────────────────────────────────────────────
+
 export interface AgentConfig {
   name: string;
   description: string;
@@ -25,12 +53,23 @@ export interface AgentConfig {
   claudeMd: string;
   memoryDir: string;
   skills?: string[];
+  mcps?: string[];
+  persistent?: boolean;
+  perSenderSessions?: boolean;
+  streaming?: boolean;
+  org?: Array<{
+    organization: string;
+    function: string;
+    title: string;
+    reportsTo?: string;
+  }>;
   autoCommit: boolean;
   autoCommitBranch: string;
   allowedTools: string[];
   mentionAliases?: string[];
   routes: RouteConfig[];
   timeout?: number;
+  cron?: CronJobConfig[];
 }
 
 export interface ChannelConfig {
@@ -39,15 +78,26 @@ export interface ChannelConfig {
   config: Record<string, unknown>;
 }
 
+// ─── Web UI config ───────────────────────────────────────────────────
+
+export interface WebUIConfig {
+  enabled: boolean;
+  port: number;
+  webhookSecret?: string;
+}
+
 export interface ServiceConfig {
   logLevel: LogLevel;
   logFile?: string;
+  pairingCode?: string;
+  webUI?: WebUIConfig;
 }
 
 export interface AppConfig {
   service: ServiceConfig;
   channels: Record<string, ChannelConfig>;
   agents: Record<string, AgentConfig>;
+  mcps?: Record<string, McpServerConfig>;
   defaultAgent: string | null;
 }
 
@@ -82,9 +132,23 @@ export function loadConfig(configPath: string): AppConfig {
       throw new Error(`Agent "${id}" must have a claudeMd path`);
     }
 
-    // Resolve ~ in workspace path
-    if (agent.workspace.startsWith("~")) {
-      agent.workspace = agent.workspace.replace("~", process.env.HOME || "");
+    // Resolve ~ in paths
+    const resolveTilde = (p: string) =>
+      p.startsWith("~") ? p.replace("~", process.env.HOME || "") : p;
+    agent.workspace = resolveTilde(agent.workspace);
+    agent.claudeMd = resolveTilde(agent.claudeMd);
+    agent.memoryDir = resolveTilde(agent.memoryDir);
+
+    // Validate MCP references
+    if (agent.mcps && agent.mcps.length > 0) {
+      if (!config.mcps || Object.keys(config.mcps).length === 0) {
+        throw new Error(`Agent "${id}" references MCPs but no "mcps" registry is defined in config`);
+      }
+      for (const mcpName of agent.mcps) {
+        if (!config.mcps[mcpName]) {
+          throw new Error(`Agent "${id}" references MCP "${mcpName}" which is not defined in config.mcps`);
+        }
+      }
     }
 
     // Set defaults
@@ -92,6 +156,19 @@ export function loadConfig(configPath: string): AppConfig {
     agent.autoCommitBranch = agent.autoCommitBranch ?? "main";
     agent.allowedTools = agent.allowedTools ?? ["Read", "Edit", "Write", "Glob", "Grep", "Bash"];
     agent.timeout = agent.timeout ?? 120_000;
+  }
+
+  // Validate MCP definitions
+  if (config.mcps) {
+    for (const [mcpId, mcp] of Object.entries(config.mcps)) {
+      if (mcp.type === "stdio") {
+        if (!mcp.command) throw new Error(`MCP "${mcpId}" (stdio) must have a "command" field`);
+      } else if (mcp.type === "http" || mcp.type === "sse") {
+        if (!(mcp as McpServerHttp).url) throw new Error(`MCP "${mcpId}" (${mcp.type}) must have a "url" field`);
+      } else {
+        throw new Error(`MCP "${mcpId}" has unknown type "${(mcp as any).type}" — must be "stdio", "http", or "sse"`);
+      }
+    }
   }
 
   // Defaults

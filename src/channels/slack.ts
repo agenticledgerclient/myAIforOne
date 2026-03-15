@@ -1,9 +1,10 @@
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { join, basename } from "node:path";
 import { tmpdir } from "node:os";
 import { WebClient } from "@slack/web-api";
 import { SocketModeClient } from "@slack/socket-mode";
 import type { ChannelDriver, InboundMessage, OutboundMessage } from "./types.js";
+import { splitText } from "./types.js";
 import { log } from "../logger.js";
 
 interface SlackFile {
@@ -56,18 +57,15 @@ export class SlackDriver implements ChannelDriver {
   }
 
   async start(): Promise<void> {
-    // Get bot's own user ID so we can ignore our own messages
     const auth = await this.web.auth.test();
     this.botUserId = auth.user_id as string;
     log.info(`Slack bot authenticated as ${auth.user} (${this.botUserId})`);
 
-    // Listen for message events
     this.socket.on("message", async ({ event, ack }) => {
       await ack();
       this.handleEvent(event as SlackMessageEvent);
     });
 
-    // Handle connection events
     this.socket.on("connected", () => {
       log.info("Slack socket mode connected");
     });
@@ -90,23 +88,45 @@ export class SlackDriver implements ChannelDriver {
   }
 
   async send(msg: OutboundMessage): Promise<void> {
-    await this.web.chat.postMessage({
-      channel: msg.chatId,
-      text: msg.text,
-      ...(msg.replyToId ? { thread_ts: msg.replyToId } : {}),
-    });
+    // Slack limit is ~4000 chars (with some overhead for formatting)
+    const chunks = splitText(msg.text, 3900);
+    for (const chunk of chunks) {
+      await this.web.chat.postMessage({
+        channel: msg.chatId,
+        text: chunk,
+        ...(msg.replyToId ? { thread_ts: msg.replyToId } : {}),
+      });
+    }
+  }
+
+  async sendTyping(chatId: string): Promise<void> {
+    try {
+      // Slack doesn't have a direct typing indicator API for bots,
+      // but we can use a subtle reaction or just skip
+      // The "On it..." message in index.ts serves this purpose
+    } catch { /* ignore */ }
+  }
+
+  async sendFile(chatId: string, filePath: string, caption?: string): Promise<void> {
+    try {
+      const content = readFileSync(filePath);
+      await this.web.filesUploadV2({
+        channel_id: chatId,
+        file: content,
+        filename: basename(filePath),
+        initial_comment: caption || undefined,
+      });
+    } catch (err) {
+      log.warn(`Failed to send file to Slack: ${err}`);
+    }
   }
 
   private async handleEvent(event: SlackMessageEvent): Promise<void> {
-    // Log raw event keys to debug file attachments
-    // Skip bot's own messages, most subtypes (edits, joins, etc.), and empty messages
     if (event.user === this.botUserId) return;
     if (event.subtype && event.subtype !== "file_share") return;
     if (!event.text?.trim() && !event.files?.length) return;
 
     const isGroup = event.channel_type === "channel" || event.channel_type === "group";
-
-    // Download image attachments from Slack
     const attachments = await this.downloadFiles(event.files);
 
     const inbound: InboundMessage = {
@@ -146,7 +166,6 @@ export class SlackDriver implements ChannelDriver {
 
     for (const file of files) {
       try {
-        // Socket Mode gives minimal file info — fetch full details via API
         const info = await this.web.files.info({ file: file.id });
         const fullFile = info.file as Record<string, unknown> | undefined;
         if (!fullFile) {
@@ -160,7 +179,6 @@ export class SlackDriver implements ChannelDriver {
         const size = fullFile.size as number | undefined;
         const downloadUrl = fullFile.url_private_download as string | undefined;
 
-        // Filter to images under 10MB
         if (!mimetype?.startsWith("image/") && !imageTypes.includes(filetype || "")) continue;
         if ((size || 0) > 10_000_000) continue;
         if (!downloadUrl) {

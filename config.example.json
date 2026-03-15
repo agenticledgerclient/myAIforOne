@@ -1,7 +1,12 @@
 {
   "service": {
     "logLevel": "debug",
-    "logFile": "./logs/service.log"
+    "logFile": "./logs/service.log",
+    "webUI": {
+      "enabled": true,
+      "port": 8080,
+      "webhookSecret": "CHANGE_ME_random_string"
+    }
   },
 
   "channels": {
@@ -15,12 +20,26 @@
       }
     },
     "slack": {
-      "enabled": true,
+      "enabled": false,
       "driver": "slack",
       "config": {
         "botToken": "xoxb-YOUR-BOT-TOKEN",
         "appToken": "xapp-YOUR-APP-TOKEN",
         "mode": "socket"
+      }
+    },
+    "telegram": {
+      "enabled": false,
+      "driver": "telegram",
+      "config": {
+        "botToken": "YOUR_BOT_TOKEN_FROM_BOTFATHER"
+      }
+    },
+    "discord": {
+      "enabled": false,
+      "driver": "discord",
+      "config": {
+        "botToken": "YOUR_DISCORD_BOT_TOKEN"
       }
     },
     "whatsapp": {
@@ -32,53 +51,33 @@
     }
   },
 
+  "mcps": {},
+
   "agents": {
-    "fic-show": {
-      "name": "FIC Show Agent",
-      "description": "Manages episode content for Finance Is Cooked YouTube show",
-      "workspace": "~/Desktop/APPs/financeiscooked",
-      "claudeMd": "./agents/fic-show/CLAUDE.md",
-      "memoryDir": "./agents/fic-show/memory",
-      "skills": ["update-episode"],
-      "mentionAliases": ["@producer"],
-      "autoCommit": true,
-      "autoCommitBranch": "main",
+    "my-agent": {
+      "name": "My Agent",
+      "description": "General-purpose Claude agent accessible from phone",
+      "workspace": "~",
+      "claudeMd": "~/Desktop/personalAgents/my-agent/CLAUDE.md",
+      "memoryDir": "~/Desktop/personalAgents/my-agent/memory",
+      "persistent": true,
+      "mentionAliases": ["@myagent"],
+      "autoCommit": false,
       "allowedTools": [
         "Read", "Edit", "Write",
-        "Glob", "Grep", "Bash"
+        "Glob", "Grep", "Bash",
+        "WebFetch", "WebSearch"
       ],
       "routes": [
         {
-          "channel": "imessage",
+          "channel": "telegram",
           "match": {
             "type": "chat_id",
-            "value": 0
+            "value": "YOUR_CHAT_ID"
           },
           "permissions": {
             "allowFrom": ["*"],
-            "requireMention": true
-          }
-        },
-        {
-          "channel": "slack",
-          "match": {
-            "type": "channel_id",
-            "value": "YOUR_CHANNEL_ID"
-          },
-          "permissions": {
-            "allowFrom": ["*"],
-            "requireMention": true
-          }
-        },
-        {
-          "channel": "whatsapp",
-          "match": {
-            "type": "jid",
-            "value": "YOUR_GROUP_JID@g.us"
-          },
-          "permissions": {
-            "allowFrom": ["*"],
-            "requireMention": true
+            "requireMention": false
           }
         }
       ]

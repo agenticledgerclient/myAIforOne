@@ -1,4 +1,5 @@
 import type { ChannelDriver, InboundMessage, OutboundMessage } from "./types.js";
+import { splitText } from "./types.js";
 import { ImsgRpcClient } from "../utils/imsg-rpc.js";
 import { log } from "../logger.js";
 
@@ -69,10 +70,14 @@ export class IMessageDriver implements ChannelDriver {
   }
 
   async send(msg: OutboundMessage): Promise<void> {
-    await this.client.request("send", {
-      text: msg.text,
-      chat_id: Number(msg.chatId),
-    }, 30_000);
+    // iMessage doesn't have a strict char limit but long messages are unwieldy on phones
+    const chunks = splitText(msg.text, 3000);
+    for (const chunk of chunks) {
+      await this.client.request("send", {
+        text: chunk,
+        chat_id: Number(msg.chatId),
+      }, 30_000);
+    }
   }
 
   private handleRawMessage(raw: ImsgMessage): void {

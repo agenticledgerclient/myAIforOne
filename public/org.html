@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAgent — Org</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg-deep:#060a13;
+  --bg-surface:rgba(12,18,33,0.92);
+  --bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);
+  --border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;
+  --accent-soft:#38bdf8;
+  --accent-bg:rgba(6,182,212,0.15);
+  --accent-glow:rgba(34,211,238,0.12);
+  --purple:rgba(139,92,246,0.7);
+  --purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;
+  --green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;
+  --amber-bg:rgba(251,191,36,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);
+  --shadow-glow:0 0 20px rgba(34,211,238,0.08);
+  --radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+  --line-color:rgba(56,189,248,0.12);
+  --line-glow:rgba(34,211,238,0.25);
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;
+  --bg-surface:rgba(255,255,255,0.95);
+  --bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);
+  --border-dim:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);
+  --text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);
+  --text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;
+  --accent-soft:#0e7490;
+  --accent-bg:rgba(14,116,144,0.08);
+  --accent-glow:rgba(14,116,144,0.06);
+  --purple:rgba(109,40,217,0.75);
+  --purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;
+  --green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;
+  --amber-bg:rgba(217,119,6,0.08);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+  --shadow-glow:none;
+  --line-color:rgba(14,116,144,0.12);
+  --line-glow:rgba(14,116,144,0.2);
+}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);
+  transition:background .3s,color .3s;
+}
+
+/* ─── Top Bar ─────────────────────────────────────────────────── */
+.topbar{
+  height:56px;display:flex;align-items:center;padding:0 24px;
+  background:var(--bg-surface);border-bottom:1px solid var(--border-dim);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  position:fixed;top:0;left:0;right:0;z-index:100;
+}
+.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px}
+.logo-mark{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--accent-bg);border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent);
+}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700}
+
+.tab-group{display:flex;gap:0}
+.tab-btn{
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  color:var(--text-muted);background:none;border:none;
+  padding:16px 20px;cursor:pointer;position:relative;transition:color .2s;
+  text-decoration:none;
+}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{
+  content:'';position:absolute;bottom:0;left:12px;right:12px;
+  height:2px;background:var(--accent);border-radius:1px;
+}
+
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.org-select{
+  font-family:var(--font-mono);font-size:11px;
+  padding:6px 12px;border-radius:8px;
+  border:1px solid var(--border-glow);background:var(--bg-input);
+  color:var(--text-primary);outline:none;cursor:pointer;
+}
+.add-agent-btn-top{
+  font-family:var(--font-sans);font-size:12px;font-weight:600;
+  padding:7px 16px;border-radius:8px;cursor:pointer;
+  border:1px dashed var(--border-glow);background:transparent;
+  color:var(--text-muted);transition:all .2s;
+  display:flex;align-items:center;gap:6px;
+}
+.add-agent-btn-top:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.theme-toggle{
+  width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .2s;
+}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* ─── Canvas ──────────────────────────────────────────────────── */
+.canvas{
+  position:fixed;top:56px;left:0;right:0;bottom:0;
+  overflow:auto;padding:40px;
+}
+
+/* ─── Function Box (department grouping) ─────────────────────── */
+.org-grid{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:32px;padding:20px;
+}
+.function-box{
+  background:var(--bg-card);border:1px solid var(--border-glow);
+  border-radius:16px;padding:0;min-width:280px;max-width:520px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:var(--shadow);overflow:hidden;
+  transition:all .3s;
+}
+.function-box:hover{
+  box-shadow:var(--shadow),var(--shadow-glow);
+}
+.function-header{
+  padding:14px 20px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:10px;
+}
+.function-header-icon{
+  width:28px;height:28px;border-radius:7px;
+  background:var(--purple-bg);border:1px solid var(--purple);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--purple);
+}
+.function-header-name{
+  font-family:var(--font-display);font-size:13px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--purple);
+}
+.function-header-count{
+  margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
+}
+.function-body{padding:16px}
+.function-body .agent-node{margin-bottom:12px}
+.function-body .agent-node:last-child{margin-bottom:0}
+.function-body .agent-node.is-lead{
+  border-color:var(--accent);
+}
+.function-body .agent-node.is-lead .node-title::after{
+  content:' ★';color:var(--amber);
+}
+
+/* Connector between function boxes */
+.inter-box-connectors{
+  width:100%;position:relative;display:flex;justify-content:center;
+  margin:8px 0;
+}
+.connector-label{
+  font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
+  background:var(--bg-deep);padding:2px 10px;border-radius:4px;
+  border:1px solid var(--border-dim);
+}
+
+/* ─── Agent Node ──────────────────────────────────────────────── */
+.agent-node{
+  padding:16px;position:relative;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  border-radius:12px;
+  box-shadow:var(--shadow);cursor:pointer;
+  transition:all .3s;display:flex;align-items:center;gap:14px;
+}
+.agent-node:hover{
+  border-color:var(--border-active);
+  box-shadow:0 4px 24px rgba(0,0,0,0.4),0 0 24px rgba(34,211,238,0.08);
+  transform:translateY(-1px);
+}
+
+.node-avatar{
+  width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  background:var(--accent-bg);border:2px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent);
+  position:relative;
+}
+
+/* Heartbeat pulse for active agents — heart, top-right */
+.node-avatar.active::before{
+  content:'❤';position:absolute;top:-8px;right:-8px;
+  font-size:14px;line-height:1;
+  color:var(--green);opacity:0;
+  filter:drop-shadow(0 0 4px rgba(74,222,128,0.5));
+  animation:heartbeat 1.5s ease-in-out infinite;
+}
+@keyframes heartbeat{
+  0%{transform:scale(1);opacity:.3}
+  15%{transform:scale(1.3);opacity:1}
+  30%{transform:scale(1);opacity:.3}
+  45%{transform:scale(1.2);opacity:.8}
+  60%{transform:scale(1);opacity:.3}
+  100%{opacity:.3}
+}
+
+.node-info{flex:1;min-width:0}
+.node-title{
+  font-family:var(--font-display);font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--accent);
+  margin-bottom:1px;
+}
+.node-name{font-family:var(--font-display);font-size:14px;font-weight:700;margin-bottom:1px}
+.node-alias{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:4px}
+/* ─── Org Title Banner ────────────────────────────────────────── */
+.org-title-banner{
+  font-family:var(--font-display);font-size:15px;font-weight:700;
+  text-align:left;padding:20px 20px 8px;
+  color:var(--accent);letter-spacing:.04em;
+  border-bottom:1px solid var(--border-glow);
+  margin:0 20px 16px;
+}
+
+/* ─── Connector line between hierarchy levels ─────────────────── */
+.level-connector{
+  width:2px;height:40px;margin:0 auto;position:relative;
+  background:var(--line-color);
+  overflow:hidden;
+}
+.level-connector::after{
+  content:'';position:absolute;top:-100%;left:0;width:100%;height:100%;
+  background:linear-gradient(to bottom,transparent,var(--line-glow),transparent);
+  animation:flowDown 2s ease-in-out infinite;
+}
+@keyframes flowDown{
+  0%{top:-100%}
+  100%{top:100%}
+}
+
+.node-func-tag{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  padding:2px 8px;border-radius:4px;
+  background:var(--purple-bg);color:var(--purple);
+  border:1px solid rgba(139,92,246,0.15);
+}
+.node-stats{
+  display:flex;gap:10px;margin-top:4px;
+  font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
+}
+.node-actions{
+  display:flex;flex-direction:column;gap:4px;
+  opacity:0;transition:opacity .2s;flex-shrink:0;
+}
+.agent-node:hover .node-actions{opacity:1}
+.node-btn{
+  font-family:var(--font-mono);font-size:10px;font-weight:500;
+  padding:5px 12px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);transition:all .2s;white-space:nowrap;
+}
+.node-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+/* ─── Flat Grid (All Agents view) ────────────────────────────── */
+.flat-grid{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:20px;padding:20px;
+}
+.flat-grid .agent-node{
+  width:300px;
+}
+
+/* ─── Bench ──────────────────────────────────────────────────── */
+.bench{
+  margin-top:48px;padding-top:24px;
+  border-top:1px solid var(--border-dim);text-align:center;
+}
+.bench-label{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);
+  margin-bottom:16px;
+}
+.bench-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
+.bench-grid .agent-node{width:280px}
+
+/* ─── Empty State ─────────────────────────────────────────────── */
+.empty-org{
+  text-align:center;padding:80px 20px;color:var(--text-muted);
+}
+.empty-org-icon{font-size:48px;opacity:.3;margin-bottom:12px}
+.empty-org-text{font-size:14px;font-weight:500;margin-bottom:4px}
+.empty-org-sub{font-size:12px;opacity:.6}
+
+/* ─── Modal ───────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;
+  animation:fadeIn .2s ease-out;
+}
+.modal-overlay.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.modal{
+  width:580px;max-width:94vw;max-height:88vh;overflow-y:auto;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:16px;padding:0;
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),0 0 60px rgba(34,211,238,0.06);
+  animation:modalIn .25s ease-out;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 16px;border-bottom:1px solid var(--border-dim);
+}
+.modal-title{font-family:var(--font-display);font-size:18px;font-weight:700}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .2s;
+}
+.modal-close:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+.modal-body{padding:20px 24px}
+
+.form-group{margin-bottom:16px}
+.form-label{
+  display:block;font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);
+  margin-bottom:6px;
+}
+.form-input{
+  width:100%;padding:10px 14px;border-radius:10px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-sans);font-size:13px;
+  outline:none;transition:border-color .2s;
+}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--text-muted)}
+.form-input:read-only{opacity:.6;cursor:not-allowed}
+.form-hint{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+
+.form-section{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.12em;color:var(--accent);
+  margin:20px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--border-dim);
+}
+
+.checkbox-group{display:flex;flex-wrap:wrap;gap:6px}
+.checkbox-pill{
+  font-family:var(--font-mono);font-size:10px;font-weight:500;
+  padding:5px 10px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);transition:all .2s;user-select:none;
+}
+.checkbox-pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.checkbox-pill.checked{
+  border-color:var(--accent);background:var(--accent-bg);color:var(--accent);
+}
+
+.modal-footer{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 24px 20px;border-top:1px solid var(--border-dim);
+}
+.modal-footer-hint{font-size:11px;color:var(--text-muted)}
+.btn-save{
+  padding:10px 24px;border-radius:10px;border:none;
+  background:var(--accent);color:#fff;cursor:pointer;
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  transition:all .2s;
+}
+.btn-save:hover{filter:brightness(1.1);transform:scale(1.02)}
+.btn-save:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* Route & org entry rows */
+.route-entry,.org-entry{
+  display:flex;gap:8px;align-items:center;margin-bottom:8px;
+}
+.route-entry select,.route-entry input,.org-entry input{
+  padding:8px 10px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:12px;
+  outline:none;
+}
+.route-entry select{width:110px}
+.route-entry input{flex:1}
+.org-entry input{flex:1}
+.entry-remove{
+  width:28px;height:28px;border-radius:6px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.entry-remove:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
+.add-entry-btn{
+  font-family:var(--font-mono);font-size:11px;color:var(--accent);
+  background:none;border:none;cursor:pointer;padding:4px 0;
+}
+.add-entry-btn:hover{text-decoration:underline}
+
+/* Mention checkbox */
+.mention-cb{
+  display:flex;align-items:center;gap:4px;
+  font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
+  flex-shrink:0;cursor:pointer;
+}
+.mention-cb input{cursor:pointer}
+
+/* ─── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-mark">A</div>
+    <div class="logo-text">MyAgent</div>
+  </div>
+  <div class="tab-group">
+    <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn active" href="/org">Org</a>
+  </div>
+  <div class="topbar-right">
+    <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
+    <button class="add-agent-btn-top" onclick="openModal(null)">
+      <span style="font-size:16px">+</span> New Agent
+    </button>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
+  </div>
+</div>
+
+<div class="canvas" id="canvas"></div>
+
+<!-- Agent Modal (create + edit) -->
+<div class="modal-overlay" id="agentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">New Agent</div>
+      <button class="modal-close" onclick="closeModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Agent ID</label>
+          <input class="form-input" id="f-agentId" placeholder="my-agent" oninput="autoAlias()">
+          <div class="form-hint">Lowercase, hyphens only.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mention Alias</label>
+          <input class="form-input" id="f-alias" placeholder="@myagent">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input class="form-input" id="f-name" placeholder="My Agent">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input class="form-input" id="f-desc" placeholder="What does this agent do?">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Workspace</label>
+        <input class="form-input" id="f-workspace" placeholder="~" value="~">
+        <div class="form-hint">Directory Claude can access.</div>
+      </div>
+
+      <div class="form-section">Session</div>
+      <div class="form-group">
+        <div class="checkbox-group">
+          <div class="checkbox-pill checked" id="f-persistent" onclick="togglePill(this)">Persistent Session</div>
+          <div class="checkbox-pill" id="f-streaming" onclick="togglePill(this)">Streaming</div>
+        </div>
+      </div>
+
+      <div class="form-section">Tools</div>
+      <div class="form-group">
+        <div class="checkbox-group" id="f-tools">
+          <div class="checkbox-pill checked" data-val="Read" onclick="togglePill(this)">Read</div>
+          <div class="checkbox-pill checked" data-val="Edit" onclick="togglePill(this)">Edit</div>
+          <div class="checkbox-pill checked" data-val="Write" onclick="togglePill(this)">Write</div>
+          <div class="checkbox-pill checked" data-val="Glob" onclick="togglePill(this)">Glob</div>
+          <div class="checkbox-pill checked" data-val="Grep" onclick="togglePill(this)">Grep</div>
+          <div class="checkbox-pill checked" data-val="Bash" onclick="togglePill(this)">Bash</div>
+          <div class="checkbox-pill checked" data-val="WebFetch" onclick="togglePill(this)">WebFetch</div>
+          <div class="checkbox-pill checked" data-val="WebSearch" onclick="togglePill(this)">WebSearch</div>
+        </div>
+      </div>
+
+      <div class="form-section">MCPs</div>
+      <div class="form-group">
+        <div class="checkbox-group" id="f-mcps"></div>
+        <div class="form-hint" id="f-mcps-hint">Loading available MCPs...</div>
+      </div>
+
+      <div class="form-section">Organization</div>
+      <div id="orgEntries"></div>
+      <button class="add-entry-btn" onclick="addOrgEntry()">+ Add Org Entry</button>
+
+      <div class="form-section">Routes</div>
+      <div id="routeEntries"></div>
+      <button class="add-entry-btn" onclick="addRouteEntry()">+ Add Route</button>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-hint" id="modalHint">Agent files created in ~/Desktop/personalAgents/</div>
+      <button class="btn-save" id="saveBtn" onclick="saveAgent()">Create Agent</button>
+    </div>
+  </div>
+</div>
+
+<!-- Datalists for org autocomplete -->
+<datalist id="dl-orgs"></datalist>
+<datalist id="dl-functions"></datalist>
+<datalist id="dl-titles"></datalist>
+<datalist id="dl-aliases"></datalist>
+
+<script>
+let agents = [];
+let orgs = [];
+let availableMcps = [];
+let editingAgentId = null; // null = create mode, string = edit mode
+
+// ─── Theme ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'light' ? '' : 'light';
+  html.setAttribute('data-theme', next);
+  document.querySelector('.theme-toggle').textContent = next === 'light' ? '\u{1F319}' : '\u2600';
+  localStorage.setItem('theme', next);
+}
+(function() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved !== null ? saved : (prefersDark ? '' : 'light');
+  if (theme) document.documentElement.setAttribute('data-theme', theme);
+  document.querySelector('.theme-toggle').textContent = theme === 'light' ? '\u{1F319}' : '\u2600';
+})();
+
+// ─── Data ──────────────────────────────────────────────────────
+async function fetchData() {
+  const res = await fetch('/api/dashboard');
+  const data = await res.json();
+  agents = data.agents;
+
+  // Collect unique orgs
+  const orgSet = new Set();
+  orgSet.add('All Agents');
+  for (const a of agents) {
+    for (const o of (a.org || [])) {
+      orgSet.add(o.organization);
+    }
+  }
+  orgs = [...orgSet];
+
+  // Populate dropdown
+  const select = document.getElementById('orgSelect');
+  const prev = select.value;
+  select.innerHTML = orgs.map(o => `<option value="${o}">${o}</option>`).join('');
+  if (prev && orgs.includes(prev)) select.value = prev;
+
+  // Build datalists
+  buildDataLists();
+  renderOrg();
+}
+
+function buildDataLists() {
+  const orgNames = new Set();
+  const funcNames = new Set();
+  const titleNames = new Set();
+  const aliasNames = new Set();
+  for (const a of agents) {
+    for (const al of (a.aliases || [])) aliasNames.add(al);
+    for (const o of (a.org || [])) {
+      orgNames.add(o.organization);
+      if (o.function) funcNames.add(o.function);
+      if (o.title) titleNames.add(o.title);
+    }
+  }
+  document.getElementById('dl-orgs').innerHTML = [...orgNames].map(v => `<option value="${escapeHtml(v)}">`).join('');
+  document.getElementById('dl-functions').innerHTML = [...funcNames].map(v => `<option value="${escapeHtml(v)}">`).join('');
+  document.getElementById('dl-titles').innerHTML = [...titleNames].map(v => `<option value="${escapeHtml(v)}">`).join('');
+  document.getElementById('dl-aliases').innerHTML = [...aliasNames].map(v => `<option value="${escapeHtml(v)}">`).join('');
+}
+
+// ─── Render ────────────────────────────────────────────────────
+function renderOrg() {
+  const selected = document.getElementById('orgSelect').value;
+  const canvas = document.getElementById('canvas');
+
+  if (selected === 'All Agents') {
+    renderFlatGrid(canvas);
+    return;
+  }
+
+  // Find agents in this org
+  const nodesInOrg = [];
+  for (const a of agents) {
+    const orgEntry = (a.org || []).find(o => o.organization === selected);
+    if (orgEntry) {
+      nodesInOrg.push({ ...a, orgData: orgEntry });
+    }
+  }
+
+  if (nodesInOrg.length === 0) {
+    canvas.innerHTML = `<div class="empty-org"><div class="empty-org-icon">&#9671;</div><div class="empty-org-text">No agents in ${escapeHtml(selected)}</div></div>`;
+    return;
+  }
+
+  // Build tree by reportsTo hierarchy
+  const aliasesInOrg = new Set(nodesInOrg.flatMap(n => n.aliases || []));
+
+  // Roots: no reportsTo, or reportsTo someone not in this org
+  const roots = nodesInOrg.filter(n => !n.orgData.reportsTo || !aliasesInOrg.has(n.orgData.reportsTo));
+
+  // Build child map: alias -> children
+  const childMap = {};
+  for (const n of nodesInOrg) {
+    if (n.orgData.reportsTo && aliasesInOrg.has(n.orgData.reportsTo)) {
+      if (!childMap[n.orgData.reportsTo]) childMap[n.orgData.reportsTo] = [];
+      childMap[n.orgData.reportsTo].push(n);
+    }
+  }
+
+  // BFS to build levels
+  const levels = [];
+  let currentLevel = roots;
+  const visited = new Set();
+  while (currentLevel.length > 0) {
+    levels.push(currentLevel);
+    for (const n of currentLevel) visited.add(n.id);
+    const nextLevel = [];
+    for (const node of currentLevel) {
+      for (const alias of (node.aliases || [])) {
+        if (childMap[alias]) {
+          for (const child of childMap[alias]) {
+            if (!visited.has(child.id)) nextLevel.push(child);
+          }
+        }
+      }
+    }
+    currentLevel = nextLevel;
+  }
+
+  // Render tree levels with org title
+  let html = `<div class="org-title-banner">${escapeHtml(selected)}</div>`;
+  html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:0 20px 20px">';
+  for (let i = 0; i < levels.length; i++) {
+    if (i > 0) html += '<div class="level-connector"></div>';
+    html += '<div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">';
+    for (const node of levels[i]) {
+      html += renderNode(node, false, i === 0);
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  canvas.innerHTML = html;
+}
+
+function renderFlatGrid(canvas) {
+  // Group agents by their orgs
+  const orgGroups = {};
+  const noOrg = [];
+  for (const a of agents) {
+    if (!a.org || a.org.length === 0) {
+      noOrg.push(a);
+    } else {
+      // Add to each org they belong to
+      const orgsAdded = new Set();
+      for (const o of a.org) {
+        if (!orgsAdded.has(o.organization)) {
+          if (!orgGroups[o.organization]) orgGroups[o.organization] = [];
+          orgGroups[o.organization].push({ ...a, orgData: o });
+          orgsAdded.add(o.organization);
+        }
+      }
+    }
+  }
+
+  let html = '';
+  for (const orgName of Object.keys(orgGroups)) {
+    html += `<div class="org-title-banner">${escapeHtml(orgName)}</div>`;
+    html += '<div class="flat-grid">';
+    for (const a of orgGroups[orgName]) {
+      html += renderNode(a);
+    }
+    html += '</div>';
+  }
+
+  if (noOrg.length > 0) {
+    html += '<div class="org-title-banner" style="opacity:.5">Unassigned</div>';
+    html += '<div class="flat-grid">';
+    for (const a of noOrg) {
+      html += renderNode(a);
+    }
+    html += '</div>';
+  }
+
+  canvas.innerHTML = html;
+}
+
+function renderNode(a, dimmed, isLead) {
+  const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+  const orgData = a.orgData || (a.org && a.org[0]);
+  const title = orgData?.title || '';
+  const func = orgData?.function || '';
+  const isActive = a.sessionActive;
+  const isRecent = a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000;
+  const opacity = dimmed ? 'opacity:.5;' : '';
+  const leadClass = isLead ? ' is-lead' : '';
+
+  return `<div class="agent-node${leadClass}" style="${opacity};width:300px">
+    <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}">${initials}</div>
+    <div class="node-info">
+      ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
+      <div class="node-name">${escapeHtml(a.name)}</div>
+      <div class="node-alias">${a.aliases?.[0] || a.id}</div>
+      ${func ? `<div style="margin-top:4px"><span class="node-func-tag">${escapeHtml(func)}</span></div>` : ''}
+      <div class="node-stats">
+        <span>${a.messageCount} msgs</span>
+        <span>${a.persistent ? 'persistent' : 'single-shot'}</span>
+      </div>
+    </div>
+    <div class="node-actions">
+      <button class="node-btn" onclick="event.stopPropagation();window.location='/ui#${a.id}'">Chat</button>
+      <button class="node-btn" onclick="event.stopPropagation();openModal('${a.id}')">Config</button>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Modal ─────────────────────────────────────────────────────
+function togglePill(el) {
+  el.classList.toggle('checked');
+}
+
+function autoAlias() {
+  if (editingAgentId) return; // don't auto-alias in edit mode
+  const id = document.getElementById('f-agentId').value.trim();
+  const aliasEl = document.getElementById('f-alias');
+  if (!aliasEl.value || aliasEl.value === '@' + aliasEl.dataset.auto) {
+    const clean = id.replace(/-/g, '');
+    aliasEl.value = clean ? '@' + clean : '';
+    aliasEl.dataset.auto = clean;
+  }
+}
+
+async function openModal(agentId) {
+  editingAgentId = agentId;
+
+  // Fetch MCPs
+  try {
+    const res = await fetch('/api/mcps');
+    const data = await res.json();
+    availableMcps = data.mcps || [];
+  } catch { availableMcps = []; }
+
+  const idField = document.getElementById('f-agentId');
+  const aliasField = document.getElementById('f-alias');
+  const nameField = document.getElementById('f-name');
+  const descField = document.getElementById('f-desc');
+  const wsField = document.getElementById('f-workspace');
+  const persistPill = document.getElementById('f-persistent');
+  const streamPill = document.getElementById('f-streaming');
+
+  if (agentId) {
+    // Edit mode
+    const a = agents.find(x => x.id === agentId);
+    if (!a) return;
+    document.getElementById('modalTitle').textContent = 'Edit Agent';
+    document.getElementById('saveBtn').textContent = 'Save Changes';
+    document.getElementById('modalHint').textContent = 'Changes will rebuild the project.';
+
+    idField.value = agentId;
+    idField.readOnly = true;
+    aliasField.value = a.aliases?.[0] || '';
+    nameField.value = a.name;
+    descField.value = a.description || '';
+    wsField.value = a.workspace || '~';
+
+    if (a.persistent) persistPill.classList.add('checked'); else persistPill.classList.remove('checked');
+    if (a.streaming) streamPill.classList.add('checked'); else streamPill.classList.remove('checked');
+
+    // Tools
+    const agentTools = a.tools || [];
+    document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => {
+      if (agentTools.includes(p.dataset.val)) p.classList.add('checked');
+      else p.classList.remove('checked');
+    });
+
+    // MCPs
+    renderMcpPills(a.mcps || []);
+
+    // Org entries
+    const orgContainer = document.getElementById('orgEntries');
+    orgContainer.innerHTML = '';
+    for (const o of (a.org || [])) {
+      addOrgEntry(o.organization, o.function, o.title, o.reportsTo);
+    }
+
+    // Route entries
+    const routeContainer = document.getElementById('routeEntries');
+    routeContainer.innerHTML = '';
+    for (const r of (a.routes || [])) {
+      const parts = r.split(':');
+      addRouteEntry(parts[0], parts.slice(1).join(':'));
+    }
+  } else {
+    // Create mode
+    document.getElementById('modalTitle').textContent = 'Create New Agent';
+    document.getElementById('saveBtn').textContent = 'Create Agent';
+    document.getElementById('modalHint').textContent = 'Agent files created in ~/Desktop/personalAgents/';
+
+    idField.value = '';
+    idField.readOnly = false;
+    aliasField.value = '';
+    aliasField.dataset.auto = '';
+    nameField.value = '';
+    descField.value = '';
+    wsField.value = '~';
+    persistPill.classList.add('checked');
+    streamPill.classList.remove('checked');
+
+    // Reset tools
+    document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
+
+    // MCPs
+    renderMcpPills([]);
+
+    // Clear org & routes
+    document.getElementById('orgEntries').innerHTML = '';
+    document.getElementById('routeEntries').innerHTML = '';
+    addRouteEntry();
+  }
+
+  document.getElementById('agentModal').classList.add('show');
+}
+
+function renderMcpPills(selectedMcps) {
+  const mcpGroup = document.getElementById('f-mcps');
+  const mcpHint = document.getElementById('f-mcps-hint');
+  if (availableMcps.length > 0) {
+    mcpGroup.innerHTML = availableMcps.map(m => {
+      const checked = selectedMcps.includes(m) ? ' checked' : '';
+      return `<div class="checkbox-pill${checked}" data-val="${m}" onclick="togglePill(this)">${m}</div>`;
+    }).join('');
+    mcpHint.textContent = 'Select which MCP servers this agent can use.';
+  } else {
+    mcpGroup.innerHTML = '';
+    mcpHint.textContent = 'No MCPs registered. Add them in config.json.';
+  }
+}
+
+function closeModal() {
+  document.getElementById('agentModal').classList.remove('show');
+  editingAgentId = null;
+}
+
+function addOrgEntry(org, func, title, reportsTo) {
+  const container = document.getElementById('orgEntries');
+  const div = document.createElement('div');
+  div.className = 'org-entry';
+  div.innerHTML = `
+    <input placeholder="Organization" value="${escapeHtml(org||'')}" list="dl-orgs" style="flex:1">
+    <input placeholder="Function" value="${escapeHtml(func||'')}" list="dl-functions" style="flex:1">
+    <input placeholder="Title" value="${escapeHtml(title||'')}" list="dl-titles" style="flex:1">
+    <input placeholder="Reports To" value="${escapeHtml(reportsTo||'')}" list="dl-aliases" style="flex:0.7">
+    <button class="entry-remove" onclick="this.parentElement.remove()">&times;</button>
+  `;
+  container.appendChild(div);
+}
+
+function addRouteEntry(channel, chatId) {
+  const container = document.getElementById('routeEntries');
+  const channels = agents.length > 0
+    ? [...new Set(agents.flatMap(a => (a.routes||[]).map(r => r.split(':')[0])))]
+    : ['telegram', 'slack', 'imessage', 'discord'];
+
+  const div = document.createElement('div');
+  div.className = 'route-entry';
+  div.innerHTML = `
+    <select>
+      ${channels.map(c => `<option value="${c}" ${c===channel?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <input placeholder="Chat/Channel ID" value="${escapeHtml(chatId||'')}" />
+    <label class="mention-cb"><input type="checkbox" checked> @mention</label>
+    <button class="entry-remove" onclick="this.parentElement.remove()">&times;</button>
+  `;
+  container.appendChild(div);
+}
+
+async function saveAgent() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Saving...';
+
+  const agentId = document.getElementById('f-agentId').value.trim();
+  const alias = document.getElementById('f-alias').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  const description = document.getElementById('f-desc').value.trim();
+  const workspace = document.getElementById('f-workspace').value.trim() || '~';
+  const persistent = document.getElementById('f-persistent').classList.contains('checked');
+  const streaming = document.getElementById('f-streaming').classList.contains('checked');
+
+  const tools = [...document.querySelectorAll('#f-tools .checkbox-pill.checked')]
+    .map(el => el.dataset.val).filter(Boolean);
+
+  const mcps = [...document.querySelectorAll('#f-mcps .checkbox-pill.checked')]
+    .map(el => el.dataset.val).filter(Boolean);
+
+  // Org entries
+  const orgEls = document.querySelectorAll('.org-entry');
+  const org = [...orgEls].map(el => {
+    const inputs = el.querySelectorAll('input');
+    const entry = {
+      organization: inputs[0].value.trim(),
+      function: inputs[1].value.trim(),
+      title: inputs[2].value.trim(),
+    };
+    const rt = inputs[3].value.trim();
+    if (rt) entry.reportsTo = rt;
+    return entry;
+  }).filter(o => o.organization);
+
+  // Routes
+  const routeEls = document.querySelectorAll('.route-entry');
+  const routes = [...routeEls].map(el => {
+    const channel = el.querySelector('select').value;
+    const chatId = el.querySelector('input[placeholder="Chat/Channel ID"]').value.trim();
+    const requireMention = el.querySelector('.mention-cb input')?.checked ?? true;
+    return chatId ? { channel, chatId, requireMention } : null;
+  }).filter(Boolean);
+
+  if (!agentId || !name || !alias) {
+    alert('Agent ID, Name, and Alias are required.');
+    btn.disabled = false;
+    btn.textContent = originalText;
+    return;
+  }
+
+  try {
+    let url, method;
+    if (editingAgentId) {
+      url = `/api/agents/${editingAgentId}`;
+      method = 'PUT';
+    } else {
+      url = '/api/agents';
+      method = 'POST';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, tools, mcps, routes, org }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      closeModal();
+      await fetchData();
+    } else {
+      alert('Error: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = originalText;
+}
+
+// Close modal on overlay click
+document.getElementById('agentModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+fetchData();
+setInterval(fetchData, 30000);
+</script>
+</body>
+</html>

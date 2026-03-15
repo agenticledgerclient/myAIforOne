@@ -39,4 +39,24 @@ export interface ChannelDriver {
   stop(): Promise<void>;
   onMessage(handler: (msg: InboundMessage) => Promise<void>): void;
   send(msg: OutboundMessage): Promise<void>;
+  sendTyping?(chatId: string): Promise<void>;
+  sendFile?(chatId: string, filePath: string, caption?: string): Promise<void>;
+}
+
+// ─── Shared utilities ────────────────────────────────────────────────
+
+export function splitText(text: string, maxLen: number): string[] {
+  const chunks: string[] = [];
+  let remaining = text;
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLen) {
+      chunks.push(remaining);
+      break;
+    }
+    let splitAt = remaining.lastIndexOf("\n", maxLen);
+    if (splitAt < maxLen * 0.5) splitAt = maxLen;
+    chunks.push(remaining.slice(0, splitAt));
+    remaining = remaining.slice(splitAt);
+  }
+  return chunks;
 }

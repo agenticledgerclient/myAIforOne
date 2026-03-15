@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAgent</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ─── Theme Variables ─────────────────────────────────────────── */
+:root{
+  --bg-deep:#060a13;
+  --bg-surface:rgba(12,18,33,0.92);
+  --bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);
+  --border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;
+  --accent-soft:#38bdf8;
+  --accent-bg:rgba(6,182,212,0.15);
+  --accent-glow:rgba(34,211,238,0.12);
+  --purple:rgba(139,92,246,0.7);
+  --purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;
+  --green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;
+  --amber-bg:rgba(251,191,36,0.1);
+  --msg-user:rgba(56,189,248,0.08);
+  --msg-agent:rgba(139,92,246,0.06);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);
+  --shadow-glow:0 0 20px rgba(34,211,238,0.08);
+  --radius:12px;
+  --font-sans:'DM Sans',system-ui,-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+}
+
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;
+  --bg-surface:rgba(255,255,255,0.95);
+  --bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);
+  --border-dim:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);
+  --text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);
+  --text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;
+  --accent-soft:#0e7490;
+  --accent-bg:rgba(14,116,144,0.08);
+  --accent-glow:rgba(14,116,144,0.06);
+  --purple:rgba(109,40,217,0.75);
+  --purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;
+  --green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;
+  --amber-bg:rgba(217,119,6,0.08);
+  --msg-user:rgba(14,116,144,0.06);
+  --msg-agent:rgba(139,92,246,0.04);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+  --shadow-glow:none;
+}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg-deep);
+  font-family:var(--font-sans);
+  color:var(--text-primary);
+  transition:background .3s,color .3s;
+}
+
+/* ─── Layout ──────────────────────────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+.sidebar{
+  width:320px;min-width:320px;
+  background:var(--bg-surface);
+  border-right:1px solid var(--border-dim);
+  display:flex;flex-direction:column;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  transition:background .3s,border .3s;
+}
+
+.main{flex:1;display:flex;flex-direction:column;position:relative}
+
+/* ─── Sidebar Header ─────────────────────────────────────────── */
+.sidebar-header{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo-group{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--accent-bg);border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent);
+}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
+.theme-toggle{
+  width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .2s;
+}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* ─── Status Bar ──────────────────────────────────────────────── */
+.status-bar{
+  padding:12px 20px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:12px;
+}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px rgba(74,222,128,0.4);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.status-text{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+.status-channels{margin-left:auto;display:flex;gap:4px}
+.channel-pill{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  padding:2px 7px;border-radius:4px;
+  background:var(--accent-bg);color:var(--accent);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+
+/* ─── Filter Bar ──────────────────────────────────────────────── */
+.filter-bar{
+  padding:8px 12px;border-bottom:1px solid var(--border-dim);
+  display:flex;gap:6px;
+}
+.filter-select{
+  flex:1;font-family:var(--font-mono);font-size:10px;
+  padding:5px 8px;border-radius:6px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);outline:none;cursor:pointer;
+  transition:border-color .2s;
+}
+.filter-select:focus{border-color:var(--accent)}
+
+/* ─── Agent List ──────────────────────────────────────────────── */
+.agent-list{flex:1;overflow-y:auto;padding:12px}
+.agent-list::-webkit-scrollbar{width:4px}
+.agent-list::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+
+.agent-card{
+  padding:14px 16px;margin-bottom:8px;
+  background:var(--bg-card);border:1px solid var(--border-dim);
+  border-radius:var(--radius);cursor:pointer;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:var(--shadow);transition:all .25s;position:relative;
+}
+.agent-card:hover{
+  border-color:var(--border-glow);
+  box-shadow:var(--shadow),var(--shadow-glow);
+  transform:translateY(-1px);
+}
+.agent-card.selected{
+  border-color:var(--border-active);
+  box-shadow:0 0 20px rgba(34,211,238,0.12),0 0 40px rgba(34,211,238,0.06);
+}
+.agent-card-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.agent-avatar{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--accent-bg);border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent);
+  flex-shrink:0;
+}
+.agent-name{font-family:var(--font-display);font-size:14px;font-weight:700;flex:1}
+.agent-session-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.agent-session-dot.active{background:var(--green);box-shadow:0 0 6px rgba(74,222,128,0.4)}
+.agent-session-dot.inactive{background:var(--text-muted)}
+.agent-alias{
+  font-family:var(--font-mono);font-size:11px;color:var(--accent);
+  margin-bottom:4px;
+}
+.agent-desc{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:8px}
+.agent-meta{display:flex;gap:6px;flex-wrap:wrap}
+.agent-tag{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  padding:2px 7px;border-radius:4px;
+  border:1px solid;text-transform:uppercase;letter-spacing:.04em;
+}
+.tag-persistent{border-color:rgba(74,222,128,0.2);background:var(--green-bg);color:var(--green)}
+.tag-msgs{border-color:var(--border-dim);background:transparent;color:var(--text-muted)}
+.tag-mcp{border-color:rgba(139,92,246,0.2);background:var(--purple-bg);color:var(--purple)}
+
+/* ─── Add Agent Button ────────────────────────────────────────── */
+.add-agent-btn{
+  margin:8px 12px 16px;padding:12px;
+  border:1px dashed var(--border-glow);border-radius:var(--radius);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  font-family:var(--font-sans);font-size:13px;font-weight:500;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .2s;
+}
+.add-agent-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+/* ─── Main: Empty State ───────────────────────────────────────── */
+.empty-state{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  color:var(--text-muted);
+}
+.empty-icon{font-size:48px;opacity:.3}
+.empty-text{font-size:14px;font-weight:500}
+.empty-sub{font-size:12px;opacity:.6}
+
+/* ─── Main: Chat View ─────────────────────────────────────────── */
+.chat-header{
+  padding:16px 24px;
+  border-bottom:1px solid var(--border-dim);
+  background:var(--bg-surface);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  display:flex;align-items:center;gap:12px;
+}
+.chat-header-info{flex:1}
+.chat-header-name{font-family:var(--font-display);font-size:16px;font-weight:700}
+.chat-header-alias{font-family:var(--font-mono);font-size:11px;color:var(--accent)}
+.chat-header-actions{display:flex;gap:8px}
+.header-btn{
+  font-family:var(--font-mono);font-size:10px;font-weight:500;
+  padding:6px 12px;border-radius:8px;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);cursor:pointer;transition:all .2s;
+}
+.header-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.header-btn.danger:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
+
+.chat-messages{
+  flex:1;overflow-y:auto;padding:20px 24px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+
+.msg{
+  max-width:80%;padding:12px 16px;border-radius:14px;
+  font-size:13px;line-height:1.6;
+  animation:msgIn .3s ease-out;
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg-user{
+  align-self:flex-end;
+  background:var(--msg-user);border:1px solid var(--border-glow);
+  border-bottom-right-radius:4px;
+}
+.msg-agent{
+  align-self:flex-start;
+  background:var(--msg-agent);border:1px solid rgba(139,92,246,0.1);
+  border-bottom-left-radius:4px;
+}
+.msg-agent pre{
+  background:var(--bg-input);border:1px solid var(--border-dim);
+  border-radius:8px;padding:10px 12px;margin:8px 0;
+  overflow-x:auto;font-family:var(--font-mono);font-size:12px;line-height:1.5;
+}
+.msg-agent code{font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:1px 5px;border-radius:4px}
+.msg-time{
+  font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
+  margin-top:4px;
+}
+.msg-system{
+  align-self:center;
+  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  padding:6px 14px;background:var(--bg-input);border-radius:20px;
+}
+
+.thinking{
+  align-self:flex-start;display:flex;align-items:center;gap:8px;
+  padding:12px 18px;background:var(--msg-agent);border:1px solid rgba(139,92,246,0.1);
+  border-radius:14px;border-bottom-left-radius:4px;
+}
+.thinking-dots{display:flex;gap:4px}
+.thinking-dots span{
+  width:6px;height:6px;border-radius:50%;background:var(--purple);
+  animation:bounce 1.4s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2){animation-delay:.2s}
+.thinking-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.thinking-text{font-size:12px;color:var(--text-muted)}
+
+/* ─── Chat Input ──────────────────────────────────────────────── */
+.chat-input-wrap{
+  padding:16px 24px 20px;
+  border-top:1px solid var(--border-dim);
+  background:var(--bg-surface);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.chat-input-box{
+  display:flex;gap:10px;align-items:flex-end;
+}
+.chat-textarea{
+  flex:1;resize:none;
+  font-family:var(--font-sans);font-size:14px;
+  padding:12px 16px;border-radius:12px;
+  border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);
+  outline:none;min-height:44px;max-height:140px;
+  transition:border-color .2s;line-height:1.5;
+}
+.chat-textarea::placeholder{color:var(--text-muted)}
+.chat-textarea:focus{border-color:var(--accent)}
+.send-btn{
+  width:44px;height:44px;border-radius:10px;border:none;
+  background:var(--accent);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:all .2s;flex-shrink:0;
+}
+.send-btn:hover{filter:brightness(1.1);transform:scale(1.05)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ─── Modal ───────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;
+  animation:fadeIn .2s ease-out;
+}
+.modal-overlay.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.modal{
+  width:520px;max-width:92vw;max-height:85vh;overflow-y:auto;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:16px;padding:0;
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),0 0 60px rgba(34,211,238,0.06);
+  animation:modalIn .25s ease-out;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 16px;border-bottom:1px solid var(--border-dim);
+}
+.modal-title{font-family:var(--font-display);font-size:18px;font-weight:700}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .2s;
+}
+.modal-close:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+.modal-body{padding:20px 24px}
+
+.form-group{margin-bottom:16px}
+.form-label{
+  display:block;font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);
+  margin-bottom:6px;
+}
+.form-input{
+  width:100%;padding:10px 14px;border-radius:10px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-sans);font-size:13px;
+  outline:none;transition:border-color .2s;
+}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--text-muted)}
+.form-hint{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+
+.form-section{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.12em;color:var(--accent);
+  margin:20px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--border-dim);
+}
+
+.checkbox-group{display:flex;flex-wrap:wrap;gap:6px}
+.checkbox-pill{
+  font-family:var(--font-mono);font-size:10px;font-weight:500;
+  padding:5px 10px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);transition:all .2s;user-select:none;
+}
+.checkbox-pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.checkbox-pill.checked{
+  border-color:var(--accent);background:var(--accent-bg);color:var(--accent);
+}
+
+.modal-footer{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 24px 20px;border-top:1px solid var(--border-dim);
+}
+.modal-footer-hint{font-size:11px;color:var(--text-muted)}
+.btn-create{
+  padding:10px 24px;border-radius:10px;border:none;
+  background:var(--accent);color:#fff;cursor:pointer;
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  transition:all .2s;
+}
+.btn-create:hover{filter:brightness(1.1);transform:scale(1.02)}
+.btn-create:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.route-entry{
+  display:flex;gap:8px;align-items:center;margin-bottom:8px;
+}
+.route-entry select,.route-entry input{
+  padding:8px 10px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:12px;
+  outline:none;
+}
+.route-entry select{width:110px}
+.route-entry input{flex:1}
+.route-remove{
+  width:28px;height:28px;border-radius:6px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.route-remove:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
+.add-route-btn{
+  font-family:var(--font-mono);font-size:11px;color:var(--accent);
+  background:none;border:none;cursor:pointer;padding:4px 0;
+}
+.add-route-btn:hover{text-decoration:underline}
+
+/* ─── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-group">
+        <div class="logo-mark">A</div>
+        <div class="logo-text">MyAgent</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <a href="/org" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none;transition:all .2s" title="Org Chart" onmouseover="this.style.borderColor='var(--border-glow)';this.style.color='var(--text-secondary)'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-muted)'">◇</a>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span class="status-text" id="statusText">Loading...</span>
+      <div class="status-channels" id="channelPills"></div>
+    </div>
+    <div class="filter-bar">
+      <select class="filter-select" id="filterOrg" onchange="applyFilters()">
+        <option value="">All Orgs</option>
+      </select>
+      <select class="filter-select" id="filterDept" onchange="applyFilters()">
+        <option value="">All Depts</option>
+      </select>
+    </div>
+    <div class="agent-list" id="agentList"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main" id="mainArea">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">◇</div>
+      <div class="empty-text">Select an agent to start chatting</div>
+      <div class="empty-sub">Or click "+ New Agent" to create one</div>
+    </div>
+  </div>
+</div>
+
+<!-- New Agent Modal -->
+<div class="modal-overlay" id="newAgentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create New Agent</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Agent ID</label>
+          <input class="form-input" id="f-agentId" placeholder="my-agent" oninput="autoAlias()">
+          <div class="form-hint">Lowercase, hyphens only. Used as folder name.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mention Alias</label>
+          <input class="form-input" id="f-alias" placeholder="@myagent">
+          <div class="form-hint">How you trigger this agent in chat.</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input class="form-input" id="f-name" placeholder="My Agent">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input class="form-input" id="f-desc" placeholder="What does this agent do?">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Workspace</label>
+        <input class="form-input" id="f-workspace" placeholder="~" value="~">
+        <div class="form-hint">Directory Claude can access. ~ = home directory.</div>
+      </div>
+
+      <div class="form-section">Session</div>
+      <div class="form-group">
+        <div class="checkbox-group">
+          <div class="checkbox-pill checked" id="f-persistent" onclick="togglePill(this)">Persistent Session</div>
+        </div>
+      </div>
+
+      <div class="form-section">Tools</div>
+      <div class="form-group">
+        <div class="checkbox-group" id="f-tools">
+          <div class="checkbox-pill checked" data-val="Read" onclick="togglePill(this)">Read</div>
+          <div class="checkbox-pill checked" data-val="Edit" onclick="togglePill(this)">Edit</div>
+          <div class="checkbox-pill checked" data-val="Write" onclick="togglePill(this)">Write</div>
+          <div class="checkbox-pill checked" data-val="Glob" onclick="togglePill(this)">Glob</div>
+          <div class="checkbox-pill checked" data-val="Grep" onclick="togglePill(this)">Grep</div>
+          <div class="checkbox-pill checked" data-val="Bash" onclick="togglePill(this)">Bash</div>
+          <div class="checkbox-pill checked" data-val="WebFetch" onclick="togglePill(this)">WebFetch</div>
+          <div class="checkbox-pill checked" data-val="WebSearch" onclick="togglePill(this)">WebSearch</div>
+        </div>
+      </div>
+
+      <div class="form-section">MCPs</div>
+      <div class="form-group">
+        <div class="checkbox-group" id="f-mcps"></div>
+        <div class="form-hint" id="f-mcps-hint">Loading available MCPs...</div>
+      </div>
+
+      <div class="form-section">Routes</div>
+      <div id="routeEntries"></div>
+      <button class="add-route-btn" onclick="addRouteEntry()">+ Add Route</button>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-footer-hint">Agent files created in ~/Desktop/personalAgents/</div>
+      <button class="btn-create" id="createBtn" onclick="createAgent()">Create Agent</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────
+let agents = [];
+let selectedAgent = null;
+let chatHistory = {}; // agentId -> [{role,text,time}]
+let isThinking = false;
+let streamingText = '';
+let streamingStatus = '';
+
+// ─── Theme ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'light' ? '' : 'light';
+  html.setAttribute('data-theme', next);
+  document.querySelector('.theme-toggle').textContent = next === 'light' ? '🌙' : '☀';
+  localStorage.setItem('theme', next);
+}
+
+// Init theme
+(function() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved !== null ? saved : (prefersDark ? '' : 'light');
+  if (theme) document.documentElement.setAttribute('data-theme', theme);
+  document.querySelector('.theme-toggle').textContent = theme === 'light' ? '🌙' : '☀';
+})();
+
+// ─── API ───────────────────────────────────────────────────────
+async function fetchDashboard() {
+  try {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+    agents = data.agents;
+    renderStatus(data);
+    buildFilterDropdowns();
+    renderAgentList();
+  } catch (err) {
+    document.getElementById('statusText').textContent = 'Connection failed';
+  }
+}
+
+function buildFilterDropdowns() {
+  const orgSet = new Set();
+  const deptSet = new Set();
+  for (const a of agents) {
+    for (const o of (a.org || [])) {
+      orgSet.add(o.organization);
+      if (o.function) deptSet.add(o.function);
+    }
+  }
+
+  const orgSelect = document.getElementById('filterOrg');
+  const deptSelect = document.getElementById('filterDept');
+  const prevOrg = orgSelect.value;
+  const prevDept = deptSelect.value;
+
+  orgSelect.innerHTML = '<option value="">All Orgs</option>' +
+    [...orgSet].map(o => `<option value="${o}">${o}</option>`).join('');
+  deptSelect.innerHTML = '<option value="">All Depts</option>' +
+    [...deptSet].map(d => `<option value="${d}">${d}</option>`).join('');
+
+  if (prevOrg && [...orgSet].includes(prevOrg)) orgSelect.value = prevOrg;
+  if (prevDept && [...deptSet].includes(prevDept)) deptSelect.value = prevDept;
+}
+
+function applyFilters() {
+  renderAgentList();
+}
+
+function getFilteredAgents() {
+  const orgFilter = document.getElementById('filterOrg')?.value || '';
+  const deptFilter = document.getElementById('filterDept')?.value || '';
+
+  if (!orgFilter && !deptFilter) return agents;
+
+  return agents.filter(a => {
+    const orgEntries = a.org || [];
+    if (orgEntries.length === 0) return !orgFilter && !deptFilter;
+    return orgEntries.some(o => {
+      const orgMatch = !orgFilter || o.organization === orgFilter;
+      const deptMatch = !deptFilter || o.function === deptFilter;
+      return orgMatch && deptMatch;
+    });
+  });
+}
+
+async function fetchAgentMessages(agentId) {
+  try {
+    const res = await fetch(`/api/agents/${agentId}`);
+    const data = await res.json();
+    if (data.recentMessages && data.recentMessages.length > 0) {
+      chatHistory[agentId] = data.recentMessages.map(m => ([
+        { role: 'user', text: m.text, time: m.ts },
+        { role: 'agent', text: m.response, time: m.ts },
+      ])).flat();
+    }
+  } catch { /* ignore */ }
+}
+
+async function sendMessage(agentId, text) {
+  if (!chatHistory[agentId]) chatHistory[agentId] = [];
+  chatHistory[agentId].push({ role: 'user', text, time: new Date().toISOString() });
+  renderChat();
+  scrollChat();
+
+  const agent = agents.find(a => a.id === agentId);
+  const useStreaming = agent?.streaming;
+
+  if (useStreaming) {
+    // SSE streaming mode
+    isThinking = true;
+    streamingText = '';
+    streamingStatus = '';
+    renderChat();
+    scrollChat();
+
+    try {
+      const res = await fetch(`/api/chat/${agentId}/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const event = JSON.parse(data);
+            if (event.type === 'text') {
+              streamingText += event.data;
+              isThinking = false;
+              renderChat();
+              scrollChat();
+            } else if (event.type === 'status') {
+              streamingStatus = event.data;
+              renderChat();
+              scrollChat();
+            } else if (event.type === 'error') {
+              isThinking = false;
+              streamingText = '';
+              streamingStatus = '';
+              chatHistory[agentId].push({ role: 'agent', text: `Error: ${event.data}`, time: new Date().toISOString() });
+              renderChat();
+              scrollChat();
+            }
+          } catch { /* skip */ }
+        }
+      }
+
+      // Finalize
+      isThinking = false;
+      if (streamingText) {
+        chatHistory[agentId].push({ role: 'agent', text: streamingText, time: new Date().toISOString() });
+      }
+      streamingText = '';
+      streamingStatus = '';
+    } catch (err) {
+      isThinking = false;
+      streamingText = '';
+      streamingStatus = '';
+      chatHistory[agentId].push({ role: 'agent', text: `Connection error: ${err.message}`, time: new Date().toISOString() });
+    }
+  } else {
+    // Regular non-streaming mode
+    isThinking = true;
+    renderChat();
+    scrollChat();
+
+    try {
+      const res = await fetch(`/api/chat/${agentId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      isThinking = false;
+
+      if (data.ok) {
+        chatHistory[agentId].push({ role: 'agent', text: data.response, time: new Date().toISOString() });
+      } else {
+        chatHistory[agentId].push({ role: 'agent', text: `Error: ${data.error}`, time: new Date().toISOString() });
+      }
+    } catch (err) {
+      isThinking = false;
+      chatHistory[agentId].push({ role: 'agent', text: `Connection error: ${err.message}`, time: new Date().toISOString() });
+    }
+  }
+
+  renderChat();
+  scrollChat();
+  fetchDashboard();
+}
+
+// ─── Render ────────────────────────────────────────────────────
+function renderStatus(data) {
+  const upMin = Math.floor(data.uptime / 60);
+  const upH = Math.floor(upMin / 60);
+  const upStr = upH > 0 ? `${upH}h ${upMin % 60}m` : `${upMin}m`;
+  document.getElementById('statusText').textContent = `Running · ${upStr} · ${data.agents.length} agents`;
+  document.getElementById('channelPills').innerHTML = data.channels
+    .map(c => `<span class="channel-pill">${c}</span>`).join('');
+}
+
+function renderAgentList() {
+  const list = document.getElementById('agentList');
+  const filtered = getFilteredAgents();
+  list.innerHTML = filtered.map(a => {
+    const initials = a.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || a.id.slice(0,2).toUpperCase();
+    const isSelected = selectedAgent === a.id;
+    const tags = [];
+    if (a.persistent) tags.push('<span class="agent-tag tag-persistent">persistent</span>');
+    tags.push(`<span class="agent-tag tag-msgs">${a.messageCount} msgs</span>`);
+    if (a.mcps.length) tags.push(`<span class="agent-tag tag-mcp">${a.mcps.length} MCP${a.mcps.length>1?'s':''}</span>`);
+
+    return `<div class="agent-card${isSelected?' selected':''}" onclick="selectAgent('${a.id}')">
+      <div class="agent-card-top">
+        <div class="agent-avatar">${initials}</div>
+        <div class="agent-name">${a.name}</div>
+        <div class="agent-session-dot ${a.sessionActive?'active':'inactive'}"></div>
+      </div>
+      <div class="agent-alias">${a.aliases[0] || a.id}</div>
+      <div class="agent-desc">${a.description}</div>
+      <div class="agent-meta">${tags.join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderChat() {
+  if (!selectedAgent) return;
+  const agent = agents.find(a => a.id === selectedAgent);
+  if (!agent) return;
+
+  const messages = chatHistory[selectedAgent] || [];
+  const main = document.getElementById('mainArea');
+
+  main.innerHTML = `
+    <div class="chat-header">
+      <div class="agent-avatar" style="width:40px;height:40px;font-size:14px">
+        ${agent.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || '??'}
+      </div>
+      <div class="chat-header-info">
+        <div class="chat-header-name">${agent.name}</div>
+        <div class="chat-header-alias">${agent.aliases[0] || agent.id} · ${agent.persistent?'persistent session':'single-shot'}</div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="header-btn" onclick="window.location='/org'" title="Go to Dashboard">◇ Dashboard</button>
+        ${agent.persistent ? `<button class="header-btn danger" onclick="resetSession('${agent.id}')">↺ Reset</button>` : ''}
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      ${messages.length === 0 ? `<div class="msg-system">Start a conversation with ${agent.aliases[0] || agent.name}</div>` : ''}
+      ${messages.map(m => {
+        const cls = m.role === 'user' ? 'msg-user' : 'msg-agent';
+        const formatted = m.role === 'agent' ? formatMarkdown(m.text) : escapeHtml(m.text);
+        const time = formatTime(m.time);
+        return `<div class="msg ${cls}">${formatted}<div class="msg-time">${time}</div></div>`;
+      }).join('')}
+      ${streamingText ? `<div class="msg msg-agent">${formatMarkdown(streamingText)}<div class="msg-time">streaming...</div></div>` : ''}
+      ${isThinking ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}
+    </div>
+    <div class="chat-input-wrap">
+      <div class="chat-input-box">
+        <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="doSend()" ${isThinking?'disabled':''}>→</button>
+      </div>
+    </div>
+  `;
+
+  // Focus input
+  setTimeout(() => {
+    const inp = document.getElementById('chatInput');
+    if (inp) inp.focus();
+  }, 50);
+}
+
+function scrollChat() {
+  setTimeout(() => {
+    const el = document.getElementById('chatMessages');
+    if (el) el.scrollTop = el.scrollHeight;
+  }, 60);
+}
+
+// ─── Actions ───────────────────────────────────────────────────
+async function selectAgent(id) {
+  selectedAgent = id;
+  renderAgentList();
+  if (!chatHistory[id]) {
+    await fetchAgentMessages(id);
+  }
+  renderChat();
+  scrollChat();
+}
+
+function doSend() {
+  const input = document.getElementById('chatInput');
+  if (!input || !selectedAgent || isThinking) return;
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  autoResize(input);
+  sendMessage(selectedAgent, text);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    doSend();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+// ─── Modal: New Agent ──────────────────────────────────────────
+let availableMcps = [];
+let routeCount = 0;
+
+async function openNewAgentModal() {
+  // Fetch available MCPs
+  try {
+    const res = await fetch('/api/mcps');
+    const data = await res.json();
+    availableMcps = data.mcps || [];
+  } catch { availableMcps = []; }
+
+  // Render MCP checkboxes
+  const mcpGroup = document.getElementById('f-mcps');
+  const mcpHint = document.getElementById('f-mcps-hint');
+  if (availableMcps.length > 0) {
+    mcpGroup.innerHTML = availableMcps.map(m =>
+      `<div class="checkbox-pill" data-val="${m}" onclick="togglePill(this)">${m}</div>`
+    ).join('');
+    mcpHint.textContent = 'Select which MCP servers this agent can use.';
+  } else {
+    mcpGroup.innerHTML = '';
+    mcpHint.textContent = 'No MCPs registered. Add them in config.json → mcps.';
+  }
+
+  // Clear form
+  document.getElementById('f-agentId').value = '';
+  document.getElementById('f-alias').value = '';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-workspace').value = '~';
+  document.getElementById('f-persistent').classList.add('checked');
+
+  // Reset routes
+  routeCount = 0;
+  document.getElementById('routeEntries').innerHTML = '';
+  addRouteEntry();
+
+  // Reset tools to all checked
+  document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
+
+  document.getElementById('newAgentModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('newAgentModal').classList.remove('show');
+}
+
+function togglePill(el) {
+  el.classList.toggle('checked');
+}
+
+function autoAlias() {
+  const id = document.getElementById('f-agentId').value.trim();
+  const aliasEl = document.getElementById('f-alias');
+  if (!aliasEl.value || aliasEl.value === '@' + aliasEl.dataset.auto) {
+    const clean = id.replace(/-/g, '');
+    aliasEl.value = clean ? '@' + clean : '';
+    aliasEl.dataset.auto = clean;
+  }
+}
+
+function addRouteEntry() {
+  routeCount++;
+  const container = document.getElementById('routeEntries');
+  const channels = agents.length > 0
+    ? [...new Set(agents.flatMap(a => a.routes.map(r => r.split(':')[0])))]
+    : ['telegram', 'slack', 'imessage', 'discord'];
+
+  const div = document.createElement('div');
+  div.className = 'route-entry';
+  div.id = `route-${routeCount}`;
+  div.innerHTML = `
+    <select>
+      ${channels.map(c => `<option value="${c}">${c}</option>`).join('')}
+    </select>
+    <input placeholder="Chat/Channel ID" />
+    <button class="route-remove" onclick="this.parentElement.remove()">×</button>
+  `;
+  container.appendChild(div);
+}
+
+async function createAgent() {
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+
+  const agentId = document.getElementById('f-agentId').value.trim();
+  const alias = document.getElementById('f-alias').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  const description = document.getElementById('f-desc').value.trim();
+  const workspace = document.getElementById('f-workspace').value.trim() || '~';
+  const persistent = document.getElementById('f-persistent').classList.contains('checked');
+
+  const tools = [...document.querySelectorAll('#f-tools .checkbox-pill.checked')]
+    .map(el => el.dataset.val).filter(Boolean);
+
+  const mcps = [...document.querySelectorAll('#f-mcps .checkbox-pill.checked')]
+    .map(el => el.dataset.val).filter(Boolean);
+
+  const routeEls = document.querySelectorAll('.route-entry');
+  const routes = [...routeEls].map(el => {
+    const channel = el.querySelector('select').value;
+    const chatId = el.querySelector('input').value.trim();
+    return chatId ? { channel, chatId, requireMention: true } : null;
+  }).filter(Boolean);
+
+  if (!agentId || !name || !alias) {
+    alert('Agent ID, Name, and Alias are required.');
+    btn.disabled = false;
+    btn.textContent = 'Create Agent';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, tools, mcps, routes }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      closeModal();
+      await fetchDashboard();
+      selectAgent(agentId);
+    } else {
+      alert('Error: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Create Agent';
+}
+
+// Close modal on overlay click
+document.getElementById('newAgentModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+async function resetSession(agentId) {
+  if (!confirm('Reset session? This clears conversation history. Use /opcompact first to save important context.')) return;
+  await sendMessage(agentId, '/opreset');
+}
+
+function viewConfig(agentId) {
+  const agent = agents.find(a => a.id === agentId);
+  if (!agent) return;
+  const configStr = JSON.stringify({
+    id: agent.id,
+    name: agent.name,
+    aliases: agent.aliases,
+    workspace: agent.workspace,
+    persistent: agent.persistent,
+    mcps: agent.mcps,
+    skills: agent.skills,
+    tools: agent.tools,
+    routes: agent.routes,
+  }, null, 2);
+
+  if (!chatHistory[agentId]) chatHistory[agentId] = [];
+  chatHistory[agentId].push({
+    role: 'agent',
+    text: '```json\n' + configStr + '\n```',
+    time: new Date().toISOString()
+  });
+  renderChat();
+  scrollChat();
+}
+
+// ─── Formatting ────────────────────────────────────────────────
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatMarkdown(text) {
+  if (!text) return '';
+  let html = escapeHtml(text);
+  // Code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Line breaks
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+           d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch { return ts; }
+}
+
+// ─── Init ──────────────────────────────────────────────────────
+fetchDashboard();
+setInterval(fetchDashboard, 30000); // refresh every 30s
+</script>
+</body>
+</html>
