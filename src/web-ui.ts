@@ -85,6 +85,7 @@ export function startWebUI(opts: WebUIOptions): void {
         autoCommit: agent.autoCommit,
         tools: agent.allowedTools,
         org: agent.org || [],
+        cron: agent.cron || [],
       };
     });
 
@@ -359,12 +360,13 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, tools, mcps, routes, org } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, tools, mcps, routes, org, cron } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean;
       tools?: string[]; mcps?: string[];
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
+      cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
     };
 
     if (!name || !alias) {
@@ -395,6 +397,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (tools) existing.allowedTools = tools;
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
       if (org !== undefined) existing.org = org;
+      if (cron !== undefined) existing.cron = cron.length > 0 ? cron : undefined;
 
       // Build routes if provided
       if (routes !== undefined) {
