@@ -73,7 +73,7 @@ function handleInterceptedCommand(
 // ─── Skill index builder ─────────────────────────────────────────────
 
 function buildSkillIndex(skillNames: string[]): string {
-  const skillsDir = join(process.env.HOME || "", ".claude", "commands");
+  const skillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
   const lines: string[] = [
     "\n## Available Skills",
     "You have skills available as markdown files. When a task matches a skill, use the Read tool to read it from the path shown, then follow its instructions.\n",
@@ -117,7 +117,7 @@ function buildMcpConfigFile(
     const def = mcpRegistry[name];
     if (def.type === "stdio") {
       const args = (def.args || []).map((a) =>
-        a.startsWith("~") ? a.replace("~", process.env.HOME || "") : a,
+        a.startsWith("~") ? a.replace("~", process.env.HOME || process.env.USERPROFILE || "") : a,
       );
       mcpServers[name] = {
         command: def.command,
@@ -322,7 +322,7 @@ export async function executeAgent(
 
   // Skills directory (so agent can Read skill files)
   if (agentConfig.skills && agentConfig.skills.length > 0) {
-    const skillsDir = join(process.env.HOME || "", ".claude", "commands");
+    const skillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
     if (existsSync(skillsDir)) {
       args.push("--add-dir", skillsDir);
     }
@@ -587,7 +587,7 @@ export async function* executeAgentStreaming(
   args.push("--add-dir", workspace);
 
   if (agentConfig.skills && agentConfig.skills.length > 0) {
-    const skillsDir = join(process.env.HOME || "", ".claude", "commands");
+    const skillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
     if (existsSync(skillsDir)) args.push("--add-dir", skillsDir);
   }
 

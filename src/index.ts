@@ -4,7 +4,6 @@ import { loadConfig } from "./config.js";
 import { configureLogger, log } from "./logger.js";
 import { resolveRoute, isPairingAttempt, pairSender } from "./router.js";
 import { executeAgent, executeAgentStreaming } from "./executor.js";
-import { IMessageDriver } from "./channels/imessage.js";
 import { SlackDriver } from "./channels/slack.js";
 import { WhatsAppDriver } from "./channels/whatsapp.js";
 import { TelegramDriver } from "./channels/telegram.js";
@@ -12,6 +11,8 @@ import { DiscordDriver } from "./channels/discord.js";
 import { startWebUI } from "./web-ui.js";
 import { startCronJobs, stopCronJobs } from "./cron.js";
 import type { ChannelDriver, InboundMessage } from "./channels/types.js";
+
+const isMac = process.platform === "darwin";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const baseDir = resolve(__dirname, "..");
@@ -38,6 +39,12 @@ async function main(): Promise<void> {
 
     switch (channelCfg.driver) {
       case "imessage":
+        if (!isMac) {
+          log.warn("iMessage driver is macOS-only, skipping on this platform");
+          continue;
+        }
+        // Dynamic import — imsg CLI only exists on macOS
+        const { IMessageDriver } = await import("./channels/imessage.js");
         driver = new IMessageDriver(channelCfg.config);
         break;
       case "slack":

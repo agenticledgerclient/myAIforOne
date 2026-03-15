@@ -11,7 +11,8 @@
 
   "channels": {
     "imessage": {
-      "enabled": true,
+      "enabled": false,
+      "_comment": "macOS only. Enable if on Mac with imsg CLI installed.",
       "driver": "imessage",
       "config": {
         "cliPath": "imsg",

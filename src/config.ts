@@ -132,9 +132,10 @@ export function loadConfig(configPath: string): AppConfig {
       throw new Error(`Agent "${id}" must have a claudeMd path`);
     }
 
-    // Resolve ~ in paths
+    // Resolve ~ in paths (works on macOS and Windows)
+    const home = process.env.HOME || process.env.USERPROFILE || "";
     const resolveTilde = (p: string) =>
-      p.startsWith("~") ? p.replace("~", process.env.HOME || "") : p;
+      p.startsWith("~") ? p.replace("~", home) : p;
     agent.workspace = resolveTilde(agent.workspace);
     agent.claudeMd = resolveTilde(agent.claudeMd);
     agent.memoryDir = resolveTilde(agent.memoryDir);

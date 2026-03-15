@@ -277,7 +277,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
     try {
       // Create agent directory
-      const home = process.env.HOME || "";
+      const home = process.env.HOME || process.env.USERPROFILE || "";
       const agentHome = join(home, "Desktop", "personalAgents", agentId);
       const memoryDir = join(agentHome, "memory");
       mkdirSync(memoryDir, { recursive: true });
@@ -422,7 +422,7 @@ export function startWebUI(opts: WebUIOptions): void {
       }
 
       // Update in-memory config
-      const home = process.env.HOME || "";
+      const home = process.env.HOME || process.env.USERPROFILE || "";
       const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
       const memAgent = { ...existing };
       memAgent.workspace = resolveTilde(memAgent.workspace || "~");
