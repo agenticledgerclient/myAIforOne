@@ -50,6 +50,29 @@ An agent is not a different AI. It's the **same Claude** with different guardrai
 
 Multiple agents can share the same Slack channel, Telegram group, or iMessage thread — they're differentiated by their @mention alias (e.g., `@producer` vs `@oldproducer` vs `@agentmgr`).
 
+### Sticky Routing
+
+After you @mention an agent, follow-up messages without a mention automatically route to the same agent for 5 minutes. This lets you have a natural conversation without typing the alias every message.
+
+- `@bobby check the build` → routes to bobby, starts 5-min timer
+- "what about the tests?" → still bobby (within 5 min)
+- "looks good" → still bobby
+- (5 minutes of silence) → timer expires, next message needs a mention
+
+Each sender has their own sticky — Alice talking to `@bobby` doesn't affect Bob's messages.
+
+Configure per channel:
+```json
+"telegram": {
+  "config": {
+    "stickyRouting": true,
+    "stickyTimeoutMs": 300000
+  }
+}
+```
+
+Defaults: `stickyRouting: true`, `stickyTimeoutMs: 300000` (5 min). Set `stickyRouting: false` to require @mention on every message.
+
 ## Session Persistence
 
 Agents can be **persistent**, **streaming**, or **single-shot**:

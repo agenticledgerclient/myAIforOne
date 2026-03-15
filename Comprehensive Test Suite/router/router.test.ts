@@ -23,7 +23,7 @@ function makeMsg(overrides: Partial<InboundMessage> = {}): InboundMessage {
 function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
     service: { logLevel: "info" },
-    channels: { slack: { enabled: true, driver: "slack", config: {} } },
+    channels: { slack: { enabled: true, driver: "slack", config: { stickyRouting: false } } },
     agents: {
       "test-agent": {
         name: "Test Agent",

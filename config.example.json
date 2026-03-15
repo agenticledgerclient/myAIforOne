@@ -33,7 +33,9 @@
       "enabled": false,
       "driver": "telegram",
       "config": {
-        "botToken": "YOUR_BOT_TOKEN_FROM_BOTFATHER"
+        "botToken": "YOUR_BOT_TOKEN_FROM_BOTFATHER",
+        "stickyRouting": true,
+        "stickyTimeoutMs": 300000
       }
     },
     "discord": {

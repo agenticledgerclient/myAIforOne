@@ -137,11 +137,11 @@ html,body{
   display:flex;gap:6px;
 }
 .filter-select{
-  flex:1;font-family:var(--font-mono);font-size:10px;
+  flex:1;min-width:0;font-family:var(--font-mono);font-size:10px;
   padding:5px 8px;border-radius:6px;
   border:1px solid var(--border-dim);background:var(--bg-input);
   color:var(--text-primary);outline:none;cursor:pointer;
-  transition:border-color .2s;
+  transition:border-color .2s;overflow:hidden;text-overflow:ellipsis;
 }
 .filter-select:focus{border-color:var(--accent)}
 
@@ -320,6 +320,18 @@ html,body{
 }
 .send-btn:hover{filter:brightness(1.1);transform:scale(1.05)}
 .send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.mic-btn{
+  width:44px;height:44px;border-radius:10px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:all .2s;flex-shrink:0;
+}
+.mic-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.mic-btn.recording{
+  border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.1);color:#ef4444;
+  animation:micPulse 1s ease-in-out infinite;
+}
+@keyframes micPulse{0%,100%{opacity:1}50%{opacity:.6}}
 
 /* ─── Modal ───────────────────────────────────────────────────── */
 .modal-overlay{
@@ -829,6 +841,7 @@ function renderChat() {
     </div>
     <div class="chat-input-wrap">
       <div class="chat-input-box">
+        <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
         <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="sendBtn" onclick="doSend()" ${isThinking?'disabled':''}>→</button>
@@ -1089,6 +1102,87 @@ function formatTime(ts) {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
            d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   } catch { return ts; }
+}
+
+// ─── Voice Input ───────────────────────────────────────────────
+let recognition = null;
+let isRecording = false;
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Speech recognition not supported in this browser. Use Chrome or Edge.');
+    return;
+  }
+
+  if (isRecording) {
+    stopVoice();
+  } else {
+    startVoice();
+  }
+}
+
+function startVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  let finalTranscript = '';
+  const input = document.getElementById('chatInput');
+  const existingText = input ? input.value : '';
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript + ' ';
+      } else {
+        interim += event.results[i][0].transcript;
+      }
+    }
+    if (input) {
+      input.value = existingText + (existingText ? ' ' : '') + finalTranscript + interim;
+      autoResize(input);
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.warn('Speech recognition error:', event.error);
+    stopVoice();
+  };
+
+  recognition.onend = () => {
+    // If still in recording mode, it ended unexpectedly — clean up
+    if (isRecording) stopVoice();
+  };
+
+  recognition.start();
+  isRecording = true;
+
+  const btn = document.getElementById('micBtn');
+  if (btn) {
+    btn.classList.add('recording');
+    btn.title = 'Click to stop';
+  }
+}
+
+function stopVoice() {
+  if (recognition) {
+    recognition.stop();
+    recognition = null;
+  }
+  isRecording = false;
+
+  const btn = document.getElementById('micBtn');
+  if (btn) {
+    btn.classList.remove('recording');
+    btn.title = 'Click to speak';
+  }
+
+  // Focus the input so user can edit or send
+  const input = document.getElementById('chatInput');
+  if (input) input.focus();
 }
 
 // ─── Init ──────────────────────────────────────────────────────
