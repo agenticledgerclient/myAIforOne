@@ -95,6 +95,10 @@ Let's set up Slack:
 
 Paste your Bot Token (xoxb-...):
 Paste your App Token (xapp-...):
+
+Important: After the service starts, invite the bot to each Slack channel
+where you want agents to respond. In the channel, type: /invite @yourbotname
+Or go to channel settings → Integrations → Add apps.
 ```
 
 ### Discord
