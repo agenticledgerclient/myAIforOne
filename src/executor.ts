@@ -6,7 +6,18 @@ import type { McpServerConfig, McpServerHttp } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { formatMessage } from "./utils/message-formatter.js";
+import { createMemoryManager, type MemoryManager } from "./memory/index.js";
 import { log } from "./logger.js";
+
+// Cache memory managers per agent to avoid re-creating on every message
+const memoryManagers = new Map<string, MemoryManager>();
+
+async function getMemoryManager(agentId: string, memoryDir: string): Promise<MemoryManager> {
+  if (memoryManagers.has(agentId)) return memoryManagers.get(agentId)!;
+  const mgr = await createMemoryManager(memoryDir);
+  memoryManagers.set(agentId, mgr);
+  return mgr;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -235,11 +246,11 @@ export async function executeAgent(
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
   const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
+  const useAdvancedMemory = agentConfig.advancedMemory ?? false;
 
   // ── Check for intercepted commands ──
   const intercepted = handleInterceptedCommand(msg.text, agentId, memoryDir, senderSessionKey);
   if (intercepted !== null) {
-    // Still log the command
     try {
       const entry = {
         ts: new Date().toISOString(),
@@ -252,6 +263,23 @@ export async function executeAgent(
       appendFileSync(logPath, JSON.stringify(entry) + "\n");
     } catch { /* ignore */ }
     return intercepted;
+  }
+
+  // ── Advanced memory: search for relevant context ──
+  let memoryContext = "";
+  let memoryMgr: MemoryManager | null = null;
+  if (useAdvancedMemory) {
+    try {
+      memoryMgr = await getMemoryManager(agentId, memoryDir);
+      // Search for memories relevant to the user's message
+      const searchResults = await memoryMgr.searchFormatted(msg.text, 5);
+      if (searchResults) memoryContext += searchResults + "\n\n";
+      // Load today + yesterday daily logs
+      const daily = memoryMgr.loadDailyContext();
+      if (daily) memoryContext += daily + "\n\n";
+    } catch (err) {
+      log.warn(`Advanced memory search failed for ${agentId}: ${err}`);
+    }
   }
 
   // ── Load system prompt ──
@@ -278,6 +306,23 @@ export async function executeAgent(
   // ── Append skill index if configured ──
   if (agentConfig.skills && agentConfig.skills.length > 0) {
     systemPrompt += buildSkillIndex(agentConfig.skills);
+  }
+
+  // ── Append advanced memory context ──
+  if (useAdvancedMemory && memoryContext) {
+    systemPrompt += `\n\n${memoryContext}`;
+  }
+
+  // ── Auto-compaction check for advanced memory agents ──
+  if (useAdvancedMemory && isPersistent && memoryMgr) {
+    // Read current session to get message count
+    const currentSession = loadSession(memoryDir, senderSessionKey);
+    if (currentSession) {
+      const compactionPrompt = memoryMgr.getCompactionPrompt(currentSession.messageCount);
+      if (compactionPrompt) {
+        systemPrompt += `\n\n${compactionPrompt}`;
+      }
+    }
   }
 
   // ── Append compact/reset instructions for persistent agents ──
@@ -468,6 +513,15 @@ export async function executeAgent(
     log.warn(`Failed to write conversation log: ${err}`);
   }
 
+  // ── Advanced memory: index this exchange ──
+  if (useAdvancedMemory && memoryMgr) {
+    try {
+      await memoryMgr.indexExchange(msg.text, response, msg.senderName || msg.sender);
+    } catch (err) {
+      log.warn(`Failed to index exchange for ${agentId}: ${err}`);
+    }
+  }
+
   return response;
 }
 
@@ -550,6 +604,7 @@ export async function* executeAgentStreaming(
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
   const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
+  const useAdvancedMemory = agentConfig.advancedMemory ?? false;
 
   // Check intercepted commands
   const intercepted = handleInterceptedCommand(msg.text, agentId, memoryDir, senderSessionKey);
@@ -565,7 +620,22 @@ export async function* executeAgentStreaming(
     return;
   }
 
-  // Load system prompt (same logic as executeAgent)
+  // Advanced memory: search for relevant context
+  let memoryContext = "";
+  let memoryMgr: MemoryManager | null = null;
+  if (useAdvancedMemory) {
+    try {
+      memoryMgr = await getMemoryManager(agentId, memoryDir);
+      const searchResults = await memoryMgr.searchFormatted(msg.text, 5);
+      if (searchResults) memoryContext += searchResults + "\n\n";
+      const daily = memoryMgr.loadDailyContext();
+      if (daily) memoryContext += daily + "\n\n";
+    } catch (err) {
+      log.warn(`Advanced memory search failed for ${agentId}: ${err}`);
+    }
+  }
+
+  // Load system prompt
   let systemPrompt: string;
   try {
     systemPrompt = readFileSync(claudeMdPath, "utf-8");
@@ -583,6 +653,18 @@ export async function* executeAgentStreaming(
 
   if (agentConfig.skills && agentConfig.skills.length > 0) {
     systemPrompt += buildSkillIndex(agentConfig.skills);
+  }
+
+  if (useAdvancedMemory && memoryContext) {
+    systemPrompt += `\n\n${memoryContext}`;
+  }
+
+  if (useAdvancedMemory && isPersistent && memoryMgr) {
+    const currentSession = loadSession(memoryDir, senderSessionKey);
+    if (currentSession) {
+      const compactionPrompt = memoryMgr.getCompactionPrompt(currentSession.messageCount);
+      if (compactionPrompt) systemPrompt += `\n\n${compactionPrompt}`;
+    }
   }
 
   if (isPersistent) {
@@ -782,6 +864,15 @@ export async function* executeAgentStreaming(
       ...(session ? { sessionId: session.sessionId, messageNum: session.messageCount } : {}),
     }) + "\n");
   } catch { /* ignore */ }
+
+  // Advanced memory: index this exchange
+  if (useAdvancedMemory && memoryMgr && fullResponse) {
+    try {
+      await memoryMgr.indexExchange(msg.text, fullResponse, msg.senderName || msg.sender);
+    } catch (err) {
+      log.warn(`Failed to index exchange for ${agentId}: ${err}`);
+    }
+  }
 
   yield { type: "done", data: fullResponse };
 }

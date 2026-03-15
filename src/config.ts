@@ -57,6 +57,7 @@ export interface AgentConfig {
   persistent?: boolean;
   perSenderSessions?: boolean;
   streaming?: boolean;
+  advancedMemory?: boolean;
   org?: Array<{
     organization: string;
     function: string;
