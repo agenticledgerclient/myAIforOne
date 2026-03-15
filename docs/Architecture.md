@@ -83,6 +83,61 @@ Agents can be **persistent**, **streaming**, or **single-shot**:
 - **`/opcompact <what to save>`** — Tell the agent to save important information to `context.md`. This context survives session resets and is injected into the system prompt of new sessions.
 - **`/opreset`** — Clear the session. Deletes session file, next message starts fresh. The agent's identity (CLAUDE.md) and saved context (context.md) remain.
 
+## Advanced Memory
+
+When `"advancedMemory": true` is set on an agent, it gets a semantic long-term memory system that goes beyond basic session persistence and `context.md`. This is the recommended default for general-purpose agents.
+
+### How It Differs from Basic Memory
+
+| Feature | Basic (persistent session) | Advanced Memory |
+|---------|---------------------------|-----------------|
+| **Short-term** | Claude session history | Same — session history |
+| **Long-term** | Manual `/opcompact` → `context.md` | Automatic daily journals + semantic recall |
+| **Recall** | Full `context.md` injected every time | Relevant memories retrieved by similarity search |
+| **Scaling** | `context.md` grows until you edit it | Old entries auto-compact; vector search stays fast |
+
+### Daily Memory
+
+Memories are stored as markdown files in `memory/daily/YYYY-MM-DD.md` inside the agent's memory directory. Each day gets its own file with timestamped entries.
+
+At the start of every conversation turn, the system automatically loads **today's** and **yesterday's** daily files as immediate context, so the agent always knows what happened recently.
+
+### Semantic Search
+
+When the agent needs to recall something older than yesterday, it searches the memory store using a **hybrid retrieval** strategy:
+
+1. **Cosine similarity** — vector dot-product against stored embeddings
+2. **BM25 keyword scoring** — term-frequency weighting for exact-match recall
+3. **Temporal decay** — recent memories get a relevance boost over older ones
+
+The three scores are combined into a single ranking. Top results are injected into the prompt as recalled context.
+
+### Embedding Providers
+
+- **OpenAI** (default when `OPENAI_API_KEY` is set) — uses `text-embedding-3-small` for high-quality vectors
+- **TF-IDF fallback** — if no OpenAI key is available, a local TF-IDF vectorizer generates embeddings with no external calls
+
+### Vector Store
+
+- **JSON** (default) — stores embeddings in a JSON file in the memory directory. Zero dependencies.
+- **SQLite** (auto-upgrade) — when the JSON store grows past a threshold, it automatically migrates to SQLite for faster lookups.
+
+### Auto-Compaction
+
+To prevent unbounded context growth, advanced memory monitors conversation length:
+
+- **Warning at 20 messages** — the agent is nudged to summarize and save important context to daily memory
+- **Forced compaction at 40 messages** — the system automatically triggers a compaction, writing a summary to daily memory and resetting the conversation
+
+### Config Flag
+
+Enable on any agent:
+```json
+"advancedMemory": true
+```
+
+No additional configuration needed. The embedding provider and vector store are auto-detected based on available environment variables and data size.
+
 ## Organization & Team Structure
 
 Agents can be placed in an organizational hierarchy for the Org Chart dashboard:
@@ -369,6 +424,7 @@ channelToAgentToClaude/           # The gateway project
   "mcps": ["context7", "playwright", "granola"],
   "persistent": true,
   "streaming": true,
+  "advancedMemory": true,
   "perSenderSessions": false,
   "skills": ["opcodereview", "sop_pdf"],
   "mentionAliases": ["@agentmgr"],

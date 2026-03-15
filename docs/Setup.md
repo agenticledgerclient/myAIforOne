@@ -136,6 +136,10 @@ echo "# My Agent Context\n\nCreated $(date +%Y-%m-%d)." > ~/Desktop/personalAgen
 
 The example config already includes this agent. Just update the route with your actual chat ID (see step 5).
 
+### Optional: Enable Advanced Memory
+
+For agents that benefit from long-term recall across sessions, add `"advancedMemory": true` to the agent config in `config.json`. This gives the agent automatic daily memory journals and semantic search over past conversations — no manual `/opcompact` needed. It works out of the box; if `OPENAI_API_KEY` is set, it uses OpenAI embeddings, otherwise it falls back to local TF-IDF. See [Architecture.md](Architecture.md#advanced-memory) for details.
+
 ## 5. Discover Your Chat ID
 
 You need the chat ID for routing. The easiest way:

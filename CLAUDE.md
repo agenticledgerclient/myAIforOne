@@ -17,6 +17,7 @@ After setup, create purpose-built agents for specific projects or roles:
   - **System prompt** — describe its role, expertise, and constraints in CLAUDE.md
   - **Tools** — limit to read-only (Read, Glob, Grep) for monitoring agents, or full access for builders
   - **MCPs** — give it only the API integrations it needs (e.g., a finance agent gets Stripe + QuickBooks)
+  - **Advanced memory** — set `advancedMemory: true` for agents that need long-term semantic recall across sessions (daily journals + vector search)
   - **Org placement** — assign it an organization, department, title, and reporting chain
 
 See [docs/Architecture.md](docs/Architecture.md) for full config reference.

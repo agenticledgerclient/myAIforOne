@@ -62,6 +62,7 @@
       "claudeMd": "~/Desktop/personalAgents/my-agent/CLAUDE.md",
       "memoryDir": "~/Desktop/personalAgents/my-agent/memory",
       "persistent": true,
+      "advancedMemory": true,
       "mentionAliases": ["@myagent"],
       "autoCommit": false,
       "allowedTools": [
