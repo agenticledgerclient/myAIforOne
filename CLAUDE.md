@@ -1,6 +1,10 @@
-# channelToAgentToClaude
+# MyAgent
 
-Multi-channel agent gateway — routes iMessage, Slack, and WhatsApp messages to project-specific Claude Code agents running locally on macOS via `claude -p`.
+Multi-channel agent gateway — chat with Claude Code agents from your phone via Telegram, Slack, Discord, iMessage, and WhatsApp.
+
+## First-Time Setup
+
+Run `/setup` to get started. The wizard walks you through channel configuration, agent creation, and service installation.
 
 ## Project Structure
 
