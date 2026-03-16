@@ -67,6 +67,13 @@ export function startWebUI(opts: WebUIOptions): void {
         sessionActive = files.some(f => f.startsWith("session") && f.endsWith(".json"));
       } catch { /* ignore */ }
 
+      // Resolve agentHome
+      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+      const agentHome = agent.agentHome
+        ? resolveTilde(agent.agentHome)
+        : resolve(opts.baseDir, agent.memoryDir, "..");
+
       return {
         id,
         name: agent.name,
@@ -90,6 +97,7 @@ export function startWebUI(opts: WebUIOptions): void {
         cron: agent.cron || [],
         goals: agent.goals || [],
         activeGoals: (agent.goals || []).filter(g => g.enabled).length,
+        agentHome,
       };
     });
 
@@ -143,6 +151,35 @@ export function startWebUI(opts: WebUIOptions): void {
       },
       recentMessages,
     });
+  });
+
+  // ─── API: Agent instructions (CLAUDE.md) ─────────────────────────
+  app.get("/api/agents/:id/instructions", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+
+    // Find CLAUDE.md path
+    let claudeMdPath: string;
+    if (agent.claudeMd) {
+      claudeMdPath = resolveTilde(agent.claudeMd);
+    } else {
+      const agentHome = agent.agentHome
+        ? resolveTilde(agent.agentHome)
+        : resolve(opts.baseDir, agent.memoryDir, "..");
+      claudeMdPath = join(agentHome, "CLAUDE.md");
+    }
+
+    let instructions = "";
+    if (existsSync(claudeMdPath)) {
+      try {
+        instructions = readFileSync(claudeMdPath, "utf-8");
+      } catch { /* ignore */ }
+    }
+
+    res.json({ instructions, path: claudeMdPath });
   });
 
   // ─── API: Chat with agent ─────────────────────────────────────────
@@ -316,7 +353,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean;
@@ -325,6 +362,7 @@ export function startWebUI(opts: WebUIOptions): void {
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
       cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
       goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
+      instructions?: string;
     };
 
     if (!agentId || !name || !alias) {
@@ -360,7 +398,9 @@ export function startWebUI(opts: WebUIOptions): void {
       mkdirSync(join(agentHome, "FileStorage", "Permanent"), { recursive: true });
 
       // Write CLAUDE.md
-      const claudeMd = `# ${name}\n\n${description || "General-purpose agent."}\n\n## Identity\n- Mention alias: ${normalAlias}\n- Respond when mentioned with ${normalAlias}\n\n## Guidelines\n- Keep responses concise — you're replying to phone messages\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n`;
+      const claudeMd = instructions
+        ? instructions
+        : `# ${name}\n\n${description || "General-purpose agent."}\n\n## Identity\n- Mention alias: ${normalAlias}\n- Respond when mentioned with ${normalAlias}\n\n## Guidelines\n- Keep responses concise — you're replying to phone messages\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n`;
       writeFileSync(join(agentHome, "CLAUDE.md"), claudeMd);
 
       // Write context.md
@@ -443,7 +483,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean;
@@ -452,6 +492,7 @@ export function startWebUI(opts: WebUIOptions): void {
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
       cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
       goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
+      instructions?: string;
     };
 
     if (!name || !alias) {
@@ -504,6 +545,28 @@ export function startWebUI(opts: WebUIOptions): void {
 
       rawConfig.agents[agentId] = existing;
       writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Write CLAUDE.md if instructions provided
+      if (instructions !== undefined) {
+        const home2 = process.env.HOME || process.env.USERPROFILE || "";
+        const resolveTilde2 = (p: string) => p.startsWith("~") ? p.replace("~", home2) : p;
+        let claudeMdPath: string;
+        if (existing.claudeMd) {
+          claudeMdPath = resolveTilde2(existing.claudeMd);
+        } else if (existing.agentHome) {
+          claudeMdPath = join(resolveTilde2(existing.agentHome), "CLAUDE.md");
+        } else if (existing.memoryDir) {
+          claudeMdPath = join(resolve(resolveTilde2(existing.memoryDir), ".."), "CLAUDE.md");
+        } else {
+          claudeMdPath = join(home2, "Desktop", "personalAgents", agentId, "CLAUDE.md");
+        }
+        try {
+          writeFileSync(claudeMdPath, instructions);
+          log.info(`Updated CLAUDE.md for ${agentId} at ${claudeMdPath}`);
+        } catch (writeErr) {
+          log.warn(`Failed to write CLAUDE.md for ${agentId}: ${writeErr}`);
+        }
+      }
 
       // Rebuild
       try {

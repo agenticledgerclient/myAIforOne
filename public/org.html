@@ -483,10 +483,10 @@ html,body{
 .goal-entry .entry-remove{position:absolute;top:10px;right:10px}
 .goal-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 .goal-input{
-  padding:8px 12px;border-radius:8px;
+  width:100%;padding:8px 12px;border-radius:8px;
   border:1px solid var(--border-dim);background:var(--bg-deep);
   color:var(--text-primary);font-family:var(--font-sans);font-size:12px;
-  outline:none;flex:1;
+  outline:none;box-sizing:border-box;
 }
 .goal-input:focus{border-color:var(--accent)}
 .goal-input::placeholder{color:var(--text-muted)}
@@ -577,9 +577,21 @@ html,body{
       </div>
 
       <div class="form-group">
+        <label class="form-label">Instructions (CLAUDE.md)</label>
+        <textarea class="form-input" id="f-instructions" rows="6" placeholder="System prompt / instructions for this agent..." style="font-family:var(--font-mono);font-size:12px;resize:vertical;min-height:120px"></textarea>
+        <div class="form-hint">Agent system prompt. Written to the agent's CLAUDE.md file.</div>
+      </div>
+
+      <div class="form-group">
         <label class="form-label">Workspace</label>
         <input class="form-input" id="f-workspace" placeholder="~" value="~">
         <div class="form-hint">Directory Claude can access.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Agent Home</label>
+        <input class="form-input" id="f-agentHome" readonly style="opacity:.6;cursor:not-allowed;font-family:var(--font-mono);font-size:12px">
+        <div class="form-hint">Auto-derived directory where agent files live.</div>
       </div>
 
       <div class="form-section">Session</div>
@@ -891,6 +903,9 @@ function autoAlias() {
     aliasEl.value = clean ? '@' + clean : '';
     aliasEl.dataset.auto = clean;
   }
+  // Update agentHome preview
+  const homeEl = document.getElementById('f-agentHome');
+  homeEl.value = id ? '~/Desktop/personalAgents/' + id : '~/Desktop/personalAgents/(agent-id)';
 }
 
 async function openModal(agentId) {
@@ -907,7 +922,9 @@ async function openModal(agentId) {
   const aliasField = document.getElementById('f-alias');
   const nameField = document.getElementById('f-name');
   const descField = document.getElementById('f-desc');
+  const instrField = document.getElementById('f-instructions');
   const wsField = document.getElementById('f-workspace');
+  const homeField = document.getElementById('f-agentHome');
   const persistPill = document.getElementById('f-persistent');
   const streamPill = document.getElementById('f-streaming');
 
@@ -925,6 +942,15 @@ async function openModal(agentId) {
     nameField.value = a.name;
     descField.value = a.description || '';
     wsField.value = a.workspace || '~';
+    homeField.value = a.agentHome || '';
+
+    // Load CLAUDE.md instructions
+    instrField.value = 'Loading...';
+    try {
+      const instrRes = await fetch(`/api/agents/${agentId}/instructions`);
+      const instrData = await instrRes.json();
+      instrField.value = instrData.instructions || '';
+    } catch { instrField.value = ''; }
 
     const memPill = document.getElementById('f-advancedMemory');
     const autoPill = document.getElementById('f-autonomousCapable');
@@ -994,7 +1020,9 @@ async function openModal(agentId) {
     aliasField.dataset.auto = '';
     nameField.value = '';
     descField.value = '';
+    instrField.value = '# Agent Name\n\nDescription of what this agent does.\n\n## Identity\n- Mention alias: @alias\n- Respond when mentioned\n\n## Guidelines\n- Keep responses concise\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n';
     wsField.value = '~';
+    homeField.value = '~/Desktop/personalAgents/(agent-id)';
     persistPill.classList.add('checked');
     streamPill.classList.remove('checked');
     document.getElementById('f-advancedMemory').classList.add('checked');
@@ -1424,6 +1452,7 @@ async function saveAgent() {
   const alias = document.getElementById('f-alias').value.trim();
   const name = document.getElementById('f-name').value.trim();
   const description = document.getElementById('f-desc').value.trim();
+  const instructions = document.getElementById('f-instructions').value;
   const workspace = document.getElementById('f-workspace').value.trim() || '~';
   const persistent = document.getElementById('f-persistent').classList.contains('checked');
   const streaming = document.getElementById('f-streaming').classList.contains('checked');
@@ -1482,7 +1511,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined, instructions: instructions || undefined }),
     });
     const data = await res.json();
 
