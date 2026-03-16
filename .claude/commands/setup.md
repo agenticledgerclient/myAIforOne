@@ -176,13 +176,14 @@ Pre-configured settings (don't ask, just set):
 
 ## Step 6: Create Agent Folder
 
-Create the folder structure:
+Create the folder structure (this is the agent's **home** — separate from the **workspace** which is the project they work on):
 ```
-~/Desktop/personalAgents/<agentId>/
+~/Desktop/personalAgents/<agentId>/    ← agentHome
 ├── CLAUDE.md          # System prompt (generated from their description)
 ├── memory/
 │   ├── context.md     # Initial context
 ├── mcp-keys/          # Per-agent API keys (override shared keys)
+├── skills/            # Per-agent skills
 └── FileStorage/
     ├── Temp/          # Temporary file uploads (per-message)
     └── Permanent/     # Permanent file storage

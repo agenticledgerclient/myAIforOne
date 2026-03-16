@@ -65,15 +65,19 @@ Collect these parameters. If the user provided them inline (e.g., `/opAgents_Add
 ## Folder Structure Created
 
 ```
-~/Desktop/personalAgents/<agentId>/
+~/Desktop/personalAgents/<agentId>/    ← agentHome (agent's own folder)
 ├── CLAUDE.md          # System prompt (generated from description + purpose)
 ├── memory/
 │   ├── context.md     # Initial context doc
 │   └── (conversation_log.jsonl created automatically by the gateway)
-├── mcp-keys/          # Per-agent API keys (override shared keys in data/mcp-keys/)
+├── mcp-keys/          # Per-agent API keys (override shared keys)
+├── skills/            # Per-agent skills
 └── FileStorage/
     ├── Temp/          # Temporary file uploads (per-message)
     └── Permanent/     # Permanent file storage
+
+Note: agentHome is the agent's own folder (identity, memory, files).
+workspace is the project/codebase it works on (separate concept).
 ```
 
 ## Config.json Entry Template
@@ -82,6 +86,7 @@ Collect these parameters. If the user provided them inline (e.g., `/opAgents_Add
 "<agentId>": {
   "name": "<name>",
   "description": "<description>",
+  "agentHome": "<agentHome>",
   "workspace": "<workspace>",
   "claudeMd": "<agentHome>/CLAUDE.md",
   "memoryDir": "<agentHome>/memory",

@@ -49,7 +49,8 @@ export interface CronJobConfig {
 export interface AgentConfig {
   name: string;
   description: string;
-  workspace: string;
+  agentHome?: string;    // agent's own folder (memory, skills, keys, storage)
+  workspace: string;     // project/codebase the agent works on
   claudeMd: string;
   memoryDir: string;
   skills?: string[];        // shared skills from ~/.claude/commands/
@@ -139,8 +140,22 @@ export function loadConfig(configPath: string): AppConfig {
     const resolveTilde = (p: string) =>
       p.startsWith("~") ? p.replace("~", home) : p;
     agent.workspace = resolveTilde(agent.workspace);
+    if (agent.agentHome) {
+      agent.agentHome = resolveTilde(agent.agentHome);
+      // Auto-derive claudeMd and memoryDir from agentHome if not explicitly set differently
+      if (!agent.claudeMd || agent.claudeMd.includes(id)) {
+        agent.claudeMd = `${agent.agentHome}/CLAUDE.md`;
+      }
+      if (!agent.memoryDir || agent.memoryDir.includes(id)) {
+        agent.memoryDir = `${agent.agentHome}/memory`;
+      }
+    }
     agent.claudeMd = resolveTilde(agent.claudeMd);
     agent.memoryDir = resolveTilde(agent.memoryDir);
+    // Derive agentHome from memoryDir if not set
+    if (!agent.agentHome) {
+      agent.agentHome = resolve(resolveTilde(agent.memoryDir), "..");
+    }
 
     // Validate MCP references
     if (agent.mcps && agent.mcps.length > 0) {

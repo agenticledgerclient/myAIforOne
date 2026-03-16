@@ -291,8 +291,8 @@ export function startWebUI(opts: WebUIOptions): void {
 
     if (!fileData || !fileName) return res.status(400).json({ error: "No file in request" });
 
-    // Determine save path — use agent's own folder, not workspace
-    const agentHome = resolve(opts.baseDir, agent.memoryDir, "..");
+    // Save to agent's own folder
+    const agentHome = agent.agentHome || resolve(opts.baseDir, agent.memoryDir, "..");
     const storageDir = join(agentHome, "FileStorage", mode === "permanent" ? "Permanent" : "Temp");
     mkdirSync(storageDir, { recursive: true });
 
@@ -361,6 +361,7 @@ export function startWebUI(opts: WebUIOptions): void {
       const agentConfig: any = {
         name,
         description: description || `Agent ${name}`,
+        agentHome: `~/Desktop/personalAgents/${agentId}`,
         workspace: workspace || "~",
         claudeMd: `~/Desktop/personalAgents/${agentId}/CLAUDE.md`,
         memoryDir: `~/Desktop/personalAgents/${agentId}/memory`,
