@@ -247,6 +247,69 @@ export function startWebUI(opts: WebUIOptions): void {
     res.end();
   });
 
+  // ─── API: Upload file ────────────────────────────────────────────
+  // Accepts multipart form data with file + mode (temp/permanent)
+  app.post("/api/upload/:agentId", async (req, res) => {
+    const { agentId } = req.params;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    // Parse raw body as multipart — Express 5 doesn't have built-in multipart
+    // We'll use a simple approach: read chunks from the request
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    }
+    const body = Buffer.concat(chunks);
+
+    // Extract boundary from content-type
+    const contentType = req.headers["content-type"] || "";
+    const boundaryMatch = contentType.match(/boundary=(.+)/);
+    if (!boundaryMatch) return res.status(400).json({ error: "Missing multipart boundary" });
+
+    const boundary = boundaryMatch[1];
+    const parts = body.toString("binary").split(`--${boundary}`).filter(p => p.includes("Content-Disposition"));
+
+    let fileName = "";
+    let fileData: Buffer | null = null;
+    let mode = "temp";
+
+    for (const part of parts) {
+      const headerEnd = part.indexOf("\r\n\r\n");
+      if (headerEnd < 0) continue;
+      const header = part.slice(0, headerEnd);
+      const content = part.slice(headerEnd + 4).replace(/\r\n$/, "");
+
+      if (header.includes('name="mode"')) {
+        mode = content.trim();
+      } else if (header.includes('name="file"')) {
+        const fnMatch = header.match(/filename="([^"]+)"/);
+        fileName = fnMatch ? fnMatch[1] : `upload-${Date.now()}`;
+        fileData = Buffer.from(content, "binary");
+      }
+    }
+
+    if (!fileData || !fileName) return res.status(400).json({ error: "No file in request" });
+
+    // Determine save path
+    const workspace = resolve(opts.baseDir, agent.workspace);
+    const storageDir = join(workspace, "FileStorage", mode === "permanent" ? "Permanent" : "Temp");
+    mkdirSync(storageDir, { recursive: true });
+
+    const savePath = join(storageDir, fileName);
+    writeFileSync(savePath, fileData);
+
+    log.info(`[Upload] ${agentId}: ${fileName} (${fileData.length} bytes, ${mode}) → ${savePath}`);
+
+    res.json({
+      ok: true,
+      path: savePath,
+      fileName,
+      size: fileData.length,
+      mode,
+    });
+  });
+
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
     const { agentId, name, description, alias, workspace, persistent, tools, mcps, routes } = req.body as {
@@ -282,6 +345,9 @@ export function startWebUI(opts: WebUIOptions): void {
       const agentHome = join(home, "Desktop", "personalAgents", agentId);
       const memoryDir = join(agentHome, "memory");
       mkdirSync(memoryDir, { recursive: true });
+      mkdirSync(join(agentHome, "mcp-keys"), { recursive: true });
+      mkdirSync(join(agentHome, "FileStorage", "Temp"), { recursive: true });
+      mkdirSync(join(agentHome, "FileStorage", "Permanent"), { recursive: true });
 
       // Write CLAUDE.md
       const claudeMd = `# ${name}\n\n${description || "General-purpose agent."}\n\n## Identity\n- Mention alias: ${normalAlias}\n- Respond when mentioned with ${normalAlias}\n\n## Guidelines\n- Keep responses concise — you're replying to phone messages\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n`;

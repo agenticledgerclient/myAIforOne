@@ -9,7 +9,9 @@
     "dev": "tsx watch src/index.ts",
     "test-message": "tsx src/test-message.ts",
     "whatsapp-login": "tsx src/whatsapp-login.ts",
-    "test": "node \"Comprehensive Test Suite/run-all-tests.js\""
+    "test": "node \"Comprehensive Test Suite/run-all-tests.js\"",
+    "encrypt-keys": "tsx src/encrypt-keys.ts",
+    "decrypt-keys": "tsx src/decrypt-keys.ts"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

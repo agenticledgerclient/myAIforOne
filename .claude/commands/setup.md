@@ -180,8 +180,12 @@ Create the folder structure:
 ```
 ~/Desktop/personalAgents/<agentId>/
 ├── CLAUDE.md          # System prompt (generated from their description)
-└── memory/
-    ├── context.md     # Initial context
+├── memory/
+│   ├── context.md     # Initial context
+├── mcp-keys/          # Per-agent API keys (override shared keys)
+└── FileStorage/
+    ├── Temp/          # Temporary file uploads (per-message)
+    └── Permanent/     # Permanent file storage
     └── (conversation_log.jsonl created automatically)
 ```
 

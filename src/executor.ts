@@ -7,6 +7,7 @@ import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { formatMessage } from "./utils/message-formatter.js";
 import { createMemoryManager, type MemoryManager } from "./memory/index.js";
+import { loadMcpKeysWithDecryption } from "./keystore.js";
 import { log } from "./logger.js";
 
 // Cache memory managers per agent to avoid re-creating on every message
@@ -115,29 +116,14 @@ function buildSkillIndex(skillNames: string[]): string {
 }
 
 // ─── MCP key loader ──────────────────────────────────────────────────
+// Dual-level: agent-specific keys override shared keys.
+// Supports encrypted .env.enc files (decrypted with MYAGENT_MASTER_PASSWORD).
 
-/**
- * Load env vars from data/mcp-keys/<name>.env
- * Format: KEY=value (one per line, # comments, blank lines ignored)
- */
-function loadMcpKeys(baseDir: string, mcpName: string): Record<string, string> {
-  const envPath = join(baseDir, "data", "mcp-keys", `${mcpName}.env`);
-  if (!existsSync(envPath)) return {};
+const masterPassword = process.env.MYAGENT_MASTER_PASSWORD || undefined;
 
-  const vars: Record<string, string> = {};
-  try {
-    const content = readFileSync(envPath, "utf-8");
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const eqIdx = trimmed.indexOf("=");
-      if (eqIdx < 1) continue;
-      const key = trimmed.slice(0, eqIdx).trim();
-      const val = trimmed.slice(eqIdx + 1).trim();
-      if (val) vars[key] = val; // only include non-empty values
-    }
-  } catch { /* ignore */ }
-  return vars;
+function loadMcpKeys(baseDir: string, mcpName: string, agentMemoryDir?: string): Record<string, string> {
+  const sharedDir = join(baseDir, "data", "mcp-keys");
+  return loadMcpKeysWithDecryption(sharedDir, agentMemoryDir || null, mcpName, masterPassword);
 }
 
 // ─── MCP config builder ─────────────────────────────────────────────
@@ -147,6 +133,7 @@ function buildMcpConfigFile(
   mcpNames: string[],
   mcpRegistry: Record<string, McpServerConfig>,
   baseDir: string,
+  agentMemoryDir?: string,
 ): string {
   const home = process.env.HOME || process.env.USERPROFILE || "";
   const mcpServers: Record<string, any> = {};
@@ -160,7 +147,7 @@ function buildMcpConfigFile(
 
       // Merge env: config.json values < .env file values (file overrides)
       const configEnv = { ...(def.env || {}) };
-      const fileEnv = loadMcpKeys(baseDir, name);
+      const fileEnv = loadMcpKeys(baseDir, name, agentMemoryDir);
 
       // Remove empty-string values from config (they're just templates)
       const mergedEnv: Record<string, string> = {};
@@ -180,7 +167,7 @@ function buildMcpConfigFile(
 
       // For HTTP MCPs, check if headers have ${VAR} references and resolve from .env
       const headers = { ...(httpDef.headers || {}) };
-      const fileEnv = loadMcpKeys(baseDir, name);
+      const fileEnv = loadMcpKeys(baseDir, name, agentMemoryDir);
       for (const [hk, hv] of Object.entries(headers)) {
         if (typeof hv === "string" && hv.includes("${")) {
           // Replace ${VAR_NAME} with value from .env file
@@ -440,7 +427,7 @@ export async function executeAgent(
   // MCP servers
   let mcpConfigPath: string | null = null;
   if (agentConfig.mcps && agentConfig.mcps.length > 0 && mcpRegistry) {
-    mcpConfigPath = buildMcpConfigFile(agentId, agentConfig.mcps, mcpRegistry, baseDir);
+    mcpConfigPath = buildMcpConfigFile(agentId, agentConfig.mcps, mcpRegistry, baseDir, memoryDir);
     args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
     log.debug(`MCP config for ${agentId}: ${mcpConfigPath} (servers: ${agentConfig.mcps.join(", ")})`);
   }
@@ -734,7 +721,7 @@ export async function* executeAgentStreaming(
 
   let mcpConfigPath: string | null = null;
   if (agentConfig.mcps && agentConfig.mcps.length > 0 && mcpRegistry) {
-    mcpConfigPath = buildMcpConfigFile(agentId, agentConfig.mcps, mcpRegistry, baseDir);
+    mcpConfigPath = buildMcpConfigFile(agentId, agentConfig.mcps, mcpRegistry, baseDir, memoryDir);
     args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
   }
 
