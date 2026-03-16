@@ -84,8 +84,15 @@ function handleInterceptedCommand(
 
 // ─── Skill index builder ─────────────────────────────────────────────
 
-function buildSkillIndex(skillNames: string[]): string {
-  const skillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
+function buildSkillIndex(
+  sharedSkillNames: string[],
+  agentSkillNames: string[],
+  agentMemoryDir: string,
+): string {
+  const sharedDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
+  // Agent skills dir is sibling to memory: agent/skills/
+  const agentSkillsDir = join(agentMemoryDir, "..", "skills");
+
   const lines: string[] = [
     "\n## Available Skills",
     "You have skills available as markdown files. When a task matches a skill, use the Read tool to read it from the path shown, then follow its instructions.\n",
@@ -93,15 +100,15 @@ function buildSkillIndex(skillNames: string[]): string {
     "|-------|-------------|------|",
   ];
 
-  for (const name of skillNames) {
-    const filePath = join(skillsDir, `${name}.md`);
+  // Shared skills from ~/.claude/commands/
+  for (const name of sharedSkillNames) {
+    const filePath = join(sharedDir, `${name}.md`);
     if (!existsSync(filePath)) {
-      log.warn(`Skill file not found: ${filePath}`);
+      log.warn(`Shared skill not found: ${filePath}`);
       continue;
     }
     try {
       const content = readFileSync(filePath, "utf-8");
-      // Extract description from frontmatter
       const descMatch = content.match(/description:\s*(.+)/);
       const desc = descMatch ? descMatch[1].trim() : "No description";
       lines.push(`| ${name} | ${desc} | \`${filePath}\` |`);
@@ -110,8 +117,27 @@ function buildSkillIndex(skillNames: string[]): string {
     }
   }
 
+  // Agent-specific skills from agent/skills/
+  for (const name of agentSkillNames) {
+    const filePath = join(agentSkillsDir, `${name}.md`);
+    if (!existsSync(filePath)) {
+      log.warn(`Agent skill not found: ${filePath}`);
+      continue;
+    }
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const descMatch = content.match(/description:\s*(.+)/);
+      const desc = descMatch ? descMatch[1].trim() : "No description";
+      lines.push(`| ${name} ★ | ${desc} | \`${filePath}\` |`);
+    } catch {
+      lines.push(`| ${name} ★ | (could not read) | \`${filePath}\` |`);
+    }
+  }
+
+  if (lines.length <= 4) return ""; // no skills found
+
   lines.push("");
-  lines.push("To use a skill: Read the file at the path shown, then follow its checklist and instructions.");
+  lines.push("Skills marked with ★ are specific to this agent. To use a skill: Read the file at the path shown, then follow its instructions.");
   return lines.join("\n");
 }
 
@@ -291,8 +317,9 @@ export async function executeAgent(
   }
 
   // ── Append skill index if configured ──
-  if (agentConfig.skills && agentConfig.skills.length > 0) {
-    systemPrompt += buildSkillIndex(agentConfig.skills);
+  const hasSkills = (agentConfig.skills?.length || 0) + (agentConfig.agentSkills?.length || 0) > 0;
+  if (hasSkills) {
+    systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
   }
 
   // ── Append advanced memory context ──
@@ -406,10 +433,14 @@ export async function executeAgent(
   args.push("--add-dir", workspace);
 
   // Skills directory (so agent can Read skill files)
-  if (agentConfig.skills && agentConfig.skills.length > 0) {
-    const skillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
-    if (existsSync(skillsDir)) {
-      args.push("--add-dir", skillsDir);
+  if (hasSkills) {
+    const sharedSkillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
+    if (existsSync(sharedSkillsDir) && agentConfig.skills?.length) {
+      args.push("--add-dir", sharedSkillsDir);
+    }
+    const agentSkillsDir = join(memoryDir, "..", "skills");
+    if (existsSync(agentSkillsDir) && agentConfig.agentSkills?.length) {
+      args.push("--add-dir", agentSkillsDir);
     }
   }
 
@@ -638,8 +669,9 @@ export async function* executeAgentStreaming(
     } catch { /* ignore */ }
   }
 
-  if (agentConfig.skills && agentConfig.skills.length > 0) {
-    systemPrompt += buildSkillIndex(agentConfig.skills);
+  const hasSkills = (agentConfig.skills?.length || 0) + (agentConfig.agentSkills?.length || 0) > 0;
+  if (hasSkills) {
+    systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
   }
 
   if (useAdvancedMemory && memoryContext) {

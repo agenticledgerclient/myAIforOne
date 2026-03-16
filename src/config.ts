@@ -52,7 +52,8 @@ export interface AgentConfig {
   workspace: string;
   claudeMd: string;
   memoryDir: string;
-  skills?: string[];
+  skills?: string[];        // shared skills from ~/.claude/commands/
+  agentSkills?: string[];   // agent-specific skills from agent's skills/ folder
   mcps?: string[];
   persistent?: boolean;
   perSenderSessions?: boolean;

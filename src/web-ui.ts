@@ -346,6 +346,7 @@ export function startWebUI(opts: WebUIOptions): void {
       const memoryDir = join(agentHome, "memory");
       mkdirSync(memoryDir, { recursive: true });
       mkdirSync(join(agentHome, "mcp-keys"), { recursive: true });
+      mkdirSync(join(agentHome, "skills"), { recursive: true });
       mkdirSync(join(agentHome, "FileStorage", "Temp"), { recursive: true });
       mkdirSync(join(agentHome, "FileStorage", "Permanent"), { recursive: true });
 
