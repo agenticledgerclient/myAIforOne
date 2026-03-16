@@ -10,6 +10,7 @@ import { TelegramDriver } from "./channels/telegram.js";
 import { DiscordDriver } from "./channels/discord.js";
 import { startWebUI } from "./web-ui.js";
 import { startCronJobs, stopCronJobs } from "./cron.js";
+import { startGoals, stopGoals } from "./goals.js";
 import type { ChannelDriver, InboundMessage } from "./channels/types.js";
 
 const isMac = process.platform === "darwin";
@@ -192,6 +193,9 @@ async function main(): Promise<void> {
 
   startCronJobs(config, cronMessageHandler);
 
+  // ─── Feature 8: Autonomous Goals ──────────────────────────────────
+  startGoals(config, driverMap, baseDir, config.mcps);
+
   // ─── Feature 6 + 9: Web UI + Webhooks ─────────────────────────────
   const webUI = config.service.webUI;
   if (webUI?.enabled) {
@@ -215,6 +219,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string) => {
     log.info(`Received ${signal}, shutting down...`);
     stopCronJobs();
+    stopGoals();
     for (const driver of drivers) {
       await driver.stop();
     }

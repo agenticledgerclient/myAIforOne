@@ -83,10 +83,12 @@ export function startWebUI(opts: WebUIOptions): void {
         workspace: agent.workspace,
         streaming: agent.streaming ?? false,
         advancedMemory: agent.advancedMemory ?? false,
+        autonomousCapable: agent.autonomousCapable ?? true,
         autoCommit: agent.autoCommit,
         tools: agent.allowedTools,
         org: agent.org || [],
         cron: agent.cron || [],
+        activeGoals: (agent.goals || []).filter(g => g.enabled).length,
       };
     });
 
@@ -313,9 +315,10 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, tools, mcps, routes, org, cron } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
+      autonomousCapable?: boolean;
       tools?: string[]; mcps?: string[];
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
@@ -372,6 +375,7 @@ export function startWebUI(opts: WebUIOptions): void {
         persistent: persistent ?? true,
         streaming: streaming ?? true,
         advancedMemory: advancedMemory ?? true,
+        autonomousCapable: autonomousCapable ?? true,
         mentionAliases: [normalAlias],
         autoCommit: false,
         allowedTools: tools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
@@ -436,9 +440,10 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, tools, mcps, routes, org, cron } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
+      autonomousCapable?: boolean;
       tools?: string[]; mcps?: string[];
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
@@ -471,6 +476,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (persistent !== undefined) existing.persistent = persistent;
       if (streaming !== undefined) existing.streaming = streaming;
       if (advancedMemory !== undefined) existing.advancedMemory = advancedMemory;
+      if (autonomousCapable !== undefined) existing.autonomousCapable = autonomousCapable;
       if (tools) existing.allowedTools = tools;
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
       if (org !== undefined) existing.org = org;

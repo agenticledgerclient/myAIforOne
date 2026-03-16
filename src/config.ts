@@ -44,6 +44,19 @@ export interface CronJobConfig {
   chatId: string;         // which chat to reply in
 }
 
+// ─── Goals config ───────────────────────────────────────────────────
+
+export interface GoalConfig {
+  id: string;
+  enabled: boolean;
+  description: string;
+  successCriteria?: string;
+  instructions?: string;
+  heartbeat: string;       // cron expression
+  budget?: { maxDailyUsd: number };
+  reportTo?: string;       // "channel:chatId" e.g. "telegram:-5112439418"
+}
+
 // ─── Agent config ────────────────────────────────────────────────────
 
 export interface AgentConfig {
@@ -66,6 +79,7 @@ export interface AgentConfig {
     title: string;
     reportsTo?: string;
   }>;
+  autonomousCapable?: boolean;
   autoCommit: boolean;
   autoCommitBranch: string;
   allowedTools: string[];
@@ -73,6 +87,7 @@ export interface AgentConfig {
   routes: RouteConfig[];
   timeout?: number;
   cron?: CronJobConfig[];
+  goals?: GoalConfig[];
 }
 
 export interface ChannelConfig {

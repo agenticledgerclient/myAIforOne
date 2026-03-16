@@ -65,6 +65,7 @@
       "memoryDir": "~/Desktop/personalAgents/my-agent/memory",
       "persistent": true,
       "advancedMemory": true,
+      "autonomousCapable": true,
       "mentionAliases": ["@myagent"],
       "autoCommit": false,
       "allowedTools": [
