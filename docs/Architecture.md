@@ -286,6 +286,74 @@ Agents can receive scheduled messages:
 ```
 Uses standard cron expressions. The agent processes the message and replies on the specified channel.
 
+### Autonomous Goals
+
+Agents with `"autonomousCapable": true` can be assigned goals — ongoing responsibilities that the agent checks on a recurring heartbeat schedule, with optional budget limits and channel reporting.
+
+#### The `autonomousCapable` Flag
+
+Set on the agent config to indicate whether this agent can accept goal assignments:
+```json
+"autonomousCapable": true
+```
+
+When `false`, the Goals tab in the Org UI is still visible but serves as documentation only — no heartbeats will fire.
+
+#### Goal Config Fields
+
+Each goal in the `goals` array has:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | YES | Kebab-case identifier, auto-generated from description (editable) |
+| `enabled` | YES | Whether the goal is active (`true`/`false`) |
+| `description` | YES | What the agent is responsible for |
+| `successCriteria` | no | How to determine the goal is complete |
+| `instructions` | no | Step-by-step guidance for the agent |
+| `heartbeat` | YES | Cron expression for check-in frequency |
+| `budget` | no | `{ "maxDailyUsd": 5.00 }` — max daily spend |
+| `reportTo` | no | `"channel:chatId"` — where to send results (e.g., `"telegram:-5274444946"`) |
+
+Example:
+```json
+"goals": [
+  {
+    "id": "monitor-deploy-health",
+    "enabled": true,
+    "description": "Monitor production deployment health",
+    "successCriteria": "All services returning 200 on health checks",
+    "instructions": "1. Check /health on each service\n2. If any fail, report immediately\n3. If all pass, log success silently",
+    "heartbeat": "0 9 * * 1-5",
+    "budget": { "maxDailyUsd": 2.00 },
+    "reportTo": "slack:C0AFJMHKZDG"
+  }
+]
+```
+
+#### Heartbeat System
+
+The `heartbeat` field uses the same cron expression format as scheduled messages. The Org UI provides a human-friendly picker (Every Day/Weekday/Week/Hour at HH:MM AM/PM) that converts to cron syntax.
+
+When a heartbeat fires, the agent receives the goal description + instructions as a message and processes it like any other task. Results are sent to the `reportTo` channel if configured.
+
+#### Budget Tracking
+
+When `budget.maxDailyUsd` is set, the agent tracks spending in `agentHome/goals/budget/`. If the daily limit is reached, the goal pauses until the next day. Budget files are stored per-goal per-day.
+
+#### Channel Reporting
+
+The `reportTo` field follows the format `"channel:chatId"` (e.g., `"telegram:-5274444946"` or `"slack:C0AFJMHKZDG"`). When set, goal execution results are sent to that channel/chat instead of (or in addition to) the agent's default routes.
+
+#### Three States
+
+An autonomous-capable agent with goals can be in one of three states:
+
+| State | Condition | Behavior |
+|-------|-----------|----------|
+| **Not Capable** | `autonomousCapable: false` | Goals are config-only, no heartbeats fire |
+| **Idle** | `autonomousCapable: true`, no enabled goals | Agent responds to messages only, no autonomous activity |
+| **Active** | `autonomousCapable: true`, 1+ enabled goals | Agent responds to messages AND executes goals on heartbeat schedules |
+
 ### Webhook Triggers
 External services can trigger agents via HTTP:
 ```bash
@@ -376,10 +444,13 @@ channelToAgentToClaude/           # The gateway project
 ~/Desktop/personalAgents/         # Agent homes (personal agents)
 └── claudeManager/
     ├── CLAUDE.md                 # System prompt
-    └── memory/
-        ├── context.md            # Persistent context (survives resets)
-        ├── session.json          # Session UUID pointer
-        └── conversation_log.jsonl # Audit trail
+    ├── memory/
+    │   ├── context.md            # Persistent context (survives resets)
+    │   ├── session.json          # Session UUID pointer
+    │   └── conversation_log.jsonl # Audit trail
+    └── goals/                    # Budget tracking and goal execution logs
+        ├── budget/               # Daily budget usage per goal
+        └── logs/                 # Execution logs from goal heartbeats
 ```
 
 ## Config Reference

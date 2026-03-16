@@ -169,6 +169,7 @@ Pre-configured settings (don't ask, just set):
 - **Persistent:** true (remembers conversations)
 - **Streaming:** true (live output in web UI)
 - **Advanced Memory:** true (automatic daily memory journals + semantic search — set `advancedMemory: true` by default for the general agent)
+- **Autonomous Capable:** true (agent can be assigned autonomous goals with heartbeat schedules — set `autonomousCapable: true` by default)
 - **Workspace:** ~ (full home directory access)
 - **Tools:** all (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch)
 - **MCPs:** none initially (they can add later from the web UI)

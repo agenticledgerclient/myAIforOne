@@ -88,6 +88,7 @@ export function startWebUI(opts: WebUIOptions): void {
         tools: agent.allowedTools,
         org: agent.org || [],
         cron: agent.cron || [],
+        goals: agent.goals || [],
         activeGoals: (agent.goals || []).filter(g => g.enabled).length,
       };
     });
@@ -315,7 +316,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean;
@@ -323,6 +324,7 @@ export function startWebUI(opts: WebUIOptions): void {
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
       cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
+      goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
     };
 
     if (!agentId || !name || !alias) {
@@ -384,6 +386,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (mcps && mcps.length > 0) agentConfig.mcps = mcps;
       if (org && org.length > 0) agentConfig.org = org;
       if (cron && cron.length > 0) agentConfig.cron = cron;
+      if (goals && goals.length > 0) agentConfig.goals = goals;
 
       // Build routes
       agentConfig.routes = (routes || []).map(r => ({
@@ -440,7 +443,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean;
@@ -448,6 +451,7 @@ export function startWebUI(opts: WebUIOptions): void {
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
       cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
+      goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
     };
 
     if (!name || !alias) {
@@ -481,6 +485,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
       if (org !== undefined) existing.org = org;
       if (cron !== undefined) existing.cron = cron.length > 0 ? cron : undefined;
+      if (goals !== undefined) existing.goals = goals.length > 0 ? goals : undefined;
 
       // Build routes if provided
       if (routes !== undefined) {

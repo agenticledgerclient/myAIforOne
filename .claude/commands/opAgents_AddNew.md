@@ -72,6 +72,9 @@ Collect these parameters. If the user provided them inline (e.g., `/opAgents_Add
 │   └── (conversation_log.jsonl created automatically by the gateway)
 ├── mcp-keys/          # Per-agent API keys (override shared keys)
 ├── skills/            # Per-agent skills
+├── goals/             # Budget tracking and goal execution logs
+│   ├── budget/        # Daily budget usage tracking per goal
+│   └── logs/          # Execution logs from goal heartbeats
 └── FileStorage/
     ├── Temp/          # Temporary file uploads (per-message)
     └── Permanent/     # Permanent file storage
@@ -94,8 +97,21 @@ workspace is the project/codebase it works on (separate concept).
   "mentionAliases": ["<mentionAlias>"],
   "autoCommit": <autoCommit>,
   "autoCommitBranch": "<autoCommitBranch>",
+  "autonomousCapable": true,
   "allowedTools": [<tools>],
   "timeout": <timeout>,
+  "goals": [
+    {
+      "id": "example-goal",
+      "enabled": true,
+      "description": "What this agent is responsible for",
+      "successCriteria": "How we know it's done",
+      "instructions": "Step by step guidance (optional)",
+      "heartbeat": "0 9 * * 1-5",
+      "budget": { "maxDailyUsd": 5.00 },
+      "reportTo": "telegram:-5274444946"
+    }
+  ],
   "routes": [
     {
       "channel": "slack",
@@ -111,7 +127,7 @@ workspace is the project/codebase it works on (separate concept).
 }
 ```
 
-Only include routes for channels the user specifies. Omit `autoCommitBranch` if `autoCommit` is false. Omit `mcps` if empty.
+Only include routes for channels the user specifies. Omit `autoCommitBranch` if `autoCommit` is false. Omit `mcps` if empty. Omit `goals` if none configured.
 
 ## CLAUDE.md Template
 

@@ -470,9 +470,47 @@ html,body{
   font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
   margin-top:6px;
 }
-.no-schedules{
+.no-schedules,.no-goals{
   text-align:center;padding:24px;color:var(--text-muted);font-size:13px;
 }
+
+/* Goal entry */
+.goal-entry{
+  padding:14px;margin-bottom:10px;
+  background:var(--bg-input);border:1px solid var(--border-dim);
+  border-radius:10px;position:relative;
+}
+.goal-entry .entry-remove{position:absolute;top:10px;right:10px}
+.goal-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.goal-input{
+  padding:8px 12px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-deep);
+  color:var(--text-primary);font-family:var(--font-sans);font-size:12px;
+  outline:none;flex:1;
+}
+.goal-input:focus{border-color:var(--accent)}
+.goal-input::placeholder{color:var(--text-muted)}
+.goal-textarea{
+  width:100%;padding:8px 12px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-deep);
+  color:var(--text-primary);font-family:var(--font-sans);font-size:12px;
+  outline:none;resize:none;min-height:48px;
+}
+.goal-textarea:focus{border-color:var(--accent)}
+.goal-textarea::placeholder{color:var(--text-muted)}
+.goal-label{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px;display:block}
+.goal-toggle{
+  display:flex;align-items:center;gap:6px;cursor:pointer;
+  font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);
+}
+.goal-toggle input{cursor:pointer}
+.goal-select{
+  padding:7px 10px;border-radius:7px;
+  border:1px solid var(--border-dim);background:var(--bg-deep);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:11px;
+  outline:none;cursor:pointer;
+}
+.goal-select:focus{border-color:var(--accent)}
 
 /* ─── Scrollbar ───────────────────────────────────────────────── */
 ::-webkit-scrollbar{width:6px}
@@ -512,6 +550,7 @@ html,body{
     <div class="modal-tabs">
       <button class="modal-tab active" onclick="switchModalTab('settings',this)">Settings</button>
       <button class="modal-tab" onclick="switchModalTab('schedules',this)">Schedules</button>
+      <button class="modal-tab" onclick="switchModalTab('goals',this)">Goals</button>
     </div>
     <div class="modal-tab-content active" id="tab-settings">
     <div class="modal-body">
@@ -588,6 +627,14 @@ html,body{
         <div class="no-schedules" id="noSchedules">No scheduled messages yet</div>
       </div>
       <button class="add-entry-btn" onclick="addScheduleEntry()">+ Add Schedule</button>
+    </div>
+    </div>
+    <div class="modal-tab-content" id="tab-goals">
+    <div class="modal-body">
+      <div id="goalEntries">
+        <div class="no-goals" id="noGoals">No goals yet</div>
+      </div>
+      <button class="add-entry-btn" onclick="addGoalEntry()">+ Add Goal</button>
     </div>
     </div>
     <div class="modal-footer">
@@ -923,6 +970,18 @@ async function openModal(agentId) {
     } else {
       document.getElementById('noSchedules').style.display = '';
     }
+
+    // Goal entries
+    const goalContainer = document.getElementById('goalEntries');
+    goalContainer.innerHTML = '<div class="no-goals" id="noGoals" style="display:none">No goals yet</div>';
+    const agentGoals = a.goals || [];
+    if (agentGoals.length > 0) {
+      for (const g of agentGoals) {
+        addGoalEntry(g);
+      }
+    } else {
+      document.getElementById('noGoals').style.display = '';
+    }
   } else {
     // Create mode
     document.getElementById('modalTitle').textContent = 'Create New Agent';
@@ -947,10 +1006,11 @@ async function openModal(agentId) {
     // MCPs
     renderMcpPills([]);
 
-    // Clear org, routes & schedules
+    // Clear org, routes, schedules & goals
     document.getElementById('orgEntries').innerHTML = '';
     document.getElementById('routeEntries').innerHTML = '';
     document.getElementById('scheduleEntries').innerHTML = '<div class="no-schedules" id="noSchedules">No scheduled messages yet</div>';
+    document.getElementById('goalEntries').innerHTML = '<div class="no-goals" id="noGoals">No goals yet</div>';
     addRouteEntry();
   }
 
@@ -1166,6 +1226,194 @@ function getSchedulesFromForm() {
   }).filter(Boolean);
 }
 
+// ─── Goal Entries ────────────────────────────────────────────
+function addGoalEntry(goal) {
+  const container = document.getElementById('goalEntries');
+  const noMsg = document.getElementById('noGoals');
+  if (noMsg) noMsg.style.display = 'none';
+
+  const channels = agents.length > 0
+    ? [...new Set(agents.flatMap(a => (a.routes||[]).map(r => r.split(':')[0])))]
+    : ['telegram', 'slack', 'imessage', 'discord'];
+
+  const g = goal || {};
+  const enabled = g.enabled !== false;
+  const id = g.id || '';
+  const desc = g.description || '';
+  const criteria = g.successCriteria || '';
+  const instructions = g.instructions || '';
+  const budget = g.budget && g.budget.maxDailyUsd != null ? g.budget.maxDailyUsd : '';
+  const reportChannel = g.reportTo ? g.reportTo.split(':')[0] : '';
+  const reportChatId = g.reportTo ? g.reportTo.split(':').slice(1).join(':') : '';
+
+  // Parse heartbeat cron
+  const hb = g.heartbeat ? cronToHuman(g.heartbeat) : { frequency: 'day', days: '1', time: '9', min: '0' };
+
+  const div = document.createElement('div');
+  div.className = 'goal-entry';
+  div.innerHTML = `
+    <button class="entry-remove" onclick="removeGoal(this)">&times;</button>
+    <div class="goal-row">
+      <label class="goal-toggle"><input type="checkbox" data-field="goalEnabled" ${enabled ? 'checked' : ''}> Enabled</label>
+    </div>
+    <div class="goal-row">
+      <div style="flex:1">
+        <label class="goal-label">Description</label>
+        <input class="goal-input" data-field="goalDesc" placeholder="What is this agent responsible for" value="${escapeHtml(desc)}" oninput="autoGoalId(this.closest('.goal-entry'))">
+      </div>
+    </div>
+    <div class="goal-row">
+      <div style="flex:1">
+        <label class="goal-label">ID</label>
+        <input class="goal-input" data-field="goalId" placeholder="auto-generated-from-description" value="${escapeHtml(id)}" style="font-family:var(--font-mono);font-size:11px">
+      </div>
+    </div>
+    <div class="goal-row">
+      <div style="flex:1">
+        <label class="goal-label">Success Criteria</label>
+        <input class="goal-input" data-field="goalCriteria" placeholder="How do we know it's done" value="${escapeHtml(criteria)}">
+      </div>
+    </div>
+    <div class="goal-row">
+      <div style="flex:1">
+        <label class="goal-label">Instructions (optional)</label>
+        <textarea class="goal-textarea" data-field="goalInstructions" placeholder="Step by step guidance">${escapeHtml(instructions)}</textarea>
+      </div>
+    </div>
+    <div class="goal-row">
+      <div style="flex:1">
+        <label class="goal-label">Heartbeat</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="schedule-label">Every</span>
+          <select class="goal-select" data-field="goalFreq" onchange="toggleGoalHeartbeatFields(this.closest('.goal-entry'))">
+            <option value="day" ${hb.frequency==='day'?'selected':''}>Day</option>
+            <option value="weekdays" ${hb.frequency==='weekdays'?'selected':''}>Weekday (Mon-Fri)</option>
+            <option value="week" ${hb.frequency==='week'?'selected':''}>Week</option>
+            <option value="hour" ${hb.frequency==='hour'?'selected':''}>Hour</option>
+          </select>
+          <span class="schedule-label goal-day-label" style="${hb.frequency!=='week'?'display:none':''}">on</span>
+          <select class="goal-select goal-day-select" data-field="goalDays" style="${hb.frequency!=='week'?'display:none':''}">
+            <option value="1" ${hb.days==='1'?'selected':''}>Monday</option>
+            <option value="2" ${hb.days==='2'?'selected':''}>Tuesday</option>
+            <option value="3" ${hb.days==='3'?'selected':''}>Wednesday</option>
+            <option value="4" ${hb.days==='4'?'selected':''}>Thursday</option>
+            <option value="5" ${hb.days==='5'?'selected':''}>Friday</option>
+            <option value="6" ${hb.days==='6'?'selected':''}>Saturday</option>
+            <option value="0" ${hb.days==='0'?'selected':''}>Sunday</option>
+          </select>
+          ${(function() {
+            const h24 = parseInt(hb.time || '9');
+            const isPM = h24 >= 12;
+            const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+            const m = hb.min || '0';
+            const hide = hb.frequency === 'hour';
+            const hourOpts = Array.from({length:12}, (_,i) => {
+              const hr = i === 0 ? 12 : i;
+              return '<option value="'+hr+'" '+(hr===h12?'selected':'')+'>'+hr+'</option>';
+            }).join('');
+            const minOpts = ['0','15','30','45'].map(v =>
+              '<option value="'+v+'" '+(v===m?'selected':'')+'>'+(v==='0'?'00':v)+'</option>'
+            ).join('');
+            return '<span class="schedule-label goal-time-label" style="'+(hide?'display:none':'')+'">at</span>'
+              + '<select class="goal-select" data-field="goalTimeHour" style="'+(hide?'display:none':'')+'">'+hourOpts+'</select>'
+              + '<span class="schedule-label goal-time-label" style="'+(hide?'display:none':'')+'">:</span>'
+              + '<select class="goal-select" data-field="goalTimeMin" style="'+(hide?'display:none':'')+'">'+minOpts+'</select>'
+              + '<select class="goal-select" data-field="goalTimeAmpm" style="'+(hide?'display:none':'')+'">'
+              + '<option value="AM" '+(isPM?'':'selected')+'>AM</option>'
+              + '<option value="PM" '+(isPM?'selected':'')+'>PM</option></select>';
+          })()}
+        </div>
+      </div>
+    </div>
+    <div class="goal-row">
+      <div style="flex:0.4">
+        <label class="goal-label">Budget ($/day, optional)</label>
+        <input class="goal-input" data-field="goalBudget" type="number" step="0.01" min="0" placeholder="5.00" value="${budget}">
+      </div>
+      <div style="flex:0.6">
+        <label class="goal-label">Report To</label>
+        <div style="display:flex;gap:6px">
+          <select class="goal-select" data-field="goalReportChannel" style="width:100px">
+            <option value="">None</option>
+            ${channels.map(c => '<option value="'+c+'" '+(c===reportChannel?'selected':'')+'>'+c+'</option>').join('')}
+          </select>
+          <input class="goal-input" data-field="goalReportChatId" placeholder="Chat/Channel ID" value="${escapeHtml(reportChatId)}" style="flex:1">
+        </div>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  toggleGoalHeartbeatFields(div);
+}
+
+function toggleGoalHeartbeatFields(entry) {
+  const freq = entry.querySelector('[data-field="goalFreq"]').value;
+  const showDay = freq === 'week';
+  const showTime = freq !== 'hour';
+  entry.querySelector('.goal-day-label').style.display = showDay ? '' : 'none';
+  entry.querySelector('.goal-day-select').style.display = showDay ? '' : 'none';
+  entry.querySelectorAll('.goal-time-label').forEach(el => el.style.display = showTime ? '' : 'none');
+  entry.querySelectorAll('[data-field="goalTimeHour"],[data-field="goalTimeMin"],[data-field="goalTimeAmpm"]').forEach(el => el.style.display = showTime ? '' : 'none');
+}
+
+function autoGoalId(entry) {
+  const desc = entry.querySelector('[data-field="goalDesc"]').value.trim();
+  const idField = entry.querySelector('[data-field="goalId"]');
+  // Only auto-fill if id is empty or was previously auto-generated
+  if (!idField.dataset.manual) {
+    const kebab = desc.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
+    idField.value = kebab;
+  }
+}
+
+function removeGoal(btn) {
+  btn.closest('.goal-entry').remove();
+  const container = document.getElementById('goalEntries');
+  if (!container.querySelector('.goal-entry')) {
+    document.getElementById('noGoals').style.display = '';
+  }
+}
+
+function buildGoalCron(entry) {
+  const freq = entry.querySelector('[data-field="goalFreq"]').value;
+  const day = entry.querySelector('[data-field="goalDays"]')?.value || '1';
+  let hr = parseInt(entry.querySelector('[data-field="goalTimeHour"]')?.value || '9');
+  const min = entry.querySelector('[data-field="goalTimeMin"]')?.value || '0';
+  const ampm = entry.querySelector('[data-field="goalTimeAmpm"]')?.value || 'AM';
+  if (ampm === 'PM' && hr !== 12) hr += 12;
+  if (ampm === 'AM' && hr === 12) hr = 0;
+  switch(freq) {
+    case 'day': return `${min} ${hr} * * *`;
+    case 'weekdays': return `${min} ${hr} * * 1-5`;
+    case 'week': return `${min} ${hr} * * ${day}`;
+    case 'hour': return '0 * * * *';
+    default: return `${min} ${hr} * * *`;
+  }
+}
+
+function getGoalsFromForm() {
+  const entries = document.querySelectorAll('.goal-entry');
+  return [...entries].map(entry => {
+    const id = entry.querySelector('[data-field="goalId"]').value.trim();
+    const enabled = entry.querySelector('[data-field="goalEnabled"]').checked;
+    const description = entry.querySelector('[data-field="goalDesc"]').value.trim();
+    const successCriteria = entry.querySelector('[data-field="goalCriteria"]').value.trim();
+    const instructions = entry.querySelector('[data-field="goalInstructions"]').value.trim();
+    const heartbeat = buildGoalCron(entry);
+    const budgetVal = entry.querySelector('[data-field="goalBudget"]').value.trim();
+    const reportChannel = entry.querySelector('[data-field="goalReportChannel"]').value;
+    const reportChatId = entry.querySelector('[data-field="goalReportChatId"]').value.trim();
+
+    if (!description || !id) return null;
+    const goal = { id, enabled, description, heartbeat };
+    if (successCriteria) goal.successCriteria = successCriteria;
+    if (instructions) goal.instructions = instructions;
+    if (budgetVal) goal.budget = { maxDailyUsd: parseFloat(budgetVal) };
+    if (reportChannel && reportChatId) goal.reportTo = reportChannel + ':' + reportChatId;
+    return goal;
+  }).filter(Boolean);
+}
+
 async function saveAgent() {
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
@@ -1229,11 +1477,12 @@ async function saveAgent() {
     }
 
     const cron = getSchedulesFromForm();
+    const goals = getGoalsFromForm();
 
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined }),
     });
     const data = await res.json();
 
