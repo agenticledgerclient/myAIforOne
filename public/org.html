@@ -548,6 +548,7 @@ html,body{
         <div class="checkbox-group">
           <div class="checkbox-pill checked" id="f-persistent" onclick="togglePill(this)">Persistent Session</div>
           <div class="checkbox-pill" id="f-streaming" onclick="togglePill(this)">Streaming</div>
+          <div class="checkbox-pill checked" id="f-advancedMemory" onclick="togglePill(this)">Advanced Memory</div>
         </div>
       </div>
 
@@ -877,8 +878,10 @@ async function openModal(agentId) {
     descField.value = a.description || '';
     wsField.value = a.workspace || '~';
 
+    const memPill = document.getElementById('f-advancedMemory');
     if (a.persistent) persistPill.classList.add('checked'); else persistPill.classList.remove('checked');
     if (a.streaming) streamPill.classList.add('checked'); else streamPill.classList.remove('checked');
+    if (a.advancedMemory) memPill.classList.add('checked'); else memPill.classList.remove('checked');
 
     // Tools
     const agentTools = a.tools || [];
@@ -932,6 +935,7 @@ async function openModal(agentId) {
     wsField.value = '~';
     persistPill.classList.add('checked');
     streamPill.classList.remove('checked');
+    document.getElementById('f-advancedMemory').classList.add('checked');
 
     // Reset tools
     document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
@@ -1171,6 +1175,7 @@ async function saveAgent() {
   const workspace = document.getElementById('f-workspace').value.trim() || '~';
   const persistent = document.getElementById('f-persistent').classList.contains('checked');
   const streaming = document.getElementById('f-streaming').classList.contains('checked');
+  const advancedMemory = document.getElementById('f-advancedMemory').classList.contains('checked');
 
   const tools = [...document.querySelectorAll('#f-tools .checkbox-pill.checked')]
     .map(el => el.dataset.val).filter(Boolean);
@@ -1223,7 +1228,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined }),
     });
     const data = await res.json();
 

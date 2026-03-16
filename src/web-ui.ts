@@ -82,6 +82,7 @@ export function startWebUI(opts: WebUIOptions): void {
         sessionActive,
         workspace: agent.workspace,
         streaming: agent.streaming ?? false,
+        advancedMemory: agent.advancedMemory ?? false,
         autoCommit: agent.autoCommit,
         tools: agent.allowedTools,
         org: agent.org || [],
@@ -312,10 +313,13 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, tools, mcps, routes } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, tools, mcps, routes, org, cron } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
-      workspace?: string; persistent?: boolean; tools?: string[];
-      mcps?: string[]; routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
+      workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
+      tools?: string[]; mcps?: string[];
+      routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
+      org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
+      cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
     };
 
     if (!agentId || !name || !alias) {
@@ -366,12 +370,16 @@ export function startWebUI(opts: WebUIOptions): void {
         claudeMd: `~/Desktop/personalAgents/${agentId}/CLAUDE.md`,
         memoryDir: `~/Desktop/personalAgents/${agentId}/memory`,
         persistent: persistent ?? true,
+        streaming: streaming ?? true,
+        advancedMemory: advancedMemory ?? true,
         mentionAliases: [normalAlias],
         autoCommit: false,
         allowedTools: tools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
       };
 
       if (mcps && mcps.length > 0) agentConfig.mcps = mcps;
+      if (org && org.length > 0) agentConfig.org = org;
+      if (cron && cron.length > 0) agentConfig.cron = cron;
 
       // Build routes
       agentConfig.routes = (routes || []).map(r => ({
@@ -428,9 +436,9 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, tools, mcps, routes, org, cron } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, tools, mcps, routes, org, cron } = req.body as {
       name?: string; description?: string; alias?: string;
-      workspace?: string; persistent?: boolean; streaming?: boolean;
+      workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       tools?: string[]; mcps?: string[];
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
@@ -462,6 +470,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (workspace !== undefined) existing.workspace = workspace;
       if (persistent !== undefined) existing.persistent = persistent;
       if (streaming !== undefined) existing.streaming = streaming;
+      if (advancedMemory !== undefined) existing.advancedMemory = advancedMemory;
       if (tools) existing.allowedTools = tools;
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
       if (org !== undefined) existing.org = org;
