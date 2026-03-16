@@ -291,9 +291,9 @@ export function startWebUI(opts: WebUIOptions): void {
 
     if (!fileData || !fileName) return res.status(400).json({ error: "No file in request" });
 
-    // Determine save path
-    const workspace = resolve(opts.baseDir, agent.workspace);
-    const storageDir = join(workspace, "FileStorage", mode === "permanent" ? "Permanent" : "Temp");
+    // Determine save path — use agent's own folder, not workspace
+    const agentHome = resolve(opts.baseDir, agent.memoryDir, "..");
+    const storageDir = join(agentHome, "FileStorage", mode === "permanent" ? "Permanent" : "Temp");
     mkdirSync(storageDir, { recursive: true });
 
     const savePath = join(storageDir, fileName);
