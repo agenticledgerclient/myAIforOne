@@ -89,8 +89,9 @@ function buildSkillIndex(
   agentSkillNames: string[],
   agentMemoryDir: string,
 ): string {
-  const sharedDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
-  // Agent skills dir is sibling to memory: agent/skills/
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const claudeDir = join(home, ".claude", "commands");
+  const personalDir = join(home, "Desktop", "personalAgents", "skills");
   const agentSkillsDir = join(agentMemoryDir, "..", "skills");
 
   const lines: string[] = [
@@ -100,11 +101,20 @@ function buildSkillIndex(
     "|-------|-------------|------|",
   ];
 
-  // Shared skills from ~/.claude/commands/
+  // Shared skills — check 3 locations in order: agent > personalAgents/skills > ~/.claude/commands
   for (const name of sharedSkillNames) {
-    const filePath = join(sharedDir, `${name}.md`);
-    if (!existsSync(filePath)) {
-      log.warn(`Shared skill not found: ${filePath}`);
+    let filePath = "";
+    // Try personalAgents/skills/ first (shared custom)
+    const personalPath = join(personalDir, `${name}.md`);
+    const claudePath = join(claudeDir, `${name}.md`);
+    if (existsSync(personalPath)) {
+      filePath = personalPath;
+    } else if (existsSync(claudePath)) {
+      filePath = claudePath;
+    }
+
+    if (!filePath) {
+      log.warn(`Shared skill not found: ${name}`);
       continue;
     }
     try {
@@ -134,7 +144,7 @@ function buildSkillIndex(
     }
   }
 
-  if (lines.length <= 4) return ""; // no skills found
+  if (lines.length <= 4) return "";
 
   lines.push("");
   lines.push("Skills marked with ★ are specific to this agent. To use a skill: Read the file at the path shown, then follow its instructions.");
@@ -434,11 +444,17 @@ export async function executeAgent(
 
   // Skills directory (so agent can Read skill files)
   if (hasSkills) {
-    const sharedSkillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
-    if (existsSync(sharedSkillsDir) && agentConfig.skills?.length) {
-      args.push("--add-dir", sharedSkillsDir);
-    }
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const claudeSkillsDir = join(home, ".claude", "commands");
+    const personalSkillsDir = join(home, "Desktop", "personalAgents", "skills");
     const agentSkillsDir = join(memoryDir, "..", "skills");
+
+    if (existsSync(claudeSkillsDir) && agentConfig.skills?.length) {
+      args.push("--add-dir", claudeSkillsDir);
+    }
+    if (existsSync(personalSkillsDir) && agentConfig.skills?.length) {
+      args.push("--add-dir", personalSkillsDir);
+    }
     if (existsSync(agentSkillsDir) && agentConfig.agentSkills?.length) {
       args.push("--add-dir", agentSkillsDir);
     }

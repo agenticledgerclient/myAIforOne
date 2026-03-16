@@ -119,18 +119,25 @@ export function decryptDir(dir: string, password: string): number {
  * Priority: agent-level > shared
  */
 export function loadMcpKeysWithDecryption(
-  sharedDir: string,
+  gatewayDir: string,
   agentMemoryDir: string | null,
   mcpName: string,
   masterPassword?: string,
 ): Record<string, string> {
   const vars: Record<string, string> = {};
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const personalAgentsBase = join(home, "Desktop", "personalAgents");
 
-  // Try shared keys first
-  const sharedVars = loadEnvFile(join(sharedDir, `${mcpName}.env`), join(sharedDir, `${mcpName}.env.enc`), masterPassword);
+  // Level 3: Gateway data/mcp-keys/ (last resort)
+  const gatewayVars = loadEnvFile(join(gatewayDir, `${mcpName}.env`), join(gatewayDir, `${mcpName}.env.enc`), masterPassword);
+  Object.assign(vars, gatewayVars);
+
+  // Level 2: Shared personalAgents/mcp-keys/ (overrides gateway)
+  const sharedKeysDir = join(personalAgentsBase, "mcp-keys");
+  const sharedVars = loadEnvFile(join(sharedKeysDir, `${mcpName}.env`), join(sharedKeysDir, `${mcpName}.env.enc`), masterPassword);
   Object.assign(vars, sharedVars);
 
-  // Agent-level keys override shared
+  // Level 1: Agent-specific agent/mcp-keys/ (highest priority)
   if (agentMemoryDir) {
     const agentKeysDir = join(agentMemoryDir, "..", "mcp-keys");
     const agentVars = loadEnvFile(join(agentKeysDir, `${mcpName}.env`), join(agentKeysDir, `${mcpName}.env.enc`), masterPassword);
