@@ -163,7 +163,7 @@ export function startGoals(
           };
 
           // Execute the agent
-          const response = await executeAgent(route, syntheticMsg, baseDir, mcpRegistry);
+          const response = await executeAgent(route, syntheticMsg, baseDir, mcpRegistry, config.service.claudeAccounts);
 
           // Track cost — try to parse the response for cost info
           // The executor returns plain text for non-persistent agents,

@@ -604,6 +604,14 @@ html,body{
         </div>
       </div>
 
+      <div class="form-group">
+        <label class="form-label">Claude Account</label>
+        <select class="form-input" id="f-claudeAccount">
+          <option value="">Default</option>
+        </select>
+        <div class="form-hint">Which Anthropic account this agent uses for Claude Code.</div>
+      </div>
+
       <div class="form-section">Tools</div>
       <div class="form-group">
         <div class="checkbox-group" id="f-tools">
@@ -666,6 +674,7 @@ html,body{
 let agents = [];
 let orgs = [];
 let availableMcps = [];
+let availableAccounts = [];
 let editingAgentId = null; // null = create mode, string = edit mode
 
 // ─── Theme ─────────────────────────────────────────────────────
@@ -690,6 +699,7 @@ async function fetchData() {
   const res = await fetch('/api/dashboard');
   const data = await res.json();
   agents = data.agents;
+  availableAccounts = data.claudeAccounts || [];
 
   // Collect unique orgs
   const orgSet = new Set();
@@ -918,6 +928,11 @@ async function openModal(agentId) {
     availableMcps = data.mcps || [];
   } catch { availableMcps = []; }
 
+  // Populate Claude Account dropdown
+  const accountSelect = document.getElementById('f-claudeAccount');
+  accountSelect.innerHTML = '<option value="">Default</option>' +
+    availableAccounts.map(a => `<option value="${a}">${a}</option>`).join('');
+
   const idField = document.getElementById('f-agentId');
   const aliasField = document.getElementById('f-alias');
   const nameField = document.getElementById('f-name');
@@ -958,6 +973,9 @@ async function openModal(agentId) {
     if (a.streaming) streamPill.classList.add('checked'); else streamPill.classList.remove('checked');
     if (a.advancedMemory) memPill.classList.add('checked'); else memPill.classList.remove('checked');
     if (a.autonomousCapable !== false) autoPill.classList.add('checked'); else autoPill.classList.remove('checked');
+
+    // Claude Account
+    accountSelect.value = a.claudeAccount || '';
 
     // Tools
     const agentTools = a.tools || [];
@@ -1030,6 +1048,9 @@ async function openModal(agentId) {
 
     // Reset tools
     document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
+
+    // Claude Account
+    accountSelect.value = '';
 
     // MCPs
     renderMcpPills([]);
@@ -1458,6 +1479,7 @@ async function saveAgent() {
   const streaming = document.getElementById('f-streaming').classList.contains('checked');
   const advancedMemory = document.getElementById('f-advancedMemory').classList.contains('checked');
   const autonomousCapable = document.getElementById('f-autonomousCapable').classList.contains('checked');
+  const claudeAccount = document.getElementById('f-claudeAccount').value || undefined;
 
   const tools = [...document.querySelectorAll('#f-tools .checkbox-pill.checked')]
     .map(el => el.dataset.val).filter(Boolean);
@@ -1511,7 +1533,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined, instructions: instructions || undefined }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined, instructions: instructions || undefined, claudeAccount }),
     });
     const data = await res.json();
 

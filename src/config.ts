@@ -83,6 +83,7 @@ export interface AgentConfig {
   autoCommit: boolean;
   autoCommitBranch: string;
   allowedTools: string[];
+  claudeAccount?: string;  // which account this agent uses (key from service.claudeAccounts)
   mentionAliases?: string[];
   routes: RouteConfig[];
   timeout?: number;
@@ -109,6 +110,7 @@ export interface ServiceConfig {
   logFile?: string;
   pairingCode?: string;
   webUI?: WebUIConfig;
+  claudeAccounts?: Record<string, string>;  // name → config dir path, e.g. {"main": "~/.claude"}
 }
 
 export interface AppConfig {

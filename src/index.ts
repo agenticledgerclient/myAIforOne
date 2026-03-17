@@ -120,7 +120,7 @@ async function main(): Promise<void> {
         // Streaming mode: send status updates to phone channel
         let lastStatus = "";
         let fullText = "";
-        for await (const event of executeAgentStreaming(match, msg, baseDir, config.mcps)) {
+        for await (const event of executeAgentStreaming(match, msg, baseDir, config.mcps, config.service.claudeAccounts)) {
           if (event.type === "status" && event.data !== lastStatus) {
             lastStatus = event.data;
             // Send status updates (throttle — only unique ones)
@@ -137,7 +137,7 @@ async function main(): Promise<void> {
         }
         response = response! || fullText || "No response from agent.";
       } else {
-        response = await executeAgent(match, msg, baseDir, config.mcps);
+        response = await executeAgent(match, msg, baseDir, config.mcps, config.service.claudeAccounts);
       }
 
       // Reply via originating channel (retry once on failure)
@@ -192,7 +192,7 @@ async function main(): Promise<void> {
     };
 
     const route = { agentId, agentConfig: agent, route: agent.routes[0] };
-    const response = await executeAgent(route, syntheticMsg, baseDir, config.mcps);
+    const response = await executeAgent(route, syntheticMsg, baseDir, config.mcps, config.service.claudeAccounts);
 
     // Send response to the configured channel
     const driver = driverMap.get(channel);

@@ -332,6 +332,46 @@ html,body{
   animation:micPulse 1s ease-in-out infinite;
 }
 @keyframes micPulse{0%,100%{opacity:1}50%{opacity:.6}}
+.clip-btn{
+  width:44px;height:44px;border-radius:10px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:all .2s;flex-shrink:0;
+}
+.clip-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.clip-btn.has-files{border-color:var(--accent);color:var(--accent)}
+.file-drop-zone{
+  display:none;padding:12px 16px;margin-bottom:10px;
+  border:2px dashed var(--border-glow);border-radius:12px;
+  background:var(--bg-input);text-align:center;
+  font-size:12px;color:var(--text-muted);cursor:pointer;
+  transition:all .2s;min-height:60px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+}
+.file-drop-zone.hidden{display:none}
+.file-drop-zone.dragover{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.file-drop-zone input[type=file]{display:none}
+.file-list{display:flex;flex-wrap:wrap;gap:6px;width:100%;justify-content:flex-start}
+.file-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:8px;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  font-family:var(--font-mono);font-size:10px;color:var(--text-primary);
+  max-width:200px;
+}
+.file-pill-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.file-pill-size{color:var(--text-muted);flex-shrink:0}
+.file-pill-remove{
+  cursor:pointer;color:var(--text-muted);font-size:14px;flex-shrink:0;
+  transition:color .2s;
+}
+.file-pill-remove:hover{color:#ef4444}
+.file-pill-store{
+  cursor:pointer;font-size:12px;flex-shrink:0;opacity:.5;
+  transition:opacity .2s;
+}
+.file-pill-store.active{opacity:1}
+.file-pill-store:hover{opacity:1}
 
 /* ─── Modal ───────────────────────────────────────────────────── */
 .modal-overlay{
@@ -572,6 +612,8 @@ let chatHistory = {}; // agentId -> [{role,text,time}]
 let isThinking = false;
 let streamingText = '';
 let streamingStatus = '';
+let availableAccounts = [];
+let accountOverrides = {}; // agentId -> account name (in-memory only)
 
 // ─── Theme ─────────────────────────────────────────────────────
 function toggleTheme() {
@@ -598,6 +640,7 @@ async function fetchDashboard() {
     const res = await fetch('/api/dashboard');
     const data = await res.json();
     agents = data.agents;
+    availableAccounts = data.claudeAccounts || [];
     renderStatus(data);
     buildFilterDropdowns();
     renderAgentList();
@@ -824,6 +867,10 @@ function renderChat() {
         <div class="chat-header-alias">${agent.aliases[0] || agent.id} · ${agent.persistent?'persistent session':'single-shot'}</div>
       </div>
       <div class="chat-header-actions">
+        ${availableAccounts.length > 0 ? `<select class="header-btn" style="padding:2px 6px;font-size:11px;cursor:pointer" onchange="accountOverrides['${agent.id}']=this.value||undefined" title="Claude Account override (in-memory only)">
+          <option value="">${agent.claudeAccount || 'default'}</option>
+          ${availableAccounts.filter(a => a !== agent.claudeAccount).map(a => `<option value="${a}" ${accountOverrides[agent.id]===a?'selected':''}>${a}</option>`).join('')}
+        </select>` : ''}
         <button class="header-btn" onclick="window.location='/org'" title="Go to Dashboard">◇ Dashboard</button>
         ${agent.persistent ? `<button class="header-btn danger" onclick="resetSession('${agent.id}')">↺ Reset</button>` : ''}
       </div>
@@ -840,7 +887,18 @@ function renderChat() {
       ${isThinking ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}
     </div>
     <div class="chat-input-wrap">
+      <div class="file-drop-zone hidden" id="fileDropZone"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="event.preventDefault();this.classList.remove('dragover');handleFileDrop(event)">
+        <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
+        <div id="fileListArea">
+          <span>Drop files here or click to browse</span>
+        </div>
+      </div>
       <div class="chat-input-box">
+        <button class="clip-btn" id="clipBtn" onclick="toggleFileZone()" title="Attach files">📎</button>
         <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
         <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -874,11 +932,28 @@ async function selectAgent(id) {
   scrollChat();
 }
 
-function doSend() {
+async function doSend() {
   const input = document.getElementById('chatInput');
   if (!input || !selectedAgent || isThinking) return;
-  const text = input.value.trim();
-  if (!text) return;
+  let text = input.value.trim();
+  if (!text && pendingFiles.length === 0) return;
+
+  // Upload files first if any
+  if (pendingFiles.length > 0) {
+    const uploaded = await uploadFiles(selectedAgent);
+    if (uploaded.length > 0) {
+      const fileNotes = uploaded.map(f =>
+        `[File ${f.mode === 'permanent' ? 'saved' : 'attached'}: ${f.name} at ${f.path}]`
+      ).join('\n');
+      text = text ? `${text}\n\n${fileNotes}` : fileNotes;
+    }
+    // Hide drop zone after upload
+    const zone = document.getElementById('fileDropZone');
+    if (zone) zone.classList.add('hidden');
+    const btn = document.getElementById('clipBtn');
+    if (btn) btn.classList.remove('has-files');
+  }
+
   input.value = '';
   autoResize(input);
   sendMessage(selectedAgent, text);
@@ -1104,6 +1179,98 @@ function formatTime(ts) {
   } catch { return ts; }
 }
 
+// ─── File Upload ───────────────────────────────────────────────
+let pendingFiles = []; // {file: File, mode: 'temp'|'permanent'}
+
+function toggleFileZone() {
+  const zone = document.getElementById('fileDropZone');
+  if (!zone) return;
+  zone.classList.toggle('hidden');
+  const btn = document.getElementById('clipBtn');
+  if (btn) btn.classList.toggle('has-files', !zone.classList.contains('hidden'));
+}
+
+function handleFileDrop(e) {
+  const files = e.dataTransfer?.files;
+  if (files) addFiles(files);
+}
+
+function handleFileSelect(e) {
+  const files = e.target?.files;
+  if (files) addFiles(files);
+  e.target.value = ''; // reset so same file can be re-selected
+}
+
+function addFiles(fileList) {
+  for (const f of fileList) {
+    if (!pendingFiles.find(p => p.file.name === f.name && p.file.size === f.size)) {
+      pendingFiles.push({ file: f, mode: 'temp' });
+    }
+  }
+  renderFileList();
+}
+
+function removeFile(idx) {
+  pendingFiles.splice(idx, 1);
+  renderFileList();
+  if (pendingFiles.length === 0) {
+    const btn = document.getElementById('clipBtn');
+    if (btn) btn.classList.remove('has-files');
+  }
+}
+
+function toggleFileMode(idx) {
+  pendingFiles[idx].mode = pendingFiles[idx].mode === 'temp' ? 'permanent' : 'temp';
+  renderFileList();
+}
+
+function renderFileList() {
+  const area = document.getElementById('fileListArea');
+  if (!area) return;
+  if (pendingFiles.length === 0) {
+    area.innerHTML = '<span>Drop files here or click to browse</span>';
+    return;
+  }
+  area.innerHTML = '<div class="file-list">' + pendingFiles.map((p, i) => {
+    const size = p.file.size > 1024*1024
+      ? (p.file.size/(1024*1024)).toFixed(1) + ' MB'
+      : (p.file.size/1024).toFixed(0) + ' KB';
+    const storeIcon = p.mode === 'permanent' ? '💾' : '⏳';
+    const storeTitle = p.mode === 'permanent' ? 'Permanent (click for temp)' : 'Temp (click to save permanently)';
+    return `<div class="file-pill" onclick="event.stopPropagation()">
+      <span class="file-pill-name">${escapeHtml(p.file.name)}</span>
+      <span class="file-pill-size">${size}</span>
+      <span class="file-pill-store ${p.mode==='permanent'?'active':''}" onclick="toggleFileMode(${i})" title="${storeTitle}">${storeIcon}</span>
+      <span class="file-pill-remove" onclick="removeFile(${i})">×</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+async function uploadFiles(agentId) {
+  const uploaded = [];
+  for (const p of pendingFiles) {
+    try {
+      const formData = new FormData();
+      formData.append('file', p.file);
+      formData.append('mode', p.mode);
+
+      const resp = await fetch(`/api/upload/${agentId}`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        uploaded.push({ name: data.fileName, path: data.path, mode: data.mode });
+      }
+    } catch (err) {
+      console.warn('Upload failed:', p.file.name, err);
+    }
+  }
+  pendingFiles = [];
+  renderFileList();
+  return uploaded;
+}
+
 // ─── Voice Input ───────────────────────────────────────────────
 let recognition = null;
 let isRecording = false;
@@ -1186,8 +1353,24 @@ function stopVoice() {
 }
 
 // ─── Init ──────────────────────────────────────────────────────
-fetchDashboard();
-setInterval(fetchDashboard, 30000); // refresh every 30s
+fetchDashboard().then(() => {
+  // Check URL hash for deep-link to agent (from org page "Chat" button)
+  const hash = window.location.hash.slice(1);
+  if (hash && agents.find(a => a.id === hash)) {
+    // Auto-filter to this agent's org/dept
+    const agent = agents.find(a => a.id === hash);
+    if (agent?.org?.length) {
+      const orgSelect = document.getElementById('filterOrg');
+      const deptSelect = document.getElementById('filterDept');
+      if (orgSelect) orgSelect.value = agent.org[0].organization || '';
+      if (deptSelect) deptSelect.value = agent.org[0].function || '';
+      renderAgentList();
+    }
+    selectAgent(hash);
+    window.location.hash = ''; // clean up URL
+  }
+});
+setInterval(fetchDashboard, 30000);
 </script>
 </body>
 </html>

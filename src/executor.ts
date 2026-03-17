@@ -50,6 +50,7 @@ interface ClaudeJsonResult {
 
 const RESET_PATTERN = /^\s*\/opreset\b/i;
 const COMPACT_PATTERN = /^\s*\/opcompact\b/i;
+const RELOGIN_PATTERN = /^\s*\/relogin(?:\s+(\S+))?\s*$/i;
 
 /**
  * Check if the message is an intercepted command.
@@ -80,6 +81,51 @@ function handleInterceptedCommand(
   }
 
   return null;
+}
+
+// ─── Re-login handler ───────────────────────────────────────────────
+
+function handleRelogin(accountName: string, configDir?: string): string {
+  try {
+    const env = { ...process.env };
+    delete env.CLAUDECODE;
+    delete env.CLAUDE_CODE_ENTRYPOINT;
+    if (configDir) env.CLAUDE_CONFIG_DIR = configDir;
+
+    // Try `claude auth status` first to check current state
+    const { execSync } = require("node:child_process");
+    let statusOutput = "";
+    try {
+      statusOutput = execSync("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim();
+    } catch {
+      // auth status may fail if not logged in — that's fine
+    }
+
+    // Try to get a login URL via `claude auth login`
+    let loginOutput = "";
+    try {
+      loginOutput = execSync("claude auth login 2>&1", { env, timeout: 15_000 }).toString().trim();
+    } catch (err: any) {
+      loginOutput = err?.stdout?.toString() || err?.stderr?.toString() || String(err);
+    }
+
+    // Look for a URL in the output
+    const urlMatch = loginOutput.match(/https?:\/\/\S+/);
+    if (urlMatch) {
+      log.info(`Re-login URL generated for account "${accountName}": ${urlMatch[0]}`);
+      return `Re-login needed for account "${accountName}".\n\nOpen this URL in your browser:\n${urlMatch[0]}`;
+    }
+
+    // If already logged in or no URL found
+    if (statusOutput.toLowerCase().includes("logged in") || statusOutput.toLowerCase().includes("authenticated")) {
+      return `Account "${accountName}" appears to be already logged in.\n\nStatus: ${statusOutput}`;
+    }
+
+    return `Re-login for account "${accountName}": Could not obtain a login URL.\n\nAuth status: ${statusOutput || "unknown"}\nLogin output: ${loginOutput || "empty"}`;
+  } catch (err) {
+    log.error(`Re-login failed for account "${accountName}": ${err}`);
+    return `Re-login failed for account "${accountName}": ${err}`;
+  }
 }
 
 // ─── Skill index builder ─────────────────────────────────────────────
@@ -259,6 +305,7 @@ export async function executeAgent(
   msg: InboundMessage,
   baseDir: string,
   mcpRegistry?: Record<string, McpServerConfig>,
+  claudeAccounts?: Record<string, string>,
 ): Promise<string> {
   const { agentId, agentConfig } = route;
   const workspace = resolve(agentConfig.workspace);
@@ -270,6 +317,26 @@ export async function executeAgent(
   const perSender = agentConfig.perSenderSessions ?? false;
   const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
+
+  // ── Resolve Claude account config dir ──
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  let claudeConfigDir: string | undefined;
+  if (agentConfig.claudeAccount && claudeAccounts) {
+    const dir = claudeAccounts[agentConfig.claudeAccount];
+    if (dir) claudeConfigDir = dir.startsWith("~") ? dir.replace("~", home) : dir;
+  }
+
+  // ── Check for /relogin command ──
+  const reloginMatch = RELOGIN_PATTERN.exec(msg.text);
+  if (reloginMatch) {
+    const accountName = reloginMatch[1] || agentConfig.claudeAccount || "default";
+    let reloginDir: string | undefined;
+    if (claudeAccounts && claudeAccounts[accountName]) {
+      const d = claudeAccounts[accountName];
+      reloginDir = d.startsWith("~") ? d.replace("~", home) : d;
+    }
+    return handleRelogin(accountName, reloginDir);
+  }
 
   // ── Check for intercepted commands ──
   const intercepted = handleInterceptedCommand(msg.text, agentId, memoryDir, senderSessionKey);
@@ -489,7 +556,7 @@ export async function executeAgent(
   let rawOutput: string;
 
   try {
-    rawOutput = await spawnClaude(args, workspace, timeout, stdinPayload);
+    rawOutput = await spawnClaude(args, workspace, timeout, stdinPayload, claudeConfigDir);
   } catch (err) {
     log.error(`Agent ${agentId} execution failed: ${err}`);
     return `Sorry, I ran into an error processing that request.`;
@@ -561,12 +628,13 @@ export async function executeAgent(
 
 // ─── Claude process spawner ──────────────────────────────────────────
 
-function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: string): Promise<string> {
+function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: string, claudeConfigDir?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     // Remove env vars that trigger Claude Code nesting detection
     const env = { ...process.env };
     delete env.CLAUDECODE;
     delete env.CLAUDE_CODE_ENTRYPOINT;
+    if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
     const proc = spawn("claude", args, {
       cwd,
@@ -628,6 +696,7 @@ export async function* executeAgentStreaming(
   msg: InboundMessage,
   baseDir: string,
   mcpRegistry?: Record<string, McpServerConfig>,
+  claudeAccounts?: Record<string, string>,
 ): AsyncGenerator<StreamEvent> {
   const { agentId, agentConfig } = route;
   const workspace = resolve(agentConfig.workspace);
@@ -639,6 +708,29 @@ export async function* executeAgentStreaming(
   const perSender = agentConfig.perSenderSessions ?? false;
   const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
+
+  // ── Resolve Claude account config dir ──
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  let claudeConfigDir: string | undefined;
+  if (agentConfig.claudeAccount && claudeAccounts) {
+    const dir = claudeAccounts[agentConfig.claudeAccount];
+    if (dir) claudeConfigDir = dir.startsWith("~") ? dir.replace("~", home) : dir;
+  }
+
+  // ── Check for /relogin command ──
+  const reloginMatch = RELOGIN_PATTERN.exec(msg.text);
+  if (reloginMatch) {
+    const accountName = reloginMatch[1] || agentConfig.claudeAccount || "default";
+    let reloginDir: string | undefined;
+    if (claudeAccounts && claudeAccounts[accountName]) {
+      const d = claudeAccounts[accountName];
+      reloginDir = d.startsWith("~") ? d.replace("~", home) : d;
+    }
+    const reloginResult = handleRelogin(accountName, reloginDir);
+    yield { type: "text", data: reloginResult };
+    yield { type: "done", data: reloginResult };
+    return;
+  }
 
   // Check intercepted commands
   const intercepted = handleInterceptedCommand(msg.text, agentId, memoryDir, senderSessionKey);
@@ -783,6 +875,7 @@ export async function* executeAgentStreaming(
   const env = { ...process.env };
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_ENTRYPOINT;
+  if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
   const proc = spawn("claude", args, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env });
 

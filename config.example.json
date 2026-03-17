@@ -6,6 +6,9 @@
       "enabled": true,
       "port": 8080,
       "webhookSecret": "CHANGE_ME_random_string"
+    },
+    "claudeAccounts": {
+      "main": "~/.claude"
     }
   },
 

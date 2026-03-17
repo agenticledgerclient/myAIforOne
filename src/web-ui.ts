@@ -98,6 +98,7 @@ export function startWebUI(opts: WebUIOptions): void {
         goals: agent.goals || [],
         activeGoals: (agent.goals || []).filter(g => g.enabled).length,
         agentHome,
+        claudeAccount: agent.claudeAccount || null,
       };
     });
 
@@ -110,6 +111,7 @@ export function startWebUI(opts: WebUIOptions): void {
       uptime: process.uptime(),
       channels,
       agents,
+      claudeAccounts: Object.keys(opts.config.service.claudeAccounts || {}),
     });
   });
 
@@ -217,7 +219,7 @@ export function startWebUI(opts: WebUIOptions): void {
       // If agent has streaming enabled, use streaming executor but collect full response
       if (agent.streaming) {
         let fullResponse = "";
-        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps)) {
+        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
           if (event.type === "text") fullResponse += event.data;
           else if (event.type === "done" && event.data && !fullResponse) fullResponse = event.data;
           else if (event.type === "error") {
@@ -228,7 +230,7 @@ export function startWebUI(opts: WebUIOptions): void {
         log.info(`[WebUI Chat] ${agentId} -> web: ${fullResponse.slice(0, 80)}`);
         res.json({ ok: true, response: fullResponse });
       } else {
-        const response = await executeAgent(route, syntheticMsg, opts.baseDir, opts.config.mcps);
+        const response = await executeAgent(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts);
         log.info(`[WebUI Chat] ${agentId} -> web: ${response.slice(0, 80)}`);
         res.json({ ok: true, response });
       }
@@ -277,7 +279,7 @@ export function startWebUI(opts: WebUIOptions): void {
     };
 
     try {
-      for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps)) {
+      for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       }
     } catch (err) {
@@ -353,7 +355,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean;
@@ -363,6 +365,7 @@ export function startWebUI(opts: WebUIOptions): void {
       cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
       goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
       instructions?: string;
+      claudeAccount?: string;
     };
 
     if (!agentId || !name || !alias) {
@@ -424,6 +427,7 @@ export function startWebUI(opts: WebUIOptions): void {
       };
 
       if (mcps && mcps.length > 0) agentConfig.mcps = mcps;
+      if (claudeAccount) agentConfig.claudeAccount = claudeAccount;
       if (org && org.length > 0) agentConfig.org = org;
       if (cron && cron.length > 0) agentConfig.cron = cron;
       if (goals && goals.length > 0) agentConfig.goals = goals;
@@ -483,7 +487,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean;
@@ -493,6 +497,7 @@ export function startWebUI(opts: WebUIOptions): void {
       cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
       goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
       instructions?: string;
+      claudeAccount?: string;
     };
 
     if (!name || !alias) {
@@ -524,6 +529,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (autonomousCapable !== undefined) existing.autonomousCapable = autonomousCapable;
       if (tools) existing.allowedTools = tools;
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
+      if (claudeAccount !== undefined) existing.claudeAccount = claudeAccount || undefined;
       if (org !== undefined) existing.org = org;
       if (cron !== undefined) existing.cron = cron.length > 0 ? cron : undefined;
       if (goals !== undefined) existing.goals = goals.length > 0 ? goals : undefined;
