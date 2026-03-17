@@ -65,8 +65,20 @@ async function main(): Promise<void> {
         continue;
     }
 
+    // Track recent bot-sent messages to prevent echo loops
+    const recentBotMessages = new Set<string>();
+
     // Wire up message handling
     driver.onMessage(async (msg: InboundMessage) => {
+      // Anti-echo: ignore bot's own messages and echo loops
+      if (msg.isFromMe) return;
+      if (msg.text === "On it..." || msg.text?.startsWith("Paired successfully")) return;
+      const msgKey = `${msg.chatId}:${msg.text?.slice(0, 50)}`;
+      if (recentBotMessages.has(msgKey)) {
+        recentBotMessages.delete(msgKey);
+        return;
+      }
+
       // Feature 4: DM pairing gate
       if (isPairingAttempt(msg, config, baseDir)) {
         pairSender(msg, baseDir);
@@ -95,6 +107,7 @@ async function main(): Promise<void> {
         driver.sendTyping(msg.chatId).catch(() => {});
       }
       try {
+        recentBotMessages.add(`${msg.chatId}:On it...`);
         await driver.send({ text: "On it...", chatId: msg.chatId });
       } catch (err) {
         log.warn(`Failed to send thinking indicator: ${err}`);
@@ -128,6 +141,7 @@ async function main(): Promise<void> {
       }
 
       // Reply via originating channel (retry once on failure)
+      recentBotMessages.add(`${msg.chatId}:${response.slice(0, 50)}`);
       try {
         await driver.send({ text: response, chatId: msg.chatId });
       } catch (err) {
