@@ -51,6 +51,7 @@ interface ClaudeJsonResult {
 const RESET_PATTERN = /^\s*\/opreset\b/i;
 const COMPACT_PATTERN = /^\s*\/opcompact\b/i;
 const RELOGIN_PATTERN = /^\s*\/relogin(?:\s+(\S+))?\s*$/i;
+const PARALLEL_PATTERN = /^\s*\/parallel\s*\n/i;
 
 /**
  * Check if the message is an intercepted command.
@@ -126,6 +127,98 @@ function handleRelogin(accountName: string, configDir?: string): string {
     log.error(`Re-login failed for account "${accountName}": ${err}`);
     return `Re-login failed for account "${accountName}": ${err}`;
   }
+}
+
+// ─── Parallel executor ──────────────────────────────────────────────
+
+interface ParallelTask {
+  prompt: string;
+  index: number;
+}
+
+function parseParallelTasks(text: string): ParallelTask[] {
+  const lines = text.split("\n").slice(1); // skip the /parallel line
+  const tasks: ParallelTask[] = [];
+  let index = 0;
+  for (const line of lines) {
+    const trimmed = line.replace(/^[-*•]\s*/, "").trim();
+    if (trimmed) {
+      tasks.push({ prompt: trimmed, index: index++ });
+    }
+  }
+  return tasks;
+}
+
+async function executeParallel(
+  tasks: ParallelTask[],
+  agentConfig: any,
+  workspace: string,
+  systemPrompt: string,
+  baseDir: string,
+  mcpRegistry?: Record<string, McpServerConfig>,
+  claudeConfigDir?: string,
+): Promise<string> {
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+
+  log.info(`[Parallel] Spawning ${tasks.length} workers...`);
+
+  // Build shared args (no session — each worker is independent)
+  const buildArgs = (taskPrompt: string): string[] => {
+    const args = ["-p", "-", "--system-prompt", systemPrompt, "--output-format", "text", "--add-dir", workspace];
+
+    // Tools
+    const allowedTools = [...(agentConfig.allowedTools || [])];
+    if (agentConfig.mcps?.length) {
+      for (const mcpName of agentConfig.mcps) allowedTools.push(`mcp__${mcpName}__*`);
+    }
+    if (allowedTools.length > 0) args.push("--allowedTools", allowedTools.join(","));
+
+    // MCPs
+    if (agentConfig.mcps?.length && mcpRegistry) {
+      const memoryDir = agentConfig.memoryDir?.startsWith("~")
+        ? agentConfig.memoryDir.replace("~", home) : agentConfig.memoryDir;
+      const mcpConfigPath = buildMcpConfigFile(`parallel-${Date.now()}`, agentConfig.mcps, mcpRegistry, baseDir, memoryDir);
+      args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
+    }
+
+    args.push("--permission-mode", "acceptEdits");
+    return args;
+  };
+
+  const timeout = agentConfig.timeout ?? 120_000;
+
+  // Spawn all workers in parallel
+  const results = await Promise.allSettled(
+    tasks.map(async (task) => {
+      const args = buildArgs(task.prompt);
+      log.info(`[Parallel] Worker ${task.index + 1}: "${task.prompt.slice(0, 60)}..."`);
+      try {
+        const result = await spawnClaude(args, workspace, timeout, task.prompt, claudeConfigDir);
+        log.info(`[Parallel] Worker ${task.index + 1}: done`);
+        return { index: task.index, prompt: task.prompt, result: result.trim() };
+      } catch (err) {
+        log.warn(`[Parallel] Worker ${task.index + 1}: failed — ${err}`);
+        return { index: task.index, prompt: task.prompt, result: `Error: ${err}` };
+      }
+    })
+  );
+
+  // Format results
+  const lines = [`**${tasks.length} parallel tasks completed:**\n`];
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      const { index, prompt, result } = r.value;
+      lines.push(`### Task ${index + 1}: ${prompt}`);
+      lines.push(result);
+      lines.push("");
+    } else {
+      lines.push(`### Task: Failed`);
+      lines.push(`Error: ${r.reason}`);
+      lines.push("");
+    }
+  }
+
+  return lines.join("\n");
 }
 
 // ─── Skill index builder ─────────────────────────────────────────────
@@ -336,6 +429,35 @@ export async function executeAgent(
       reloginDir = d.startsWith("~") ? d.replace("~", home) : d;
     }
     return handleRelogin(accountName, reloginDir);
+  }
+
+  // ── Check for /parallel command ──
+  if (PARALLEL_PATTERN.test(msg.text)) {
+    const tasks = parseParallelTasks(msg.text);
+    if (tasks.length === 0) return "No tasks found. Format:\n/parallel\n- task 1\n- task 2\n- task 3";
+
+    // Load system prompt for workers
+    let workerPrompt: string;
+    try {
+      workerPrompt = readFileSync(resolve(baseDir, agentConfig.claudeMd), "utf-8");
+    } catch {
+      workerPrompt = `You are ${agentConfig.name}. ${agentConfig.description}`;
+    }
+
+    const result = await executeParallel(
+      tasks, agentConfig, workspace, workerPrompt, baseDir, mcpRegistry, claudeConfigDir
+    );
+
+    // Log the parallel execution
+    try {
+      appendFileSync(logPath, JSON.stringify({
+        ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+        response: result.slice(0, 2000), agentId, channel: msg.channel,
+        parallel: tasks.length,
+      }) + "\n");
+    } catch { /* ignore */ }
+
+    return result;
   }
 
   // ── Check for intercepted commands ──
@@ -729,6 +851,41 @@ export async function* executeAgentStreaming(
     const reloginResult = handleRelogin(accountName, reloginDir);
     yield { type: "text", data: reloginResult };
     yield { type: "done", data: reloginResult };
+    return;
+  }
+
+  // ── Check for /parallel command ──
+  if (PARALLEL_PATTERN.test(msg.text)) {
+    const tasks = parseParallelTasks(msg.text);
+    if (tasks.length === 0) {
+      yield { type: "text", data: "No tasks found. Format:\n/parallel\n- task 1\n- task 2" };
+      yield { type: "done", data: "" };
+      return;
+    }
+
+    yield { type: "status", data: `Spawning ${tasks.length} parallel workers...` };
+
+    let workerPrompt: string;
+    try {
+      workerPrompt = readFileSync(resolve(baseDir, agentConfig.claudeMd), "utf-8");
+    } catch {
+      workerPrompt = `You are ${agentConfig.name}. ${agentConfig.description}`;
+    }
+
+    const result = await executeParallel(
+      tasks, agentConfig, workspace, workerPrompt, baseDir, mcpRegistry, claudeConfigDir
+    );
+
+    try {
+      appendFileSync(logPath, JSON.stringify({
+        ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+        response: result.slice(0, 2000), agentId, channel: msg.channel,
+        parallel: tasks.length,
+      }) + "\n");
+    } catch { /* ignore */ }
+
+    yield { type: "text", data: result };
+    yield { type: "done", data: result };
     return;
   }
 
