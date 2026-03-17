@@ -805,8 +805,9 @@ function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: s
 // ─── Streaming executor ──────────────────────────────────────────────
 
 export interface StreamEvent {
-  type: "status" | "text" | "done" | "error";
+  type: "status" | "text" | "done" | "error" | "tool";
   data: string;
+  tool?: { name: string; input?: any };
 }
 
 /**
@@ -1063,7 +1064,8 @@ export async function* executeAgentStreaming(
         }
       } else if (event.type === "tool_use") {
         const toolName = event.tool_name || event.name || "tool";
-        yield { type: "status", data: `Using ${toolName}...` } as StreamEvent;
+        const toolInput = event.input || event.tool_input;
+        yield { type: "tool", data: `Using ${toolName}...`, tool: { name: toolName, input: toolInput } } as StreamEvent;
       } else if (event.type === "tool_result") {
         yield { type: "status", data: "Processing result..." } as StreamEvent;
       } else if (event.type === "result") {
@@ -1082,58 +1084,78 @@ export async function* executeAgentStreaming(
     }
   };
 
-  // Create a promise that resolves when the process closes
-  const exitPromise = new Promise<number | null>((resolveExit) => {
-    proc.on("close", (code) => {
-      clearTimeout(timer);
-      resolveExit(code);
-    });
-    proc.on("error", () => {
-      clearTimeout(timer);
-      resolveExit(1);
-    });
-  });
+  // Real-time streaming: process stdout lines as they arrive using an async queue
+  const eventQueue: Array<StreamEvent | { type: "__done"; code: number | null }> = [];
+  let queueResolve: (() => void) | null = null;
 
-  // Collect stdout chunks and yield events
-  const chunks: string[] = [];
+  function pushEvent(event: StreamEvent | { type: "__done"; code: number | null }) {
+    eventQueue.push(event);
+    if (queueResolve) {
+      queueResolve();
+      queueResolve = null;
+    }
+  }
+
+  function waitForEvent(): Promise<void> {
+    if (eventQueue.length > 0) return Promise.resolve();
+    return new Promise(r => { queueResolve = r; });
+  }
+
+  // Buffer partial lines from stdout
+  let lineBuffer = "";
   proc.stdout.on("data", (data: Buffer) => {
-    chunks.push(data.toString());
+    lineBuffer += data.toString();
+    const lines = lineBuffer.split("\n");
+    lineBuffer = lines.pop() || ""; // keep incomplete last line in buffer
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      for (const event of processLine(line)) {
+        pushEvent(event);
+      }
+    }
   });
 
-  // Wait for process to complete
-  const code = await exitPromise;
+  proc.on("close", (code) => {
+    clearTimeout(timer);
+    // Process any remaining buffer
+    if (lineBuffer.trim()) {
+      for (const event of processLine(lineBuffer)) {
+        pushEvent(event);
+      }
+    }
+    pushEvent({ type: "__done", code });
+  });
+
+  proc.on("error", () => {
+    clearTimeout(timer);
+    pushEvent({ type: "__done", code: 1 });
+  });
+
+  // Consume events as they arrive — this yields in real-time
+  let done = false;
+  let exitCode: number | null = 0;
+  while (!done) {
+    await waitForEvent();
+    while (eventQueue.length > 0) {
+      const event = eventQueue.shift()!;
+      if (event.type === "__done") {
+        exitCode = (event as any).code;
+        done = true;
+        break;
+      }
+      yield event as StreamEvent;
+    }
+  }
 
   // Clean up MCP config
   if (mcpConfigPath) {
     try { unlinkSync(mcpConfigPath); } catch { /* ignore */ }
   }
 
-  if (code !== 0) {
+  if (exitCode !== 0 && !fullResponse) {
     yield { type: "error", data: "Agent execution failed." };
     return;
-  }
-
-  // Process all output
-  const allOutput = chunks.join("");
-  const lines = allOutput.split("\n");
-  for (const line of lines) {
-    yield* processLine(line);
-  }
-
-  // If we got no text from streaming, try to parse as single JSON result
-  if (!fullResponse) {
-    try {
-      const result = JSON.parse(allOutput) as ClaudeJsonResult;
-      fullResponse = result.result;
-      yield { type: "text", data: fullResponse };
-      if (session) {
-        session.messageCount += 1;
-        saveSession(memoryDir, session, senderSessionKey);
-      }
-    } catch {
-      fullResponse = allOutput.trim();
-      if (fullResponse) yield { type: "text", data: fullResponse };
-    }
   }
 
   // Auto-commit
