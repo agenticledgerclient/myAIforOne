@@ -81,6 +81,7 @@ export class IMessageDriver implements ChannelDriver {
   }
 
   private handleRawMessage(raw: ImsgMessage): void {
+    if (raw.is_from_me) return; // Skip bot's own outbound messages
     if (!raw.text?.trim() && !raw.attachments?.length) return;
 
     // Debounce: coalesce rapid messages from same sender in same chat
@@ -117,7 +118,7 @@ export class IMessageDriver implements ChannelDriver {
       sender: first.sender,
       text,
       timestamp: new Date(first.created_at).getTime(),
-      isFromMe: false,
+      isFromMe: first.is_from_me,
       isGroup: first.is_group,
       groupName: first.chat_name ?? undefined,
       participants: first.participants,
