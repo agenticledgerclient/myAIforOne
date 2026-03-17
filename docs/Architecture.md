@@ -185,6 +185,64 @@ The Org Chart page (`/org`) visualizes this:
 - "All Agents" view groups agents by organization with section headers
 - Click any agent to Chat or view Config
 
+## Multi-Account Support
+
+Multiple Anthropic accounts — each with their own Claude Code subscription — can be assigned to different agents. This lets you spread usage across subscriptions, isolate billing, or use different plan tiers per agent type.
+
+### How It Works
+
+Each account is a separate Claude Code login, isolated by pointing `CLAUDE_CONFIG_DIR` to a dedicated config directory. When the gateway spawns `claude -p` for an agent, it sets `CLAUDE_CONFIG_DIR` to the directory for that agent's assigned account so Claude authenticates as the correct subscription.
+
+### Setup
+
+One-time login per account:
+
+```bash
+CLAUDE_CONFIG_DIR=~/.claude-account-X claude
+# then run /login inside the session to authenticate
+```
+
+Repeat for each account (`~/.claude-account-1`, `~/.claude-account-2`, etc.). Each directory holds its own credentials independently.
+
+### Config
+
+Register accounts in the service block, then assign them to agents:
+
+```json
+"service": {
+  "claudeAccounts": {
+    "main": { "configDir": "~/.claude" },
+    "account2": { "configDir": "~/.claude-account-2" },
+    "account3": { "configDir": "~/.claude-account-3" }
+  }
+}
+```
+
+Per agent, set the default account:
+
+```json
+"claudeAccount": "account2"
+```
+
+If omitted, the agent uses the default Claude config directory (no `CLAUDE_CONFIG_DIR` override).
+
+### UI
+
+- **Chat header dropdown** — switch the active account for an agent on the fly (in-memory override, does not persist to config)
+- **Agent edit modal dropdown** — set the default account for an agent (persisted to config)
+
+### The `/relogin` Command
+
+If an account's session expires mid-conversation, send `/relogin` in chat. The gateway will prompt you through re-authentication for the agent's assigned account without leaving the chat interface.
+
+### Use Cases
+
+| Scenario | How |
+|----------|-----|
+| **Spread usage** | Assign high-traffic agents to separate subscriptions to avoid rate limits |
+| **Isolate billing** | Give each team or project its own account for clean cost attribution |
+| **Different plan tiers** | Use a Pro account for lightweight agents, Max for heavy autonomous ones |
+
 ## Skills
 
 Skills are markdown instruction files in `~/.claude/commands/`. In an interactive terminal session, Claude loads these via the `Skill` tool. Since `claude -p` doesn't have the `Skill` tool, the gateway uses a workaround:
@@ -515,6 +573,7 @@ channelToAgentToClaude/           # The gateway project
   "workspace": "~",
   "claudeMd": "~/Desktop/personalAgents/claudeManager/CLAUDE.md",
   "memoryDir": "~/Desktop/personalAgents/claudeManager/memory",
+  "claudeAccount": "main",
   "mcps": ["context7", "playwright", "granola"],
   "persistent": true,
   "streaming": true,
