@@ -41,6 +41,16 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── Serve the Tasks page ───────────────────────────────────────
+  app.get("/tasks", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "tasks.html");
+    if (existsSync(htmlPath)) {
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Tasks page not found.");
+    }
+  });
+
   // ─── API: Dashboard ───────────────────────────────────────────────
   app.get("/api/dashboard", (_req, res) => {
     const agents = Object.entries(opts.config.agents).map(([id, agent]) => {
@@ -74,6 +84,18 @@ export function startWebUI(opts: WebUIOptions): void {
         ? resolveTilde(agent.agentHome)
         : resolve(opts.baseDir, agent.memoryDir, "..");
 
+      // Task counts
+      let taskCounts: Record<string, number> = { proposed: 0, approved: 0, in_progress: 0, review: 0, done: 0 };
+      const tasksPath = join(agentHome, "tasks.json");
+      if (existsSync(tasksPath)) {
+        try {
+          const tasksData = JSON.parse(readFileSync(tasksPath, "utf-8"));
+          for (const t of tasksData.tasks || []) {
+            if (taskCounts.hasOwnProperty(t.status)) taskCounts[t.status]++;
+          }
+        } catch { /* ignore */ }
+      }
+
       return {
         id,
         name: agent.name,
@@ -101,6 +123,7 @@ export function startWebUI(opts: WebUIOptions): void {
         activeGoals: (agent.goals || []).filter(g => g.enabled).length,
         agentHome,
         claudeAccount: agent.claudeAccount || null,
+        taskCounts,
       };
     });
 
@@ -529,6 +552,14 @@ export function startWebUI(opts: WebUIOptions): void {
       mkdirSync(join(agentHome, "FileStorage", "Temp"), { recursive: true });
       mkdirSync(join(agentHome, "FileStorage", "Permanent"), { recursive: true });
 
+      // Write tasks.json
+      const tasksJson = {
+        agentId,
+        projects: [{ id: "general", name: "General", color: "#6b7280" }],
+        tasks: [],
+      };
+      writeFileSync(join(agentHome, "tasks.json"), JSON.stringify(tasksJson, null, 2));
+
       // Write CLAUDE.md
       const claudeMd = instructions
         ? instructions
@@ -740,6 +771,224 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/api/mcps", (_req, res) => {
     const mcps = Object.keys(opts.config.mcps || {});
     res.json({ mcps });
+  });
+
+  // ─── Task helpers ──────────────────────────────────────────────────
+
+  const resolveTildeGlobal = (p: string) => {
+    const h = process.env.HOME || process.env.USERPROFILE || "";
+    return p.startsWith("~") ? p.replace("~", h) : p;
+  };
+
+  function getAgentHome(agent: any): string {
+    if (agent.agentHome) return resolveTildeGlobal(agent.agentHome);
+    return resolve(opts.baseDir, agent.memoryDir, "..");
+  }
+
+  function getTasksPath(agent: any): string {
+    return join(getAgentHome(agent), "tasks.json");
+  }
+
+  function loadTasksFile(agent: any, agentId: string): { agentId: string; projects: any[]; tasks: any[] } {
+    const p = getTasksPath(agent);
+    if (existsSync(p)) {
+      try {
+        return JSON.parse(readFileSync(p, "utf-8"));
+      } catch { /* ignore */ }
+    }
+    // Create default
+    const data = {
+      agentId,
+      projects: [{ id: "general", name: "General", color: "#6b7280" }],
+      tasks: [] as any[],
+    };
+    mkdirSync(getAgentHome(agent), { recursive: true });
+    writeFileSync(p, JSON.stringify(data, null, 2));
+    return data;
+  }
+
+  function saveTasksFile(agent: any, data: any): void {
+    const p = getTasksPath(agent);
+    writeFileSync(p, JSON.stringify(data, null, 2));
+  }
+
+  function determineAssignmentType(agentId: string, assignedBy: string): { assignmentType: string; status: string } {
+    // Find the target agent's org to check reportsTo
+    const targetAgent = opts.config.agents[agentId];
+    if (!targetAgent || !targetAgent.org || targetAgent.org.length === 0) {
+      return { assignmentType: "direct", status: "approved" };
+    }
+
+    // Check if assignedBy is a known agent alias
+    let assignerAgentId: string | null = null;
+    for (const [id, ag] of Object.entries(opts.config.agents)) {
+      const aliases = ag.mentionAliases || [];
+      const normalAssigner = assignedBy.startsWith("@") ? assignedBy : `@${assignedBy}`;
+      if (aliases.includes(normalAssigner) || id === assignedBy) {
+        assignerAgentId = id;
+        break;
+      }
+    }
+
+    if (!assignerAgentId) {
+      // Not a known agent — treat as operator / direct
+      return { assignmentType: "direct", status: "approved" };
+    }
+
+    // Check if assigner is a superior (target's reportsTo includes assigner's alias)
+    const assignerAgent = opts.config.agents[assignerAgentId];
+    const assignerAliases = assignerAgent?.mentionAliases || [];
+
+    for (const orgEntry of targetAgent.org) {
+      if (orgEntry.reportsTo) {
+        const reportsToNorm = orgEntry.reportsTo.startsWith("@") ? orgEntry.reportsTo : `@${orgEntry.reportsTo}`;
+        if (assignerAliases.includes(reportsToNorm) || assignerAgentId === orgEntry.reportsTo) {
+          return { assignmentType: "direct", status: "approved" };
+        }
+      }
+    }
+
+    // Peer → proposal
+    return { assignmentType: "proposal", status: "proposed" };
+  }
+
+  // ─── API: Task endpoints ──────────────────────────────────────────
+
+  // GET /api/agents/:id/tasks/stats — must be before :taskId route
+  app.get("/api/agents/:id/tasks/stats", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const data = loadTasksFile(agent, req.params.id);
+    const counts: Record<string, number> = { proposed: 0, approved: 0, in_progress: 0, review: 0, done: 0 };
+    for (const t of data.tasks) {
+      if (counts.hasOwnProperty(t.status)) counts[t.status]++;
+    }
+    res.json(counts);
+  });
+
+  // GET /api/agents/:id/tasks — return full tasks.json
+  app.get("/api/agents/:id/tasks", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    res.json(loadTasksFile(agent, req.params.id));
+  });
+
+  // POST /api/agents/:id/tasks — create new task
+  app.post("/api/agents/:id/tasks", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const { title, description, project, priority, status, owner, assignedBy, assignmentType, dueDate, context } = req.body as any;
+    if (!title) return res.status(400).json({ error: "Missing title" });
+
+    const data = loadTasksFile(agent, agentId);
+    const taskId = `${agentId}_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    // Determine assignment type from hierarchy if not provided
+    let finalAssignmentType = assignmentType;
+    let finalStatus = status || "approved";
+    if (!assignmentType && assignedBy) {
+      const hierarchy = determineAssignmentType(agentId, assignedBy);
+      finalAssignmentType = hierarchy.assignmentType;
+      if (!status) finalStatus = hierarchy.status;
+    }
+
+    const task = {
+      id: taskId,
+      title,
+      description: description || "",
+      project: project || "general",
+      priority: priority || "medium",
+      status: finalStatus,
+      owner: owner || (agent.mentionAliases?.[0] || agentId),
+      assignedBy: assignedBy || "operator",
+      assignmentType: finalAssignmentType || "direct",
+      dueDate: dueDate || null,
+      context: context || "",
+      result: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    data.tasks.push(task);
+    saveTasksFile(agent, data);
+    log.info(`[Tasks] Created task ${taskId} for ${agentId}`);
+    res.json({ ok: true, task });
+  });
+
+  // PUT /api/agents/:id/tasks/:taskId — update task
+  app.put("/api/agents/:id/tasks/:taskId", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const data = loadTasksFile(agent, agentId);
+    const taskIndex = data.tasks.findIndex((t: any) => t.id === req.params.taskId);
+    if (taskIndex < 0) return res.status(404).json({ error: "Task not found" });
+
+    const updates = req.body as any;
+    const task = data.tasks[taskIndex];
+    const updatableFields = ["title", "description", "project", "priority", "status", "owner", "assignedBy", "assignmentType", "dueDate", "context", "result"];
+    for (const field of updatableFields) {
+      if (updates[field] !== undefined) task[field] = updates[field];
+    }
+    task.updatedAt = new Date().toISOString();
+
+    data.tasks[taskIndex] = task;
+    saveTasksFile(agent, data);
+    log.info(`[Tasks] Updated task ${req.params.taskId} for ${agentId}`);
+    res.json({ ok: true, task });
+  });
+
+  // DELETE /api/agents/:id/tasks/:taskId — remove task
+  app.delete("/api/agents/:id/tasks/:taskId", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const data = loadTasksFile(agent, agentId);
+    const taskIndex = data.tasks.findIndex((t: any) => t.id === req.params.taskId);
+    if (taskIndex < 0) return res.status(404).json({ error: "Task not found" });
+
+    data.tasks.splice(taskIndex, 1);
+    saveTasksFile(agent, data);
+    log.info(`[Tasks] Deleted task ${req.params.taskId} from ${agentId}`);
+    res.json({ ok: true });
+  });
+
+  // POST /api/agents/:id/projects — add project to agent's task board
+  app.post("/api/agents/:id/projects", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const { id, name, color } = req.body as { id?: string; name?: string; color?: string };
+    if (!id || !name) return res.status(400).json({ error: "Missing id or name" });
+
+    const data = loadTasksFile(agent, agentId);
+    if (data.projects.some((p: any) => p.id === id)) {
+      return res.status(409).json({ error: "Project already exists" });
+    }
+    data.projects.push({ id, name, color: color || "#6b7280" });
+    saveTasksFile(agent, data);
+    res.json({ ok: true, projects: data.projects });
+  });
+
+  // GET /api/tasks/all — all tasks across all agents
+  app.get("/api/tasks/all", (_req, res) => {
+    const allTasks: any[] = [];
+    for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+      try {
+        const data = loadTasksFile(agent, agentId);
+        for (const task of data.tasks) {
+          allTasks.push({ ...task, agentId });
+        }
+      } catch { /* skip */ }
+    }
+    res.json({ tasks: allTasks });
   });
 
   // ─── Webhook endpoint ─────────────────────────────────────────────

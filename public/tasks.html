@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAgent — Tasks</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg-deep:#060a13;
+  --bg-surface:rgba(12,18,33,0.92);
+  --bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);
+  --border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;
+  --accent-soft:#38bdf8;
+  --accent-bg:rgba(6,182,212,0.15);
+  --accent-glow:rgba(34,211,238,0.12);
+  --purple:rgba(139,92,246,0.7);
+  --purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;
+  --green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;
+  --amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;
+  --red-bg:rgba(248,113,113,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);
+  --shadow-glow:0 0 20px rgba(34,211,238,0.08);
+  --radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+  --line-color:rgba(56,189,248,0.12);
+  --line-glow:rgba(34,211,238,0.25);
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;
+  --bg-surface:rgba(255,255,255,0.95);
+  --bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);
+  --border-dim:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);
+  --text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);
+  --text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;
+  --accent-soft:#0e7490;
+  --accent-bg:rgba(14,116,144,0.08);
+  --accent-glow:rgba(14,116,144,0.06);
+  --purple:rgba(109,40,217,0.75);
+  --purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;
+  --green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;
+  --amber-bg:rgba(217,119,6,0.08);
+  --red:#dc2626;
+  --red-bg:rgba(220,38,38,0.08);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+  --shadow-glow:none;
+  --line-color:rgba(14,116,144,0.12);
+  --line-glow:rgba(14,116,144,0.2);
+}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);
+  transition:background .3s,color .3s;
+}
+
+/* ─── Top Bar ─────────────────────────────────────────────────── */
+.topbar{
+  height:56px;display:flex;align-items:center;padding:0 24px;
+  background:var(--bg-surface);border-bottom:1px solid var(--border-dim);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  position:fixed;top:0;left:0;right:0;z-index:100;
+}
+.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px}
+.logo-mark{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--accent-bg);border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent);
+}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700}
+
+.tab-group{display:flex;gap:0}
+.tab-btn{
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  color:var(--text-muted);background:none;border:none;
+  padding:16px 20px;cursor:pointer;position:relative;transition:color .2s;
+  text-decoration:none;
+}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{
+  content:'';position:absolute;bottom:0;left:12px;right:12px;
+  height:2px;background:var(--accent);border-radius:1px;
+}
+
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.add-task-btn{
+  font-family:var(--font-sans);font-size:12px;font-weight:600;
+  padding:7px 16px;border-radius:8px;cursor:pointer;
+  border:1px dashed var(--border-glow);background:transparent;
+  color:var(--text-muted);transition:all .2s;
+  display:flex;align-items:center;gap:6px;
+}
+.add-task-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.theme-toggle{
+  width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .2s;
+}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* ─── Filter Bar ──────────────────────────────────────────────── */
+.filter-bar{
+  position:fixed;top:56px;left:0;right:0;z-index:90;
+  padding:10px 24px;display:flex;align-items:center;gap:12px;
+  background:var(--bg-surface);border-bottom:1px solid var(--border-dim);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.filter-select{
+  font-family:var(--font-mono);font-size:11px;
+  padding:6px 12px;border-radius:8px;
+  border:1px solid var(--border-glow);background:var(--bg-input);
+  color:var(--text-primary);outline:none;cursor:pointer;
+}
+.filter-select:focus{border-color:var(--accent)}
+
+/* ─── Stats Bar ───────────────────────────────────────────────── */
+.stats-bar{
+  display:flex;gap:16px;margin-left:auto;align-items:center;
+}
+.stat-item{
+  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  display:flex;align-items:center;gap:5px;
+}
+.stat-value{
+  font-weight:600;color:var(--text-secondary);
+}
+.stat-pct{
+  color:var(--green);font-weight:600;
+}
+
+/* ─── Kanban Board ────────────────────────────────────────────── */
+.kanban{
+  position:fixed;top:98px;left:0;right:0;bottom:0;
+  display:flex;gap:16px;padding:20px 24px;
+  overflow-x:auto;overflow-y:hidden;
+}
+.kanban::-webkit-scrollbar{height:6px}
+.kanban::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:3px}
+
+.kanban-col{
+  min-width:260px;width:260px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  border-radius:16px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:var(--shadow);overflow:hidden;
+  transition:all .3s;
+}
+.kanban-col.drag-over{
+  border-color:var(--accent);
+  box-shadow:var(--shadow),0 0 24px rgba(34,211,238,0.15);
+}
+
+.col-header{
+  padding:14px 16px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.col-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+}
+.col-dot.proposed{background:var(--text-muted)}
+.col-dot.approved{background:var(--accent)}
+.col-dot.in_progress{background:var(--amber)}
+.col-dot.review{background:var(--purple)}
+.col-dot.done{background:var(--green)}
+.col-title{
+  font-family:var(--font-display);font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.col-count{
+  margin-left:auto;font-family:var(--font-mono);font-size:10px;
+  color:var(--text-muted);background:var(--bg-input);
+  padding:2px 8px;border-radius:10px;
+}
+
+.col-body{
+  flex:1;overflow-y:auto;padding:12px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.col-body::-webkit-scrollbar{width:4px}
+.col-body::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+
+/* ─── Task Card ───────────────────────────────────────────────── */
+.task-card{
+  position:relative;padding:14px 14px 14px 18px;
+  background:var(--bg-card);border:1px solid var(--border-dim);
+  border-radius:var(--radius);cursor:grab;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:var(--shadow);transition:all .25s;
+}
+.task-card:hover{
+  border-color:var(--border-glow);
+  box-shadow:var(--shadow),var(--shadow-glow);
+  transform:translateY(-1px);
+}
+.task-card.dragging{
+  opacity:0.5;transform:rotate(2deg);
+}
+.task-card::before{
+  content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;
+  border-radius:2px;
+}
+.task-card.priority-high::before{background:var(--red)}
+.task-card.priority-medium::before{background:var(--amber)}
+.task-card.priority-low::before{background:var(--green)}
+
+.task-title{
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  color:var(--text-primary);margin-bottom:8px;line-height:1.4;
+}
+.task-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.task-tag{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  padding:2px 7px;border-radius:4px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.task-project{
+  border:1px solid var(--purple);background:var(--purple-bg);color:var(--purple);
+}
+.task-owner{
+  border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);
+}
+.task-assignedby{
+  border:1px solid var(--accent-bg);background:var(--accent-bg);color:var(--accent);
+  font-size:8px;
+}
+.task-due{
+  font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
+  margin-left:auto;
+}
+.task-due.overdue{color:var(--red)}
+
+/* ─── Modal ───────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:16px;padding:0;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  box-shadow:0 8px 48px rgba(0,0,0,0.5),var(--shadow-glow);
+}
+.modal::-webkit-scrollbar{width:4px}
+.modal::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+.modal-header{
+  padding:20px 24px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  transition:all .2s;
+}
+.modal-close:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.modal-body{padding:24px;display:flex;flex-direction:column;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;
+}
+.form-input,.form-select,.form-textarea{
+  font-family:var(--font-sans);font-size:13px;
+  padding:10px 14px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);outline:none;transition:border-color .2s;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent)}
+.form-textarea{resize:vertical;min-height:80px;font-family:var(--font-mono);font-size:12px}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+.modal-footer{
+  padding:16px 24px;border-top:1px solid var(--border-dim);
+  display:flex;justify-content:flex-end;gap:10px;
+}
+.btn{
+  font-family:var(--font-sans);font-size:12px;font-weight:600;
+  padding:8px 20px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-secondary);transition:all .2s;
+}
+.btn:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.btn-primary{
+  border-color:var(--accent);background:var(--accent-bg);color:var(--accent);
+}
+.btn-primary:hover{background:var(--accent);color:#000}
+.btn-danger{
+  border-color:var(--red);background:var(--red-bg);color:var(--red);
+}
+.btn-danger:hover{background:var(--red);color:#fff}
+
+/* ─── Empty state ─────────────────────────────────────────────── */
+.empty-col{
+  text-align:center;padding:24px 12px;
+  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  opacity:0.5;
+}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MyAgent</div>
+  </div>
+  <div class="tab-group">
+    <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn" href="/org">Org</a>
+    <a class="tab-btn active" href="/tasks">Tasks</a>
+  </div>
+  <div class="topbar-right">
+    <button class="add-task-btn" onclick="openNewTaskModal()">+ New Task</button>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme"></button>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <select class="filter-select" id="filterAgent" onchange="applyFilters()">
+    <option value="">All Agents</option>
+  </select>
+  <select class="filter-select" id="filterProject" onchange="applyFilters()">
+    <option value="">All Projects</option>
+  </select>
+  <select class="filter-select" id="filterPriority" onchange="applyFilters()">
+    <option value="">All Priorities</option>
+    <option value="high">High</option>
+    <option value="medium">Medium</option>
+    <option value="low">Low</option>
+  </select>
+  <div class="stats-bar">
+    <div class="stat-item">Total: <span class="stat-value" id="statTotal">0</span></div>
+    <div class="stat-item">Proposed: <span class="stat-value" id="statProposed">0</span></div>
+    <div class="stat-item">Approved: <span class="stat-value" id="statApproved">0</span></div>
+    <div class="stat-item">In Progress: <span class="stat-value" id="statInProgress">0</span></div>
+    <div class="stat-item">Review: <span class="stat-value" id="statReview">0</span></div>
+    <div class="stat-item">Done: <span class="stat-value" id="statDone">0</span></div>
+    <div class="stat-item">Completion: <span class="stat-pct" id="statPct">0%</span></div>
+  </div>
+</div>
+
+<!-- Kanban Board -->
+<div class="kanban" id="kanban">
+  <div class="kanban-col" data-status="proposed"
+       ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'proposed')">
+    <div class="col-header">
+      <div class="col-dot proposed"></div>
+      <div class="col-title">Proposed</div>
+      <div class="col-count" id="countProposed">0</div>
+    </div>
+    <div class="col-body" id="colProposed"></div>
+  </div>
+  <div class="kanban-col" data-status="approved"
+       ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'approved')">
+    <div class="col-header">
+      <div class="col-dot approved"></div>
+      <div class="col-title">Approved</div>
+      <div class="col-count" id="countApproved">0</div>
+    </div>
+    <div class="col-body" id="colApproved"></div>
+  </div>
+  <div class="kanban-col" data-status="in_progress"
+       ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'in_progress')">
+    <div class="col-header">
+      <div class="col-dot in_progress"></div>
+      <div class="col-title">In Progress</div>
+      <div class="col-count" id="countInProgress">0</div>
+    </div>
+    <div class="col-body" id="colInProgress"></div>
+  </div>
+  <div class="kanban-col" data-status="review"
+       ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'review')">
+    <div class="col-header">
+      <div class="col-dot review"></div>
+      <div class="col-title">Review</div>
+      <div class="col-count" id="countReview">0</div>
+    </div>
+    <div class="col-body" id="colReview"></div>
+  </div>
+  <div class="kanban-col" data-status="done"
+       ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'done')">
+    <div class="col-header">
+      <div class="col-dot done"></div>
+      <div class="col-title">Done</div>
+      <div class="col-count" id="countDone">0</div>
+    </div>
+    <div class="col-body" id="colDone"></div>
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">New Task</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" id="modalAgentGroup">
+        <label class="form-label">Agent</label>
+        <select class="form-select" id="modalAgent"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input class="form-input" id="modalTaskTitle" placeholder="Task title...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="modalDesc" placeholder="Describe the task..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Project</label>
+          <select class="form-select" id="modalProject"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select class="form-select" id="modalPriority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="modalStatus">
+            <option value="proposed">Proposed</option>
+            <option value="approved">Approved</option>
+            <option value="in_progress">In Progress</option>
+            <option value="review">Review</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input class="form-input" type="date" id="modalDueDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Owner</label>
+          <input class="form-input" id="modalOwner" placeholder="e.g. @bobby">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assigned By</label>
+          <input class="form-input" id="modalAssignedBy" placeholder="e.g. @operator">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Context</label>
+        <textarea class="form-textarea" id="modalContext" placeholder="Additional context..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Result</label>
+        <textarea class="form-textarea" id="modalResult" placeholder="Task result or notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="modalDeleteBtn" onclick="deleteTask()" style="display:none;margin-right:auto">Delete</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveTask()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────
+let allAgents = [];
+let allTasks = [];
+let editingTask = null; // { agentId, taskId } when editing
+let editingAgentId = null;
+
+// ─── Theme ──────────────────────────────────────────────────────
+function initTheme() {
+  const saved = localStorage.getItem('myagent-theme');
+  if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  updateThemeIcon();
+}
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('myagent-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('myagent-theme', 'light');
+  }
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  document.getElementById('themeBtn').textContent = isLight ? '\u263E' : '\u2600';
+}
+
+// ─── Data Loading ───────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+    allAgents = data.agents || [];
+    populateAgentFilters();
+  } catch (e) {
+    console.error('Failed to load dashboard:', e);
+  }
+}
+
+async function loadAllTasks() {
+  try {
+    const res = await fetch('/api/tasks/all');
+    const data = await res.json();
+    allTasks = data.tasks || [];
+    applyFilters();
+  } catch (e) {
+    console.error('Failed to load tasks:', e);
+    allTasks = [];
+    applyFilters();
+  }
+}
+
+function populateAgentFilters() {
+  const agentSelect = document.getElementById('filterAgent');
+  const modalAgent = document.getElementById('modalAgent');
+  agentSelect.innerHTML = '<option value="">All Agents</option>';
+  modalAgent.innerHTML = '';
+  for (const agent of allAgents) {
+    const alias = (agent.aliases && agent.aliases[0]) || agent.id;
+    agentSelect.innerHTML += `<option value="${agent.id}">${agent.name} (${alias})</option>`;
+    modalAgent.innerHTML += `<option value="${agent.id}">${agent.name} (${alias})</option>`;
+  }
+}
+
+// ─── Filtering ──────────────────────────────────────────────────
+function applyFilters() {
+  const agentFilter = document.getElementById('filterAgent').value;
+  const projectFilter = document.getElementById('filterProject').value;
+  const priorityFilter = document.getElementById('filterPriority').value;
+
+  // Collect projects from all tasks
+  const projectSet = new Set();
+  for (const t of allTasks) {
+    if (t.project) projectSet.add(t.project);
+  }
+  const projectSelect = document.getElementById('filterProject');
+  const prevProject = projectSelect.value;
+  projectSelect.innerHTML = '<option value="">All Projects</option>';
+  for (const p of [...projectSet].sort()) {
+    projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
+  }
+  if (prevProject && projectSet.has(prevProject)) projectSelect.value = prevProject;
+
+  // Filter
+  const filtered = allTasks.filter(t => {
+    if (agentFilter && t.agentId !== agentFilter) return false;
+    if (projectFilter && t.project !== projectFilter) return false;
+    if (priorityFilter && t.priority !== priorityFilter) return false;
+    return true;
+  });
+
+  renderKanban(filtered);
+  updateStats(filtered);
+}
+
+// ─── Rendering ──────────────────────────────────────────────────
+function renderKanban(tasks) {
+  const statuses = ['proposed', 'approved', 'in_progress', 'review', 'done'];
+  const colIds = {
+    proposed: 'colProposed',
+    approved: 'colApproved',
+    in_progress: 'colInProgress',
+    review: 'colReview',
+    done: 'colDone'
+  };
+  const countIds = {
+    proposed: 'countProposed',
+    approved: 'countApproved',
+    in_progress: 'countInProgress',
+    review: 'countReview',
+    done: 'countDone'
+  };
+
+  for (const s of statuses) {
+    const col = document.getElementById(colIds[s]);
+    col.innerHTML = '';
+    const statusTasks = tasks.filter(t => t.status === s);
+    document.getElementById(countIds[s]).textContent = statusTasks.length;
+
+    if (statusTasks.length === 0) {
+      col.innerHTML = '<div class="empty-col">No tasks</div>';
+      continue;
+    }
+
+    for (const task of statusTasks) {
+      col.appendChild(createTaskCard(task));
+    }
+  }
+}
+
+function createTaskCard(task) {
+  const card = document.createElement('div');
+  card.className = `task-card priority-${task.priority || 'medium'}`;
+  card.draggable = true;
+  card.dataset.taskId = task.id;
+  card.dataset.agentId = task.agentId;
+
+  card.addEventListener('dragstart', (e) => {
+    card.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', JSON.stringify({ taskId: task.id, agentId: task.agentId }));
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    document.querySelectorAll('.kanban-col.drag-over').forEach(c => c.classList.remove('drag-over'));
+  });
+  card.addEventListener('click', () => openEditTaskModal(task));
+
+  // Due date formatting
+  let dueHtml = '';
+  if (task.dueDate) {
+    const due = new Date(task.dueDate);
+    const now = new Date();
+    const isOverdue = due < now && task.status !== 'done';
+    const dateStr = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    dueHtml = `<span class="task-due ${isOverdue ? 'overdue' : ''}">${dateStr}</span>`;
+  }
+
+  // Project pill
+  const projectHtml = task.project ? `<span class="task-tag task-project">${task.project}</span>` : '';
+
+  // Owner
+  const ownerHtml = task.owner ? `<span class="task-tag task-owner">${task.owner}</span>` : '';
+
+  // Assigned by
+  const assignedHtml = task.assignedBy ? `<span class="task-tag task-assignedby">from ${task.assignedBy}</span>` : '';
+
+  card.innerHTML = `
+    <div class="task-title">${escapeHtml(task.title)}</div>
+    <div class="task-meta">
+      ${projectHtml}${ownerHtml}${assignedHtml}${dueHtml}
+    </div>
+  `;
+
+  return card;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function updateStats(tasks) {
+  const counts = { proposed: 0, approved: 0, in_progress: 0, review: 0, done: 0 };
+  for (const t of tasks) {
+    if (counts.hasOwnProperty(t.status)) counts[t.status]++;
+  }
+  const total = tasks.length;
+  const pct = total > 0 ? Math.round((counts.done / total) * 100) : 0;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statProposed').textContent = counts.proposed;
+  document.getElementById('statApproved').textContent = counts.approved;
+  document.getElementById('statInProgress').textContent = counts.in_progress;
+  document.getElementById('statReview').textContent = counts.review;
+  document.getElementById('statDone').textContent = counts.done;
+  document.getElementById('statPct').textContent = pct + '%';
+}
+
+// ─── Drag and Drop ──────────────────────────────────────────────
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const col = e.currentTarget;
+  col.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  const col = e.currentTarget;
+  col.classList.remove('drag-over');
+}
+
+async function handleDrop(e, newStatus) {
+  e.preventDefault();
+  const col = e.currentTarget;
+  col.classList.remove('drag-over');
+
+  try {
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    const { taskId, agentId } = data;
+
+    // Find the task to check current status
+    const task = allTasks.find(t => t.id === taskId && t.agentId === agentId);
+    if (!task || task.status === newStatus) return;
+
+    // Optimistic update
+    task.status = newStatus;
+    applyFilters();
+
+    // API call
+    const res = await fetch(`/api/agents/${agentId}/tasks/${taskId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    if (!res.ok) {
+      console.error('Failed to update task status');
+      await loadAllTasks();
+    }
+  } catch (err) {
+    console.error('Drop error:', err);
+  }
+}
+
+// ─── Modal ──────────────────────────────────────────────────────
+function openNewTaskModal() {
+  editingTask = null;
+  editingAgentId = null;
+  document.getElementById('modalTitle').textContent = 'New Task';
+  document.getElementById('modalSaveBtn').textContent = 'Create';
+  document.getElementById('modalDeleteBtn').style.display = 'none';
+  document.getElementById('modalAgentGroup').style.display = '';
+
+  // Clear fields
+  document.getElementById('modalTaskTitle').value = '';
+  document.getElementById('modalDesc').value = '';
+  document.getElementById('modalPriority').value = 'medium';
+  document.getElementById('modalStatus').value = 'approved';
+  document.getElementById('modalDueDate').value = '';
+  document.getElementById('modalOwner').value = '';
+  document.getElementById('modalAssignedBy').value = 'operator';
+  document.getElementById('modalContext').value = '';
+  document.getElementById('modalResult').value = '';
+
+  // Populate projects for selected agent
+  updateModalProjects();
+
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function openEditTaskModal(task) {
+  editingTask = { agentId: task.agentId, taskId: task.id };
+  editingAgentId = task.agentId;
+  document.getElementById('modalTitle').textContent = 'Edit Task';
+  document.getElementById('modalSaveBtn').textContent = 'Save';
+  document.getElementById('modalDeleteBtn').style.display = '';
+  document.getElementById('modalAgentGroup').style.display = 'none';
+
+  document.getElementById('modalAgent').value = task.agentId;
+  document.getElementById('modalTaskTitle').value = task.title || '';
+  document.getElementById('modalDesc').value = task.description || '';
+  document.getElementById('modalPriority').value = task.priority || 'medium';
+  document.getElementById('modalStatus').value = task.status || 'proposed';
+  document.getElementById('modalDueDate').value = task.dueDate ? task.dueDate.split('T')[0] : '';
+  document.getElementById('modalOwner').value = task.owner || '';
+  document.getElementById('modalAssignedBy').value = task.assignedBy || '';
+  document.getElementById('modalContext').value = task.context || '';
+  document.getElementById('modalResult').value = task.result || '';
+
+  updateModalProjects(task.project);
+
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function updateModalProjects(selectedProject) {
+  const agentId = editingAgentId || document.getElementById('modalAgent').value;
+  const projectSelect = document.getElementById('modalProject');
+  projectSelect.innerHTML = '<option value="general">General</option>';
+
+  // Gather unique projects from tasks for this agent
+  const projects = new Set(['general']);
+  for (const t of allTasks) {
+    if (t.agentId === agentId && t.project) projects.add(t.project);
+  }
+  for (const p of [...projects].sort()) {
+    if (p === 'general') continue;
+    projectSelect.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
+  }
+
+  if (selectedProject) projectSelect.value = selectedProject;
+}
+
+function closeModal() {
+  document.getElementById('taskModal').classList.remove('open');
+  editingTask = null;
+  editingAgentId = null;
+}
+
+async function saveTask() {
+  const title = document.getElementById('modalTaskTitle').value.trim();
+  if (!title) return alert('Title is required');
+
+  const body = {
+    title,
+    description: document.getElementById('modalDesc').value.trim(),
+    project: document.getElementById('modalProject').value,
+    priority: document.getElementById('modalPriority').value,
+    status: document.getElementById('modalStatus').value,
+    owner: document.getElementById('modalOwner').value.trim(),
+    assignedBy: document.getElementById('modalAssignedBy').value.trim(),
+    dueDate: document.getElementById('modalDueDate').value || undefined,
+    context: document.getElementById('modalContext').value.trim(),
+    result: document.getElementById('modalResult').value.trim(),
+  };
+
+  try {
+    if (editingTask) {
+      // Update
+      const res = await fetch(`/api/agents/${editingTask.agentId}/tasks/${editingTask.taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } else {
+      // Create
+      const agentId = document.getElementById('modalAgent').value;
+      if (!agentId) return alert('Select an agent');
+      const res = await fetch(`/api/agents/${agentId}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(await res.text());
+    }
+
+    closeModal();
+    await loadAllTasks();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function deleteTask() {
+  if (!editingTask) return;
+  if (!confirm('Delete this task?')) return;
+
+  try {
+    const res = await fetch(`/api/agents/${editingTask.agentId}/tasks/${editingTask.taskId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error(await res.text());
+    closeModal();
+    await loadAllTasks();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// Listen for agent change in modal to update projects
+document.getElementById('modalAgent').addEventListener('change', () => updateModalProjects());
+
+// Close modal on overlay click
+document.getElementById('taskModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('taskModal')) closeModal();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ─── Init ───────────────────────────────────────────────────────
+initTheme();
+(async () => {
+  await loadDashboard();
+  await loadAllTasks();
+  // Refresh every 30s
+  setInterval(loadAllTasks, 30000);
+})();
+</script>
+</body>
+</html>

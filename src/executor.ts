@@ -52,6 +52,190 @@ const RESET_PATTERN = /^\s*\/opreset\b/i;
 const COMPACT_PATTERN = /^\s*\/opcompact\b/i;
 const RELOGIN_PATTERN = /^\s*\/relogin(?:\s+(\S+))?\s*$/i;
 const PARALLEL_PATTERN = /^\s*\/parallel\s*\n/i;
+const TASK_PATTERN = /^\s*\/task\b/i;
+
+// ─── Task helpers ─────────────────────────────────────────────────
+
+interface TaskData {
+  agentId: string;
+  projects: Array<{ id: string; name: string; color: string }>;
+  tasks: Array<{
+    id: string; title: string; description: string; project: string;
+    priority: string; status: string; owner: string; assignedBy: string;
+    assignmentType: string; dueDate: string | null; context: string;
+    result: string; createdAt: string; updatedAt: string;
+  }>;
+}
+
+function loadTasksFromAgent(agentHome: string, agentId: string): TaskData {
+  const p = join(agentHome, "tasks.json");
+  if (existsSync(p)) {
+    try { return JSON.parse(readFileSync(p, "utf-8")); } catch { /* ignore */ }
+  }
+  return { agentId, projects: [{ id: "general", name: "General", color: "#6b7280" }], tasks: [] };
+}
+
+function saveTasksToAgent(agentHome: string, data: TaskData): void {
+  const p = join(agentHome, "tasks.json");
+  mkdirSync(agentHome, { recursive: true });
+  writeFileSync(p, JSON.stringify(data, null, 2));
+}
+
+function buildTaskContextBlock(agentHome: string, agentId: string): string {
+  const data = loadTasksFromAgent(agentHome, agentId);
+  const active = data.tasks.filter(t => t.status === "approved" || t.status === "in_progress");
+  if (active.length === 0) return "";
+
+  const lines = ["\n[Active Tasks]"];
+  for (const t of active) {
+    let line = `- ${t.id}: ${t.title} (${t.status}, ${t.priority} priority`;
+    if (t.dueDate) line += `, due ${t.dueDate}`;
+    line += ")";
+    lines.push(line);
+  }
+  lines.push("[/Active Tasks]\n");
+  return lines.join("\n");
+}
+
+function handleTaskCommand(
+  text: string,
+  agentId: string,
+  agentConfig: any,
+  allAgents: Record<string, any>,
+): string | null {
+  if (!TASK_PATTERN.test(text)) return null;
+
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+  const agentHome = agentConfig.agentHome ? resolveTilde(agentConfig.agentHome) : resolve(agentConfig.memoryDir, "..");
+
+  const parts = text.trim().split(/\s+/);
+  const subCommand = parts[1]?.toLowerCase();
+
+  // /task list
+  if (subCommand === "list") {
+    const data = loadTasksFromAgent(agentHome, agentId);
+    if (data.tasks.length === 0) return "No tasks found.";
+
+    const byStatus: Record<string, string[]> = {};
+    for (const t of data.tasks) {
+      if (!byStatus[t.status]) byStatus[t.status] = [];
+      byStatus[t.status].push(`  - [${t.priority}] ${t.title} (${t.id})${t.dueDate ? ` due ${t.dueDate}` : ""}`);
+    }
+
+    const lines = ["**Tasks:**"];
+    for (const [status, items] of Object.entries(byStatus)) {
+      lines.push(`\n**${status.toUpperCase()}:**`);
+      lines.push(...items);
+    }
+    return lines.join("\n");
+  }
+
+  // /task add @target title --priority high --project general
+  if (subCommand === "add") {
+    const rest = parts.slice(2);
+    if (rest.length === 0) return "Usage: /task add @target Task title --priority high --project general";
+
+    let targetAlias = rest[0];
+    let titleParts: string[] = [];
+    let priority = "medium";
+    let project = "general";
+
+    // Parse flags
+    for (let i = 1; i < rest.length; i++) {
+      if (rest[i] === "--priority" && rest[i + 1]) {
+        priority = rest[++i];
+      } else if (rest[i] === "--project" && rest[i + 1]) {
+        project = rest[++i];
+      } else {
+        titleParts.push(rest[i]);
+      }
+    }
+
+    const title = titleParts.join(" ");
+    if (!title) return "Missing task title.";
+
+    // Resolve target agent
+    let targetId: string | null = null;
+    let targetConfig: any = null;
+    const normalTarget = targetAlias.startsWith("@") ? targetAlias : `@${targetAlias}`;
+    for (const [id, ag] of Object.entries(allAgents)) {
+      const aliases = ag.mentionAliases || [];
+      if (aliases.includes(normalTarget) || id === targetAlias) {
+        targetId = id;
+        targetConfig = ag;
+        break;
+      }
+    }
+
+    if (!targetId || !targetConfig) return `Agent "${targetAlias}" not found.`;
+
+    const targetHome = targetConfig.agentHome ? resolveTilde(targetConfig.agentHome) : resolve(targetConfig.memoryDir, "..");
+    const data = loadTasksFromAgent(targetHome, targetId);
+
+    // Determine hierarchy
+    const assignerAlias = agentConfig.mentionAliases?.[0] || agentId;
+    let assignmentType = "proposal";
+    let status = "proposed";
+
+    // Check if assigner is a superior
+    if (targetConfig.org) {
+      for (const orgEntry of targetConfig.org) {
+        if (orgEntry.reportsTo) {
+          const reportsToNorm = orgEntry.reportsTo.startsWith("@") ? orgEntry.reportsTo : `@${orgEntry.reportsTo}`;
+          const assignerAliases = agentConfig.mentionAliases || [];
+          if (assignerAliases.includes(reportsToNorm) || agentId === orgEntry.reportsTo) {
+            assignmentType = "direct";
+            status = "approved";
+            break;
+          }
+        }
+      }
+    }
+
+    const now = new Date().toISOString();
+    const task = {
+      id: `${targetId}_${Date.now()}`,
+      title,
+      description: "",
+      project,
+      priority,
+      status,
+      owner: targetConfig.mentionAliases?.[0] || targetId,
+      assignedBy: assignerAlias,
+      assignmentType,
+      dueDate: null,
+      context: "",
+      result: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    data.tasks.push(task);
+    saveTasksToAgent(targetHome, data);
+    return `Task created for ${targetAlias}: "${title}" [${status}/${assignmentType}, ${priority} priority]`;
+  }
+
+  // /task done taskId "result note"
+  if (subCommand === "done") {
+    const taskId = parts[2];
+    if (!taskId) return "Usage: /task done <taskId> \"result note\"";
+
+    const resultNote = text.replace(/^\s*\/task\s+done\s+\S+\s*/, "").replace(/^["']|["']$/g, "").trim();
+
+    const data = loadTasksFromAgent(agentHome, agentId);
+    const task = data.tasks.find(t => t.id === taskId);
+    if (!task) return `Task "${taskId}" not found.`;
+
+    task.status = "done";
+    task.result = resultNote || task.result;
+    task.updatedAt = new Date().toISOString();
+    saveTasksToAgent(agentHome, data);
+    return `Task ${taskId} marked as done.${resultNote ? ` Result: ${resultNote}` : ""}`;
+  }
+
+  return "Unknown /task subcommand. Use: /task list, /task add @target title, /task done taskId \"note\"";
+}
 
 /**
  * Check if the message is an intercepted command.
@@ -460,6 +644,33 @@ export async function executeAgent(
     return result;
   }
 
+  // ── Check for /task command ──
+  if (TASK_PATTERN.test(msg.text)) {
+    // Load all agents from config.json for cross-agent task operations
+    let allAgents: Record<string, any> = {};
+    try {
+      const configPath = join(baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      // Resolve tilde in paths for all agents
+      for (const [aid, ag] of Object.entries(rawConfig.agents) as any[]) {
+        if (ag.agentHome) ag.agentHome = ag.agentHome.startsWith("~") ? ag.agentHome.replace("~", home) : ag.agentHome;
+        if (ag.memoryDir) ag.memoryDir = ag.memoryDir.startsWith("~") ? ag.memoryDir.replace("~", home) : ag.memoryDir;
+      }
+      allAgents = rawConfig.agents;
+    } catch { /* fallback to just current agent */ }
+
+    const taskResp = handleTaskCommand(msg.text, agentId, agentConfig, allAgents);
+    if (taskResp !== null) {
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+          response: taskResp, agentId, channel: msg.channel,
+        }) + "\n");
+      } catch { /* ignore */ }
+      return taskResp;
+    }
+  }
+
   // ── Check for intercepted commands ──
   const intercepted = handleInterceptedCommand(msg.text, agentId, memoryDir, senderSessionKey);
   if (intercepted !== null) {
@@ -519,6 +730,13 @@ export async function executeAgent(
   const hasSkills = (agentConfig.skills?.length || 0) + (agentConfig.agentSkills?.length || 0) > 0;
   if (hasSkills) {
     systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
+  }
+
+  // ── Append active tasks context ──
+  {
+    const agentHomeForTasks = agentConfig.agentHome || resolve(memoryDir, "..");
+    const taskBlock = buildTaskContextBlock(agentHomeForTasks, agentId);
+    if (taskBlock) systemPrompt += taskBlock;
   }
 
   // ── Append advanced memory context ──
@@ -890,6 +1108,33 @@ export async function* executeAgentStreaming(
     return;
   }
 
+  // ── Check for /task command ──
+  if (TASK_PATTERN.test(msg.text)) {
+    let allAgents: Record<string, any> = {};
+    try {
+      const configPath = join(baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      for (const [aid, ag] of Object.entries(rawConfig.agents) as any[]) {
+        if (ag.agentHome) ag.agentHome = ag.agentHome.startsWith("~") ? ag.agentHome.replace("~", home) : ag.agentHome;
+        if (ag.memoryDir) ag.memoryDir = ag.memoryDir.startsWith("~") ? ag.memoryDir.replace("~", home) : ag.memoryDir;
+      }
+      allAgents = rawConfig.agents;
+    } catch { /* fallback */ }
+
+    const taskResp = handleTaskCommand(msg.text, agentId, agentConfig, allAgents);
+    if (taskResp !== null) {
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+          response: taskResp, agentId, channel: msg.channel,
+        }) + "\n");
+      } catch { /* ignore */ }
+      yield { type: "text", data: taskResp };
+      yield { type: "done", data: taskResp };
+      return;
+    }
+  }
+
   // Check intercepted commands
   const intercepted = handleInterceptedCommand(msg.text, agentId, memoryDir, senderSessionKey);
   if (intercepted !== null) {
@@ -938,6 +1183,13 @@ export async function* executeAgentStreaming(
   const hasSkills = (agentConfig.skills?.length || 0) + (agentConfig.agentSkills?.length || 0) > 0;
   if (hasSkills) {
     systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
+  }
+
+  // ── Append active tasks context ──
+  {
+    const agentHomeForTasks = agentConfig.agentHome || resolve(memoryDir, "..");
+    const taskBlock = buildTaskContextBlock(agentHomeForTasks, agentId);
+    if (taskBlock) systemPrompt += taskBlock;
   }
 
   if (useAdvancedMemory && memoryContext) {
