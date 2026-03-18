@@ -291,6 +291,30 @@ html,body{
 @keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}}
 .thinking-text{font-size:12px;color:var(--text-muted)}
 
+/* ─── Streaming Activity Feed ─────────────────────────────────── */
+.activity-feed{
+  align-self:flex-start;max-width:85%;
+  background:var(--bg-input);border:1px solid var(--border-dim);
+  border-radius:12px;padding:10px 14px;margin-bottom:4px;
+  animation:msgIn .2s ease-out;
+}
+.activity-line{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--font-mono);font-size:11px;
+  padding:3px 0;color:var(--text-muted);line-height:1.4;
+}
+.activity-line:last-child{color:var(--text-secondary)}
+.activity-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.activity-dot.done{background:var(--green)}
+.activity-dot.active{background:var(--accent);animation:pulse 1s ease-in-out infinite}
+.activity-dot.pending{background:var(--text-muted);opacity:.3}
+.activity-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activity-header{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--accent);
+  margin-bottom:4px;
+}
+
 /* ─── Chat Input ──────────────────────────────────────────────── */
 .chat-input-wrap{
   padding:16px 24px 20px;
@@ -340,6 +364,35 @@ html,body{
 }
 .clip-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .clip-btn.has-files{border-color:var(--accent);color:var(--accent)}
+.download-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;margin:2px 0;border-radius:6px;
+  border:1px solid var(--border-glow);
+  background:var(--accent-bg);color:var(--accent);
+  font-family:var(--font-sans);font-size:11px;font-weight:500;
+  cursor:pointer;transition:all .2s;vertical-align:middle;
+}
+.download-btn:hover{background:var(--accent);color:#000;border-color:var(--accent)}
+.tool-cards{margin-bottom:8px;display:flex;flex-direction:column;gap:4px}
+.tool-card{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:6px;
+  background:var(--purple-bg);border:1px solid rgba(139,92,246,0.15);
+  font-size:11px;color:var(--text-muted);
+  font-family:var(--font-mono);overflow:hidden;
+}
+.tool-name{
+  color:var(--purple);font-weight:600;white-space:nowrap;flex-shrink:0;
+}
+.tool-cmd{
+  background:rgba(0,0,0,0.2);padding:1px 5px;border-radius:3px;
+  color:var(--text-secondary);font-size:10px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px;
+}
+.tool-detail{
+  color:var(--text-muted);font-size:10px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px;
+}
 .file-drop-zone{
   display:none;padding:12px 16px;margin-bottom:10px;
   border:2px dashed var(--border-glow);border-radius:12px;
@@ -612,6 +665,7 @@ let chatHistory = {}; // agentId -> [{role,text,time}]
 let isThinking = false;
 let streamingText = '';
 let streamingStatus = '';
+let streamingTools = []; // {name, input, ts}
 let availableAccounts = [];
 let accountOverrides = {}; // agentId -> account name (in-memory only)
 
@@ -755,6 +809,13 @@ async function sendMessage(agentId, text) {
               isThinking = false;
               renderChat();
               scrollChat();
+            } else if (event.type === 'tool') {
+              streamingStatus = event.data;
+              if (event.tool) {
+                streamingTools.push({ name: event.tool.name, input: event.tool.input, ts: Date.now() });
+              }
+              renderChat();
+              scrollChat();
             } else if (event.type === 'status') {
               streamingStatus = event.data;
               renderChat();
@@ -774,14 +835,16 @@ async function sendMessage(agentId, text) {
       // Finalize
       isThinking = false;
       if (streamingText) {
-        chatHistory[agentId].push({ role: 'agent', text: streamingText, time: new Date().toISOString() });
+        chatHistory[agentId].push({ role: 'agent', text: streamingText, time: new Date().toISOString(), tools: streamingTools.length ? [...streamingTools] : undefined });
       }
       streamingText = '';
       streamingStatus = '';
+      streamingTools = [];
     } catch (err) {
       isThinking = false;
       streamingText = '';
       streamingStatus = '';
+      streamingTools = [];
       chatHistory[agentId].push({ role: 'agent', text: `Connection error: ${err.message}`, time: new Date().toISOString() });
     }
   } else {
@@ -881,10 +944,12 @@ function renderChat() {
         const cls = m.role === 'user' ? 'msg-user' : 'msg-agent';
         const formatted = m.role === 'agent' ? formatMarkdown(m.text) : escapeHtml(m.text);
         const time = formatTime(m.time);
-        return `<div class="msg ${cls}">${formatted}<div class="msg-time">${time}</div></div>`;
+        const toolHtml = (m.tools && m.tools.length) ? renderActivityFeed(m.tools, false) : '';
+        return `${toolHtml}<div class="msg ${cls}">${formatted}<div class="msg-time">${time}</div></div>`;
       }).join('')}
+      ${streamingTools.length ? renderActivityFeed(streamingTools, true) : ''}
       ${streamingText ? `<div class="msg msg-agent">${formatMarkdown(streamingText)}<div class="msg-time">streaming...</div></div>` : ''}
-      ${isThinking ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}
+      ${isThinking && !streamingText && !streamingTools.length ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}
     </div>
     <div class="chat-input-wrap">
       <div class="file-drop-zone hidden" id="fileDropZone"
@@ -1162,9 +1227,47 @@ function formatMarkdown(text) {
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   // Bold
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Detect file paths and add download buttons
+  // Matches paths like /Users/... or ~/... ending with common file extensions
+  const fileExts = 'csv|json|txt|md|pdf|xlsx|xls|docx|png|jpg|jpeg|gif|svg|html|zip|xml|yaml|yml|tsv';
+  const filePathRegex = new RegExp(`((?:\\/[\\w.@ -]+)+\\.(?:${fileExts}))`, 'gi');
+  html = html.replace(filePathRegex, (match) => {
+    const decoded = match.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    const fileName = decoded.split('/').pop();
+    return `<code>${match}</code> <button class="download-btn" onclick="downloadFile('${encodeURIComponent(decoded)}')" title="Download ${fileName}">&#x2B07; ${fileName}</button>`;
+  });
   // Line breaks
   html = html.replace(/\n/g, '<br>');
   return html;
+}
+
+function renderActivityFeed(tools, isLive) {
+  if (!tools || !tools.length) return '';
+  const lines = tools.map((t, i) => {
+    const isLast = i === tools.length - 1;
+    const dotClass = (isLive && isLast) ? 'active' : 'done';
+    const icon = (isLive && isLast) ? '⟳' : '✓';
+    let detail = t.name || 'tool';
+    if (t.input) {
+      if (t.name === 'Bash' && t.input.command) detail = `Bash: ${t.input.command.slice(0, 80)}`;
+      else if (t.name === 'Read' && t.input.file_path) detail = `Read ${t.input.file_path.split('/').pop()}`;
+      else if (t.name === 'Write' && t.input.file_path) detail = `Write ${t.input.file_path.split('/').pop()}`;
+      else if (t.name === 'Edit' && t.input.file_path) detail = `Edit ${t.input.file_path.split('/').pop()}`;
+      else if (t.name === 'Grep' && t.input.pattern) detail = `Grep "${t.input.pattern}"`;
+      else if (t.name === 'Glob' && t.input.pattern) detail = `Glob ${t.input.pattern}`;
+      else if (t.name === 'WebSearch') detail = `WebSearch: ${(t.input.query || t.input.search_query || '').slice(0, 60)}`;
+      else if (t.name === 'WebFetch') detail = `WebFetch: ${(t.input.url || '').slice(0, 60)}`;
+      else detail = t.name;
+    }
+    return `<div class="activity-line"><span class="activity-dot ${dotClass}"></span><span class="activity-name">${escapeHtml(detail)}</span></div>`;
+  });
+  return `<div class="activity-feed"><div class="activity-header">${isLive ? 'Working...' : tools.length + ' steps'}</div>${lines.join('')}</div>`;
+}
+
+function downloadFile(encodedPath) {
+  if (!selectedAgent) return;
+  const path = decodeURIComponent(encodedPath);
+  window.open(`/api/agents/${selectedAgent}/download?path=${encodeURIComponent(path)}`, '_blank');
 }
 
 function formatTime(ts) {
@@ -1200,6 +1303,29 @@ function handleFileSelect(e) {
   if (files) addFiles(files);
   e.target.value = ''; // reset so same file can be re-selected
 }
+
+// Handle Ctrl+V paste of images
+document.addEventListener('paste', function(e) {
+  if (!selectedAgent) return;
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  const imageFiles = [];
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) imageFiles.push(file);
+    }
+  }
+  if (imageFiles.length > 0) {
+    e.preventDefault();
+    addFiles(imageFiles);
+    // Show the drop zone if hidden
+    const zone = document.getElementById('fileDropZone');
+    if (zone) zone.classList.remove('hidden');
+    const btn = document.getElementById('clipBtn');
+    if (btn) btn.classList.add('has-files');
+  }
+});
 
 function addFiles(fileList) {
   for (const f of fileList) {
