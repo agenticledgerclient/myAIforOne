@@ -82,6 +82,7 @@ export function startWebUI(opts: WebUIOptions): void {
         perSenderSessions: agent.perSenderSessions ?? false,
         mcps: agent.mcps || [],
         skills: agent.skills || [],
+        agentSkills: agent.agentSkills || [],
         aliases: agent.mentionAliases || [],
         routes: agent.routes.map(r => `${r.channel}:${r.match.value}`),
         messageCount,
@@ -91,7 +92,8 @@ export function startWebUI(opts: WebUIOptions): void {
         streaming: agent.streaming ?? false,
         advancedMemory: agent.advancedMemory ?? false,
         autonomousCapable: agent.autonomousCapable ?? true,
-        autoCommit: agent.autoCommit,
+        autoCommit: agent.autoCommit ?? false,
+        timeout: agent.timeout ?? 120000,
         tools: agent.allowedTools,
         org: agent.org || [],
         cron: agent.cron || [],
@@ -481,10 +483,11 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, skills, agentSkills, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
-      autonomousCapable?: boolean;
+      autonomousCapable?: boolean; autoCommit?: boolean; timeout?: number;
+      skills?: string[]; agentSkills?: string[];
       tools?: string[]; mcps?: string[];
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
@@ -548,11 +551,14 @@ export function startWebUI(opts: WebUIOptions): void {
         advancedMemory: advancedMemory ?? true,
         autonomousCapable: autonomousCapable ?? true,
         mentionAliases: [normalAlias],
-        autoCommit: false,
+        autoCommit: autoCommit ?? false,
         allowedTools: tools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
+        timeout: timeout || 120000,
       };
 
       if (mcps && mcps.length > 0) agentConfig.mcps = mcps;
+      if (skills && skills.length > 0) agentConfig.skills = skills;
+      if (agentSkills && agentSkills.length > 0) agentConfig.agentSkills = agentSkills;
       if (claudeAccount) agentConfig.claudeAccount = claudeAccount;
       if (org && org.length > 0) agentConfig.org = org;
       if (cron && cron.length > 0) agentConfig.cron = cron;
@@ -613,10 +619,11 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, skills, agentSkills, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
-      autonomousCapable?: boolean;
+      autonomousCapable?: boolean; autoCommit?: boolean; timeout?: number;
+      skills?: string[]; agentSkills?: string[];
       tools?: string[]; mcps?: string[];
       routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
@@ -653,6 +660,10 @@ export function startWebUI(opts: WebUIOptions): void {
       if (streaming !== undefined) existing.streaming = streaming;
       if (advancedMemory !== undefined) existing.advancedMemory = advancedMemory;
       if (autonomousCapable !== undefined) existing.autonomousCapable = autonomousCapable;
+      if (autoCommit !== undefined) existing.autoCommit = autoCommit;
+      if (timeout !== undefined) existing.timeout = timeout;
+      if (skills !== undefined) existing.skills = skills.length > 0 ? skills : undefined;
+      if (agentSkills !== undefined) existing.agentSkills = agentSkills.length > 0 ? agentSkills : undefined;
       if (tools) existing.allowedTools = tools;
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
       if (claudeAccount !== undefined) existing.claudeAccount = claudeAccount || undefined;

@@ -601,15 +601,34 @@ html,body{
           <div class="checkbox-pill" id="f-streaming" onclick="togglePill(this)">Streaming</div>
           <div class="checkbox-pill checked" id="f-advancedMemory" onclick="togglePill(this)">Advanced Memory</div>
           <div class="checkbox-pill checked" id="f-autonomousCapable" onclick="togglePill(this)">Autonomous Capable</div>
+          <div class="checkbox-pill" id="f-autoCommit" onclick="togglePill(this)">Auto Commit</div>
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Claude Account</label>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Timeout (seconds)</label>
+          <input class="form-input" id="f-timeout" type="number" min="30" step="30" placeholder="120" value="120" style="font-family:var(--font-mono);font-size:12px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Claude Account</label>
         <select class="form-input" id="f-claudeAccount">
           <option value="">Default</option>
         </select>
-        <div class="form-hint">Which Anthropic account this agent uses for Claude Code.</div>
+        <div class="form-hint">Which Anthropic account.</div>
+        </div>
+      </div>
+
+      <div class="form-section">Skills</div>
+      <div class="form-group">
+        <label class="form-label">Shared Skills</label>
+        <input class="form-input" id="f-skills" placeholder="opcodereview, sop_pdf, opAgents_AddNew" style="font-family:var(--font-mono);font-size:11px">
+        <div class="form-hint">Comma-separated skill names from ~/.claude/commands/</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Agent Skills</label>
+        <input class="form-input" id="f-agentSkills" placeholder="custom-skill-1, custom-skill-2" style="font-family:var(--font-mono);font-size:11px">
+        <div class="form-hint">Comma-separated skill names from agent's own skills/ folder</div>
       </div>
 
       <div class="form-section">Tools</div>
@@ -977,6 +996,17 @@ async function openModal(agentId) {
     // Claude Account
     accountSelect.value = a.claudeAccount || '';
 
+    // Auto Commit
+    const commitPill = document.getElementById('f-autoCommit');
+    if (a.autoCommit) commitPill.classList.add('checked'); else commitPill.classList.remove('checked');
+
+    // Timeout
+    document.getElementById('f-timeout').value = Math.round((a.timeout || 120000) / 1000);
+
+    // Skills
+    document.getElementById('f-skills').value = (a.skills || []).join(', ');
+    document.getElementById('f-agentSkills').value = (a.agentSkills || []).join(', ');
+
     // Tools
     const agentTools = a.tools || [];
     document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => {
@@ -1045,6 +1075,10 @@ async function openModal(agentId) {
     streamPill.classList.remove('checked');
     document.getElementById('f-advancedMemory').classList.add('checked');
     document.getElementById('f-autonomousCapable').classList.add('checked');
+    document.getElementById('f-autoCommit').classList.remove('checked');
+    document.getElementById('f-timeout').value = '120';
+    document.getElementById('f-skills').value = '';
+    document.getElementById('f-agentSkills').value = '';
 
     // Reset tools
     document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
@@ -1479,7 +1513,12 @@ async function saveAgent() {
   const streaming = document.getElementById('f-streaming').classList.contains('checked');
   const advancedMemory = document.getElementById('f-advancedMemory').classList.contains('checked');
   const autonomousCapable = document.getElementById('f-autonomousCapable').classList.contains('checked');
+  const autoCommit = document.getElementById('f-autoCommit').classList.contains('checked');
+  const timeoutSec = parseInt(document.getElementById('f-timeout').value) || 120;
+  const timeout = timeoutSec * 1000;
   const claudeAccount = document.getElementById('f-claudeAccount').value || undefined;
+  const skills = document.getElementById('f-skills').value.split(',').map(s => s.trim()).filter(Boolean);
+  const agentSkills = document.getElementById('f-agentSkills').value.split(',').map(s => s.trim()).filter(Boolean);
 
   const tools = [...document.querySelectorAll('#f-tools .checkbox-pill.checked')]
     .map(el => el.dataset.val).filter(Boolean);
@@ -1533,7 +1572,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, tools, mcps, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined, instructions: instructions || undefined, claudeAccount }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined, instructions: instructions || undefined, claudeAccount }),
     });
     const data = await res.json();
 
