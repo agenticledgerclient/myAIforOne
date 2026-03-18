@@ -87,6 +87,7 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 ├── mcp-keys/          # Per-agent API keys (override shared)
 ├── skills/            # Per-agent skills
 ├── goals/             # Budget tracking + execution logs
+├── tasks.json         # Kanban task board (projects + tasks)
 └── FileStorage/
     ├── Temp/          # Temporary file uploads
     └── Permanent/     # Permanent file storage

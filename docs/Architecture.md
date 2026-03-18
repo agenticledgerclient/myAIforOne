@@ -412,6 +412,73 @@ An autonomous-capable agent with goals can be in one of three states:
 | **Idle** | `autonomousCapable: true`, no enabled goals | Agent responds to messages only, no autonomous activity |
 | **Active** | `autonomousCapable: true`, 1+ enabled goals | Agent responds to messages AND executes goals on heartbeat schedules |
 
+### Task System
+
+Agents have per-agent kanban task boards stored in `tasks.json` in the agent's home directory. Tasks are **deliberate** — they are explicitly created, not generated automatically.
+
+#### Board Structure
+
+Each board has 5 columns representing the task lifecycle:
+
+```
+Proposed → Approved → In Progress → Review → Done
+```
+
+Tasks start in **Proposed** or **Approved** depending on who creates them, and move through the pipeline as work progresses.
+
+#### Creating Tasks
+
+There are three ways to create a task:
+
+| Method | How | Starting Column |
+|--------|-----|-----------------|
+| **Web UI** | Drag-and-drop board at `/tasks` | User chooses |
+| **Chat command** | `/task add <description>` | Depends on hierarchy |
+| **Agent-to-agent** | One agent assigns a task to another | Depends on hierarchy |
+
+#### Hierarchy-Based Assignment
+
+Task approval follows the org hierarchy:
+
+- **Superior → subordinate**: Task is **auto-approved** (lands in Approved)
+- **Peer → peer**: Task is a **proposal** (lands in Proposed, needs approval)
+
+#### Task Commands
+
+| Command | Description |
+|---------|-------------|
+| `/task list` | Show active tasks for the current agent |
+| `/task add <description>` | Create a new task |
+| `/task done <id>` | Mark a task as complete (moves to Done) |
+
+#### Active Task Context
+
+Active tasks (Approved + In Progress) are injected as **read-only context** into the agent's system prompt at the start of each conversation turn. This lets the agent be aware of its current responsibilities without needing to be told.
+
+#### Projects
+
+Task boards support **projects** — logical groupings within a board. Each project has an `id`, `name`, and `color`. Every board starts with a default "General" project. Tasks are tagged with a project ID for filtering.
+
+#### Web UI
+
+The task board is available at `/tasks` with:
+- Per-agent board view
+- Drag-and-drop between columns
+- Project filtering
+- Task creation and editing
+
+#### Config
+
+Tasks are stored in `tasks.json` in the agent's home directory (`agentHome`):
+
+```json
+{
+  "agentId": "myagent",
+  "projects": [{ "id": "general", "name": "General", "color": "#6b7280" }],
+  "tasks": []
+}
+```
+
 ### Webhook Triggers
 External services can trigger agents via HTTP:
 ```bash
