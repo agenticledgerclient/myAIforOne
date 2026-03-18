@@ -1,6 +1,6 @@
 import express from "express";
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync } from "node:fs";
+import { join, resolve, basename, extname, relative } from "node:path";
 import { execSync } from "node:child_process";
 import type { AppConfig } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
@@ -278,12 +278,19 @@ export function startWebUI(opts: WebUIOptions): void {
       route: agent.routes[0],
     };
 
+    // Keepalive ping every 15s prevents browser/proxy timeout
+    const keepalive = setInterval(() => {
+      try { res.write(`: keepalive\n\n`); } catch { /* connection closed */ }
+    }, 15_000);
+
     try {
       for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       }
     } catch (err) {
       res.write(`data: ${JSON.stringify({ type: "error", data: String(err) })}\n\n`);
+    } finally {
+      clearInterval(keepalive);
     }
 
     res.write(`data: [DONE]\n\n`);
@@ -351,6 +358,125 @@ export function startWebUI(opts: WebUIOptions): void {
       size: fileData.length,
       mode,
     });
+  });
+
+  // ─── API: List agent files ──────────────────────────────────────
+  app.get("/api/agents/:agentId/files", (req, res) => {
+    const { agentId } = req.params;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const agentHome = agent.agentHome
+      ? resolveTilde(agent.agentHome)
+      : resolve(opts.baseDir, agent.memoryDir, "..");
+    const workspace = agent.workspace ? resolveTilde(agent.workspace) : agentHome;
+
+    // Scan FileStorage dirs + workspace root for downloadable files
+    const files: Array<{ name: string; path: string; size: number; modified: string; source: string }> = [];
+
+    const scanDir = (dir: string, source: string, recursive = false) => {
+      if (!existsSync(dir)) return;
+      try {
+        const entries = readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.name.startsWith(".")) continue;
+          const fullPath = join(dir, entry.name);
+          if (entry.isFile()) {
+            try {
+              const stat = statSync(fullPath);
+              files.push({
+                name: entry.name,
+                path: fullPath,
+                size: stat.size,
+                modified: stat.mtime.toISOString(),
+                source,
+              });
+            } catch { /* skip */ }
+          } else if (entry.isDirectory() && recursive) {
+            scanDir(fullPath, source, true);
+          }
+        }
+      } catch { /* skip */ }
+    };
+
+    // FileStorage (always scan)
+    scanDir(join(agentHome, "FileStorage", "Temp"), "temp");
+    scanDir(join(agentHome, "FileStorage", "Permanent"), "permanent");
+
+    // Sort by modified descending
+    files.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
+
+    res.json({ ok: true, files });
+  });
+
+  // ─── API: Download agent file ─────────────────────────────────
+  app.get("/api/agents/:agentId/download", (req, res) => {
+    const { agentId } = req.params;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    const filePath = req.query.path as string;
+    if (!filePath) return res.status(400).json({ error: "Missing 'path' query parameter" });
+
+    // Security: resolve and validate the path is within allowed directories
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const agentHome = agent.agentHome
+      ? resolveTilde(agent.agentHome)
+      : resolve(opts.baseDir, agent.memoryDir, "..");
+    const workspace = agent.workspace ? resolveTilde(agent.workspace) : agentHome;
+
+    const resolvedPath = resolve(filePath);
+    const resolvedAgentHome = resolve(agentHome);
+    const resolvedWorkspace = resolve(workspace);
+
+    // Must be within agent home or workspace
+    const isAllowed = resolvedPath.startsWith(resolvedAgentHome) ||
+                      resolvedPath.startsWith(resolvedWorkspace);
+    if (!isAllowed) {
+      return res.status(403).json({ error: "File path outside agent's allowed directories" });
+    }
+
+    if (!existsSync(resolvedPath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    try {
+      const stat = statSync(resolvedPath);
+      if (!stat.isFile()) return res.status(400).json({ error: "Not a file" });
+    } catch {
+      return res.status(404).json({ error: "Cannot access file" });
+    }
+
+    const fileName = basename(resolvedPath);
+    const ext = extname(fileName).toLowerCase();
+
+    // Content type mapping
+    const contentTypes: Record<string, string> = {
+      ".csv": "text/csv",
+      ".json": "application/json",
+      ".txt": "text/plain",
+      ".md": "text/markdown",
+      ".pdf": "application/pdf",
+      ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ".xls": "application/vnd.ms-excel",
+      ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".gif": "image/gif",
+      ".svg": "image/svg+xml",
+      ".html": "text/html",
+      ".zip": "application/zip",
+    };
+
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
+
+    log.info(`[Download] ${agentId}: ${fileName} from ${resolvedPath}`);
+    res.sendFile(resolvedPath);
   });
 
   // ─── API: Create agent ──────────────────────────────────────────
