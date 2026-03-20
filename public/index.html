@@ -266,6 +266,7 @@ html,body{
   overflow-x:auto;font-family:var(--font-mono);font-size:12px;line-height:1.5;
 }
 .msg-agent code{font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:1px 5px;border-radius:4px}
+.msg-agent p{margin:0 0 .6em 0}.msg-agent p:last-child{margin-bottom:0}
 .msg-time{
   font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
   margin-top:4px;
@@ -309,9 +310,11 @@ html,body{
 .activity-dot.active{background:var(--accent);animation:pulse 1s ease-in-out infinite}
 .activity-dot.pending{background:var(--text-muted);opacity:.3}
 .activity-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activity-feed.collapsed .activity-lines{display:none}
+.activity-feed.collapsed{padding:6px 12px}
 .activity-header{
   font-family:var(--font-mono);font-size:9px;font-weight:600;
-  text-transform:uppercase;letter-spacing:.08em;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.08em;color:var(--accent);user-select:none;
   margin-bottom:4px;
 }
 
@@ -663,10 +666,17 @@ html,body{
 let agents = [];
 let selectedAgent = null;
 let chatHistory = {}; // agentId -> [{role,text,time}]
-let isThinking = false;
+// Per-agent streaming state
+const streamState = {}; // agentId -> {isThinking, text, status, tools}
+function getStream(id) {
+  if (!streamState[id]) streamState[id] = { isThinking: false, text: '', status: '', tools: [] };
+  return streamState[id];
+}
+// Legacy globals — read from selected agent's state (used by renderChat)
+let isThinking = false;   // kept for non-streaming code paths
 let streamingText = '';
 let streamingStatus = '';
-let streamingTools = []; // {name, input, ts}
+let streamingTools = [];
 let availableAccounts = [];
 let accountOverrides = {}; // agentId -> account name (in-memory only)
 
@@ -772,11 +782,14 @@ async function sendMessage(agentId, text) {
   const useStreaming = agent?.streaming;
 
   if (useStreaming) {
-    // SSE streaming mode
-    isThinking = true;
-    streamingText = '';
-    streamingStatus = '';
-    renderChat();
+    // SSE streaming mode — use per-agent state so switching agents doesn't bleed
+    const ss = getStream(agentId);
+    ss.isThinking = true;
+    ss.text = '';
+    ss.status = '';
+    ss.tools = [];
+    const isViewing = () => selectedAgent === agentId;
+    if (isViewing()) renderChat();
     scrollChat();
 
     try {
@@ -806,48 +819,80 @@ async function sendMessage(agentId, text) {
           try {
             const event = JSON.parse(data);
             if (event.type === 'text') {
-              streamingText += event.data;
-              isThinking = false;
-              renderChat();
-              scrollChat();
-            } else if (event.type === 'tool') {
-              streamingStatus = event.data;
-              if (event.tool) {
-                streamingTools.push({ name: event.tool.name, input: event.tool.input, ts: Date.now() });
+              ss.text += event.data;
+              ss.isThinking = false;
+              if (isViewing()) {
+                const streamEl = document.getElementById('streamingContent');
+                const thinkWrap = document.getElementById('thinkingWrap');
+                if (streamEl) {
+                  streamEl.innerHTML = formatMarkdown(ss.text);
+                } else {
+                  if (thinkWrap) thinkWrap.innerHTML = '';
+                  const msgDiv = document.createElement('div');
+                  msgDiv.className = 'msg msg-agent';
+                  msgDiv.id = 'streamingMsg';
+                  msgDiv.innerHTML = `<div id="streamingContent">${formatMarkdown(ss.text)}</div><div class="msg-time">streaming...</div>`;
+                  const chatMsgs = document.getElementById('chatMessages');
+                  if (chatMsgs) chatMsgs.insertBefore(msgDiv, thinkWrap);
+                }
+                scrollChat();
               }
-              renderChat();
-              scrollChat();
+            } else if (event.type === 'tool') {
+              ss.status = event.data;
+              if (event.tool) {
+                const hasInput = event.tool.input && Object.keys(event.tool.input).length > 0;
+                const existingIdx = hasInput ? ss.tools.findLastIndex(t => t.name === event.tool.name && (!t.input || Object.keys(t.input).length === 0)) : -1;
+                if (existingIdx >= 0) {
+                  ss.tools[existingIdx].input = event.tool.input;
+                } else {
+                  ss.tools.push({ name: event.tool.name, input: event.tool.input, ts: Date.now() });
+                }
+              }
+              if (isViewing()) {
+                const toolsWrap = document.getElementById('streamingToolsWrap');
+                if (toolsWrap) {
+                  toolsWrap.innerHTML = renderActivityFeed(ss.tools, true);
+                } else {
+                  renderChat();
+                }
+                scrollChat();
+              }
             } else if (event.type === 'status') {
-              streamingStatus = event.data;
-              renderChat();
-              scrollChat();
+              ss.status = event.data;
+              if (isViewing()) {
+                const thinkWrap = document.getElementById('thinkingWrap');
+                if (thinkWrap && !ss.text) {
+                  thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${ss.status || 'Thinking...'}</span></div>`;
+                }
+                scrollChat();
+              }
             } else if (event.type === 'error') {
-              isThinking = false;
-              streamingText = '';
-              streamingStatus = '';
+              ss.isThinking = false;
+              ss.text = '';
+              ss.status = '';
               chatHistory[agentId].push({ role: 'agent', text: `Error: ${event.data}`, time: new Date().toISOString() });
-              renderChat();
-              scrollChat();
+              if (isViewing()) { renderChat(); scrollChat(); }
             }
           } catch { /* skip */ }
         }
       }
 
       // Finalize
-      isThinking = false;
-      if (streamingText) {
-        chatHistory[agentId].push({ role: 'agent', text: streamingText, time: new Date().toISOString(), tools: streamingTools.length ? [...streamingTools] : undefined });
+      ss.isThinking = false;
+      if (ss.text) {
+        chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
       }
-      streamingText = '';
-      streamingStatus = '';
-      streamingTools = [];
+      ss.text = '';
+      ss.status = '';
+      ss.tools = [];
     } catch (err) {
-      isThinking = false;
-      streamingText = '';
-      streamingStatus = '';
-      streamingTools = [];
+      ss.isThinking = false;
+      ss.text = '';
+      ss.status = '';
+      ss.tools = [];
       chatHistory[agentId].push({ role: 'agent', text: `Connection error: ${err.message}`, time: new Date().toISOString() });
     }
+    if (isViewing()) { renderChat(); scrollChat(); }
   } else {
     // Regular non-streaming mode
     isThinking = true;
@@ -917,6 +962,12 @@ function renderChat() {
   if (!selectedAgent) return;
   const agent = agents.find(a => a.id === selectedAgent);
   if (!agent) return;
+  // Sync globals from selected agent's stream state
+  const ss = getStream(selectedAgent);
+  isThinking = ss.isThinking;
+  streamingText = ss.text;
+  streamingStatus = ss.status;
+  streamingTools = ss.tools;
 
   const messages = chatHistory[selectedAgent] || [];
   const main = document.getElementById('mainArea');
@@ -948,9 +999,9 @@ function renderChat() {
         const toolHtml = (m.tools && m.tools.length) ? renderActivityFeed(m.tools, false) : '';
         return `${toolHtml}<div class="msg ${cls}">${formatted}<div class="msg-time">${time}</div></div>`;
       }).join('')}
-      ${streamingTools.length ? renderActivityFeed(streamingTools, true) : ''}
-      ${streamingText ? `<div class="msg msg-agent">${formatMarkdown(streamingText)}<div class="msg-time">streaming...</div></div>` : ''}
-      ${isThinking && !streamingText && !streamingTools.length ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}
+      <div id="streamingToolsWrap">${streamingTools.length ? renderActivityFeed(streamingTools, true) : ''}</div>
+      ${streamingText ? `<div class="msg msg-agent" id="streamingMsg"><div id="streamingContent">${formatMarkdown(streamingText)}</div><div class="msg-time">streaming...</div></div>` : ''}
+      <div id="thinkingWrap">${isThinking && !streamingText && !streamingTools.length ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}</div>
     </div>
     <div class="chat-input-wrap">
       <div class="file-drop-zone hidden" id="fileDropZone"
@@ -1237,32 +1288,40 @@ function formatMarkdown(text) {
     const fileName = decoded.split('/').pop();
     return `<code>${match}</code> <button class="download-btn" onclick="downloadFile('${encodeURIComponent(decoded)}')" title="Download ${fileName}">&#x2B07; ${fileName}</button>`;
   });
-  // Line breaks
+  // Paragraph breaks (double newline) get spacing, single newlines get line breaks
+  html = html.replace(/\n{2,}/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
+  html = '<p>' + html + '</p>';
   return html;
+}
+
+function toolDetail(t) {
+  if (!t.input) return t.name || 'tool';
+  if (t.name === 'Bash' && t.input.command) return `Bash: ${t.input.command.slice(0, 80)}`;
+  if (t.name === 'Read' && t.input.file_path) return `Read ${t.input.file_path.split('/').pop()}`;
+  if (t.name === 'Write' && t.input.file_path) return `Write ${t.input.file_path.split('/').pop()}`;
+  if (t.name === 'Edit' && t.input.file_path) return `Edit ${t.input.file_path.split('/').pop()}`;
+  if (t.name === 'Grep' && t.input.pattern) return `Grep "${t.input.pattern}"`;
+  if (t.name === 'Glob' && t.input.pattern) return `Glob ${t.input.pattern}`;
+  if (t.name === 'WebSearch') return `WebSearch: ${(t.input.query || t.input.search_query || '').slice(0, 60)}`;
+  if (t.name === 'WebFetch') return `WebFetch: ${(t.input.url || '').slice(0, 60)}`;
+  return t.name || 'tool';
 }
 
 function renderActivityFeed(tools, isLive) {
   if (!tools || !tools.length) return '';
+  const collapsed = !isLive; // auto-collapse when done
   const lines = tools.map((t, i) => {
     const isLast = i === tools.length - 1;
     const dotClass = (isLive && isLast) ? 'active' : 'done';
-    const icon = (isLive && isLast) ? '⟳' : '✓';
-    let detail = t.name || 'tool';
-    if (t.input) {
-      if (t.name === 'Bash' && t.input.command) detail = `Bash: ${t.input.command.slice(0, 80)}`;
-      else if (t.name === 'Read' && t.input.file_path) detail = `Read ${t.input.file_path.split('/').pop()}`;
-      else if (t.name === 'Write' && t.input.file_path) detail = `Write ${t.input.file_path.split('/').pop()}`;
-      else if (t.name === 'Edit' && t.input.file_path) detail = `Edit ${t.input.file_path.split('/').pop()}`;
-      else if (t.name === 'Grep' && t.input.pattern) detail = `Grep "${t.input.pattern}"`;
-      else if (t.name === 'Glob' && t.input.pattern) detail = `Glob ${t.input.pattern}`;
-      else if (t.name === 'WebSearch') detail = `WebSearch: ${(t.input.query || t.input.search_query || '').slice(0, 60)}`;
-      else if (t.name === 'WebFetch') detail = `WebFetch: ${(t.input.url || '').slice(0, 60)}`;
-      else detail = t.name;
-    }
-    return `<div class="activity-line"><span class="activity-dot ${dotClass}"></span><span class="activity-name">${escapeHtml(detail)}</span></div>`;
+    return `<div class="activity-line"><span class="activity-dot ${dotClass}"></span><span class="activity-name">${escapeHtml(toolDetail(t))}</span></div>`;
   });
-  return `<div class="activity-feed"><div class="activity-header">${isLive ? 'Working...' : tools.length + ' steps'}</div>${lines.join('')}</div>`;
+  const uid = 'af-' + Math.random().toString(36).slice(2, 8);
+  const headerText = isLive ? 'Working...' : `${tools.length} steps`;
+  const arrow = collapsed ? '&#x25B8;' : '&#x25BE;';
+  return `<div class="activity-feed ${collapsed ? 'collapsed' : ''}" id="${uid}">` +
+    `<div class="activity-header" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer">${arrow} ${headerText}</div>` +
+    `<div class="activity-lines">${lines.join('')}</div></div>`;
 }
 
 function downloadFile(encodedPath) {

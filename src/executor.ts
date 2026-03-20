@@ -1255,7 +1255,8 @@ export async function* executeAgentStreaming(
   }
 
   // Key difference: stream-json output (requires --verbose)
-  args.push("--output-format", "stream-json", "--verbose");
+  // --include-partial-messages enables token-level streaming (content_block_delta events)
+  args.push("--output-format", "stream-json", "--verbose", "--include-partial-messages");
   args.push("--add-dir", workspace);
 
   if (agentConfig.skills && agentConfig.skills.length > 0) {
@@ -1302,18 +1303,49 @@ export async function* executeAgentStreaming(
   let buffer = "";
 
   // Process stream-json output line by line
+  // With --include-partial-messages, events come wrapped as:
+  //   {"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}}
+  let streamedText = false; // track if we got token-level deltas
+  const pendingToolNames = new Set<string>(); // track tools already emitted from content_block_start
   const processLine = function*(line: string): Generator<StreamEvent> {
     if (!line.trim()) return;
     try {
-      const event = JSON.parse(line);
+      let event = JSON.parse(line);
 
-      if (event.type === "assistant" && event.message?.content) {
+      // Unwrap stream_event wrapper from --include-partial-messages
+      if (event.type === "stream_event" && event.event) {
+        event = event.event;
+      }
+
+      // Token-level streaming via content_block_delta
+      if (event.type === "content_block_delta") {
+        const text = event.delta?.text;
+        if (text) {
+          fullResponse += text;
+          streamedText = true;
+          yield { type: "text", data: text } as StreamEvent;
+        }
+      } else if (event.type === "content_block_start") {
+        if (event.content_block?.type === "tool_use") {
+          const toolName = event.content_block.name || "tool";
+          const toolId = event.content_block.id || "";
+          pendingToolNames.add(toolId);
+          yield { type: "tool", data: `Using ${toolName}...`, tool: { name: toolName, input: {} } } as StreamEvent;
+        }
+      } else if (event.type === "assistant" && event.message?.content) {
+        // Full assistant message — extract tool details with complete input
         for (const block of event.message.content) {
-          if (block.type === "text" && block.text) {
+          if (block.type === "text" && block.text && !streamedText) {
             fullResponse += block.text;
             yield { type: "text", data: block.text } as StreamEvent;
+          } else if (block.type === "tool_use" && block.name && pendingToolNames.has(block.id)) {
+            // Re-emit tool event with full input (replaces the empty-input one from content_block_start)
+            pendingToolNames.delete(block.id);
+            yield { type: "tool", data: `Using ${block.name}...`, tool: { name: block.name, input: block.input || {} } } as StreamEvent;
           }
         }
+        // Reset for next turn (after tool use)
+        streamedText = false;
       } else if (event.type === "tool_use") {
         const toolName = event.tool_name || event.name || "tool";
         const toolInput = event.input || event.tool_input;

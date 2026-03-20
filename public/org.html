@@ -401,7 +401,60 @@ html,body{
   display:flex;justify-content:space-between;align-items:center;
   padding:16px 24px 20px;border-top:1px solid var(--border-dim);
 }
+.modal-footer-left{display:flex;flex-direction:column;gap:4px}
 .modal-footer-hint{font-size:11px;color:var(--text-muted)}
+.btn-delete{
+  padding:6px 14px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);
+  background:rgba(239,68,68,0.08);color:#ef4444;cursor:pointer;
+  font-family:var(--font-sans);font-size:11px;font-weight:600;
+  transition:all .2s;align-self:flex-start;
+}
+.btn-delete:hover{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.5)}
+.delete-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;z-index:2000;
+}
+.delete-overlay.hidden{display:none}
+.delete-modal{
+  background:var(--bg-surface);border:1px solid rgba(239,68,68,0.3);
+  border-radius:16px;padding:32px;max-width:440px;width:90%;
+  box-shadow:0 8px 32px rgba(239,68,68,0.1);
+}
+.delete-warning-icon{font-size:48px;text-align:center;margin-bottom:8px}
+.delete-title{font-size:18px;font-weight:700;text-align:center;color:#ef4444;margin-bottom:16px}
+.delete-body{font-size:13px;color:var(--text-secondary);line-height:1.6}
+.delete-body ul{margin:8px 0 12px 20px}
+.delete-body li{margin:4px 0}
+.delete-irreversible{color:#ef4444;font-weight:600;margin:12px 0}
+.delete-alias-hint{
+  text-align:center;font-family:var(--font-mono);font-size:16px;font-weight:700;
+  color:var(--text-primary);margin:8px 0;padding:6px;
+  background:var(--bg-input);border-radius:6px;
+}
+.delete-input{
+  width:100%;padding:10px 14px;border:2px solid var(--border-dim);border-radius:8px;
+  background:var(--bg-input);color:var(--text-primary);
+  font-family:var(--font-mono);font-size:14px;text-align:center;
+  transition:border-color .2s;margin-top:8px;
+}
+.delete-input:focus{outline:none;border-color:rgba(239,68,68,0.5)}
+.delete-actions{display:flex;gap:12px;margin-top:20px;justify-content:flex-end}
+.btn-cancel{
+  padding:10px 20px;border-radius:10px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-secondary);cursor:pointer;
+  font-family:var(--font-sans);font-size:13px;font-weight:500;
+}
+.btn-cancel:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.btn-confirm-delete{
+  padding:10px 20px;border-radius:10px;border:none;
+  background:#ef4444;color:#fff;cursor:pointer;
+  font-family:var(--font-sans);font-size:13px;font-weight:700;
+  transition:all .2s;opacity:0.4;
+}
+.btn-confirm-delete:disabled{cursor:not-allowed;opacity:0.4}
+.btn-confirm-delete:not(:disabled){opacity:1}
+.btn-confirm-delete:not(:disabled):hover{background:#dc2626}
 .btn-save{
   padding:10px 24px;border-radius:10px;border:none;
   background:var(--accent);color:#fff;cursor:pointer;
@@ -678,8 +731,37 @@ html,body{
     </div>
     </div>
     <div class="modal-footer">
-      <div class="modal-footer-hint" id="modalHint">Agent files created in ~/Desktop/personalAgents/</div>
+      <div class="modal-footer-left">
+        <button class="btn-delete hidden" id="deleteBtn" onclick="showDeleteConfirm()">Delete Agent</button>
+        <div class="modal-footer-hint" id="modalHint">Agent files created in ~/Desktop/personalAgents/</div>
+      </div>
       <button class="btn-save" id="saveBtn" onclick="saveAgent()">Create Agent</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="delete-overlay hidden" id="deleteOverlay" onclick="hideDeleteConfirm()">
+  <div class="delete-modal" onclick="event.stopPropagation()">
+    <div class="delete-warning-icon">&#x26A0;</div>
+    <div class="delete-title">Delete Agent Permanently</div>
+    <div class="delete-body">
+      <p>This will <strong>permanently delete</strong> this agent including:</p>
+      <ul>
+        <li>All conversation history and memory</li>
+        <li>System prompt (CLAUDE.md)</li>
+        <li>All files in the agent's home directory</li>
+        <li>MCP keys and skills</li>
+        <li>Config entry and routes</li>
+      </ul>
+      <p class="delete-irreversible">This action cannot be undone.</p>
+      <p>Type the agent's alias to confirm:</p>
+      <div class="delete-alias-hint" id="deleteAliasHint"></div>
+      <input type="text" class="delete-input" id="deleteConfirmInput" placeholder="@alias" oninput="checkDeleteInput()">
+    </div>
+    <div class="delete-actions">
+      <button class="btn-cancel" onclick="hideDeleteConfirm()">Cancel</button>
+      <button class="btn-confirm-delete" id="confirmDeleteBtn" onclick="executeDelete()" disabled>Delete Forever</button>
     </div>
   </div>
 </div>
@@ -970,6 +1052,9 @@ async function openModal(agentId) {
     document.getElementById('modalTitle').textContent = 'Edit Agent';
     document.getElementById('saveBtn').textContent = 'Save Changes';
     document.getElementById('modalHint').textContent = 'Changes will rebuild the project.';
+    document.getElementById('deleteBtn').classList.remove('hidden');
+    document.getElementById('deleteBtn').dataset.agentId = agentId;
+    document.getElementById('deleteBtn').dataset.alias = a.aliases?.[0] || agentId;
 
     idField.value = agentId;
     idField.readOnly = true;
@@ -1062,6 +1147,7 @@ async function openModal(agentId) {
     document.getElementById('modalTitle').textContent = 'Create New Agent';
     document.getElementById('saveBtn').textContent = 'Create Agent';
     document.getElementById('modalHint').textContent = 'Agent files created in ~/Desktop/personalAgents/';
+    document.getElementById('deleteBtn').classList.add('hidden');
 
     idField.value = '';
     idField.readOnly = false;
@@ -1596,7 +1682,71 @@ document.getElementById('agentModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (!document.getElementById('deleteOverlay').classList.contains('hidden')) {
+      hideDeleteConfirm();
+    } else {
+      closeModal();
+    }
+  }
+});
+
+// ─── Delete Agent ───────────────────────────────────────────────
+let deleteTargetId = null;
+let deleteTargetAlias = null;
+
+function showDeleteConfirm() {
+  const btn = document.getElementById('deleteBtn');
+  deleteTargetId = btn.dataset.agentId;
+  deleteTargetAlias = btn.dataset.alias;
+  document.getElementById('deleteAliasHint').textContent = deleteTargetAlias;
+  document.getElementById('deleteConfirmInput').value = '';
+  document.getElementById('confirmDeleteBtn').disabled = true;
+  document.getElementById('deleteOverlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('deleteConfirmInput').focus(), 100);
+}
+
+function hideDeleteConfirm() {
+  document.getElementById('deleteOverlay').classList.add('hidden');
+  deleteTargetId = null;
+  deleteTargetAlias = null;
+}
+
+function checkDeleteInput() {
+  const val = document.getElementById('deleteConfirmInput').value.trim();
+  document.getElementById('confirmDeleteBtn').disabled = (val !== deleteTargetAlias);
+}
+
+async function executeDelete() {
+  if (!deleteTargetId || !deleteTargetAlias) return;
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.textContent = 'Deleting...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/agents/${deleteTargetId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmAlias: deleteTargetAlias }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      hideDeleteConfirm();
+      closeModal();
+      await fetchData();
+      alert(`Agent "${deleteTargetAlias}" has been permanently deleted.`);
+    } else {
+      alert(`Delete failed: ${data.error}`);
+      btn.textContent = 'Delete Forever';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert(`Delete failed: ${err.message}`);
+    btn.textContent = 'Delete Forever';
+    btn.disabled = false;
+  }
+}
 
 fetchData();
 setInterval(fetchData, 30000);

@@ -276,12 +276,15 @@ export function startWebUI(opts: WebUIOptions): void {
 
     log.info(`[WebUI Stream] ${agentId} <- web: ${text.slice(0, 80)}`);
 
-    // SSE headers
+    // SSE headers — disable buffering/compression for real-time streaming
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-transform",
       "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
     });
+    res.flushHeaders();
+    if (res.socket) res.socket.setNoDelay(true);
 
     const syntheticMsg: InboundMessage = {
       id: `web-${Date.now()}`,
@@ -763,6 +766,72 @@ export function startWebUI(opts: WebUIOptions): void {
       res.json({ ok: true, agentId });
     } catch (err) {
       log.error(`Failed to update agent: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Delete agent ──────────────────────────────────────────
+  app.delete("/api/agents/:id", async (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    // Require confirmation alias in the request body
+    const { confirmAlias } = req.body as { confirmAlias?: string };
+    const agentAlias = agent.mentionAliases?.[0] || agentId;
+    if (!confirmAlias || confirmAlias !== agentAlias) {
+      return res.status(400).json({
+        error: `Confirmation required. Send { "confirmAlias": "${agentAlias}" } to confirm deletion.`,
+        requiredAlias: agentAlias,
+      });
+    }
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      if (!rawConfig.agents[agentId]) {
+        return res.status(404).json({ error: `Agent "${agentId}" not in config.json` });
+      }
+
+      // Resolve agentHome for directory cleanup
+      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+      const agentEntry = rawConfig.agents[agentId];
+      let agentHome: string | null = null;
+      if (agentEntry.agentHome) {
+        agentHome = resolveTilde(agentEntry.agentHome);
+      } else if (agentEntry.memoryDir) {
+        agentHome = resolve(resolveTilde(agentEntry.memoryDir), "..");
+      }
+
+      // Remove from config.json
+      delete rawConfig.agents[agentId];
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Remove from in-memory config
+      delete opts.config.agents[agentId];
+
+      // Remove agentHome directory
+      let dirRemoved = false;
+      if (agentHome && existsSync(agentHome)) {
+        const { rmSync } = await import("node:fs");
+        rmSync(agentHome, { recursive: true, force: true });
+        dirRemoved = true;
+        log.info(`Removed agent home directory: ${agentHome}`);
+      }
+
+      // Rebuild
+      try {
+        execSync("npm run build", { cwd: opts.baseDir, timeout: 30_000 });
+      } catch (buildErr) {
+        log.warn(`Build after agent delete failed: ${buildErr}`);
+      }
+
+      log.info(`Agent deleted via Web UI: ${agentId} (alias: ${agentAlias}, dir removed: ${dirRemoved})`);
+      res.json({ ok: true, agentId, alias: agentAlias, directoryRemoved: dirRemoved, agentHome });
+    } catch (err) {
+      log.error(`Failed to delete agent: ${err}`);
       res.status(500).json({ error: String(err) });
     }
   });
