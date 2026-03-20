@@ -62,19 +62,24 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 | `requireMention` | no | `true` | Require @mention to trigger |
 | `autoCommit` | no | `false` | Auto-commit git changes after agent runs |
 | `timeout` | no | `120000` | Max execution time in ms |
+| `instructions` | no | auto | Custom CLAUDE.md content. If provided, use this verbatim instead of the template. If not provided, generate from name/description using the template below. |
+| `cron` | no | `[]` | Scheduled messages. Each entry: `{ schedule, message, channel, chatId }`. Schedule is cron syntax (e.g., `"0 9 * * 1-5"` = 9am weekdays). |
+| `goals` | no | `[]` | Autonomous goals. Each entry: `{ id, enabled, description, successCriteria, instructions, heartbeat: { schedule }, budget: { dailyUsd }, reportTo: { channel, chatId } }` |
 
 ### Asking Flow
 
 1. Ask for `agentId`, `name`, `description`, and `mentionAlias` together
 2. Ask about `organization` — which org? Show existing orgs from config. Also ask function, title, reportsTo.
 3. Ask about `workspace` — specific project or general use?
-4. Show currently registered MCPs and ask which to attach
-5. Ask about tools — full access, read-only, or custom?
-6. Ask about skills — any shared skills to attach?
-7. Ask about routes — which channels? Show current channel options with existing IDs for reference.
-8. Ask about `claudeAccount` — show available accounts if configured
-9. Ask about goals — any autonomous goals to set up?
-10. Confirm all values before proceeding
+4. Ask about custom instructions — do they want to write a custom system prompt, or use the auto-generated template? If custom, collect the full text.
+5. Show currently registered MCPs and ask which to attach
+6. Ask about tools — full access, read-only, or custom?
+7. Ask about skills — any shared skills to attach?
+8. Ask about routes — which channels? Show current channel options with existing IDs for reference.
+9. Ask about `claudeAccount` — show available accounts if configured
+10. Ask about scheduled tasks (cron) — any recurring messages? E.g., "check deployment status every morning at 9am". Collect: frequency, time, message text, which channel to send on.
+11. Ask about autonomous goals — any ongoing responsibilities? E.g., "monitor uptime and alert if down". Collect: description, success criteria, instructions, heartbeat schedule, daily budget, reporting channel.
+12. Confirm all values before proceeding
 
 ## Folder Structure Created
 
@@ -124,8 +129,26 @@ If no organization specified, use `~/Desktop/personalAgents/<agentId>/`.
       "reportsTo": "<reportsTo>"
     }
   ],
-  "goals": [],
-  "cron": [],
+  "goals": [
+    {
+      "id": "<goalId>",
+      "enabled": true,
+      "description": "<what the agent is responsible for>",
+      "successCriteria": "<how we know it's done>",
+      "instructions": "<step by step guidance>",
+      "heartbeat": { "schedule": "<cron expression>" },
+      "budget": { "dailyUsd": 5.00 },
+      "reportTo": { "channel": "<channel>", "chatId": "<chatId>" }
+    }
+  ],
+  "cron": [
+    {
+      "schedule": "<cron expression, e.g. 0 9 * * 1-5>",
+      "message": "<what to tell the agent>",
+      "channel": "<channel to reply on>",
+      "chatId": "<chatId to reply in>"
+    }
+  ],
   "routes": [
     {
       "channel": "telegram",
@@ -141,9 +164,30 @@ If no organization specified, use `~/Desktop/personalAgents/<agentId>/`.
 }
 ```
 
-Omit optional fields if not set: `claudeAccount`, `mcps`, `skills`, `org`, `goals`, `cron`.
+Omit optional fields if not set: `claudeAccount`, `mcps`, `skills`, `org`. Use empty arrays `[]` for `goals` and `cron` if none configured.
 
-## CLAUDE.md Template
+### Cron Schedule Reference
+
+Common cron patterns for the `schedule` field:
+- `"0 9 * * 1-5"` — 9am weekdays
+- `"0 9 * * 1"` — 9am every Monday
+- `"0 */2 * * *"` — every 2 hours
+- `"*/30 * * * *"` — every 30 minutes
+- `"0 18 * * *"` — 6pm daily
+
+### Goals Reference
+
+Goals give an agent autonomous responsibilities that run on a heartbeat schedule. Each goal execution:
+- Runs the agent with the goal instructions as the prompt
+- Tracks API spend against the daily budget
+- Reports results to the configured channel
+- The heartbeat `schedule` uses cron syntax (same as above)
+
+## CLAUDE.md — Custom vs Template
+
+**If the user provided custom `instructions`:** Write their text verbatim as the CLAUDE.md content. Do NOT wrap it in a template or add sections they didn't ask for.
+
+**If no custom instructions provided:** Generate from this template:
 
 ```markdown
 # <name>
