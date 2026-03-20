@@ -1,65 +1,103 @@
-# channelToAgentToClaude
+# MyAgent
 
-A personal agent gateway that routes messages from your phone (iMessage, Slack, WhatsApp) to project-specific Claude Code agents running on your Mac.
+Multi-channel agent gateway — chat with Claude Code agents from your phone via Telegram, Slack, Discord, iMessage, and WhatsApp.
 
 ## What It Does
 
 ```
-Your Phone (iMessage group chat)
-    → Mac service detects message
-    → Routes to the right agent (by chat ID)
-    → Agent runs claude -p in project workspace
-    → Reply sent back to group chat
+Your Phone (Telegram, Slack, iMessage, Discord, WhatsApp)
+    → Gateway routes message by @mention alias
+    → Agent runs claude -p in its workspace
+    → Real-time streaming response sent back
+    → Web UI at localhost:4888 for dashboard + chat
 ```
 
-Each project has its own agent with identity, skills, memory, and workspace. Channels are pluggable — same agent reachable from iMessage, Slack, or WhatsApp.
+Each agent has its own identity, workspace, system prompt, memory, tools, and MCP integrations. One service, unlimited agents, all channels.
 
-## Quick Start (Mac)
+## Features
+
+- **Multi-channel** — Telegram, Slack, Discord, iMessage, WhatsApp, Web UI
+- **Persistent sessions** — agents remember conversations across messages
+- **Real-time streaming** — token-by-token output in the web UI
+- **Advanced memory** — semantic search + daily journals + auto-compaction
+- **39 pre-hosted MCPs** — Stripe, QuickBooks, HubSpot, and more. Bring your API key, use our servers.
+- **Autonomous goals** — agents with heartbeat schedules and budget tracking
+- **Cron schedules** — recurring tasks (price alerts, daily reports, monitoring)
+- **Org chart** — organize agents by department with reporting hierarchies
+- **Task kanban** — assign and track work across agents
+- **Agent Creator** — create new agents through conversation, no forms
+
+## Quick Start
 
 ```bash
-# Prerequisites
-brew install steipete/tap/imsg          # iMessage CLI bridge
-npm install -g @anthropic-ai/claude-code # Claude Code CLI
+# Prerequisites: Node.js 22+, Claude Code CLI
+npm install -g @anthropic-ai/claude-code
 
-# Setup
+# Clone and install
 git clone https://github.com/agenticledger/channelToAgentToClaude.git
 cd channelToAgentToClaude
 npm install
-
-# Discover your iMessage chat IDs
-imsg chats --limit 20 --json
-
-# Edit config.json with your chat_id + workspace path
-# Then start:
-npm start
+npm run build
 ```
+
+Then open Claude Code in this directory and run `/setup`. It walks you through:
+
+1. Connecting your channels (Telegram, Slack, etc.)
+2. Creating your first agent
+3. Auto-creating 5 template agents that demonstrate every feature
+4. Starting the service
+
+After setup, you'll have 6 agents ready to go:
+
+| Agent | Alias | What it does |
+|-------|-------|-------------|
+| Your Agent | `@yourname` | General-purpose assistant |
+| Agent Creator | `@agentcreator` | Creates new agents through conversation |
+| Daily Digest | `@digest` | Morning briefing of agent fleet activity |
+| Crypto Price | `@crypto` | BTC/ETH prices every 4 hours |
+| Journal | `@journal` | Personal memory with semantic recall |
+| Market Watch | `@market` | Stock/crypto lookups via web search |
+
+## Web UI
+
+```
+http://localhost:4888/ui     — Chat with agents
+http://localhost:4888/org    — Org chart + agent management
+http://localhost:4888/tasks  — Kanban task board
+```
+
+## Adding Agents
+
+Message `@agentcreator`:
+
+> "I need a coding agent for my React project at ~/Desktop/myapp"
+
+It asks a few questions, then creates the agent — folder structure, system prompt, config, channels — and restarts the service. No forms.
+
+## MCP Integrations
+
+39 HTTP MCP servers are pre-registered. To connect one to an agent:
+
+1. Get your API key for the service (e.g., Stripe secret key)
+2. Tell `@agentcreator` to attach it, or add it via the web UI
+3. The MCP server runs on our infrastructure — you just provide the key
+
+See `mcp-catalog.json` for the full list with categories and required keys.
 
 ## Documentation
 
-- **[BUILD_SPEC.md](BUILD_SPEC.md)** — Detailed build specification (start here if building)
-- **[CONVERSATION_HISTORY.md](CONVERSATION_HISTORY.md)** — Design journey and architectural decisions
+- [Architecture Reference](docs/Architecture.md) — full platform documentation
+- [Add New Agent Guide](docs/AddNewAgentGuide.md) — manual agent creation
+- [Add New MCP Guide](docs/AddNewMcpGuide.md) — connecting MCP servers
 
-## Architecture
+## Running as a Service
 
+### macOS (launchd)
+The `/setup` wizard offers to install this automatically. Or manually:
+```bash
+npm start                    # Run directly
+# Or install as auto-start service — see /setup
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  iMessage    │     │    Slack     │     │  WhatsApp    │
-│  (via imsg)  │     │  (future)   │     │  (future)    │
-└──────┬───────┘     └──────┬──────┘     └──────┬───────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌────────────────────────────────────────────────────────┐
-│  Router (channel + chatId → agent)                     │
-├────────────────────────────────────────────────────────┤
-│  Agent Executor (claude -p --cwd /workspace)           │
-├────────────────────────────────────────────────────────┤
-│  Reply back via originating channel                    │
-└────────────────────────────────────────────────────────┘
-```
-
-## First Agent: FIC Show Agent
-
-Routes an iMessage group chat to manage episode content for [Finance Is Cooked](https://ficsoundboard.netlify.app) — a weekly YouTube show about AI disrupting finance & accounting.
 
 ## License
 

@@ -5,3 +5,8 @@ logs/*.log
 config.json
 data/
 tmp/
+
+# Agent runtime data (created by /setup, personal to each install)
+agents/*/memory/conversation_log.jsonl
+agents/*/tasks.json
+agents/*/FileStorage/
