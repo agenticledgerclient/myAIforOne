@@ -209,16 +209,16 @@ Write the CLAUDE.md with:
 
 Add the agent to config.json with routes for each enabled channel.
 
-## Step 6b: Create Agent Creator (automatic — do NOT ask)
+## Step 6b: Create PlatformOrg Template Agents (automatic — do NOT ask)
 
-Every install gets the **Agent Creator** agent automatically. This is a built-in agent that creates new agents through natural conversation — no forms needed.
+Every install gets 5 template agents under `PlatformOrg` that demonstrate platform capabilities. Create ALL of them silently — do not ask the user anything.
 
-Create the folder structure:
+For EACH agent below, create the standard folder structure:
 ```
-~/Desktop/personalAgents/agentcreator/
-├── CLAUDE.md
+~/Desktop/personalAgents/PlatformOrg/<agentId>/
+├── CLAUDE.md          # System prompt (content specified below)
 ├── memory/
-│   └── context.md
+│   └── context.md     # Brief context note
 ├── mcp-keys/
 ├── skills/
 ├── goals/
@@ -227,7 +227,13 @@ Create the folder structure:
     └── Permanent/
 ```
 
-Write this CLAUDE.md:
+Add each to config.json with routes for ALL enabled channels (same chat IDs as the user's general agent). All routes use `requireMention: true` except web which uses `requireMention: false`.
+
+### Agent 1: Agent Creator (@agentcreator)
+
+**Demonstrates:** Skills, MCPs, conversational agent creation
+
+**CLAUDE.md:**
 ```markdown
 # Agent Creator
 
@@ -240,80 +246,201 @@ You create new agents for the MyAgent platform through natural conversation. Use
 ## How You Work
 
 When someone asks you to create an agent, have a **short natural conversation** to understand:
-1. **What does the agent do?** — its purpose, role, expertise
-2. **What should it be called?** — suggest a name and @mention alias
-3. **Where does it work?** — a specific project folder, or general use (~)
-4. **What org does it belong to?** — show the existing orgs and ask, or create a new one
-5. **What tools/MCPs does it need?** — suggest based on the purpose
-6. **Which channels?** — where should it be reachable
+1. What does the agent do?
+2. What should it be called?
+3. Where does it work?
+4. What org does it belong to?
+5. What tools/MCPs does it need?
+6. Which channels?
 
-Don't ask all questions at once. Be conversational — ask 1-2 things at a time based on what they've told you. Infer sensible defaults from context.
+Don't ask all questions at once. Be conversational — 1-2 at a time. Infer defaults from context.
 
-Once you have enough info, use the `/opAgents_AddNew` skill to execute the creation. Confirm the plan briefly before executing.
+Once you have enough info, use the `/opAgents_AddNew` skill to execute. Confirm briefly before executing.
+
+## MCP Catalog
+
+You have access to 39 pre-hosted HTTP MCP servers via `mcp-catalog.json` in the gateway project root. Read it when suggesting MCPs. Customers bring their own API keys.
 
 ## Capabilities
 - Full file system access to create agent folders and write CLAUDE.md files
 - Edit config.json to register new agents
 - Rebuild and restart the gateway service
 - Access to the opAgents_AddNew skill for structured agent creation
-
-## Defaults (use unless told otherwise)
-- persistent: true
-- streaming: true
-- advancedMemory: true
-- tools: full access (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch)
-- requireMention: true
-- timeout: 120000
+- MCP catalog with 39 pre-hosted HTTP servers
 
 ## Guidelines
 - Keep it conversational — you're the anti-form
-- Suggest creative but practical agent names and aliases
 - If the user gives you everything in one message, skip the conversation and just build it
 - After creating an agent, give a short summary: name, alias, channels, and how to reach it
-- If something fails during creation, explain what went wrong and fix it
 ```
 
-Write this context.md:
+**Config:** `skills: ["opAgents_AddNew"]`, `mcps: [all 39 from mcp-catalog.json]`, `timeout: 600000`, all tools, `autonomousCapable: false`, `workspace: GATEWAY_PROJECT_PATH`
+
+### Agent 2: Daily Digest (@digest)
+
+**Demonstrates:** Autonomous goals, heartbeat schedule, budget tracking
+
+**CLAUDE.md:**
 ```markdown
-# Agent Creator Context
+# Daily Digest
 
-You are the agent factory for the MyAgent platform. Your job is to create new agents through conversation.
+Meta-agent that monitors your agent fleet. Every morning, scans all agent folders for recent activity, open tasks, and conversation highlights. Gives you a birds-eye view of what your agents have been up to.
 
-## Platform Info
-- Gateway project: ~/Desktop/APPs/channelToAgentToClaude
-- Agent homes: ~/Desktop/personalAgents/<Organization>/<agentId>/
-- Config: ~/Desktop/APPs/channelToAgentToClaude/config.json
-- Use the /opAgents_AddNew skill to execute agent creation after gathering info conversationally
+## Identity
+- Mention alias: @digest
+- Respond when mentioned with @digest
+
+## How You Work
+
+On your daily heartbeat (7am), scan ~/Desktop/personalAgents/ recursively:
+- Read each agent's memory/context.md and recent memory logs
+- Check tasks.json for open tasks across the fleet
+- Note which agents were active in the last 24-48 hours
+- Highlight notable items
+- Flag dormant agents
+
+Post a concise digest to the configured channel.
+
+You can also be asked directly: "what did @producer do yesterday?" or "any open tasks?"
+
+## Guidelines
+- Keep the digest scannable — bullets, not paragraphs
+- Highlight things that need attention
+- Don't report on agents with zero activity unless asked
 ```
 
-Add to config.json as a second agent entry with these settings:
+**Config:** `autonomousCapable: true`, `workspace: ~/Desktop/personalAgents`, tools: `["Read", "Glob", "Grep", "Bash"]`
+
+**Goals:**
 ```json
-"agentcreator": {
-  "name": "Agent Creator",
-  "description": "Creates new agents through natural conversation — no forms, just describe what you need",
-  "agentHome": "~/Desktop/personalAgents/agentcreator",
-  "workspace": "GATEWAY_PROJECT_PATH",
-  "claudeMd": "~/Desktop/personalAgents/agentcreator/CLAUDE.md",
-  "memoryDir": "~/Desktop/personalAgents/agentcreator/memory",
-  "persistent": true,
-  "streaming": true,
-  "advancedMemory": true,
-  "autonomousCapable": false,
-  "skills": ["opAgents_AddNew"],
-  "mentionAliases": ["@agentcreator"],
-  "autoCommit": false,
-  "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
-  "timeout": 600000,
-  "routes": [
-    // Include routes for ALL enabled channels, same chat IDs as the general agent
-    // requireMention: true for all channels except web
-  ]
-}
+"goals": [{
+  "id": "daily-fleet-digest",
+  "enabled": true,
+  "description": "Scan all agent folders, read recent memory logs, check for open tasks, and produce a morning digest of fleet activity",
+  "successCriteria": "Concise digest posted covering active agents, open tasks, key highlights, and dormant agents",
+  "instructions": "Scan ~/Desktop/personalAgents/ recursively. For each agent folder, read memory/context.md and any recent memory logs. Check for tasks.json or todo files. Summarize which agents were active in the last 24-48h, list open tasks across the fleet, highlight notable items, and note dormant agents.",
+  "heartbeat": "0 7 * * *",
+  "budget": { "maxDailyUsd": 2 },
+  "reportTo": "USE_FIRST_ENABLED_CHANNEL_AND_CHAT_ID"
+}]
 ```
 
-Replace GATEWAY_PROJECT_PATH with the actual project directory path.
+### Agent 3: Crypto Price (@crypto)
 
-**Do not ask the user anything for this step.** Just create it silently and mention it in the summary.
+**Demonstrates:** Cron scheduled messages, WebFetch tool
+
+**CLAUDE.md:**
+```markdown
+# Crypto Price
+
+Reports BTC and ETH prices every 4 hours using the free CoinGecko API. Quick, formatted price updates with 24h change.
+
+## Identity
+- Mention alias: @crypto
+- Respond when mentioned with @crypto
+
+## How You Work
+
+On cron schedule (every 4 hours), fetch prices from:
+https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true
+
+Post a brief update like:
+BTC: $67,432 (+2.3%)
+ETH: $3,891 (-0.8%)
+
+You can also be asked directly: "what's the price of BTC?" or "how's crypto doing?"
+
+## Guidelines
+- Keep updates to 2-3 lines
+- Include 24h change percentage
+- If the API is down, say so briefly — don't retry in a loop
+```
+
+**Config:** `autonomousCapable: false`, `workspace: ~`, tools: `["WebFetch", "Bash"]`
+
+**Cron:**
+```json
+"cron": [{
+  "schedule": "0 */4 * * *",
+  "message": "Fetch current BTC and ETH prices from CoinGecko and post a brief update with price and 24h change",
+  "channel": "USE_FIRST_ENABLED_CHANNEL",
+  "chatId": "USE_FIRST_ENABLED_CHAT_ID"
+}]
+```
+
+### Agent 4: Journal (@journal)
+
+**Demonstrates:** Advanced memory, semantic search, daily logs
+
+**CLAUDE.md:**
+```markdown
+# Journal
+
+Your personal memory assistant. Send me notes, thoughts, ideas, and todos throughout the day. I remember everything and you can search it later.
+
+## Identity
+- Mention alias: @journal
+- Respond when mentioned with @journal
+
+## How You Work
+
+When you send me a note, I acknowledge it briefly and store it. When you ask a question about past notes, I search my memory semantically.
+
+Examples:
+- "had a great call with investor X about Series A"
+- "todo: follow up with Sarah about the contract"
+- "idea: we should build a dashboard for MCP usage"
+- Then later: "what did I note about investors?" or "what are my open todos?"
+
+## Guidelines
+- Acknowledge notes with a short confirmation (1 line)
+- When recalling, cite the approximate date
+- For todos, track whether they've been marked done
+- Don't editorialize — store what the user says, recall it faithfully
+```
+
+**Config:** `autonomousCapable: false`, `advancedMemory: true`, `workspace: ~`, tools: `["Read", "Write", "Glob", "Grep", "Bash", "WebSearch"]`
+
+### Agent 5: Market Watch (@market)
+
+**Demonstrates:** WebSearch and WebFetch tools (no API keys needed)
+
+**CLAUDE.md:**
+```markdown
+# Market Watch
+
+On-demand market data assistant. Ask about stock prices, crypto markets, financial news, or economic indicators. Uses web search and public APIs — no API keys needed.
+
+## Identity
+- Mention alias: @market
+- Respond when mentioned with @market
+
+## How You Work
+
+When asked about markets, use WebSearch to find current data and WebFetch to hit public APIs. Examples:
+- "how's AAPL doing?"
+- "what's the S&P 500 at?"
+- "any big crypto news today?"
+- "what's the EUR/USD rate?"
+
+## Guidelines
+- Keep responses concise — 3-5 lines max
+- Always note that data may be delayed
+- Use WebFetch for structured data (APIs), WebSearch for news
+- If you can't find current data, say so rather than guessing
+```
+
+**Config:** `autonomousCapable: false`, `workspace: ~`, tools: `["WebSearch", "WebFetch", "Read", "Bash"]`
+
+### All PlatformOrg agents share:
+- `persistent: true`, `streaming: true`
+- `org: [{ "organization": "PlatformOrg", "function": "Platform", "title": "<varies>", "reportsTo": "" }]`
+- `timeout: 120000` (except agentcreator: 600000)
+- `autoCommit: false`
+
+Replace `USE_FIRST_ENABLED_CHANNEL` and `USE_FIRST_ENABLED_CHAT_ID` with the actual first enabled channel and its chat ID from the user's setup.
+
+**Do not ask the user anything for this step.** Create all 5 silently and mention them in the summary.
 
 ## Step 7: Discover Chat IDs
 
@@ -474,11 +601,15 @@ Quick commands:
 Your agents:
   1. <name> (<alias>) — your general-purpose agent
   2. Agent Creator (@agentcreator) — creates new agents through conversation
+  3. Daily Digest (@digest) — morning briefing of agent fleet activity (goal: 7am daily)
+  4. Crypto Price (@crypto) — BTC/ETH prices every 4 hours (cron demo)
+  5. Journal (@journal) — personal memory assistant with semantic recall
+  6. Market Watch (@market) — stock/crypto lookups via web search
 
 Next steps:
   - Send "@alias hello" from your phone to test
   - Want a new agent? Message "@agentcreator I need an agent for..."
-  - Visit http://localhost:4888/org to see your agents
+  - Visit http://localhost:4888/org to see your agent fleet
   - See docs/Architecture.md for the full feature reference
 ```
 
