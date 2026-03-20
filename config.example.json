@@ -4,7 +4,7 @@
     "logFile": "./logs/service.log",
     "webUI": {
       "enabled": true,
-      "port": 8080,
+      "port": 4888,
       "webhookSecret": "CHANGE_ME_random_string"
     },
     "claudeAccounts": {
@@ -20,7 +20,8 @@
       "config": {
         "cliPath": "imsg",
         "includeAttachments": false,
-        "debounceMs": 2000
+        "debounceMs": 2000,
+        "monitoredChatIds": []
       }
     },
     "slack": {
@@ -57,40 +58,202 @@
     }
   },
 
-  "mcps": {},
-
-  "agents": {
-    "my-agent": {
-      "name": "My Agent",
-      "description": "General-purpose Claude agent accessible from phone",
-      "workspace": "~",
-      "claudeMd": "~/Desktop/personalAgents/my-agent/CLAUDE.md",
-      "memoryDir": "~/Desktop/personalAgents/my-agent/memory",
-      "persistent": true,
-      "advancedMemory": true,
-      "autonomousCapable": true,
-      "mentionAliases": ["@myagent"],
-      "autoCommit": false,
-      "allowedTools": [
-        "Read", "Edit", "Write",
-        "Glob", "Grep", "Bash",
-        "WebFetch", "WebSearch"
-      ],
-      "routes": [
-        {
-          "channel": "telegram",
-          "match": {
-            "type": "chat_id",
-            "value": "YOUR_CHAT_ID"
-          },
-          "permissions": {
-            "allowFrom": ["*"],
-            "requireMention": false
-          }
-        }
-      ]
+  "mcps": {
+    "stripe": {
+      "type": "http",
+      "url": "https://stripemcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${STRIPE_API_KEY}" }
+    },
+    "quickbooks": {
+      "type": "http",
+      "url": "https://qbomcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${QBO_ACCESS_TOKEN}" }
+    },
+    "xero": {
+      "type": "http",
+      "url": "https://xeromcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${XERO_AUTH}" }
+    },
+    "netsuite": {
+      "type": "http",
+      "url": "https://netsuitemcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${NETSUITE_AUTH}" }
+    },
+    "plaid": {
+      "type": "http",
+      "url": "https://plaidmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${PLAID_API_KEY}" }
+    },
+    "mercury": {
+      "type": "http",
+      "url": "https://mercurymcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${MERCURY_API_TOKEN}" }
+    },
+    "brex": {
+      "type": "http",
+      "url": "https://brexmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${BREX_API_TOKEN}" }
+    },
+    "ramp": {
+      "type": "http",
+      "url": "https://rampmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${RAMP_AUTH}" }
+    },
+    "expensify": {
+      "type": "http",
+      "url": "https://expensifymcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${EXPENSIFY_AUTH}" }
+    },
+    "billcom": {
+      "type": "http",
+      "url": "https://billcommcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${BILLCOM_AUTH}" }
+    },
+    "paypal": {
+      "type": "http",
+      "url": "https://paypalmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${PAYPAL_AUTH}" }
+    },
+    "square": {
+      "type": "http",
+      "url": "https://squaremcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${SQUARE_ACCESS_TOKEN}" }
+    },
+    "modern-treasury": {
+      "type": "http",
+      "url": "https://moderntreasurymcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${MODERN_TREASURY_API_KEY}" }
+    },
+    "avalara": {
+      "type": "http",
+      "url": "https://avalaramcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${AVALARA_AUTH}" }
+    },
+    "gusto": {
+      "type": "http",
+      "url": "https://gustomcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${GUSTO_ACCESS_TOKEN}" }
+    },
+    "chargebee": {
+      "type": "http",
+      "url": "https://chargebeemcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${CHARGEBEE_AUTH}" }
+    },
+    "hubspot": {
+      "type": "http",
+      "url": "https://hubspotmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${HUBSPOT_ACCESS_TOKEN}" }
+    },
+    "karbon": {
+      "type": "http",
+      "url": "https://karbonmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${KARBON_BEARER_TOKEN}" }
+    },
+    "smartsheets": {
+      "type": "http",
+      "url": "https://smartsheetsmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${SMARTSHEET_API_KEY}" }
+    },
+    "notion-finance": {
+      "type": "http",
+      "url": "https://notionfinancemcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${NOTION_API_KEY}" }
+    },
+    "granola": {
+      "type": "http",
+      "url": "https://granolamcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${GRANOLA_API_KEY}" }
+    },
+    "fireflies": {
+      "type": "http",
+      "url": "https://firefliesmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${FIREFLIES_API_KEY}" }
+    },
+    "floqast": {
+      "type": "http",
+      "url": "https://floqastmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${FLOQAST_API_KEY}" }
+    },
+    "bitwave": {
+      "type": "http",
+      "url": "https://bitwavemcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${BITWAVE_AUTH}" }
+    },
+    "tres": {
+      "type": "http",
+      "url": "https://tresmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${TRES_AUTH}" }
+    },
+    "fireblocks": {
+      "type": "http",
+      "url": "https://fireblocksmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${FIREBLOCKS_AUTH}" }
+    },
+    "catalyx-wallet": {
+      "type": "http",
+      "url": "https://catalyxwalletmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${CATALYX_AUTH}" }
+    },
+    "enterprise-wallet": {
+      "type": "http",
+      "url": "https://enterprisewalletmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${EWM_API_KEY}" }
+    },
+    "lightspark-sdk": {
+      "type": "http",
+      "url": "https://lightsparksdkmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${LIGHTSPARK_SDK_AUTH}" }
+    },
+    "lightspark-grid": {
+      "type": "http",
+      "url": "https://lightsparkgridmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${LIGHTSPARK_GRID_AUTH}" }
+    },
+    "ccview": {
+      "type": "http",
+      "url": "https://ccviewmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${CCVIEW_API_KEY}" }
+    },
+    "metabase": {
+      "type": "http",
+      "url": "https://metabasemcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${METABASE_API_KEY}" }
+    },
+    "cubedev": {
+      "type": "http",
+      "url": "https://cubedevmcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${CUBE_API_TOKEN}" }
+    },
+    "p2p-lambda": {
+      "type": "http",
+      "url": "https://p2plambdamcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${P2P_LAMBDA_KEY}" }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}" }
+    },
+    "greptile": {
+      "type": "http",
+      "url": "https://api.greptile.com/mcp",
+      "headers": { "Authorization": "Bearer ${GREPTILE_API_KEY}" }
+    },
+    "gitlab": {
+      "type": "http",
+      "url": "https://gitlab.com/api/v4/mcp"
+    },
+    "linear": {
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp"
     }
   },
+
+  "agents": {},
 
   "defaultAgent": null
 }
