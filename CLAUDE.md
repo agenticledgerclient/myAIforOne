@@ -10,8 +10,8 @@ Run `/setup` to get started. Creates a general-purpose agent and configures your
 
 After setup, create purpose-built agents for specific projects or roles:
 
+- **From chat:** Message `@agentcreator` — "I need an agent for managing my React project". It creates agents through conversation, no forms needed.
 - **From the Web UI:** Go to http://localhost:4888/org → click **+ New Agent** → fill out the form
-- **From chat:** Message your general agent: "Create a new agent for managing my project X" — it knows how to do this
 - **What makes an agent specialized:**
   - **Workspace** — point it at a specific project directory instead of ~
   - **System prompt** — describe its role, expertise, and constraints in CLAUDE.md
