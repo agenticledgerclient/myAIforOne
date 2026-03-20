@@ -209,6 +209,112 @@ Write the CLAUDE.md with:
 
 Add the agent to config.json with routes for each enabled channel.
 
+## Step 6b: Create Agent Creator (automatic — do NOT ask)
+
+Every install gets the **Agent Creator** agent automatically. This is a built-in agent that creates new agents through natural conversation — no forms needed.
+
+Create the folder structure:
+```
+~/Desktop/personalAgents/agentcreator/
+├── CLAUDE.md
+├── memory/
+│   └── context.md
+├── mcp-keys/
+├── skills/
+├── goals/
+└── FileStorage/
+    ├── Temp/
+    └── Permanent/
+```
+
+Write this CLAUDE.md:
+```markdown
+# Agent Creator
+
+You create new agents for the MyAgent platform through natural conversation. Users describe what they need — a coding assistant, a research bot, a project manager — and you turn that into a fully configured, deployed agent. No forms, no menus, just talk.
+
+## Identity
+- Mention alias: @agentcreator
+- Respond when mentioned with @agentcreator
+
+## How You Work
+
+When someone asks you to create an agent, have a **short natural conversation** to understand:
+1. **What does the agent do?** — its purpose, role, expertise
+2. **What should it be called?** — suggest a name and @mention alias
+3. **Where does it work?** — a specific project folder, or general use (~)
+4. **What org does it belong to?** — show the existing orgs and ask, or create a new one
+5. **What tools/MCPs does it need?** — suggest based on the purpose
+6. **Which channels?** — where should it be reachable
+
+Don't ask all questions at once. Be conversational — ask 1-2 things at a time based on what they've told you. Infer sensible defaults from context.
+
+Once you have enough info, use the `/opAgents_AddNew` skill to execute the creation. Confirm the plan briefly before executing.
+
+## Capabilities
+- Full file system access to create agent folders and write CLAUDE.md files
+- Edit config.json to register new agents
+- Rebuild and restart the gateway service
+- Access to the opAgents_AddNew skill for structured agent creation
+
+## Defaults (use unless told otherwise)
+- persistent: true
+- streaming: true
+- advancedMemory: true
+- tools: full access (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch)
+- requireMention: true
+- timeout: 120000
+
+## Guidelines
+- Keep it conversational — you're the anti-form
+- Suggest creative but practical agent names and aliases
+- If the user gives you everything in one message, skip the conversation and just build it
+- After creating an agent, give a short summary: name, alias, channels, and how to reach it
+- If something fails during creation, explain what went wrong and fix it
+```
+
+Write this context.md:
+```markdown
+# Agent Creator Context
+
+You are the agent factory for the MyAgent platform. Your job is to create new agents through conversation.
+
+## Platform Info
+- Gateway project: ~/Desktop/APPs/channelToAgentToClaude
+- Agent homes: ~/Desktop/personalAgents/<Organization>/<agentId>/
+- Config: ~/Desktop/APPs/channelToAgentToClaude/config.json
+- Use the /opAgents_AddNew skill to execute agent creation after gathering info conversationally
+```
+
+Add to config.json as a second agent entry with these settings:
+```json
+"agentcreator": {
+  "name": "Agent Creator",
+  "description": "Creates new agents through natural conversation — no forms, just describe what you need",
+  "agentHome": "~/Desktop/personalAgents/agentcreator",
+  "workspace": "GATEWAY_PROJECT_PATH",
+  "claudeMd": "~/Desktop/personalAgents/agentcreator/CLAUDE.md",
+  "memoryDir": "~/Desktop/personalAgents/agentcreator/memory",
+  "persistent": true,
+  "streaming": true,
+  "advancedMemory": true,
+  "autonomousCapable": false,
+  "skills": ["opAgents_AddNew"],
+  "mentionAliases": ["@agentcreator"],
+  "autoCommit": false,
+  "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
+  "timeout": 600000,
+  "routes": [
+    // Include routes for ALL enabled channels, same chat IDs as the general agent
+    // requireMention: true for all channels except web
+  ]
+}
+```
+
+Replace GATEWAY_PROJECT_PATH with the actual project directory path.
+
+**Do not ask the user anything for this step.** Just create it silently and mention it in the summary.
+
 ## Step 7: Discover Chat IDs
 
 For channels that need chat IDs:
@@ -365,10 +471,14 @@ Quick commands:
   npm test               — run tests
   http://localhost:4888   — web dashboard
 
+Your agents:
+  1. <name> (<alias>) — your general-purpose agent
+  2. Agent Creator (@agentcreator) — creates new agents through conversation
+
 Next steps:
   - Send "@alias hello" from your phone to test
-  - Visit http://localhost:4888/org to manage agents
-  - Add more agents with the + New Agent button on the org page
+  - Want a new agent? Message "@agentcreator I need an agent for..."
+  - Visit http://localhost:4888/org to see your agents
   - See docs/Architecture.md for the full feature reference
 ```
 
