@@ -14,6 +14,7 @@ Add a new agent to the phone-accessible Claude agent gateway at `~/Desktop/APPs/
 - **Agent homes:** `~/Desktop/personalAgents/<Organization>/<agentId>/`
 - **Shared skills:** `~/Desktop/personalAgents/skills/`
 - **Shared MCP keys:** `~/Desktop/personalAgents/mcp-keys/`
+- **MCP catalog:** `~/Desktop/APPs/channelToAgentToClaude/mcp-catalog.json` — 39 pre-hosted HTTP MCPs with URLs, descriptions, categories, and required API keys. Read this file when showing available MCPs to the user.
 
 ## Checklist
 
