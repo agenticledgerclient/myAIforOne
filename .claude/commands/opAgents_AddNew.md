@@ -228,3 +228,4 @@ node -e "const {loadConfig}=require('./dist/config.js'); const c=loadConfig('./c
 - **Multi Org agents:** If agent is in multiple orgs, use `personalAgents/Multi Org/<agentId>/`
 - **Same channel, multiple agents:** Differentiated by @mention alias
 - **No code changes needed:** Adding an agent is config + files only
+- **iMessage DB polling:** When adding an iMessage route, ALSO add the chat ID (as a number) to `channels.imessage.config.monitoredChatIds` in config.json if it's not already there. The iMessage driver polls the DB for these chat IDs — without this, messages from that chat won't be picked up.
