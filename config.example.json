@@ -59,6 +59,10 @@
   },
 
   "mcps": {
+    "lighthouse": {
+      "type": "http",
+      "url": "https://lighthousemcp.agenticledger.ai/mcp"
+    },
     "stripe": {
       "type": "http",
       "url": "https://stripemcp.agenticledger.ai/mcp",

@@ -2,6 +2,13 @@
   "_description": "MCP server catalog — HTTP servers hosted by AgenticLedger. Customers bring their own API keys.",
   "_usage": "The agentcreator and setup wizard reference this catalog. When an MCP is attached to an agent, its entry is copied into config.json mcps block, and the customer's API key is saved to the agent's mcp-keys/ folder.",
   "mcps": {
+    "lighthouse": {
+      "name": "Lighthouse (Canton Network Explorer)",
+      "description": "Canton Network blockchain explorer — validators, transactions, contracts, token prices, governance, CNS domains. No API key required.",
+      "category": "crypto",
+      "url": "https://lighthousemcp.agenticledger.ai/mcp",
+      "requiredKeys": []
+    },
     "stripe": {
       "name": "Stripe",
       "description": "Payment processing — customers, invoices, subscriptions, charges, refunds",
