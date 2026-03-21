@@ -267,6 +267,11 @@ html,body{
 }
 .msg-agent code{font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:1px 5px;border-radius:4px}
 .msg-agent p{margin:0 0 .6em 0}.msg-agent p:last-child{margin-bottom:0}
+.channel-badge{
+  display:inline-block;background:rgba(139,92,246,0.15);color:var(--accent);
+  padding:1px 5px;border-radius:3px;font-size:8px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em;margin-right:4px;
+}
 .msg-time{
   font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
   margin-top:4px;
@@ -542,6 +547,9 @@ html,body{
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:3px}
+
+/* ─── Hide Names (presentation mode) ────────────────────────── */
+.name-blurred{filter:blur(8px);-webkit-filter:blur(8px);transition:filter .2s}
 </style>
 </head>
 <body>
@@ -566,10 +574,10 @@ html,body{
       <div class="status-channels" id="channelPills"></div>
     </div>
     <div class="filter-bar">
-      <select class="filter-select" id="filterOrg" onchange="applyFilters()">
+      <select class="filter-select" id="filterOrg" onchange="onOrgChange()">
         <option value="">All Orgs</option>
       </select>
-      <select class="filter-select" id="filterDept" onchange="applyFilters()">
+      <select class="filter-select" id="filterDept" onchange="renderAgentList()">
         <option value="">All Depts</option>
       </select>
     </div>
@@ -662,6 +670,16 @@ html,body{
 </div>
 
 <script>
+// ─── Hidden Orgs (presentation mode) ────────────────────────────
+function getHiddenOrgs() {
+  try { return JSON.parse(localStorage.getItem('hiddenOrgs') || '[]'); } catch { return []; }
+}
+function isAgentOrgHidden(agent) {
+  const hidden = getHiddenOrgs();
+  if (!hidden.length) return false;
+  return (agent.org || []).some(o => hidden.includes(o.organization));
+}
+
 // ─── State ─────────────────────────────────────────────────────
 let agents = [];
 let selectedAgent = null;
@@ -714,6 +732,7 @@ async function fetchDashboard() {
   }
 }
 
+let filtersInitialized = false;
 function buildFilterDropdowns() {
   const orgSet = new Set();
   const deptSet = new Set();
@@ -730,15 +749,24 @@ function buildFilterDropdowns() {
   const prevDept = deptSelect.value;
 
   orgSelect.innerHTML = '<option value="">All Orgs</option>' +
-    [...orgSet].map(o => `<option value="${o}">${o}</option>`).join('');
+    [...orgSet].sort().map(o => `<option value="${o}">${o}</option>`).join('');
   deptSelect.innerHTML = '<option value="">All Depts</option>' +
-    [...deptSet].map(d => `<option value="${d}">${d}</option>`).join('');
+    [...deptSet].sort().map(d => `<option value="${d}">${d}</option>`).join('');
 
-  if (prevOrg && [...orgSet].includes(prevOrg)) orgSelect.value = prevOrg;
-  if (prevDept && [...deptSet].includes(prevDept)) deptSelect.value = prevDept;
+  if (!filtersInitialized && orgSet.size > 0) {
+    // Default to first org on initial load
+    orgSelect.value = [...orgSet].sort()[0];
+    filtersInitialized = true;
+  } else {
+    if (prevOrg && [...orgSet].includes(prevOrg)) orgSelect.value = prevOrg;
+    if (prevDept && [...deptSet].includes(prevDept)) deptSelect.value = prevDept;
+  }
 }
 
-function applyFilters() {
+function onOrgChange() {
+  // Reset dept to All when org changes
+  const deptSelect = document.getElementById('filterDept');
+  if (deptSelect) deptSelect.value = '';
   renderAgentList();
 }
 
@@ -765,9 +793,9 @@ async function fetchAgentMessages(agentId) {
     const data = await res.json();
     if (data.recentMessages && data.recentMessages.length > 0) {
       chatHistory[agentId] = data.recentMessages.map(m => ([
-        { role: 'user', text: m.text, time: m.ts },
-        { role: 'agent', text: m.response, time: m.ts },
-      ])).flat();
+        { role: 'user', text: m.text, time: m.ts, channel: m.channel || 'unknown' },
+        { role: 'agent', text: m.response, time: m.ts, channel: m.channel || 'unknown' },
+      ])).flat().filter(m => m.text);
     }
   } catch { /* ignore */ }
 }
@@ -793,87 +821,128 @@ async function sendMessage(agentId, text) {
     scrollChat();
 
     try {
-      const res = await fetch(`/api/chat/${agentId}/stream`, {
+      // Step 1: Start job
+      const startRes = await fetch(`/api/chat/${agentId}/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, accountOverride: accountOverrides[agentId] }),
       });
+      const { jobId } = await startRes.json();
+      if (!jobId) throw new Error('No jobId returned');
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      // Step 2: Stream events with auto-reconnect
+      let lastEventId = 0;
+      let isDone = false;
+      let retries = 0;
+      const MAX_RETRIES = 10;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      while (!isDone && retries < MAX_RETRIES) {
+        try {
+          const streamRes = await fetch(`/api/chat/jobs/${jobId}/stream?after=${lastEventId}`);
+          const reader = streamRes.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          retries = 0; // reset on successful connect
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
-          try {
-            const event = JSON.parse(data);
-            if (event.type === 'text') {
-              ss.text += event.data;
-              ss.isThinking = false;
-              if (isViewing()) {
-                const streamEl = document.getElementById('streamingContent');
-                const thinkWrap = document.getElementById('thinkingWrap');
-                if (streamEl) {
-                  streamEl.innerHTML = formatMarkdown(ss.text);
-                } else {
-                  if (thinkWrap) thinkWrap.innerHTML = '';
-                  const msgDiv = document.createElement('div');
-                  msgDiv.className = 'msg msg-agent';
-                  msgDiv.id = 'streamingMsg';
-                  msgDiv.innerHTML = `<div id="streamingContent">${formatMarkdown(ss.text)}</div><div class="msg-time">streaming...</div>`;
-                  const chatMsgs = document.getElementById('chatMessages');
-                  if (chatMsgs) chatMsgs.insertBefore(msgDiv, thinkWrap);
-                }
-                scrollChat();
+            for (const line of lines) {
+              // Track event IDs for reconnect
+              if (line.startsWith('id: ')) {
+                lastEventId = parseInt(line.slice(4)) + 1;
+                continue;
               }
-            } else if (event.type === 'tool') {
-              ss.status = event.data;
-              if (event.tool) {
-                const hasInput = event.tool.input && Object.keys(event.tool.input).length > 0;
-                const existingIdx = hasInput ? ss.tools.findLastIndex(t => t.name === event.tool.name && (!t.input || Object.keys(t.input).length === 0)) : -1;
-                if (existingIdx >= 0) {
-                  ss.tools[existingIdx].input = event.tool.input;
-                } else {
-                  ss.tools.push({ name: event.tool.name, input: event.tool.input, ts: Date.now() });
+              if (!line.startsWith('data: ')) continue;
+              const data = line.slice(6);
+              if (data === '[DONE]') { isDone = true; continue; }
+
+              try {
+                const event = JSON.parse(data);
+                if (event.type === 'text') {
+                  ss.text += event.data;
+                  ss.isThinking = false;
+                  if (isViewing()) {
+                    const streamEl = document.getElementById('streamingContent');
+                    const thinkWrap = document.getElementById('thinkingWrap');
+                    if (streamEl) {
+                      streamEl.innerHTML = formatMarkdown(ss.text);
+                    } else {
+                      if (thinkWrap) thinkWrap.innerHTML = '';
+                      const msgDiv = document.createElement('div');
+                      msgDiv.className = 'msg msg-agent';
+                      msgDiv.id = 'streamingMsg';
+                      msgDiv.innerHTML = `<div id="streamingContent">${formatMarkdown(ss.text)}</div><div class="msg-time">streaming...</div>`;
+                      const chatMsgs = document.getElementById('chatMessages');
+                      if (chatMsgs) chatMsgs.insertBefore(msgDiv, thinkWrap);
+                    }
+                    scrollChat();
+                  }
+                } else if (event.type === 'tool') {
+                  ss.status = event.data;
+                  if (event.tool) {
+                    const hasInput = event.tool.input && Object.keys(event.tool.input).length > 0;
+                    const existingIdx = hasInput ? ss.tools.findLastIndex(t => t.name === event.tool.name && (!t.input || Object.keys(t.input).length === 0)) : -1;
+                    if (existingIdx >= 0) {
+                      ss.tools[existingIdx].input = event.tool.input;
+                    } else {
+                      ss.tools.push({ name: event.tool.name, input: event.tool.input, ts: Date.now() });
+                    }
+                  }
+                  if (isViewing()) {
+                    const toolsWrap = document.getElementById('streamingToolsWrap');
+                    if (toolsWrap) {
+                      toolsWrap.innerHTML = renderActivityFeed(ss.tools, true);
+                    } else {
+                      renderChat();
+                    }
+                    scrollChat();
+                  }
+                } else if (event.type === 'status') {
+                  ss.status = event.data;
+                  if (isViewing()) {
+                    const thinkWrap = document.getElementById('thinkingWrap');
+                    if (thinkWrap && !ss.text) {
+                      thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${ss.status || 'Thinking...'}</span></div>`;
+                    }
+                    scrollChat();
+                  }
+                } else if (event.type === 'error') {
+                  ss.isThinking = false;
+                  ss.text = '';
+                  ss.status = '';
+                  chatHistory[agentId].push({ role: 'agent', text: `Error: ${event.data}`, time: new Date().toISOString() });
+                  if (isViewing()) { renderChat(); scrollChat(); }
+                  isDone = true;
                 }
-              }
-              if (isViewing()) {
-                const toolsWrap = document.getElementById('streamingToolsWrap');
-                if (toolsWrap) {
-                  toolsWrap.innerHTML = renderActivityFeed(ss.tools, true);
-                } else {
-                  renderChat();
-                }
-                scrollChat();
-              }
-            } else if (event.type === 'status') {
-              ss.status = event.data;
-              if (isViewing()) {
-                const thinkWrap = document.getElementById('thinkingWrap');
-                if (thinkWrap && !ss.text) {
-                  thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${ss.status || 'Thinking...'}</span></div>`;
-                }
-                scrollChat();
-              }
-            } else if (event.type === 'error') {
-              ss.isThinking = false;
-              ss.text = '';
-              ss.status = '';
-              chatHistory[agentId].push({ role: 'agent', text: `Error: ${event.data}`, time: new Date().toISOString() });
-              if (isViewing()) { renderChat(); scrollChat(); }
+              } catch { /* skip malformed event */ }
             }
-          } catch { /* skip */ }
+          }
+
+          // Stream ended naturally — if not done, reconnect
+          if (!isDone) {
+            retries++;
+            if (isViewing()) {
+              const thinkWrap = document.getElementById('thinkingWrap');
+              if (thinkWrap) thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">Reconnecting...</span></div>`;
+            }
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        } catch (streamErr) {
+          // Connection failed — retry
+          retries++;
+          if (retries < MAX_RETRIES) {
+            if (isViewing()) {
+              const thinkWrap = document.getElementById('thinkingWrap');
+              if (thinkWrap) thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">Reconnecting... (${retries}/${MAX_RETRIES})</span></div>`;
+            }
+            await new Promise(r => setTimeout(r, 1000 * retries));
+          }
         }
       }
 
@@ -890,7 +959,7 @@ async function sendMessage(agentId, text) {
       ss.text = '';
       ss.status = '';
       ss.tools = [];
-      chatHistory[agentId].push({ role: 'agent', text: `Connection error: ${err.message}`, time: new Date().toISOString() });
+      chatHistory[agentId].push({ role: 'agent', text: `Error: ${err.message}`, time: new Date().toISOString() });
     }
     if (isViewing()) { renderChat(); scrollChat(); }
   } else {
@@ -903,7 +972,7 @@ async function sendMessage(agentId, text) {
       const res = await fetch(`/api/chat/${agentId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, accountOverride: accountOverrides[agentId] }),
       });
       const data = await res.json();
       isThinking = false;
@@ -945,13 +1014,14 @@ function renderAgentList() {
     tags.push(`<span class="agent-tag tag-msgs">${a.messageCount} msgs</span>`);
     if (a.mcps.length) tags.push(`<span class="agent-tag tag-mcp">${a.mcps.length} MCP${a.mcps.length>1?'s':''}</span>`);
 
+    const blurClass = isAgentOrgHidden(a) ? ' name-blurred' : '';
     return `<div class="agent-card${isSelected?' selected':''}" onclick="selectAgent('${a.id}')">
       <div class="agent-card-top">
         <div class="agent-avatar">${initials}</div>
-        <div class="agent-name">${a.name}</div>
+        <div class="agent-name${blurClass}">${a.name}</div>
         <div class="agent-session-dot ${a.sessionActive?'active':'inactive'}"></div>
       </div>
-      <div class="agent-alias">${a.aliases[0] || a.id}</div>
+      <div class="agent-alias${blurClass}">${a.aliases[0] || a.id}</div>
       <div class="agent-desc">${a.description}</div>
       <div class="agent-meta">${tags.join('')}</div>
     </div>`;
@@ -978,8 +1048,8 @@ function renderChat() {
         ${agent.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || '??'}
       </div>
       <div class="chat-header-info">
-        <div class="chat-header-name">${agent.name}</div>
-        <div class="chat-header-alias">${agent.aliases[0] || agent.id} · ${agent.persistent?'persistent session':'single-shot'}</div>
+        <div class="chat-header-name${isAgentOrgHidden(agent) ? ' name-blurred' : ''}">${agent.name}</div>
+        <div class="chat-header-alias"><span class="${isAgentOrgHidden(agent) ? 'name-blurred' : ''}">${agent.aliases[0] || agent.id}</span> · ${agent.persistent?'persistent session':'single-shot'}</div>
       </div>
       <div class="chat-header-actions">
         ${availableAccounts.length > 0 ? `<select class="header-btn" style="padding:2px 6px;font-size:11px;cursor:pointer" onchange="accountOverrides['${agent.id}']=this.value||undefined" title="Claude Account override (in-memory only)">
@@ -996,8 +1066,9 @@ function renderChat() {
         const cls = m.role === 'user' ? 'msg-user' : 'msg-agent';
         const formatted = m.role === 'agent' ? formatMarkdown(m.text) : escapeHtml(m.text);
         const time = formatTime(m.time);
+        const channelBadge = m.channel && m.channel !== 'web' && m.channel !== 'unknown' ? `<span class="channel-badge">${m.channel}</span>` : '';
         const toolHtml = (m.tools && m.tools.length) ? renderActivityFeed(m.tools, false) : '';
-        return `${toolHtml}<div class="msg ${cls}">${formatted}<div class="msg-time">${time}</div></div>`;
+        return `${toolHtml}<div class="msg ${cls}">${formatted}<div class="msg-time">${channelBadge}${time}</div></div>`;
       }).join('')}
       <div id="streamingToolsWrap">${streamingTools.length ? renderActivityFeed(streamingTools, true) : ''}</div>
       ${streamingText ? `<div class="msg msg-agent" id="streamingMsg"><div id="streamingContent">${formatMarkdown(streamingText)}</div><div class="msg-time">streaming...</div></div>` : ''}
@@ -1042,9 +1113,7 @@ function scrollChat() {
 async function selectAgent(id) {
   selectedAgent = id;
   renderAgentList();
-  if (!chatHistory[id]) {
-    await fetchAgentMessages(id);
-  }
+  await fetchAgentMessages(id);
   renderChat();
   scrollChat();
 }

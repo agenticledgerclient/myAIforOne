@@ -306,6 +306,18 @@ html,body{
 .empty-org-text{font-size:14px;font-weight:500;margin-bottom:4px}
 .empty-org-sub{font-size:12px;opacity:.6}
 
+/* ─── Hide Names (presentation mode) ────────────────────────── */
+.name-blurred{filter:blur(8px);-webkit-filter:blur(8px);transition:filter .2s}
+.hide-names-btn{
+  margin-left:auto;font-family:var(--font-mono);font-size:11px;font-weight:500;
+  padding:4px 10px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);transition:all .2s;display:flex;align-items:center;gap:5px;
+  white-space:nowrap;
+}
+.hide-names-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.hide-names-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-bg)}
+
 /* ─── Modal ───────────────────────────────────────────────────── */
 .modal-overlay{
   position:fixed;inset:0;z-index:1000;
@@ -585,6 +597,7 @@ html,body{
   </div>
   <div class="topbar-right">
     <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
+    <button class="hide-names-btn" id="hideAllBtn" onclick="toggleHideAll()" title="Hide/show all agent names for presentations" style="font-size:11px;padding:4px 10px">&#128065; Hide All</button>
     <button class="add-agent-btn-top" onclick="openModal(null)">
       <span style="font-size:16px">+</span> New Agent
     </button>
@@ -796,6 +809,47 @@ function toggleTheme() {
   document.querySelector('.theme-toggle').textContent = theme === 'light' ? '\u{1F319}' : '\u2600';
 })();
 
+// ─── Hidden Orgs (presentation mode) ────────────────────────────
+function getHiddenOrgs() {
+  try { return JSON.parse(localStorage.getItem('hiddenOrgs') || '[]'); } catch { return []; }
+}
+function setHiddenOrgs(arr) {
+  localStorage.setItem('hiddenOrgs', JSON.stringify(arr));
+}
+function toggleHideOrg(orgName) {
+  const hidden = getHiddenOrgs();
+  const idx = hidden.indexOf(orgName);
+  if (idx >= 0) hidden.splice(idx, 1); else hidden.push(orgName);
+  setHiddenOrgs(hidden);
+  renderOrg();
+}
+function isOrgHidden(orgName) {
+  return getHiddenOrgs().includes(orgName);
+}
+function toggleHideAll() {
+  const allOrgs = [...new Set(agents.flatMap(a => (a.org || []).map(o => o.organization)).filter(Boolean))];
+  const hidden = getHiddenOrgs();
+  const allHidden = allOrgs.every(o => hidden.includes(o));
+  if (allHidden) {
+    // Unhide all
+    setHiddenOrgs([]);
+  } else {
+    // Hide all
+    setHiddenOrgs(allOrgs);
+  }
+  renderOrg();
+  updateHideAllBtn();
+}
+function updateHideAllBtn() {
+  const btn = document.getElementById('hideAllBtn');
+  if (!btn) return;
+  const allOrgs = [...new Set(agents.flatMap(a => (a.org || []).map(o => o.organization)).filter(Boolean))];
+  const hidden = getHiddenOrgs();
+  const allHidden = allOrgs.length > 0 && allOrgs.every(o => hidden.includes(o));
+  btn.className = 'hide-names-btn' + (allHidden ? ' active' : '');
+  btn.innerHTML = allHidden ? '&#128683; Show All' : '&#128065; Hide All';
+}
+
 // ─── Data ──────────────────────────────────────────────────────
 async function fetchData() {
   const res = await fetch('/api/dashboard');
@@ -822,6 +876,7 @@ async function fetchData() {
   // Build datalists
   buildDataLists();
   renderOrg();
+  updateHideAllBtn();
 }
 
 function buildDataLists() {
@@ -903,13 +958,17 @@ function renderOrg() {
   }
 
   // Render tree levels with org title
-  let html = `<div class="org-title-banner">${escapeHtml(selected)}</div>`;
+  const selHidden = isOrgHidden(selected);
+  const selBtnClass = selHidden ? ' active' : '';
+  const selBtnIcon = selHidden ? '&#x1f6ab;' : '&#x1f441;';
+  const selBtnLabel = selHidden ? 'Hidden' : 'Hide Names';
+  let html = `<div class="org-title-banner" style="display:flex;align-items:center">${escapeHtml(selected)}<button class="hide-names-btn${selBtnClass}" onclick="toggleHideOrg('${escapeHtml(selected).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${selBtnIcon} ${selBtnLabel}</button></div>`;
   html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:0 20px 20px">';
   for (let i = 0; i < levels.length; i++) {
     if (i > 0) html += '<div class="level-connector"></div>';
     html += '<div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">';
     for (const node of levels[i]) {
-      html += renderNode(node, false, i === 0);
+      html += renderNode(node, false, i === 0, selHidden);
     }
     html += '</div>';
   }
@@ -940,10 +999,14 @@ function renderFlatGrid(canvas) {
 
   let html = '';
   for (const orgName of Object.keys(orgGroups)) {
-    html += `<div class="org-title-banner">${escapeHtml(orgName)}</div>`;
+    const oHidden = isOrgHidden(orgName);
+    const oBtnClass = oHidden ? ' active' : '';
+    const oBtnIcon = oHidden ? '&#x1f6ab;' : '&#x1f441;';
+    const oBtnLabel = oHidden ? 'Hidden' : 'Hide Names';
+    html += `<div class="org-title-banner" style="display:flex;align-items:center">${escapeHtml(orgName)}<button class="hide-names-btn${oBtnClass}" onclick="toggleHideOrg('${escapeHtml(orgName).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${oBtnIcon} ${oBtnLabel}</button></div>`;
     html += '<div class="flat-grid">';
     for (const a of orgGroups[orgName]) {
-      html += renderNode(a);
+      html += renderNode(a, false, false, oHidden);
     }
     html += '</div>';
   }
@@ -960,7 +1023,7 @@ function renderFlatGrid(canvas) {
   canvas.innerHTML = html;
 }
 
-function renderNode(a, dimmed, isLead) {
+function renderNode(a, dimmed, isLead, blurNames) {
   const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
   const orgData = a.orgData || (a.org && a.org[0]);
   const title = orgData?.title || '';
@@ -969,13 +1032,14 @@ function renderNode(a, dimmed, isLead) {
   const isRecent = a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000;
   const opacity = dimmed ? 'opacity:.5;' : '';
   const leadClass = isLead ? ' is-lead' : '';
+  const blurClass = blurNames ? ' name-blurred' : '';
 
   return `<div class="agent-node${leadClass}" style="${opacity};width:300px">
     <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}">${initials}</div>
     <div class="node-info">
       ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
-      <div class="node-name">${escapeHtml(a.name)}</div>
-      <div class="node-alias">${a.aliases?.[0] || a.id}</div>
+      <div class="node-name${blurClass}">${escapeHtml(a.name)}</div>
+      <div class="node-alias${blurClass}">${a.aliases?.[0] || a.id}</div>
       ${func ? `<div style="margin-top:4px"><span class="node-func-tag">${escapeHtml(func)}</span></div>` : ''}
       <div class="node-stats">
         <span>${a.messageCount} msgs</span>

@@ -111,8 +111,22 @@ export class IMessageDriver implements ChannelDriver {
         if (!msg.text.trim()) continue;
 
         // Skip bot's own messages — check against recently sent texts
-        if (this.recentlySent.has(msg.text.trim())) {
-          this.recentlySent.delete(msg.text.trim());
+        // Use fuzzy match: attributedBody extraction can prepend/append garbage bytes
+        const msgTrimmed = msg.text.trim();
+        let isEcho = false;
+        for (const [sentText, ts] of this.recentlySent) {
+          // Match if either contains the other, or first 30 chars match
+          if (sentText === msgTrimmed ||
+              sentText.includes(msgTrimmed) ||
+              msgTrimmed.includes(sentText) ||
+              (msgTrimmed.length > 30 && sentText.startsWith(msgTrimmed.slice(0, 30))) ||
+              (msgTrimmed.length > 30 && sentText.includes(msgTrimmed.slice(1, 31)))) {
+            this.recentlySent.delete(sentText);
+            isEcho = true;
+            break;
+          }
+        }
+        if (isEcho) {
           log.debug(`iMessage DB poll: skipping echo "${msg.text.slice(0, 40)}..."`);
           continue;
         }

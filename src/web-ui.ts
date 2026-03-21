@@ -17,6 +17,23 @@ interface WebUIOptions {
   onWebhookMessage?: (agentId: string, text: string, channel: string, chatId: string) => Promise<void>;
 }
 
+// ─── Job Store (event buffer for reconnectable streaming) ────────────
+interface StreamJob {
+  events: Array<{ idx: number; data: string }>;
+  done: boolean;
+  createdAt: number;
+  listeners: Set<(idx: number) => void>; // notify waiting SSE connections
+}
+const jobStore = new Map<string, StreamJob>();
+
+// Cleanup stale jobs every 60s (keep for 10 min after done)
+setInterval(() => {
+  const cutoff = Date.now() - 600_000;
+  for (const [id, job] of jobStore) {
+    if (job.done && job.createdAt < cutoff) jobStore.delete(id);
+  }
+}, 60_000);
+
 export function startWebUI(opts: WebUIOptions): void {
   const app = express();
   app.use(express.json());
@@ -215,10 +232,14 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[agentId];
     if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
 
-    const { text } = req.body as { text?: string };
+    const { text, accountOverride } = req.body as { text?: string; accountOverride?: string };
     if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
 
-    log.info(`[WebUI Chat] ${agentId} <- web: ${text.slice(0, 80)}`);
+    const effectiveAgent = accountOverride
+      ? { ...agent, claudeAccount: accountOverride }
+      : agent;
+
+    log.info(`[WebUI Chat] ${agentId} <- web: ${text.slice(0, 80)}${accountOverride ? ` (account: ${accountOverride})` : ''}`);
 
     const syntheticMsg: InboundMessage = {
       id: `web-${Date.now()}`,
@@ -236,8 +257,8 @@ export function startWebUI(opts: WebUIOptions): void {
 
     const route: ResolvedRoute = {
       agentId,
-      agentConfig: agent,
-      route: agent.routes[0],
+      agentConfig: effectiveAgent,
+      route: effectiveAgent.routes[0],
     };
 
     try {
@@ -265,27 +286,39 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
-  // ─── API: Chat with agent (SSE streaming) ──────────────────────
+  // ─── API: Chat with agent (reconnectable streaming) ──────────────
+  // POST starts a job, returns jobId. GET streams events with reconnect support.
+
   app.post("/api/chat/:agentId/stream", async (req, res) => {
     const { agentId } = req.params;
     const agent = opts.config.agents[agentId];
     if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
 
-    const { text } = req.body as { text?: string };
+    const { text, accountOverride } = req.body as { text?: string; accountOverride?: string };
     if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
 
-    log.info(`[WebUI Stream] ${agentId} <- web: ${text.slice(0, 80)}`);
+    // Apply account override from web UI dropdown
+    const effectiveAgent = accountOverride
+      ? { ...agent, claudeAccount: accountOverride }
+      : agent;
 
-    // SSE headers — disable buffering/compression for real-time streaming
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      "Connection": "keep-alive",
-      "X-Accel-Buffering": "no",
-    });
-    res.flushHeaders();
-    if (res.socket) res.socket.setNoDelay(true);
+    log.info(`[WebUI Stream] ${agentId} <- web: ${text.slice(0, 80)}${accountOverride ? ` (account: ${accountOverride})` : ''}`);
 
+    // Create job
+    const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const job: StreamJob = { events: [], done: false, createdAt: Date.now(), listeners: new Set() };
+    jobStore.set(jobId, job);
+
+    const pushEvent = (data: string) => {
+      const idx = job.events.length;
+      job.events.push({ idx, data });
+      for (const cb of job.listeners) cb(idx);
+    };
+
+    // Return jobId immediately so frontend can connect to stream
+    res.json({ jobId });
+
+    // Run agent in background
     const syntheticMsg: InboundMessage = {
       id: `web-${Date.now()}`,
       channel: "web",
@@ -302,27 +335,83 @@ export function startWebUI(opts: WebUIOptions): void {
 
     const route: ResolvedRoute = {
       agentId,
-      agentConfig: agent,
-      route: agent.routes[0],
+      agentConfig: effectiveAgent,
+      route: effectiveAgent.routes[0],
     };
 
-    // Keepalive ping every 15s prevents browser/proxy timeout
-    const keepalive = setInterval(() => {
-      try { res.write(`: keepalive\n\n`); } catch { /* connection closed */ }
-    }, 15_000);
-
-    try {
-      for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    (async () => {
+      try {
+        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
+          pushEvent(JSON.stringify(event));
+        }
+      } catch (err) {
+        pushEvent(JSON.stringify({ type: "error", data: String(err) }));
+      } finally {
+        pushEvent("[DONE]");
+        job.done = true;
       }
-    } catch (err) {
-      res.write(`data: ${JSON.stringify({ type: "error", data: String(err) })}\n\n`);
-    } finally {
-      clearInterval(keepalive);
+    })();
+  });
+
+  // GET: Stream events for a job, supports reconnect via ?after=N
+  app.get("/api/chat/jobs/:jobId/stream", (req, res) => {
+    const job = jobStore.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: "Job not found" });
+
+    const after = parseInt(req.query.after as string) || 0;
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.flushHeaders();
+    if (res.socket) res.socket.setNoDelay(true);
+
+    let closed = false;
+    req.on("close", () => { closed = true; });
+
+    // Send any buffered events the client missed
+    let cursor = after;
+    for (let i = after; i < job.events.length; i++) {
+      if (closed) return;
+      res.write(`id: ${job.events[i].idx}\ndata: ${job.events[i].data}\n\n`);
+      cursor = i + 1;
     }
 
-    res.write(`data: [DONE]\n\n`);
-    res.end();
+    // If job already done and we've sent everything, close
+    if (job.done && cursor >= job.events.length) {
+      res.end();
+      return;
+    }
+
+    // Otherwise listen for new events
+    const keepalive = setInterval(() => {
+      if (closed) { clearInterval(keepalive); return; }
+      try { res.write(`: keepalive\n\n`); } catch { closed = true; }
+    }, 15_000);
+
+    const onEvent = (idx: number) => {
+      if (closed) { cleanup(); return; }
+      const evt = job.events[idx];
+      if (!evt) return;
+      try {
+        res.write(`id: ${evt.idx}\ndata: ${evt.data}\n\n`);
+        if (evt.data === "[DONE]") {
+          cleanup();
+          res.end();
+        }
+      } catch { closed = true; cleanup(); }
+    };
+
+    const cleanup = () => {
+      clearInterval(keepalive);
+      job.listeners.delete(onEvent);
+    };
+
+    job.listeners.add(onEvent);
+    req.on("close", cleanup);
   });
 
   // ─── API: Upload file ────────────────────────────────────────────
