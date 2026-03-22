@@ -1887,7 +1887,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron: cron.length > 0 ? cron : undefined, goals: goals.length > 0 ? goals : undefined, instructions: instructions || undefined, claudeAccount }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount }),
     });
     const data = await res.json();
 
