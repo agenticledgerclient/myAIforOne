@@ -843,8 +843,8 @@ export function startWebUI(opts: WebUIOptions): void {
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
       if (claudeAccount !== undefined) existing.claudeAccount = claudeAccount || undefined;
       if (org !== undefined) existing.org = org;
-      if (cron !== undefined) existing.cron = cron.length > 0 ? cron : undefined;
-      if (goals !== undefined) existing.goals = goals.length > 0 ? goals : undefined;
+      if (cron !== undefined) existing.cron = cron;
+      if (goals !== undefined) existing.goals = goals;
 
       // Build routes if provided
       if (routes !== undefined) {
