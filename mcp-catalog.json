@@ -2,6 +2,13 @@
   "_description": "MCP server catalog — HTTP servers hosted by AgenticLedger. Customers bring their own API keys.",
   "_usage": "The agentcreator and setup wizard reference this catalog. When an MCP is attached to an agent, its entry is copied into config.json mcps block, and the customer's API key is saved to the agent's mcp-keys/ folder.",
   "mcps": {
+    "finney": {
+      "name": "Finney",
+      "description": "AI app platform — build, deploy, and manage AI applications, tools, marketplace listings, organizations, and API keys. 69 tools.",
+      "category": "devtools",
+      "url": "https://finneymcp.agenticledger.ai/mcp",
+      "requiredKeys": [{ "env": "FINNEY_API_KEY", "label": "Finney API Key", "hint": "API key from Finney dashboard" }]
+    },
     "lighthouse": {
       "name": "Lighthouse (Canton Network Explorer)",
       "description": "Canton Network blockchain explorer — validators, transactions, contracts, token prices, governance, CNS domains. No API key required.",

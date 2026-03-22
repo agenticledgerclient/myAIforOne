@@ -60,6 +60,11 @@
   },
 
   "mcps": {
+    "finney": {
+      "type": "http",
+      "url": "https://finneymcp.agenticledger.ai/mcp",
+      "headers": { "Authorization": "Bearer ${FINNEY_API_KEY}" }
+    },
     "lighthouse": {
       "type": "http",
       "url": "https://lighthousemcp.agenticledger.ai/mcp"
