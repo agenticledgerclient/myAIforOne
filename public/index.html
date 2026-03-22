@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyAgent</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -550,6 +553,249 @@ html,body{
 
 /* ─── Hide Names (presentation mode) ────────────────────────── */
 .name-blurred{filter:blur(8px);-webkit-filter:blur(8px);transition:filter .2s}
+
+/* ─── Canvas / Preview Panel ─────────────────────────────────── */
+.chat-body-wrap{
+  display:flex;flex:1;overflow:hidden;min-height:0;
+}
+.chat-body-wrap .chat-messages{flex:1;min-width:0;transition:flex .3s ease}
+.chat-body-wrap.canvas-open .chat-messages{flex:0 0 55%}
+
+.canvas-panel{
+  width:0;overflow:hidden;
+  background:var(--bg-surface);
+  border-left:1px solid var(--border-dim);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  display:flex;flex-direction:column;
+  transition:width .3s ease,opacity .3s ease;
+  opacity:0;
+}
+.chat-body-wrap.canvas-open .canvas-panel{
+  width:45%;opacity:1;
+}
+.canvas-header{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border-dim);
+  flex-shrink:0;
+}
+.canvas-file-icon{
+  font-size:16px;flex-shrink:0;
+}
+.canvas-filename{
+  flex:1;font-family:var(--font-mono);font-size:12px;font-weight:500;
+  color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.canvas-header-btn{
+  width:28px;height:28px;border-radius:6px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  transition:all .2s;flex-shrink:0;
+}
+.canvas-header-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.canvas-content{
+  flex:1;overflow:auto;padding:0;min-height:0;
+}
+.canvas-content iframe{
+  width:100%;height:100%;border:none;background:#fff;
+}
+.canvas-content img{
+  max-width:100%;height:auto;display:block;margin:0 auto;padding:12px;
+}
+.canvas-content pre{
+  margin:0;padding:12px 14px;font-family:var(--font-mono);font-size:12px;
+  line-height:1.6;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;
+}
+.canvas-content .canvas-md{
+  padding:16px 18px;font-size:13px;line-height:1.7;color:var(--text-primary);
+}
+.canvas-content .canvas-md h1,.canvas-content .canvas-md h2,.canvas-content .canvas-md h3{
+  font-family:var(--font-display);margin:1em 0 .5em;
+}
+.canvas-content .canvas-md h1{font-size:22px}
+.canvas-content .canvas-md h2{font-size:18px}
+.canvas-content .canvas-md h3{font-size:15px}
+.canvas-content .canvas-md p{margin:0 0 .8em}
+.canvas-content .canvas-md code{
+  font-family:var(--font-mono);font-size:12px;background:var(--bg-input);
+  padding:1px 5px;border-radius:4px;
+}
+.canvas-content .canvas-md pre{
+  background:var(--bg-input);border:1px solid var(--border-dim);
+  border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto;
+}
+.canvas-content .canvas-md ul,.canvas-content .canvas-md ol{
+  padding-left:1.5em;margin:0 0 .8em;
+}
+.canvas-csv-table{
+  width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font-mono);
+}
+.canvas-csv-table th{
+  position:sticky;top:0;background:var(--bg-card);
+  padding:8px 10px;text-align:left;font-weight:600;color:var(--accent);
+  border-bottom:2px solid var(--border-glow);cursor:pointer;user-select:none;
+  white-space:nowrap;
+}
+.canvas-csv-table th:hover{color:var(--text-primary)}
+.canvas-csv-table td{
+  padding:6px 10px;border-bottom:1px solid var(--border-dim);
+  color:var(--text-secondary);white-space:nowrap;
+}
+.canvas-csv-table tr:hover td{background:var(--accent-bg)}
+
+.canvas-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;margin:2px 0;border-radius:6px;
+  border:1px solid rgba(139,92,246,0.2);
+  background:var(--purple-bg);color:var(--purple);
+  font-family:var(--font-sans);font-size:11px;font-weight:500;
+  cursor:pointer;transition:all .2s;vertical-align:middle;
+}
+.canvas-btn:hover{background:rgba(139,92,246,0.25);border-color:rgba(139,92,246,0.4)}
+.canvas-toggle-btn{
+  font-family:var(--font-mono);font-size:10px;font-weight:500;
+  padding:6px 12px;border-radius:8px;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);cursor:pointer;transition:all .2s;
+}
+.canvas-toggle-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.canvas-toggle-btn.active{border-color:rgba(139,92,246,0.3);color:var(--purple);background:var(--purple-bg)}
+
+/* ─── DOCX Canvas Styles ─────────────────────────────────────── */
+.canvas-docx{
+  padding:20px 24px;font-size:13px;line-height:1.7;color:var(--text-primary);
+}
+.canvas-docx h1,.canvas-docx h2,.canvas-docx h3{font-family:var(--font-display);margin:1em 0 .5em}
+.canvas-docx h1{font-size:22px}
+.canvas-docx h2{font-size:18px}
+.canvas-docx h3{font-size:15px}
+.canvas-docx p{margin:0 0 .8em}
+.canvas-docx table{width:100%;border-collapse:collapse;margin:8px 0}
+.canvas-docx table td,.canvas-docx table th{
+  padding:6px 10px;border:1px solid var(--border-dim);color:var(--text-secondary);font-size:12px;
+}
+.canvas-docx img{max-width:100%;height:auto}
+
+/* ─── PPTX Slide Viewer Styles ───────────────────────────────── */
+.pptx-viewer{padding:16px;display:flex;flex-direction:column;gap:12px;height:100%}
+.pptx-nav{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:8px 0;flex-shrink:0;
+}
+.pptx-nav-btn{
+  padding:6px 16px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-card);
+  color:var(--text-primary);font-family:var(--font-sans);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .2s;
+}
+.pptx-nav-btn:hover:not(:disabled){border-color:var(--border-glow);background:var(--accent-bg)}
+.pptx-nav-btn:disabled{opacity:0.3;cursor:default}
+.pptx-slide-counter{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+.pptx-slide{
+  flex:1;overflow:auto;
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);
+  padding:24px 28px;
+}
+.pptx-slide-title{
+  font-family:var(--font-display);font-size:18px;font-weight:700;
+  margin-bottom:12px;color:var(--accent);
+}
+.pptx-slide-text{font-size:13px;line-height:1.7;color:var(--text-primary)}
+.pptx-slide-text p{margin:0 0 .6em}
+.pptx-slide-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pptx-slide-images img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--border-dim)}
+
+/* ─── XLSX Tab Styles ────────────────────────────────────────── */
+.canvas-xlsx-tabs{
+  display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--border-dim);
+  flex-shrink:0;overflow-x:auto;
+}
+.canvas-xlsx-tabs button{
+  padding:5px 14px;border-radius:6px;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);font-family:var(--font-mono);font-size:11px;font-weight:500;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.canvas-xlsx-tabs button:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.canvas-xlsx-tabs button.active{
+  border-color:var(--accent);color:var(--accent);background:var(--accent-bg);
+}
+
+/* ─── JSON Tree View Styles ──────────────────────────────────── */
+.json-tree{
+  padding:14px 16px;font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  color:var(--text-primary);
+}
+.json-tree ul{list-style:none;padding-left:20px;margin:0}
+.json-tree>ul{padding-left:0}
+.json-toggle{
+  cursor:pointer;user-select:none;display:inline-block;width:14px;text-align:center;
+  color:var(--text-muted);font-size:10px;margin-right:2px;transition:transform .15s;
+}
+.json-toggle:hover{color:var(--text-primary)}
+.json-key{color:var(--purple)}
+.json-string{color:var(--green)}
+.json-number{color:var(--accent-soft)}
+.json-bool{color:var(--amber)}
+.json-null{color:var(--text-muted);font-style:italic}
+.json-bracket{color:var(--text-muted)}
+.json-summary{color:var(--text-muted);font-size:11px;font-style:italic}
+.json-children{overflow:hidden}
+.json-children.collapsed{display:none}
+
+/* ─── SVG Canvas Styles ──────────────────────────────────────── */
+.canvas-svg{
+  padding:16px;display:flex;align-items:center;justify-content:center;
+  min-height:200px;background:rgba(30,30,30,0.5);border-radius:8px;margin:12px;
+}
+.canvas-svg svg{max-width:100%;height:auto}
+
+/* ─── Stop Button ────────────────────────────────────────────── */
+.stop-btn{
+  width:44px;height:44px;border-radius:10px;border:none;
+  background:rgba(239,68,68,0.85);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:all .2s;flex-shrink:0;
+}
+.stop-btn:hover{filter:brightness(1.1);transform:scale(1.05);background:#ef4444}
+
+/* ─── Queue Button variant ───────────────────────────────────── */
+.send-btn.queue-mode{
+  background:var(--amber);
+  font-size:11px;font-weight:700;font-family:var(--font-mono);
+  width:auto;padding:0 14px;letter-spacing:.02em;
+}
+.send-btn.queue-mode:hover{filter:brightness(1.1);transform:scale(1.05)}
+
+/* ─── Message Queue ──────────────────────────────────────────── */
+.msg-queue{
+  display:flex;flex-direction:column;gap:6px;
+  padding:8px 0 0;
+}
+.msg-queue-item{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 12px;border-radius:8px;
+  background:var(--bg-input);border:1px solid var(--border-dim);
+  animation:msgIn .2s ease-out;
+}
+.msg-queue-text{
+  flex:1;font-size:12px;color:var(--text-secondary);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:var(--font-sans);
+}
+.msg-queue-pos{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;
+  color:var(--text-muted);flex-shrink:0;min-width:16px;text-align:center;
+}
+.msg-queue-actions{display:flex;gap:4px;flex-shrink:0}
+.msg-queue-btn{
+  width:24px;height:24px;border-radius:6px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  transition:all .2s;
+}
+.msg-queue-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.msg-queue-btn.danger:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
 </style>
 </head>
 <body>
@@ -685,9 +931,9 @@ let agents = [];
 let selectedAgent = null;
 let chatHistory = {}; // agentId -> [{role,text,time}]
 // Per-agent streaming state
-const streamState = {}; // agentId -> {isThinking, text, status, tools}
+const streamState = {}; // agentId -> {isThinking, text, status, tools, jobId, queue}
 function getStream(id) {
-  if (!streamState[id]) streamState[id] = { isThinking: false, text: '', status: '', tools: [] };
+  if (!streamState[id]) streamState[id] = { isThinking: false, text: '', status: '', tools: [], jobId: null, queue: [] };
   return streamState[id];
 }
 // Legacy globals — read from selected agent's state (used by renderChat)
@@ -697,6 +943,10 @@ let streamingStatus = '';
 let streamingTools = [];
 let availableAccounts = [];
 let accountOverrides = {}; // agentId -> account name (in-memory only)
+
+// Canvas state (ephemeral, never persisted)
+let canvasOpen = false;
+let canvasFile = null; // {path, name, ext, content, type}
 
 // ─── Theme ─────────────────────────────────────────────────────
 function toggleTheme() {
@@ -829,6 +1079,9 @@ async function sendMessage(agentId, text) {
       });
       const { jobId } = await startRes.json();
       if (!jobId) throw new Error('No jobId returned');
+      ss.jobId = jobId;
+      // Re-render input area to show Stop button and Queue mode
+      if (isViewing()) updateInputButtons(ss);
 
       // Step 2: Stream events with auto-reconnect
       let lastEventId = 0;
@@ -912,6 +1165,9 @@ async function sendMessage(agentId, text) {
                     }
                     scrollChat();
                   }
+                } else if (event.type === 'stopped') {
+                  // User stopped the stream — finalize partial response
+                  isDone = true;
                 } else if (event.type === 'error') {
                   ss.isThinking = false;
                   ss.text = '';
@@ -948,6 +1204,7 @@ async function sendMessage(agentId, text) {
 
       // Finalize
       ss.isThinking = false;
+      ss.jobId = null;
       if (ss.text) {
         chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
       }
@@ -956,12 +1213,18 @@ async function sendMessage(agentId, text) {
       ss.tools = [];
     } catch (err) {
       ss.isThinking = false;
+      ss.jobId = null;
       ss.text = '';
       ss.status = '';
       ss.tools = [];
       chatHistory[agentId].push({ role: 'agent', text: `Error: ${err.message}`, time: new Date().toISOString() });
     }
     if (isViewing()) { renderChat(); scrollChat(); }
+    // Auto-send next queued message if any
+    if (ss.queue.length > 0) {
+      const next = ss.queue.shift();
+      sendMessage(agentId, next);
+    }
   } else {
     // Regular non-streaming mode
     isThinking = true;
@@ -1056,10 +1319,12 @@ function renderChat() {
           <option value="">${agent.claudeAccount || 'default'}</option>
           ${availableAccounts.filter(a => a !== agent.claudeAccount).map(a => `<option value="${a}" ${accountOverrides[agent.id]===a?'selected':''}>${a}</option>`).join('')}
         </select>` : ''}
-        <button class="header-btn" onclick="window.location='/org'" title="Go to Dashboard">◇ Dashboard</button>
-        ${agent.persistent ? `<button class="header-btn danger" onclick="resetSession('${agent.id}')">↺ Reset</button>` : ''}
+        <button class="header-btn" onclick="window.location='/org'" title="Go to Dashboard">&#x25C7; Dashboard</button>
+        <button class="canvas-toggle-btn${canvasOpen ? ' active' : ''}" onclick="toggleCanvas()" title="Toggle preview panel">&#x25A8; Canvas</button>
+        ${agent.persistent ? `<button class="header-btn danger" onclick="resetSession('${agent.id}')">&#x21BA; Reset</button>` : ''}
       </div>
     </div>
+    <div class="chat-body-wrap${canvasOpen ? ' canvas-open' : ''}" id="chatBodyWrap">
     <div class="chat-messages" id="chatMessages">
       ${messages.length === 0 ? `<div class="msg-system">Start a conversation with ${agent.aliases[0] || agent.name}</div>` : ''}
       ${messages.map(m => {
@@ -1073,6 +1338,30 @@ function renderChat() {
       <div id="streamingToolsWrap">${streamingTools.length ? renderActivityFeed(streamingTools, true) : ''}</div>
       ${streamingText ? `<div class="msg msg-agent" id="streamingMsg"><div id="streamingContent">${formatMarkdown(streamingText)}</div><div class="msg-time">streaming...</div></div>` : ''}
       <div id="thinkingWrap">${isThinking && !streamingText && !streamingTools.length ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}</div>
+    </div>
+    <div class="canvas-panel" id="canvasPanel">
+      ${canvasFile ? `
+        <div class="canvas-header">
+          <span class="canvas-file-icon">${getFileIcon(canvasFile.ext)}</span>
+          <span class="canvas-filename" title="${escapeHtml(canvasFile.path)}">${escapeHtml(canvasFile.name)}</span>
+          <button class="canvas-header-btn" onclick="downloadFile('${encodeURIComponent(canvasFile.path)}')" title="Download">&#x2B07;</button>
+          <button class="canvas-header-btn" onclick="closeCanvas()" title="Close">&#x2715;</button>
+        </div>
+        <div class="canvas-content" id="canvasContent"></div>
+      ` : `
+        <div class="canvas-header">
+          <span class="canvas-file-icon">&#x25A8;</span>
+          <span class="canvas-filename" style="color:var(--text-muted)">No file open</span>
+          <button class="canvas-header-btn" onclick="closeCanvas()" title="Close">&#x2715;</button>
+        </div>
+        <div class="canvas-content" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px">
+          <div style="text-align:center">
+            <div style="font-size:32px;opacity:.3;margin-bottom:8px">&#x25A8;</div>
+            <div>Click "Preview" on a file path to open it here</div>
+          </div>
+        </div>
+      `}
+    </div>
     </div>
     <div class="chat-input-wrap">
       <div class="file-drop-zone hidden" id="fileDropZone"
@@ -1090,15 +1379,18 @@ function renderChat() {
         <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
         <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-        <button class="send-btn" id="sendBtn" onclick="doSend()" ${isThinking?'disabled':''}>→</button>
+        ${ss.jobId ? `<button class="stop-btn" onclick="stopStreaming()" title="Stop (Esc)">&#x25A0;</button>` : ''}
+        <button class="send-btn${ss.jobId ? ' queue-mode' : ''}" id="sendBtn" onclick="doSend()">${ss.jobId ? 'Queue' : '→'}</button>
       </div>
+      <div id="queueContainer"></div>
     </div>
   `;
 
-  // Focus input
+  // Focus input and render queue
   setTimeout(() => {
     const inp = document.getElementById('chatInput');
     if (inp) inp.focus();
+    renderQueueUI();
   }, 50);
 }
 
@@ -1120,7 +1412,7 @@ async function selectAgent(id) {
 
 async function doSend() {
   const input = document.getElementById('chatInput');
-  if (!input || !selectedAgent || isThinking) return;
+  if (!input || !selectedAgent) return;
   let text = input.value.trim();
   if (!text && pendingFiles.length === 0) return;
 
@@ -1142,13 +1434,111 @@ async function doSend() {
 
   input.value = '';
   autoResize(input);
+
+  // If streaming is active, queue the message instead of sending
+  const ss = getStream(selectedAgent);
+  if (ss.isThinking || ss.jobId || ss.text) {
+    ss.queue.push(text);
+    renderQueueUI();
+    return;
+  }
+
   sendMessage(selectedAgent, text);
+}
+
+function updateInputButtons(ss) {
+  const box = document.querySelector('.chat-input-box');
+  if (!box) return;
+  const sendBtn = document.getElementById('sendBtn');
+  // Add or remove stop button
+  const existingStop = box.querySelector('.stop-btn');
+  if (ss.jobId && !existingStop) {
+    const stopBtn = document.createElement('button');
+    stopBtn.className = 'stop-btn';
+    stopBtn.onclick = stopStreaming;
+    stopBtn.title = 'Stop (Esc)';
+    stopBtn.innerHTML = '\u25A0';
+    if (sendBtn) box.insertBefore(stopBtn, sendBtn);
+  } else if (!ss.jobId && existingStop) {
+    existingStop.remove();
+  }
+  // Update send button
+  if (sendBtn) {
+    if (ss.jobId) {
+      sendBtn.classList.add('queue-mode');
+      sendBtn.textContent = 'Queue';
+      sendBtn.disabled = false;
+    } else {
+      sendBtn.classList.remove('queue-mode');
+      sendBtn.innerHTML = '\u2192';
+      sendBtn.disabled = false;
+    }
+  }
+}
+
+function renderQueueUI() {
+  const container = document.getElementById('queueContainer');
+  if (!container || !selectedAgent) return;
+  const ss = getStream(selectedAgent);
+  if (!ss.queue.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `<div class="msg-queue">${ss.queue.map((msg, i) => {
+    const truncated = msg.length > 60 ? msg.slice(0, 60) + '...' : msg;
+    return `<div class="msg-queue-item">
+      <span class="msg-queue-pos">${i + 1}</span>
+      <span class="msg-queue-text" title="${msg.replace(/"/g, '&quot;')}">${truncated.replace(/</g, '&lt;')}</span>
+      <div class="msg-queue-actions">
+        <button class="msg-queue-btn" onclick="editQueueItem(${i})" title="Edit">&#x270E;</button>
+        <button class="msg-queue-btn danger" onclick="deleteQueueItem(${i})" title="Delete">&#x2715;</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function editQueueItem(idx) {
+  if (!selectedAgent) return;
+  const ss = getStream(selectedAgent);
+  if (idx < 0 || idx >= ss.queue.length) return;
+  const text = ss.queue.splice(idx, 1)[0];
+  const input = document.getElementById('chatInput');
+  if (input) {
+    input.value = text;
+    input.focus();
+    autoResize(input);
+  }
+  renderQueueUI();
+}
+
+function deleteQueueItem(idx) {
+  if (!selectedAgent) return;
+  const ss = getStream(selectedAgent);
+  if (idx < 0 || idx >= ss.queue.length) return;
+  ss.queue.splice(idx, 1);
+  renderQueueUI();
+}
+
+async function stopStreaming() {
+  if (!selectedAgent) return;
+  const ss = getStream(selectedAgent);
+  if (!ss.jobId) return;
+  try {
+    await fetch(`/api/chat/jobs/${ss.jobId}/stop`, { method: 'POST' });
+  } catch (e) {
+    // If the request fails, the stream will finish on its own
+    console.warn('Stop request failed:', e);
+  }
 }
 
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     doSend();
+  }
+  // Escape key stops streaming
+  if (e.key === 'Escape') {
+    stopStreaming();
   }
 }
 
@@ -1349,13 +1739,13 @@ function formatMarkdown(text) {
   // Bold
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   // Detect file paths and add download buttons
-  // Matches paths like /Users/... or ~/... ending with common file extensions
-  const fileExts = 'csv|json|txt|md|pdf|xlsx|xls|docx|png|jpg|jpeg|gif|svg|html|zip|xml|yaml|yml|tsv';
-  const filePathRegex = new RegExp(`((?:\\/[\\w.@ -]+)+\\.(?:${fileExts}))`, 'gi');
+  // Matches /Users/..., ~/..., or relative paths like FileStorage/... ending with common file extensions
+  const fileExts = 'csv|json|txt|md|pdf|xlsx|xls|docx|doc|pptx|ppt|png|jpg|jpeg|gif|svg|html|zip|xml|yaml|yml|tsv';
+  const filePathRegex = new RegExp(`((?:~\\/|FileStorage\\/|\\/)[\\w.@/ -]*\\.(?:${fileExts}))`, 'gi');
   html = html.replace(filePathRegex, (match) => {
     const decoded = match.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
     const fileName = decoded.split('/').pop();
-    return `<code>${match}</code> <button class="download-btn" onclick="downloadFile('${encodeURIComponent(decoded)}')" title="Download ${fileName}">&#x2B07; ${fileName}</button>`;
+    return `<code>${match}</code> <button class="download-btn" onclick="downloadFile('${encodeURIComponent(decoded)}')" title="Download ${fileName}">&#x2B07; ${fileName}</button> <button class="canvas-btn" onclick="openInCanvas('${encodeURIComponent(decoded)}')" title="Preview in canvas">&#x25A8; Preview</button>`;
   });
   // Paragraph breaks (double newline) get spacing, single newlines get line breaks
   html = html.replace(/\n{2,}/g, '</p><p>');
@@ -1610,6 +2000,500 @@ function stopVoice() {
   // Focus the input so user can edit or send
   const input = document.getElementById('chatInput');
   if (input) input.focus();
+}
+
+// ─── Canvas / Preview Panel ────────────────────────────────────
+function getFileIcon(ext) {
+  const icons = {
+    html:'&#x1F310;', htm:'&#x1F310;',
+    csv:'&#x1F4CA;', tsv:'&#x1F4CA;', xlsx:'&#x1F4CA;', xls:'&#x1F4CA;',
+    md:'&#x1F4DD;', markdown:'&#x1F4DD;',
+    png:'&#x1F5BC;', jpg:'&#x1F5BC;', jpeg:'&#x1F5BC;', gif:'&#x1F5BC;', svg:'&#x1F5BC;',
+    pdf:'&#x1F4C4;',
+    docx:'&#x1F4C4;', doc:'&#x1F4C4;',
+    pptx:'&#x1F4CA;', ppt:'&#x1F4CA;',
+    json:'&#x007B;&#x007D;',
+    js:'JS', ts:'TS', py:'PY', rb:'RB', go:'GO', rs:'RS', java:'JV',
+    xml:'&#x2329;&#x232A;', yaml:'&#x2699;', yml:'&#x2699;',
+    txt:'&#x1F4C3;',
+  };
+  return icons[ext] || '&#x1F4C1;';
+}
+
+function getFileType(ext) {
+  if (['html','htm'].includes(ext)) return 'html';
+  if (['csv','tsv'].includes(ext)) return 'csv';
+  if (['xlsx','xls'].includes(ext)) return 'xlsx';
+  if (['md','markdown'].includes(ext)) return 'markdown';
+  if (['svg'].includes(ext)) return 'svg';
+  if (['png','jpg','jpeg','gif','webp'].includes(ext)) return 'image';
+  if (['pdf'].includes(ext)) return 'pdf';
+  if (['docx','doc'].includes(ext)) return 'docx';
+  if (['pptx','ppt'].includes(ext)) return 'pptx';
+  if (['js','ts','jsx','tsx','py','rb','go','rs','java','c','cpp','h','sh','bash','zsh','sql','r','swift','kt','scala','lua','pl','php','css','scss','less'].includes(ext)) return 'code';
+  if (['json'].includes(ext)) return 'json';
+  if (['xml','yaml','yml','toml','ini','cfg','conf'].includes(ext)) return 'code';
+  return 'text';
+}
+
+function toggleCanvas() {
+  canvasOpen = !canvasOpen;
+  const wrap = document.getElementById('chatBodyWrap');
+  const btn = document.querySelector('.canvas-toggle-btn');
+  if (wrap) wrap.classList.toggle('canvas-open', canvasOpen);
+  if (btn) btn.classList.toggle('active', canvasOpen);
+}
+
+function closeCanvas() {
+  canvasOpen = false;
+  canvasFile = null;
+  const wrap = document.getElementById('chatBodyWrap');
+  const btn = document.querySelector('.canvas-toggle-btn');
+  if (wrap) wrap.classList.remove('canvas-open');
+  if (btn) btn.classList.remove('active');
+}
+
+async function openInCanvas(encodedPath) {
+  const path = decodeURIComponent(encodedPath);
+  const name = path.split('/').pop() || 'file';
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  const type = getFileType(ext);
+
+  canvasFile = { path, name, ext, type, content: null };
+  canvasOpen = true;
+
+  // Update UI immediately to show loading state
+  const wrap = document.getElementById('chatBodyWrap');
+  const toggleBtn = document.querySelector('.canvas-toggle-btn');
+  if (wrap) wrap.classList.add('canvas-open');
+  if (toggleBtn) toggleBtn.classList.add('active');
+
+  // Re-render the canvas panel
+  const panel = document.getElementById('canvasPanel');
+  if (panel) {
+    panel.innerHTML = `
+      <div class="canvas-header">
+        <span class="canvas-file-icon">${getFileIcon(ext)}</span>
+        <span class="canvas-filename" title="${escapeHtml(path)}">${escapeHtml(name)}</span>
+        <button class="canvas-header-btn" onclick="downloadFile('${encodeURIComponent(path)}')" title="Download">&#x2B07;</button>
+        <button class="canvas-header-btn" onclick="closeCanvas()" title="Close">&#x2715;</button>
+      </div>
+      <div class="canvas-content" id="canvasContent" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted)">
+        Loading...
+      </div>
+    `;
+  }
+
+  // Fetch the file content
+  try {
+    if (type === 'image') {
+      // Images: just use the download endpoint as src
+      const imgUrl = `/api/agents/${selectedAgent}/download?path=${encodeURIComponent(path)}&inline=true`;
+      const content = document.getElementById('canvasContent');
+      if (content) {
+        content.style = '';
+        content.innerHTML = `<img src="${imgUrl}" alt="${escapeHtml(name)}" />`;
+      }
+      return;
+    }
+
+    if (type === 'pdf') {
+      const pdfUrl = `/api/agents/${selectedAgent}/download?path=${encodeURIComponent(path)}&inline=true`;
+      const content = document.getElementById('canvasContent');
+      if (content) {
+        content.style = '';
+        content.innerHTML = `<iframe src="${pdfUrl}" style="width:100%;height:100%;border:none"></iframe>`;
+      }
+      return;
+    }
+
+    if (type === 'docx') {
+      const res = await fetch(`/api/agents/${selectedAgent}/download?path=${encodeURIComponent(path)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const arrayBuffer = await res.arrayBuffer();
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      const content = document.getElementById('canvasContent');
+      if (content) {
+        content.style = '';
+        content.innerHTML = `<div class="canvas-docx">${result.value}</div>`;
+      }
+      return;
+    }
+
+    if (type === 'pptx') {
+      const res = await fetch(`/api/agents/${selectedAgent}/download?path=${encodeURIComponent(path)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const arrayBuffer = await res.arrayBuffer();
+      const zip = await JSZip.loadAsync(arrayBuffer);
+
+      // Extract slide XML files (sorted by slide number)
+      const slideFiles = Object.keys(zip.files)
+        .filter(f => /^ppt\/slides\/slide\d+\.xml$/i.test(f))
+        .sort((a, b) => {
+          const numA = parseInt(a.match(/slide(\d+)/)[1]);
+          const numB = parseInt(b.match(/slide(\d+)/)[1]);
+          return numA - numB;
+        });
+
+      // Extract images from ppt/media/
+      const mediaFiles = Object.keys(zip.files).filter(f => /^ppt\/media\//i.test(f) && !zip.files[f].dir);
+      const mediaMap = {};
+      for (const mf of mediaFiles) {
+        try {
+          const blob = await zip.files[mf].async('blob');
+          const mfName = mf.split('/').pop();
+          mediaMap[mfName] = URL.createObjectURL(blob);
+        } catch(e) { /* skip unreadable media */ }
+      }
+
+      // Parse slides
+      const slides = [];
+      for (const sf of slideFiles) {
+        const xmlText = await zip.files[sf].async('text');
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+        // Extract all <a:t> text elements
+        const textNodes = xmlDoc.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 't');
+        const paragraphs = [];
+        let currentPara = [];
+
+        // Group text by shape (sp) elements for better structure
+        const shapes = xmlDoc.getElementsByTagNameNS('http://schemas.openxmlformats.org/presentationml/2006/main', 'sp');
+        const shapeTexts = [];
+        if (shapes.length > 0) {
+          for (const shape of shapes) {
+            const tNodes = shape.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 't');
+            const pNodes = shape.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 'p');
+            const lines = [];
+            for (const p of pNodes) {
+              const pTexts = p.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main', 't');
+              const lineText = Array.from(pTexts).map(t => t.textContent).join('');
+              if (lineText.trim()) lines.push(lineText);
+            }
+            if (lines.length > 0) shapeTexts.push(lines);
+          }
+        } else {
+          // Fallback: just grab all text nodes
+          const allT = Array.from(textNodes).map(t => t.textContent).join(' ');
+          if (allT.trim()) shapeTexts.push([allT]);
+        }
+
+        // Check for image references in the slide relationships
+        const slideNum = sf.match(/slide(\d+)/)[1];
+        const relPath = `ppt/slides/_rels/slide${slideNum}.xml.rels`;
+        const slideImages = [];
+        if (zip.files[relPath]) {
+          const relXml = await zip.files[relPath].async('text');
+          const relDoc = parser.parseFromString(relXml, 'text/xml');
+          const rels = relDoc.getElementsByTagName('Relationship');
+          for (const rel of rels) {
+            const target = rel.getAttribute('Target') || '';
+            if (/\.(png|jpg|jpeg|gif|bmp|svg|webp|tiff|emf|wmf)$/i.test(target)) {
+              const imgName = target.split('/').pop();
+              if (mediaMap[imgName]) slideImages.push(mediaMap[imgName]);
+            }
+          }
+        }
+
+        slides.push({ shapeTexts, images: slideImages });
+      }
+
+      if (slides.length === 0) {
+        const content = document.getElementById('canvasContent');
+        if (content) {
+          content.style = '';
+          content.innerHTML = `<div style="padding:20px;color:var(--text-muted)">No slides found in this presentation.</div>`;
+        }
+        return;
+      }
+
+      // Render with navigation
+      window._pptxSlides = slides;
+      window._pptxCurrentSlide = 0;
+      const content = document.getElementById('canvasContent');
+      if (content) {
+        content.style = '';
+        renderPptxSlide(content, 0, slides);
+      }
+      return;
+    }
+
+    if (type === 'xlsx') {
+      const res = await fetch(`/api/agents/${selectedAgent}/download?path=${encodeURIComponent(path)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const arrayBuffer = await res.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const content = document.getElementById('canvasContent');
+      if (!content) return;
+      content.style = '';
+
+      window._xlsxWorkbook = wb;
+      window._xlsxCurrentSheet = 0;
+      renderXlsxSheet(0);
+      return;
+    }
+
+    // Fetch as text for all other types
+    const res = await fetch(`/api/agents/${selectedAgent}/download?path=${encodeURIComponent(path)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    canvasFile.content = text;
+
+    const content = document.getElementById('canvasContent');
+    if (!content) return;
+    content.style = '';
+
+    if (type === 'svg') {
+      content.innerHTML = `<div class="canvas-svg">${text}</div>`;
+    } else if (type === 'json') {
+      try {
+        const parsed = JSON.parse(text);
+        content.innerHTML = `<div class="json-tree"><ul>${renderJsonTree(parsed, '', 0)}</ul></div>`;
+        // Attach toggle listeners
+        content.querySelectorAll('.json-toggle').forEach(tog => {
+          tog.addEventListener('click', function() {
+            const children = this.parentElement.querySelector('.json-children');
+            if (children) {
+              const collapsed = children.classList.toggle('collapsed');
+              this.textContent = collapsed ? '\u25B6' : '\u25BC';
+              // Show/hide summary
+              const summary = this.parentElement.querySelector('.json-summary');
+              if (summary) summary.style.display = collapsed ? 'inline' : 'none';
+            }
+          });
+        });
+      } catch(e) {
+        content.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+      }
+    } else if (type === 'html') {
+      const blob = new Blob([text], { type: 'text/html' });
+      const blobUrl = URL.createObjectURL(blob);
+      content.innerHTML = `<iframe src="${blobUrl}" sandbox="allow-scripts allow-same-origin" style="width:100%;height:100%;border:none;background:#fff"></iframe>`;
+    } else if (type === 'csv') {
+      content.innerHTML = renderCsvTable(text, ext === 'tsv' ? '\t' : ',');
+    } else if (type === 'markdown') {
+      content.innerHTML = `<div class="canvas-md">${formatCanvasMarkdown(text)}</div>`;
+    } else if (type === 'code') {
+      content.innerHTML = `<pre><code>${escapeHtml(text)}</code></pre>`;
+    } else {
+      content.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+    }
+  } catch (err) {
+    const content = document.getElementById('canvasContent');
+    if (content) {
+      content.innerHTML = `<div style="padding:20px;color:var(--text-muted)">Failed to load file: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+}
+
+function renderPptxSlide(container, index, slides) {
+  const slide = slides[index];
+  const total = slides.length;
+
+  // Build text content from shape groups
+  let textHtml = '';
+  slide.shapeTexts.forEach((lines, si) => {
+    if (si === 0 && lines.length > 0) {
+      // First shape is often the title
+      textHtml += `<div class="pptx-slide-title">${escapeHtml(lines[0])}</div>`;
+      textHtml += '<div class="pptx-slide-text">';
+      lines.slice(1).forEach(l => { textHtml += `<p>${escapeHtml(l)}</p>`; });
+      textHtml += '</div>';
+    } else {
+      textHtml += '<div class="pptx-slide-text">';
+      lines.forEach(l => { textHtml += `<p>${escapeHtml(l)}</p>`; });
+      textHtml += '</div>';
+    }
+  });
+
+  // Build image content
+  let imgHtml = '';
+  if (slide.images.length > 0) {
+    imgHtml = '<div class="pptx-slide-images">';
+    slide.images.forEach(src => {
+      imgHtml += `<img src="${src}" alt="Slide image" />`;
+    });
+    imgHtml += '</div>';
+  }
+
+  container.innerHTML = `
+    <div class="pptx-viewer">
+      <div class="pptx-nav">
+        <button class="pptx-nav-btn" onclick="navigatePptxSlide(-1)" ${index === 0 ? 'disabled' : ''}>&#x25C0; Prev</button>
+        <span class="pptx-slide-counter">Slide ${index + 1} of ${total}</span>
+        <button class="pptx-nav-btn" onclick="navigatePptxSlide(1)" ${index === total - 1 ? 'disabled' : ''}>Next &#x25B6;</button>
+      </div>
+      <div class="pptx-slide">
+        ${textHtml || '<div style="color:var(--text-muted);font-style:italic">No text content on this slide</div>'}
+        ${imgHtml}
+      </div>
+    </div>
+  `;
+}
+
+function navigatePptxSlide(direction) {
+  const slides = window._pptxSlides;
+  if (!slides) return;
+  let idx = window._pptxCurrentSlide + direction;
+  if (idx < 0) idx = 0;
+  if (idx >= slides.length) idx = slides.length - 1;
+  window._pptxCurrentSlide = idx;
+  const content = document.getElementById('canvasContent');
+  if (content) renderPptxSlide(content, idx, slides);
+}
+
+function renderCsvTable(text, delimiter) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length === 0) return '<pre>Empty file</pre>';
+
+  // Simple CSV parse (handles basic quoting)
+  function parseLine(line, delim) {
+    const cells = [];
+    let current = '';
+    let inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuote) {
+        if (ch === '"' && line[i+1] === '"') { current += '"'; i++; }
+        else if (ch === '"') { inQuote = false; }
+        else { current += ch; }
+      } else {
+        if (ch === '"') { inQuote = true; }
+        else if (ch === delim) { cells.push(current); current = ''; }
+        else { current += ch; }
+      }
+    }
+    cells.push(current);
+    return cells;
+  }
+
+  const headers = parseLine(lines[0], delimiter);
+  const rows = lines.slice(1).map(l => parseLine(l, delimiter));
+
+  // Sortable state stored on the table via data attributes
+  const tableId = 'csvTable-' + Math.random().toString(36).slice(2,8);
+  let html = `<table class="canvas-csv-table" id="${tableId}"><thead><tr>`;
+  headers.forEach((h, i) => {
+    html += `<th onclick="sortCsvTable('${tableId}',${i})" title="Click to sort">${escapeHtml(h.trim())} &#x25B4;&#x25BE;</th>`;
+  });
+  html += '</tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr>' + row.map(c => `<td>${escapeHtml(c.trim())}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function sortCsvTable(tableId, colIdx) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const tbody = table.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  const dir = table.dataset.sortCol === String(colIdx) && table.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+  table.dataset.sortCol = colIdx;
+  table.dataset.sortDir = dir;
+
+  rows.sort((a, b) => {
+    const aVal = a.cells[colIdx]?.textContent || '';
+    const bVal = b.cells[colIdx]?.textContent || '';
+    const aNum = parseFloat(aVal);
+    const bNum = parseFloat(bVal);
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return dir === 'asc' ? aNum - bNum : bNum - aNum;
+    }
+    return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function renderXlsxSheet(sheetIndex) {
+  const wb = window._xlsxWorkbook;
+  if (!wb) return;
+  const content = document.getElementById('canvasContent');
+  if (!content) return;
+  window._xlsxCurrentSheet = sheetIndex;
+  const sheet = wb.Sheets[wb.SheetNames[sheetIndex]];
+  const csvText = XLSX.utils.sheet_to_csv(sheet);
+  let html = '';
+  if (wb.SheetNames.length > 1) {
+    html += '<div class="canvas-xlsx-tabs">';
+    wb.SheetNames.forEach((sn, i) => {
+      html += `<button class="${i === sheetIndex ? 'active' : ''}" onclick="renderXlsxSheet(${i})">${escapeHtml(sn)}</button>`;
+    });
+    html += '</div>';
+  }
+  html += renderCsvTable(csvText, ',');
+  content.innerHTML = html;
+}
+
+function renderJsonTree(val, key, depth) {
+  const maxExpandDepth = 2;
+  if (val === null) {
+    const keyPart = key !== '' ? `<span class="json-key">"${escapeHtml(key)}"</span>: ` : '';
+    return `<li>${keyPart}<span class="json-null">null</span></li>`;
+  }
+  if (typeof val === 'string') {
+    const keyPart = key !== '' ? `<span class="json-key">"${escapeHtml(key)}"</span>: ` : '';
+    return `<li>${keyPart}<span class="json-string">"${escapeHtml(val)}"</span></li>`;
+  }
+  if (typeof val === 'number') {
+    const keyPart = key !== '' ? `<span class="json-key">"${escapeHtml(key)}"</span>: ` : '';
+    return `<li>${keyPart}<span class="json-number">${val}</span></li>`;
+  }
+  if (typeof val === 'boolean') {
+    const keyPart = key !== '' ? `<span class="json-key">"${escapeHtml(key)}"</span>: ` : '';
+    return `<li>${keyPart}<span class="json-bool">${val}</span></li>`;
+  }
+  const isArray = Array.isArray(val);
+  const entries = isArray ? val.map((v, i) => [i, v]) : Object.entries(val);
+  const count = entries.length;
+  const collapsed = depth >= maxExpandDepth;
+  const openBracket = isArray ? '[' : '{';
+  const closeBracket = isArray ? ']' : '}';
+  const summary = isArray ? `[...] ${count} items` : `{...} ${count} keys`;
+  const arrow = collapsed ? '\u25B6' : '\u25BC';
+
+  const keyPart = key !== '' ? `<span class="json-key">"${escapeHtml(key)}"</span>: ` : '';
+  let html = `<li>${keyPart}<span class="json-toggle">${arrow}</span><span class="json-bracket">${openBracket}</span>`;
+  html += `<span class="json-summary" style="display:${collapsed ? 'inline' : 'none'}">${summary}</span>`;
+  html += `<ul class="json-children${collapsed ? ' collapsed' : ''}">`;
+  entries.forEach(([k, v]) => {
+    html += renderJsonTree(v, isArray ? '' : String(k), depth + 1);
+  });
+  html += `</ul><span class="json-bracket">${closeBracket}</span></li>`;
+  return html;
+}
+
+function formatCanvasMarkdown(text) {
+  if (!text) return '';
+  let html = escapeHtml(text);
+  // Code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Unordered lists
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  // Ordered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent)">$1</a>');
+  // Horizontal rule
+  html = html.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border-dim);margin:1em 0">');
+  // Paragraphs
+  html = html.replace(/\n{2,}/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+  html = '<p>' + html + '</p>';
+  return html;
 }
 
 // ─── Init ──────────────────────────────────────────────────────

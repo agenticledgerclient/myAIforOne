@@ -577,6 +577,134 @@ html,body{
 }
 .goal-select:focus{border-color:var(--accent)}
 
+/* ─── Channel Cards ──────────────────────────────────────────── */
+.channels-grid{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:24px;padding:20px;
+}
+.channel-card{
+  width:480px;max-width:94vw;
+  background:var(--bg-card);border:1px solid var(--border-glow);
+  border-radius:16px;overflow:hidden;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:var(--shadow);transition:all .3s;
+}
+.channel-card:hover{box-shadow:var(--shadow),var(--shadow-glow)}
+.channel-card-header{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 20px;border-bottom:1px solid var(--border-dim);
+}
+.channel-card-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--accent-bg);border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.channel-card-name{
+  font-family:var(--font-display);font-size:15px;font-weight:700;
+  text-transform:capitalize;
+}
+.channel-status-pill{
+  margin-left:auto;font-family:var(--font-mono);font-size:10px;font-weight:600;
+  padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;
+}
+.channel-status-pill.enabled{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.2)}
+.channel-status-pill.disabled{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.2)}
+
+.channel-card-body{padding:16px 20px}
+.channel-setting-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.channel-setting-label{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);
+  min-width:100px;flex-shrink:0;
+}
+.channel-setting-input{
+  padding:6px 10px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:12px;
+  outline:none;transition:border-color .2s;
+}
+.channel-setting-input:focus{border-color:var(--accent)}
+.channel-setting-select{
+  padding:6px 10px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:12px;
+  outline:none;cursor:pointer;
+}
+.channel-save-btn{
+  font-family:var(--font-sans);font-size:11px;font-weight:600;
+  padding:6px 16px;border-radius:8px;border:none;
+  background:var(--accent);color:#fff;cursor:pointer;
+  transition:all .2s;margin-top:4px;
+}
+.channel-save-btn:hover{filter:brightness(1.1)}
+.channel-save-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.channel-section-title{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--accent);
+  margin:14px 0 8px;padding-bottom:4px;
+  border-bottom:1px solid var(--border-dim);
+}
+
+.channel-agent-row{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 0;font-size:12px;
+}
+.channel-agent-name{
+  font-family:var(--font-sans);font-weight:600;color:var(--text-primary);
+}
+.channel-agent-alias{
+  font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
+}
+.channel-agent-chatid{
+  font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);
+  margin-left:auto;
+}
+.channel-agent-remove{
+  width:22px;height:22px;border-radius:5px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  transition:all .2s;
+}
+.channel-agent-remove:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
+
+.channel-add-row{
+  display:flex;gap:6px;align-items:center;margin-top:8px;
+}
+.channel-add-select,.channel-add-input{
+  padding:6px 8px;border-radius:7px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:11px;
+  outline:none;
+}
+.channel-add-select{width:140px}
+.channel-add-input{flex:1;min-width:80px}
+.channel-add-btn{
+  font-family:var(--font-mono);font-size:11px;color:var(--accent);
+  background:none;border:1px solid var(--accent);border-radius:7px;
+  padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all .2s;
+}
+.channel-add-btn:hover{background:var(--accent-bg)}
+
+.monitored-ids{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.monitored-pill{
+  font-family:var(--font-mono);font-size:10px;
+  padding:3px 8px;border-radius:5px;
+  background:var(--bg-input);border:1px solid var(--border-dim);
+  color:var(--text-secondary);display:flex;align-items:center;gap:4px;
+}
+.monitored-pill button{
+  background:none;border:none;color:var(--text-muted);cursor:pointer;
+  font-size:11px;padding:0 2px;transition:color .2s;
+}
+.monitored-pill button:hover{color:#ef4444}
+.channel-restart-note{
+  font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
+  margin-top:8px;opacity:.7;
+}
+
 /* ─── Scrollbar ───────────────────────────────────────────────── */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -592,13 +720,15 @@ html,body{
   </div>
   <div class="tab-group">
     <a class="tab-btn" href="/ui">Chat</a>
-    <a class="tab-btn active" href="/org">Org</a>
+    <a class="tab-btn" href="/org" id="tabOrg">Org</a>
     <a class="tab-btn" href="/tasks">Tasks</a>
+    <a class="tab-btn" href="/channels" id="tabChannels">Channels</a>
   </div>
   <div class="topbar-right">
+    <input type="text" id="agentSearch" placeholder="Search agents..." oninput="handleSearch()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;width:160px;outline:none">
     <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
     <button class="hide-names-btn" id="hideAllBtn" onclick="toggleHideAll()" title="Hide/show all agent names for presentations" style="font-size:11px;padding:4px 10px">&#128065; Hide All</button>
-    <button class="add-agent-btn-top" onclick="openModal(null)">
+    <button class="add-agent-btn-top" id="newAgentBtn" onclick="openModal(null)">
       <span style="font-size:16px">+</span> New Agent
     </button>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
@@ -790,6 +920,7 @@ let agents = [];
 let orgs = [];
 let availableMcps = [];
 let availableAccounts = [];
+let channelsData = [];
 let editingAgentId = null; // null = create mode, string = edit mode
 
 // ─── Theme ─────────────────────────────────────────────────────
@@ -852,10 +983,15 @@ function updateHideAllBtn() {
 
 // ─── Data ──────────────────────────────────────────────────────
 async function fetchData() {
-  const res = await fetch('/api/dashboard');
-  const data = await res.json();
+  const [dashRes, chRes] = await Promise.all([
+    fetch('/api/dashboard'),
+    fetch('/api/channels'),
+  ]);
+  const data = await dashRes.json();
   agents = data.agents;
   availableAccounts = data.claudeAccounts || [];
+
+  try { channelsData = (await chRes.json()).channels || []; } catch { channelsData = []; }
 
   // Collect unique orgs
   const orgSet = new Set();
@@ -899,7 +1035,33 @@ function buildDataLists() {
 }
 
 // ─── Render ────────────────────────────────────────────────────
+let searchQuery = '';
+
+function handleSearch() {
+  searchQuery = (document.getElementById('agentSearch')?.value || '').trim().toLowerCase();
+  if (searchQuery) {
+    // Switch to All Agents view when searching
+    document.getElementById('orgSelect').value = 'All Agents';
+  }
+  renderOrg();
+}
+
+function matchesSearch(agent) {
+  if (!searchQuery) return true;
+  const q = searchQuery;
+  const name = (agent.name || '').toLowerCase();
+  const alias = ((agent.aliases?.[0] || agent.mentionAliases?.[0]) || '').toLowerCase();
+  const title = ((agent.orgData?.title) || (agent.org?.[0]?.title) || '').toLowerCase();
+  const desc = (agent.description || '').toLowerCase();
+  return name.includes(q) || alias.includes(q) || title.includes(q) || desc.includes(q);
+}
+
 function renderOrg() {
+  if (isChannelsPage) {
+    const canvas = document.getElementById('canvas');
+    if (canvas) renderChannelsPanel(canvas);
+    return;
+  }
   const selected = document.getElementById('orgSelect').value;
   const canvas = document.getElementById('canvas');
 
@@ -978,19 +1140,21 @@ function renderOrg() {
 }
 
 function renderFlatGrid(canvas) {
-  // Group agents by their orgs
+  // Group agents by their orgs, applying search filter
   const orgGroups = {};
   const noOrg = [];
   for (const a of agents) {
+    if (!matchesSearch(a)) continue;
     if (!a.org || a.org.length === 0) {
       noOrg.push(a);
     } else {
-      // Add to each org they belong to
       const orgsAdded = new Set();
       for (const o of a.org) {
         if (!orgsAdded.has(o.organization)) {
+          const merged = { ...a, orgData: o };
+          if (!matchesSearch(merged)) continue;
           if (!orgGroups[o.organization]) orgGroups[o.organization] = [];
-          orgGroups[o.organization].push({ ...a, orgData: o });
+          orgGroups[o.organization].push(merged);
           orgsAdded.add(o.organization);
         }
       }
@@ -1812,7 +1976,265 @@ async function executeDelete() {
   }
 }
 
-fetchData();
+// ─── Channels Panel ────────────────────────────────────────────
+const channelIcons = {
+  telegram: '\u{1F4AC}',
+  slack: '\u{1F4E2}',
+  imessage: '\u{1F4F1}',
+  discord: '\u{1F3AE}',
+  whatsapp: '\u{1F4F2}',
+};
+
+function renderChannelsPanel(canvas) {
+  if (!channelsData || channelsData.length === 0) {
+    canvas.innerHTML = '<div class="empty-org"><div class="empty-org-icon">&#128225;</div><div class="empty-org-text">No channels configured</div></div>';
+    return;
+  }
+
+  let html = '<div class="org-title-banner">Channels</div>';
+  html += '<div class="channels-grid">';
+
+  for (const ch of channelsData) {
+    const icon = channelIcons[ch.name] || '\u{1F517}';
+    const statusClass = ch.enabled ? 'enabled' : 'disabled';
+    const statusText = ch.enabled ? 'Connected' : 'Disabled';
+    const timeoutMin = Math.round((ch.stickyTimeoutMs || 300000) / 60000);
+
+    html += `<div class="channel-card" id="ch-card-${ch.name}">
+      <div class="channel-card-header">
+        <div class="channel-card-icon">${icon}</div>
+        <div class="channel-card-name">${escapeHtml(ch.name)}</div>
+        <span class="channel-status-pill ${statusClass}">${statusText}</span>
+      </div>
+      <div class="channel-card-body">
+        <div class="channel-setting-row">
+          <span class="channel-setting-label">Sticky Mode</span>
+          <select class="channel-setting-select" id="ch-sticky-${ch.name}" onchange="togglePrefixVisibility('${ch.name}')">
+            <option value="none" ${ch.stickyRouting==='none'?'selected':''}>None</option>
+            <option value="sticky" ${ch.stickyRouting==='sticky'?'selected':''}>Sticky</option>
+            <option value="prefix" ${ch.stickyRouting==='prefix'?'selected':''}>Prefix</option>
+          </select>
+        </div>
+        <div class="channel-setting-row" id="ch-prefix-row-${ch.name}" style="${ch.stickyRouting==='prefix'?'':'display:none'}">
+          <span class="channel-setting-label">Prefix</span>
+          <input class="channel-setting-input" id="ch-prefix-${ch.name}" value="${escapeHtml(ch.stickyPrefix || '!')}" style="width:60px">
+        </div>
+        <div class="channel-setting-row">
+          <span class="channel-setting-label">Timeout (min)</span>
+          <input class="channel-setting-input" id="ch-timeout-${ch.name}" type="number" min="1" value="${timeoutMin}" style="width:80px">
+        </div>
+        <button class="channel-save-btn" onclick="saveChannelSettings('${ch.name}')">Save Settings</button>
+        <div class="channel-restart-note">Changes require service restart to take effect</div>`;
+
+    // iMessage monitored chat IDs
+    if (ch.name === 'imessage' && ch.monitoredChatIds) {
+      html += `<div class="channel-section-title">Monitored Chat IDs</div>
+        <div class="monitored-ids" id="ch-monitored-${ch.name}">`;
+      for (const mid of ch.monitoredChatIds) {
+        html += `<div class="monitored-pill">${mid}<button onclick="removeMonitoredId(${mid})">&times;</button></div>`;
+      }
+      html += `</div>
+        <div class="channel-add-row" style="margin-top:6px">
+          <input class="channel-add-input" id="ch-addmon-${ch.name}" type="number" placeholder="Chat ID (number)" style="width:140px">
+          <button class="channel-add-btn" onclick="addMonitoredId('${ch.name}')">+ Add</button>
+        </div>`;
+    }
+
+    // Agents grouped by chat ID with filter dropdown
+    const chatGroups = {};
+    for (const ag of ch.agents) {
+      if (!chatGroups[ag.chatId]) chatGroups[ag.chatId] = [];
+      chatGroups[ag.chatId].push(ag);
+    }
+    const chatIds = Object.keys(chatGroups).sort();
+    html += `<div class="channel-section-title" style="display:flex;align-items:center;gap:8px">
+      Chat Groups
+      <select class="channel-setting-select" id="ch-chatfilter-${ch.name}" onchange="filterChatGroup('${ch.name}')" style="font-size:11px;padding:2px 6px">
+        <option value="">All (${chatIds.length} chats, ${ch.agents.length} routes)</option>
+        ${chatIds.map(cid => `<option value="${cid}">Chat ${escapeHtml(cid)} (${chatGroups[cid].length})</option>`).join('')}
+      </select>
+    </div>`;
+    if (chatIds.length === 0) {
+      html += '<div style="font-size:12px;color:var(--text-muted);padding:4px 0">No agents on this channel</div>';
+    } else {
+      for (const cid of chatIds) {
+        const agentsInChat = chatGroups[cid];
+        html += `<div class="ch-chatgroup-${ch.name}" data-chatid="${escapeHtml(cid)}" style="margin:8px 0 4px;padding:6px 10px;background:rgba(139,92,246,0.05);border:1px solid var(--border-dim);border-radius:8px">
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px">Chat ${escapeHtml(cid)} <span style="font-weight:400;color:var(--text-muted)">(${agentsInChat.length} agent${agentsInChat.length>1?'s':''})</span></div>`;
+        for (const ag of agentsInChat) {
+          html += `<div class="channel-agent-row">
+            <span class="channel-agent-name">${escapeHtml(ag.agentName)}</span>
+            <span class="channel-agent-alias">${escapeHtml(ag.alias)}</span>
+            <button class="channel-agent-remove" onclick="removeChannelAgent('${ch.name}','${escapeHtml(ag.agentId)}','${escapeHtml(ag.chatId)}')" title="Remove route">&times;</button>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+    }
+
+    // Add agent
+    const agentIdsOnChannel = new Set(ch.agents.map(a => a.agentId));
+    const availableAgents = agents.filter(a => !agentIdsOnChannel.has(a.id));
+    html += `<div class="channel-add-row">
+      <select class="channel-add-select" id="ch-addagent-${ch.name}">
+        ${availableAgents.length === 0 ? '<option value="">All agents added</option>' :
+          '<option value="">Select agent...</option>' + availableAgents.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${a.aliases?.[0] || a.id})</option>`).join('')}
+      </select>
+      <input class="channel-add-input" id="ch-addchatid-${ch.name}" placeholder="Chat/Channel ID">
+      <button class="channel-add-btn" onclick="addChannelAgent('${ch.name}')" ${availableAgents.length===0?'disabled':''}>+ Add Agent</button>
+    </div>`;
+
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  canvas.innerHTML = html;
+}
+
+function togglePrefixVisibility(channelName) {
+  const mode = document.getElementById('ch-sticky-' + channelName).value;
+  document.getElementById('ch-prefix-row-' + channelName).style.display = mode === 'prefix' ? '' : 'none';
+}
+
+async function saveChannelSettings(channelName) {
+  const mode = document.getElementById('ch-sticky-' + channelName).value;
+  const prefix = document.getElementById('ch-prefix-' + channelName)?.value || '!';
+  const timeoutMin = parseInt(document.getElementById('ch-timeout-' + channelName).value) || 5;
+  const timeoutMs = timeoutMin * 60000;
+
+  try {
+    const res = await fetch('/api/channels/' + channelName, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stickyRouting: mode, stickyPrefix: prefix, stickyTimeoutMs: timeoutMs }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      // Update local data
+      const ch = channelsData.find(c => c.name === channelName);
+      if (ch) { ch.stickyRouting = mode; ch.stickyPrefix = prefix; ch.stickyTimeoutMs = timeoutMs; }
+      alert('Settings saved. Restart service for full effect.');
+    } else {
+      alert('Error: ' + (data.error || 'Unknown'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function addChannelAgent(channelName) {
+  const selectEl = document.getElementById('ch-addagent-' + channelName);
+  const chatIdEl = document.getElementById('ch-addchatid-' + channelName);
+  const agentId = selectEl.value;
+  const chatId = chatIdEl.value.trim();
+
+  if (!agentId) { alert('Select an agent'); return; }
+  if (!chatId) { alert('Enter a chat/channel ID'); return; }
+
+  try {
+    const res = await fetch('/api/channels/' + channelName + '/agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId, chatId, requireMention: true }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      await fetchData();
+    } else {
+      alert('Error: ' + (data.error || 'Unknown'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+function filterChatGroup(channelName) {
+  const filter = document.getElementById('ch-chatfilter-' + channelName)?.value || '';
+  const groups = document.querySelectorAll('.ch-chatgroup-' + channelName);
+  for (const g of groups) {
+    g.style.display = (!filter || g.dataset.chatid === filter) ? '' : 'none';
+  }
+}
+
+async function removeChannelAgent(channelName, agentId, chatId) {
+  if (!confirm('Remove ' + agentId + ' from ' + channelName + ':' + chatId + '?')) return;
+
+  try {
+    const res = await fetch('/api/channels/' + channelName + '/agents/' + agentId, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      await fetchData();
+    } else {
+      alert('Error: ' + (data.error || 'Unknown'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function addMonitoredId(channelName) {
+  const input = document.getElementById('ch-addmon-' + channelName);
+  const chatId = parseInt(input.value);
+  if (isNaN(chatId)) { alert('Enter a valid numeric chat ID'); return; }
+
+  try {
+    const res = await fetch('/api/channels/' + channelName + '/monitored', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = '';
+      await fetchData();
+    } else {
+      alert('Error: ' + (data.error || 'Unknown'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function removeMonitoredId(chatId) {
+  if (!confirm('Remove monitored chat ID ' + chatId + '?')) return;
+
+  try {
+    const res = await fetch('/api/channels/imessage/monitored', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      await fetchData();
+    } else {
+      alert('Error: ' + (data.error || 'Unknown'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// Set active tab based on URL
+const isChannelsPage = location.pathname === '/channels';
+document.getElementById(isChannelsPage ? 'tabChannels' : 'tabOrg')?.classList.add('active');
+if (isChannelsPage) {
+  document.getElementById('orgSelect').style.display = 'none';
+  document.getElementById('hideAllBtn').style.display = 'none';
+  document.getElementById('newAgentBtn').style.display = 'none';
+}
+
+fetchData().then(() => {
+  if (isChannelsPage) {
+    // Auto-show channels panel
+    const canvas = document.getElementById('orgCanvas');
+    if (canvas) renderChannelsPanel(canvas);
+  }
+});
 setInterval(fetchData, 30000);
 </script>
 </body>

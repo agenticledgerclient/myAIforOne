@@ -49,18 +49,34 @@ const stickyMap = new Map<string, StickyEntry>();
 
 const DEFAULT_STICKY_TIMEOUT_MS = 300_000; // 5 minutes
 
+// Sticky routing modes:
+//   "none"   — always require @mention (default)
+//   "sticky" — mention once, then all messages route for stickyTimeoutMs
+//   "prefix" — like sticky, but follow-up messages must start with a trigger character (e.g., ! or @)
+type StickyMode = "none" | "sticky" | "prefix";
+
+function getStickyMode(config: AppConfig, channel: string): { mode: StickyMode; prefix: string; timeoutMs: number } {
+  const channelCfg = config.channels[channel];
+  if (!channelCfg) return { mode: "none", prefix: "!", timeoutMs: DEFAULT_STICKY_TIMEOUT_MS };
+
+  const raw = (channelCfg.config as any).stickyRouting;
+  let mode: StickyMode = "prefix"; // default: prefix mode
+  if (raw === "sticky") mode = "sticky";
+  else if (raw === "none") mode = "none";
+  else if (raw === "prefix") mode = "prefix";
+
+  const prefix = (channelCfg.config as any).stickyPrefix ?? "!";
+  const timeoutMs = (channelCfg.config as any).stickyTimeoutMs ?? DEFAULT_STICKY_TIMEOUT_MS;
+  return { mode, prefix, timeoutMs };
+}
+
 function getStickyAgent(
   msg: InboundMessage,
   config: AppConfig,
 ): ResolvedRoute | null {
-  // Check if this channel has sticky routing enabled
-  const channelCfg = config.channels[msg.channel];
-  if (!channelCfg) return null;
+  const { mode, prefix, timeoutMs } = getStickyMode(config, msg.channel);
+  if (mode === "none") return null;
 
-  const stickyEnabled = (channelCfg.config as any).stickyRouting ?? true;
-  if (!stickyEnabled) return null;
-
-  const timeoutMs = (channelCfg.config as any).stickyTimeoutMs ?? DEFAULT_STICKY_TIMEOUT_MS;
   const key = `${msg.channel}:${msg.chatId}:${msg.sender}`;
   const entry = stickyMap.get(key);
 
@@ -70,6 +86,16 @@ function getStickyAgent(
   if (Date.now() - entry.timestamp > timeoutMs) {
     stickyMap.delete(key);
     return null;
+  }
+
+  // Prefix mode: message must start with the trigger character
+  if (mode === "prefix") {
+    const trimmed = msg.text.trim();
+    if (!trimmed.startsWith(prefix)) {
+      return null; // No prefix — don't route via sticky
+    }
+    // Strip the prefix from the message text for the agent
+    msg.text = trimmed.slice(prefix.length).trim();
   }
 
   // Verify the agent still exists
@@ -88,7 +114,7 @@ function getStickyAgent(
   // Permission check
   if (!isAllowed(msg, route)) return null;
 
-  log.debug(`Sticky routing: ${msg.sender} → ${entry.agentId} (${Math.round((Date.now() - entry.timestamp) / 1000)}s ago)`);
+  log.debug(`Sticky routing (${mode}): ${msg.sender} → ${entry.agentId} (${Math.round((Date.now() - entry.timestamp) / 1000)}s ago)`);
   return { agentId: entry.agentId, agentConfig: agent, route };
 }
 

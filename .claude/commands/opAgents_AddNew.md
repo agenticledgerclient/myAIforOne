@@ -45,7 +45,7 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 | `function` | no | — | Department/function within the org |
 | `title` | no | — | Role title (e.g., "Senior Engineer") |
 | `reportsTo` | no | — | Alias of the agent this one reports to (e.g., "@cto") |
-| `workspace` | no | `~` | Project/codebase the agent works ON |
+| `workspace` | no | `<agentHome>` | Project/codebase the agent works ON. Defaults to the agent's own home folder unless the user specifies a project directory. |
 | `agentHome` | no | auto | Agent's own folder. Auto: `~/Desktop/personalAgents/<Org>/<agentId>/` or `~/Desktop/personalAgents/<agentId>/` if no org |
 | `persistent` | no | `true` | Remember conversations across messages |
 | `streaming` | no | `true` | Real-time output in web UI |
@@ -71,7 +71,7 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 
 1. Ask for `agentId`, `name`, `description`, and `mentionAlias` together
 2. Ask about `organization` — which org? Show existing orgs from config. Also ask function, title, reportsTo.
-3. Ask about `workspace` — specific project or general use?
+3. Ask about `workspace` — does it work on a specific project directory? If not, default to the agent's own home folder (not ~).
 4. Ask about custom instructions — do they want to write a custom system prompt, or use the auto-generated template? If custom, collect the full text.
 5. Show currently registered MCPs and ask which to attach
 6. Ask about tools — full access, read-only, or custom?
@@ -203,6 +203,12 @@ Goals give an agent autonomous responsibilities that run on a heartbeat schedule
 - <list tools in plain English>
 - <list MCPs and what they do>
 
+## File Storage
+- ALWAYS save generated files to your FileStorage folder, never to random locations
+- Temporary files (per-request): {agentHome}/FileStorage/Temp/
+- Permanent files (persistent): {agentHome}/FileStorage/Permanent/
+- Use full absolute paths when referencing saved files so the web UI can preview them
+
 ## Guidelines
 - Keep responses concise — you're replying to phone messages
 - If a task requires multiple steps, summarize what you did
@@ -229,3 +235,7 @@ node -e "const {loadConfig}=require('./dist/config.js'); const c=loadConfig('./c
 - **Same channel, multiple agents:** Differentiated by @mention alias
 - **No code changes needed:** Adding an agent is config + files only
 - **iMessage DB polling:** When adding an iMessage route, ALSO add the chat ID (as a number) to `channels.imessage.config.monitoredChatIds` in config.json if it's not already there. The iMessage driver polls the DB for these chat IDs — without this, messages from that chat won't be picked up.
+- **Sticky routing modes** (per-channel in config.json `channels.<name>.config.stickyRouting`):
+  - `"none"` — always require @mention. Safest for shared group chats.
+  - `"sticky"` — mention once, then all messages route to that agent for `stickyTimeoutMs` (default 5 min).
+  - `"prefix"` (default) — like sticky, but follow-up messages must start with a trigger character (configured via `stickyPrefix`, default `!`). E.g., `! what about the budget?` instead of `@agent what about the budget?`.

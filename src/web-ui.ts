@@ -21,6 +21,7 @@ interface WebUIOptions {
 interface StreamJob {
   events: Array<{ idx: number; data: string }>;
   done: boolean;
+  stopped: boolean;
   createdAt: number;
   listeners: Set<(idx: number) => void>; // notify waiting SSE connections
 }
@@ -55,6 +56,16 @@ export function startWebUI(opts: WebUIOptions): void {
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("Org page not found.");
+    }
+  });
+
+  // ─── Serve the Channels page (reuses org.html) ─────────────────
+  app.get("/channels", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "org.html");
+    if (existsSync(htmlPath)) {
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Channels page not found.");
     }
   });
 
@@ -306,7 +317,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
     // Create job
     const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const job: StreamJob = { events: [], done: false, createdAt: Date.now(), listeners: new Set() };
+    const job: StreamJob = { events: [], done: false, stopped: false, createdAt: Date.now(), listeners: new Set() };
     jobStore.set(jobId, job);
 
     const pushEvent = (data: string) => {
@@ -342,13 +353,16 @@ export function startWebUI(opts: WebUIOptions): void {
     (async () => {
       try {
         for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
+          if (job.stopped) break;
           pushEvent(JSON.stringify(event));
         }
       } catch (err) {
-        pushEvent(JSON.stringify({ type: "error", data: String(err) }));
+        if (!job.stopped) pushEvent(JSON.stringify({ type: "error", data: String(err) }));
       } finally {
-        pushEvent("[DONE]");
-        job.done = true;
+        if (!job.done) {
+          pushEvent("[DONE]");
+          job.done = true;
+        }
       }
     })();
   });
@@ -412,6 +426,28 @@ export function startWebUI(opts: WebUIOptions): void {
 
     job.listeners.add(onEvent);
     req.on("close", cleanup);
+  });
+
+  // ─── API: Stop a streaming job ────────────────────────────────────
+  app.post("/api/chat/jobs/:jobId/stop", (req, res) => {
+    const job = jobStore.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: "Job not found" });
+    if (job.done) return res.json({ ok: true, already: true });
+
+    job.stopped = true;
+    job.done = true;
+
+    // Push a stopped event then [DONE] so connected SSE clients finalize
+    const pushEvent = (data: string) => {
+      const idx = job.events.length;
+      job.events.push({ idx, data });
+      for (const cb of job.listeners) cb(idx);
+    };
+    pushEvent(JSON.stringify({ type: "stopped", data: "Stopped by user" }));
+    pushEvent("[DONE]");
+
+    log.info(`[WebUI] Job ${req.params.jobId} stopped by user`);
+    res.json({ ok: true });
   });
 
   // ─── API: Upload file ────────────────────────────────────────────
@@ -534,8 +570,8 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[agentId];
     if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
 
-    const filePath = req.query.path as string;
-    if (!filePath) return res.status(400).json({ error: "Missing 'path' query parameter" });
+    const rawFilePath = req.query.path as string;
+    if (!rawFilePath) return res.status(400).json({ error: "Missing 'path' query parameter" });
 
     // Security: resolve and validate the path is within allowed directories
     const home = process.env.HOME || process.env.USERPROFILE || "";
@@ -545,15 +581,30 @@ export function startWebUI(opts: WebUIOptions): void {
       : resolve(opts.baseDir, agent.memoryDir, "..");
     const workspace = agent.workspace ? resolveTilde(agent.workspace) : agentHome;
 
-    const resolvedPath = resolve(filePath);
+    // Resolve relative paths (e.g., "FileStorage/Temp/file.csv") against agent home
+    const filePath = rawFilePath.startsWith("/") || rawFilePath.startsWith("~")
+      ? rawFilePath
+      : join(agentHome, rawFilePath);
+
+    const resolvedPath = resolve(resolveTilde(filePath));
     const resolvedAgentHome = resolve(agentHome);
     const resolvedWorkspace = resolve(workspace);
 
-    // Must be within agent home or workspace
-    const isAllowed = resolvedPath.startsWith(resolvedAgentHome) ||
-                      resolvedPath.startsWith(resolvedWorkspace);
+    // Must be within agent home, workspace, or any agent's home (for cross-agent file access)
+    let isAllowed = resolvedPath.startsWith(resolvedAgentHome) ||
+                    resolvedPath.startsWith(resolvedWorkspace);
     if (!isAllowed) {
-      return res.status(403).json({ error: "File path outside agent's allowed directories" });
+      // Check if file is within any other agent's home directory
+      for (const [, otherAgent] of Object.entries(opts.config.agents)) {
+        const otherHome = otherAgent.agentHome ? resolve(resolveTilde(otherAgent.agentHome)) : "";
+        if (otherHome && resolvedPath.startsWith(otherHome)) {
+          isAllowed = true;
+          break;
+        }
+      }
+    }
+    if (!isAllowed) {
+      return res.status(403).json({ error: "File path outside allowed directories" });
     }
 
     if (!existsSync(resolvedPath)) {
@@ -589,7 +640,8 @@ export function startWebUI(opts: WebUIOptions): void {
       ".zip": "application/zip",
     };
 
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    const isInline = req.query.inline === "true";
+    res.setHeader("Content-Disposition", `${isInline ? "inline" : "attachment"}; filename="${fileName}"`);
     res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
 
     log.info(`[Download] ${agentId}: ${fileName} from ${resolvedPath}`);
@@ -1147,6 +1199,285 @@ export function startWebUI(opts: WebUIOptions): void {
       } catch { /* skip */ }
     }
     res.json({ tasks: allTasks });
+  });
+
+  // ─── API: Channels ───────────────────────────────────────────────
+
+  // GET /api/channels — list all channels with config, sticky settings, and agent routes
+  app.get("/api/channels", (_req, res) => {
+    const result: any[] = [];
+
+    for (const [channelName, channelCfg] of Object.entries(opts.config.channels)) {
+      const cfg = channelCfg.config as Record<string, any>;
+
+      // Find agents with routes on this channel
+      const agentsOnChannel: any[] = [];
+      for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+        for (const route of agent.routes) {
+          if (route.channel === channelName) {
+            agentsOnChannel.push({
+              agentId,
+              agentName: agent.name,
+              alias: agent.mentionAliases?.[0] || agentId,
+              chatId: String(route.match.value),
+              requireMention: route.permissions?.requireMention ?? true,
+            });
+          }
+        }
+      }
+
+      const entry: any = {
+        name: channelName,
+        driver: channelCfg.driver,
+        enabled: channelCfg.enabled,
+        stickyRouting: cfg.stickyRouting ?? "none",
+        stickyPrefix: cfg.stickyPrefix ?? "!",
+        stickyTimeoutMs: cfg.stickyTimeoutMs ?? 300000,
+        agents: agentsOnChannel,
+      };
+
+      // iMessage-specific: monitoredChatIds
+      if (channelName === "imessage") {
+        entry.monitoredChatIds = cfg.monitoredChatIds || [];
+      }
+
+      result.push(entry);
+    }
+
+    res.json({ channels: result });
+  });
+
+  // PUT /api/channels/:channelName — update channel sticky settings
+  app.put("/api/channels/:channelName", (req, res) => {
+    const { channelName } = req.params;
+    const channelCfg = opts.config.channels[channelName];
+    if (!channelCfg) return res.status(404).json({ error: `Channel "${channelName}" not found` });
+
+    const { stickyRouting, stickyPrefix, stickyTimeoutMs } = req.body as {
+      stickyRouting?: string;
+      stickyPrefix?: string;
+      stickyTimeoutMs?: number;
+    };
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      if (!rawConfig.channels[channelName]) {
+        return res.status(404).json({ error: `Channel "${channelName}" not in config.json` });
+      }
+
+      const cfg = rawConfig.channels[channelName].config;
+      if (stickyRouting !== undefined) cfg.stickyRouting = stickyRouting;
+      if (stickyPrefix !== undefined) cfg.stickyPrefix = stickyPrefix;
+      if (stickyTimeoutMs !== undefined) cfg.stickyTimeoutMs = stickyTimeoutMs;
+
+      // Validate JSON before writing
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json); // validate
+      writeFileSync(configPath, json);
+
+      // Update in-memory config
+      (opts.config.channels[channelName].config as any).stickyRouting = cfg.stickyRouting;
+      (opts.config.channels[channelName].config as any).stickyPrefix = cfg.stickyPrefix;
+      (opts.config.channels[channelName].config as any).stickyTimeoutMs = cfg.stickyTimeoutMs;
+
+      log.info(`[Channels] Updated sticky settings for ${channelName}`);
+      res.json({ ok: true, note: "Restart service for changes to take full effect." });
+    } catch (err) {
+      log.error(`[Channels] Failed to update ${channelName}: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/channels/:channelName/agents — add agent route to channel
+  app.post("/api/channels/:channelName/agents", (req, res) => {
+    const { channelName } = req.params;
+    if (!opts.config.channels[channelName]) {
+      return res.status(404).json({ error: `Channel "${channelName}" not found` });
+    }
+
+    const { agentId, chatId, requireMention } = req.body as {
+      agentId?: string;
+      chatId?: string;
+      requireMention?: boolean;
+    };
+
+    if (!agentId || !chatId) {
+      return res.status(400).json({ error: "Missing agentId or chatId" });
+    }
+
+    if (!opts.config.agents[agentId]) {
+      return res.status(404).json({ error: `Agent "${agentId}" not found` });
+    }
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      const agentCfg = rawConfig.agents[agentId];
+      if (!agentCfg) return res.status(404).json({ error: `Agent "${agentId}" not in config.json` });
+
+      // Add route
+      const newRoute = {
+        channel: channelName,
+        match: {
+          type: channelName === "slack" ? "channel_id" : "chat_id",
+          value: channelName === "imessage" ? (isNaN(Number(chatId)) ? chatId : Number(chatId)) : chatId,
+        },
+        permissions: {
+          allowFrom: ["*"],
+          requireMention: requireMention ?? true,
+        },
+      };
+      if (!agentCfg.routes) agentCfg.routes = [];
+      agentCfg.routes.push(newRoute);
+
+      // For iMessage, also add to monitoredChatIds if numeric
+      if (channelName === "imessage" && !isNaN(Number(chatId))) {
+        const monitored = rawConfig.channels.imessage?.config?.monitoredChatIds || [];
+        const numId = Number(chatId);
+        if (!monitored.includes(numId)) {
+          monitored.push(numId);
+          rawConfig.channels.imessage.config.monitoredChatIds = monitored;
+          // Update in-memory
+          (opts.config.channels.imessage.config as any).monitoredChatIds = monitored;
+        }
+      }
+
+      // Validate and write
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json);
+      writeFileSync(configPath, json);
+
+      // Update in-memory config
+      opts.config.agents[agentId].routes.push(newRoute as any);
+
+      log.info(`[Channels] Added route ${channelName}:${chatId} to agent ${agentId}`);
+      res.json({ ok: true, note: "Restart service for changes to take full effect." });
+    } catch (err) {
+      log.error(`[Channels] Failed to add agent route: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // DELETE /api/channels/:channelName/agents/:agentId — remove agent route from channel
+  app.delete("/api/channels/:channelName/agents/:agentId", (req, res) => {
+    const { channelName, agentId } = req.params;
+    if (!opts.config.channels[channelName]) {
+      return res.status(404).json({ error: `Channel "${channelName}" not found` });
+    }
+    if (!opts.config.agents[agentId]) {
+      return res.status(404).json({ error: `Agent "${agentId}" not found` });
+    }
+
+    const { chatId } = req.body as { chatId?: string };
+    if (!chatId) return res.status(400).json({ error: "Missing chatId in body" });
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      const agentCfg = rawConfig.agents[agentId];
+      if (!agentCfg) return res.status(404).json({ error: `Agent "${agentId}" not in config.json` });
+
+      // Remove the matching route
+      const before = agentCfg.routes?.length || 0;
+      agentCfg.routes = (agentCfg.routes || []).filter((r: any) => {
+        return !(r.channel === channelName && String(r.match.value) === chatId);
+      });
+      const removed = before - (agentCfg.routes?.length || 0);
+
+      // For iMessage, also remove from monitoredChatIds if no more routes use this chatId
+      if (channelName === "imessage" && !isNaN(Number(chatId))) {
+        const numId = Number(chatId);
+        // Check if any agent still has a route to this chatId on imessage
+        const stillUsed = Object.values(rawConfig.agents).some((a: any) =>
+          (a.routes || []).some((r: any) => r.channel === "imessage" && Number(r.match.value) === numId)
+        );
+        if (!stillUsed && rawConfig.channels.imessage?.config?.monitoredChatIds) {
+          rawConfig.channels.imessage.config.monitoredChatIds =
+            rawConfig.channels.imessage.config.monitoredChatIds.filter((id: number) => id !== numId);
+          (opts.config.channels.imessage.config as any).monitoredChatIds =
+            rawConfig.channels.imessage.config.monitoredChatIds;
+        }
+      }
+
+      // Validate and write
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json);
+      writeFileSync(configPath, json);
+
+      // Update in-memory
+      opts.config.agents[agentId].routes = opts.config.agents[agentId].routes.filter(
+        r => !(r.channel === channelName && String(r.match.value) === chatId)
+      );
+
+      log.info(`[Channels] Removed ${removed} route(s) ${channelName}:${chatId} from agent ${agentId}`);
+      res.json({ ok: true, removed, note: "Restart service for changes to take full effect." });
+    } catch (err) {
+      log.error(`[Channels] Failed to remove agent route: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/channels/:channelName/monitored — add monitoredChatId (iMessage only)
+  app.post("/api/channels/:channelName/monitored", (req, res) => {
+    const { channelName } = req.params;
+    if (channelName !== "imessage") return res.status(400).json({ error: "monitoredChatIds only applies to iMessage" });
+    if (!opts.config.channels.imessage) return res.status(404).json({ error: "iMessage channel not found" });
+
+    const { chatId } = req.body as { chatId?: number };
+    if (chatId == null || isNaN(chatId)) return res.status(400).json({ error: "Missing or invalid chatId (must be number)" });
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      const monitored = rawConfig.channels.imessage?.config?.monitoredChatIds || [];
+      if (monitored.includes(chatId)) return res.json({ ok: true, note: "Already monitored" });
+      monitored.push(chatId);
+      rawConfig.channels.imessage.config.monitoredChatIds = monitored;
+
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json);
+      writeFileSync(configPath, json);
+
+      (opts.config.channels.imessage.config as any).monitoredChatIds = monitored;
+      log.info(`[Channels] Added monitoredChatId ${chatId} to iMessage`);
+      res.json({ ok: true, note: "Restart service for changes to take full effect." });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // DELETE /api/channels/:channelName/monitored — remove monitoredChatId (iMessage only)
+  app.delete("/api/channels/:channelName/monitored", (req, res) => {
+    const { channelName } = req.params;
+    if (channelName !== "imessage") return res.status(400).json({ error: "monitoredChatIds only applies to iMessage" });
+    if (!opts.config.channels.imessage) return res.status(404).json({ error: "iMessage channel not found" });
+
+    const { chatId } = req.body as { chatId?: number };
+    if (chatId == null || isNaN(chatId)) return res.status(400).json({ error: "Missing or invalid chatId (must be number)" });
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      let monitored = rawConfig.channels.imessage?.config?.monitoredChatIds || [];
+      monitored = monitored.filter((id: number) => id !== chatId);
+      rawConfig.channels.imessage.config.monitoredChatIds = monitored;
+
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json);
+      writeFileSync(configPath, json);
+
+      (opts.config.channels.imessage.config as any).monitoredChatIds = monitored;
+      log.info(`[Channels] Removed monitoredChatId ${chatId} from iMessage`);
+      res.json({ ok: true, note: "Restart service for changes to take full effect." });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
   });
 
   // ─── Webhook endpoint ─────────────────────────────────────────────
