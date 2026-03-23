@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync, existsSync, unlinkSync, mkdirSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve, join } from "node:path";
 import type { McpServerConfig, McpServerHttp } from "./config.js";
+import { getPersonalAgentsDir } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { formatMessage } from "./utils/message-formatter.js";
@@ -105,7 +107,7 @@ function handleTaskCommand(
 ): string | null {
   if (!TASK_PATTERN.test(text)) return null;
 
-  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const home = homedir();
   const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
   const agentHome = agentConfig.agentHome ? resolveTilde(agentConfig.agentHome) : resolve(agentConfig.memoryDir, "..");
 
@@ -342,7 +344,7 @@ async function executeParallel(
   mcpRegistry?: Record<string, McpServerConfig>,
   claudeConfigDir?: string,
 ): Promise<string> {
-  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const home = homedir();
 
   log.info(`[Parallel] Spawning ${tasks.length} workers...`);
 
@@ -413,9 +415,9 @@ function buildSkillIndex(
   agentSkillNames: string[],
   agentMemoryDir: string,
 ): string {
-  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const home = homedir();
   const claudeDir = join(home, ".claude", "commands");
-  const personalDir = join(home, "Desktop", "personalAgents", "skills");
+  const personalDir = join(getPersonalAgentsDir(), "skills");
   const agentSkillsDir = join(agentMemoryDir, "..", "skills");
 
   const lines: string[] = [
@@ -495,7 +497,7 @@ function buildMcpConfigFile(
   baseDir: string,
   agentMemoryDir?: string,
 ): string {
-  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const home = homedir();
   const mcpServers: Record<string, any> = {};
 
   // Discover named connection key files for auto-expansion
@@ -635,7 +637,7 @@ export async function executeAgent(
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
 
   // ── Resolve Claude account config dir ──
-  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const home = homedir();
   let claudeConfigDir: string | undefined;
   if (agentConfig.claudeAccount && claudeAccounts) {
     const dir = claudeAccounts[agentConfig.claudeAccount];
@@ -912,9 +914,9 @@ export async function executeAgent(
 
   // Skills directory (so agent can Read skill files)
   if (hasSkills) {
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const claudeSkillsDir = join(home, ".claude", "commands");
-    const personalSkillsDir = join(home, "Desktop", "personalAgents", "skills");
+    const personalSkillsDir = join(getPersonalAgentsDir(), "skills");
     const agentSkillsDir = join(memoryDir, "..", "skills");
 
     if (existsSync(claudeSkillsDir) && agentConfig.skills?.length) {
@@ -1112,7 +1114,7 @@ export async function* executeAgentStreaming(
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
 
   // ── Resolve Claude account config dir ──
-  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const home = homedir();
   let claudeConfigDir: string | undefined;
   if (agentConfig.claudeAccount && claudeAccounts) {
     const dir = claudeAccounts[agentConfig.claudeAccount];
@@ -1343,7 +1345,7 @@ export async function* executeAgentStreaming(
   args.push("--add-dir", workspace);
 
   if (agentConfig.skills && agentConfig.skills.length > 0) {
-    const skillsDir = join(process.env.HOME || process.env.USERPROFILE || "", ".claude", "commands");
+    const skillsDir = join(homedir(), ".claude", "commands");
     if (existsSync(skillsDir)) args.push("--add-dir", skillsDir);
   }
 

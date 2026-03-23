@@ -1,8 +1,10 @@
 import express from "express";
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlinkSync } from "node:fs";
+import { homedir } from "node:os";
 import { join, resolve, basename, extname, relative } from "node:path";
 import { execSync } from "node:child_process";
 import type { AppConfig } from "./config.js";
+import { getPersonalAgentsDir } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { executeAgent, executeAgentStreaming } from "./executor.js";
@@ -109,7 +111,7 @@ export function startWebUI(opts: WebUIOptions): void {
       } catch { /* ignore */ }
 
       // Resolve agentHome
-      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const home = homedir();
       const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
       const agentHome = agent.agentHome
         ? resolveTilde(agent.agentHome)
@@ -216,7 +218,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[req.params.id];
     if (!agent) return res.status(404).json({ error: "Agent not found" });
 
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
 
     // Find CLAUDE.md path
@@ -522,7 +524,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[agentId];
     if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
 
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
     const agentHome = agent.agentHome
       ? resolveTilde(agent.agentHome)
@@ -577,7 +579,7 @@ export function startWebUI(opts: WebUIOptions): void {
     if (!rawFilePath) return res.status(400).json({ error: "Missing 'path' query parameter" });
 
     // Security: resolve and validate the path is within allowed directories
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
     const agentHome = agent.agentHome
       ? resolveTilde(agent.agentHome)
@@ -690,8 +692,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
     try {
       // Create agent directory
-      const home = process.env.HOME || process.env.USERPROFILE || "";
-      const agentHome = join(home, "Desktop", "personalAgents", agentId);
+      const agentHome = join(getPersonalAgentsDir(), agentId);
       const memoryDir = join(agentHome, "memory");
       mkdirSync(memoryDir, { recursive: true });
       mkdirSync(join(agentHome, "mcp-keys"), { recursive: true });
@@ -716,14 +717,16 @@ export function startWebUI(opts: WebUIOptions): void {
       // Write context.md
       writeFileSync(join(memoryDir, "context.md"), `# ${name} Context\n\nCreated ${new Date().toISOString().split("T")[0]}.\n`);
 
-      // Build config entry
+      // Build config entry — use ~ prefix for portability in config.json
+      const paDir = getPersonalAgentsDir();
+      const paDirTilde = paDir.startsWith(homedir()) ? paDir.replace(homedir(), "~") : paDir;
       const agentConfig: any = {
         name,
         description: description || `Agent ${name}`,
-        agentHome: `~/Desktop/personalAgents/${agentId}`,
+        agentHome: `${paDirTilde}/${agentId}`,
         workspace: workspace || "~",
-        claudeMd: `~/Desktop/personalAgents/${agentId}/CLAUDE.md`,
-        memoryDir: `~/Desktop/personalAgents/${agentId}/memory`,
+        claudeMd: `${paDirTilde}/${agentId}/CLAUDE.md`,
+        memoryDir: `${paDirTilde}/${agentId}/memory`,
         persistent: persistent ?? true,
         streaming: streaming ?? true,
         advancedMemory: advancedMemory ?? true,
@@ -775,10 +778,10 @@ export function startWebUI(opts: WebUIOptions): void {
       }
 
       // Update in-memory config
-      const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
-      agentConfig.workspace = resolveTilde(agentConfig.workspace);
-      agentConfig.claudeMd = resolveTilde(agentConfig.claudeMd);
-      agentConfig.memoryDir = resolveTilde(agentConfig.memoryDir);
+      const resolveTildeHere = (p: string) => p.startsWith("~") ? p.replace("~", homedir()) : p;
+      agentConfig.workspace = resolveTildeHere(agentConfig.workspace);
+      agentConfig.claudeMd = resolveTildeHere(agentConfig.claudeMd);
+      agentConfig.memoryDir = resolveTildeHere(agentConfig.memoryDir);
       agentConfig.timeout = 120_000;
       opts.config.agents[agentId] = agentConfig;
 
@@ -869,7 +872,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
       // Write CLAUDE.md if instructions provided
       if (instructions !== undefined) {
-        const home2 = process.env.HOME || process.env.USERPROFILE || "";
+        const home2 = homedir();
         const resolveTilde2 = (p: string) => p.startsWith("~") ? p.replace("~", home2) : p;
         let claudeMdPath: string;
         if (existing.claudeMd) {
@@ -879,7 +882,7 @@ export function startWebUI(opts: WebUIOptions): void {
         } else if (existing.memoryDir) {
           claudeMdPath = join(resolve(resolveTilde2(existing.memoryDir), ".."), "CLAUDE.md");
         } else {
-          claudeMdPath = join(home2, "Desktop", "personalAgents", agentId, "CLAUDE.md");
+          claudeMdPath = join(getPersonalAgentsDir(), agentId, "CLAUDE.md");
         }
         try {
           writeFileSync(claudeMdPath, instructions);
@@ -897,7 +900,7 @@ export function startWebUI(opts: WebUIOptions): void {
       }
 
       // Update in-memory config
-      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const home = homedir();
       const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
       const memAgent = { ...existing };
       memAgent.workspace = resolveTilde(memAgent.workspace || "~");
@@ -939,7 +942,7 @@ export function startWebUI(opts: WebUIOptions): void {
       }
 
       // Resolve agentHome for directory cleanup
-      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const home = homedir();
       const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
       const agentEntry = rawConfig.agents[agentId];
       let agentHome: string | null = null;
@@ -1003,7 +1006,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[req.params.id];
     if (!agent) return res.status(404).json({ error: "Agent not found" });
 
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
     const agentHome = agent.agentHome
       ? resolveTilde(agent.agentHome)
@@ -1040,7 +1043,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(400).json({ error: "Missing mcpName, envVar, or value" });
     }
 
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
     const agentHome = agent.agentHome
       ? resolveTilde(agent.agentHome)
@@ -1071,7 +1074,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[req.params.id];
     if (!agent) return res.status(404).json({ error: "Agent not found" });
 
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
     const agentHome = agent.agentHome
       ? resolveTilde(agent.agentHome)
@@ -1125,7 +1128,7 @@ export function startWebUI(opts: WebUIOptions): void {
       writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
 
       // Save the key to agent's mcp-keys
-      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const home = homedir();
       const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
       const agentHome = agent.agentHome
         ? resolveTilde(agent.agentHome)
@@ -1161,7 +1164,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[req.params.id];
     if (!agent) return res.status(404).json({ error: "Agent not found" });
 
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
     const agentHome = agent.agentHome
       ? resolveTilde(agent.agentHome)
@@ -1198,7 +1201,7 @@ export function startWebUI(opts: WebUIOptions): void {
       writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
 
       // Remove key file
-      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const home = homedir();
       const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
       const agentHome = agent.agentHome
         ? resolveTilde(agent.agentHome)
@@ -1263,7 +1266,7 @@ export function startWebUI(opts: WebUIOptions): void {
   // ─── Task helpers ──────────────────────────────────────────────────
 
   const resolveTildeGlobal = (p: string) => {
-    const h = process.env.HOME || process.env.USERPROFILE || "";
+    const h = homedir();
     return p.startsWith("~") ? p.replace("~", h) : p;
   };
 

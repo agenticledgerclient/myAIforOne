@@ -42,10 +42,19 @@ npm run build          # Compile TypeScript
 npm start              # Run directly
 ```
 
-### As a launchd service (auto-start on login)
+### As a launchd service on macOS (auto-start on login)
 ```bash
 launchctl load ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist
 launchctl unload ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist  # stop
+```
+
+### As a Task Scheduler service on Windows (auto-start on login)
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-service-windows.ps1    # install
+schtasks /Run /TN MyAgentGateway                                                # start now
+schtasks /End /TN MyAgentGateway                                                # stop
+schtasks /Query /TN MyAgentGateway                                              # status
+powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1  # uninstall
 ```
 
 ## Key Architecture

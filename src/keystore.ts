@@ -6,7 +6,9 @@
 
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
+import { getPersonalAgentsDir } from "./config.js";
 import { log } from "./logger.js";
 
 const ALGORITHM = "aes-256-gcm";
@@ -125,8 +127,7 @@ export function loadMcpKeysWithDecryption(
   masterPassword?: string,
 ): Record<string, string> {
   const vars: Record<string, string> = {};
-  const home = process.env.HOME || process.env.USERPROFILE || "";
-  const personalAgentsBase = join(home, "Desktop", "personalAgents");
+  const personalAgentsBase = getPersonalAgentsDir();
 
   // Level 3: Gateway data/mcp-keys/ (last resort)
   const gatewayVars = loadEnvFile(join(gatewayDir, `${mcpName}.env`), join(gatewayDir, `${mcpName}.env.enc`), masterPassword);

@@ -37,8 +37,11 @@ export class ImsgRpcClient {
         probe.on("error", (err) => reject(err));
       });
     } catch {
+      const hint = process.platform === "darwin"
+        ? `Install with: brew install steipete/tap/imsg`
+        : `iMessage is only available on macOS`;
       throw new Error(
-        `"${this.cliPath}" not found. Install with: brew install steipete/tap/imsg`
+        `"${this.cliPath}" not found. ${hint}`
       );
     }
 

@@ -1,76 +1,88 @@
-# MyAgent — Windows Service Installer
-# Installs the gateway as a Windows Service using node-windows
+# MyAgent — Windows Task Scheduler Installer
+# Registers the gateway to run at login via Windows Task Scheduler.
 # Run: powershell -ExecutionPolicy Bypass -File scripts/install-service-windows.ps1
+#
+# To uninstall: powershell -ExecutionPolicy Bypass -File scripts/uninstall-service-windows.ps1
 
 $ErrorActionPreference = "Stop"
+$TaskName = "MyAgentGateway"
 
 $projectDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $scriptPath = Join-Path $projectDir "dist\index.js"
-$nodePath = (Get-Command node).Source
 
 Write-Host ""
 Write-Host "MyAgent — Windows Service Installer" -ForegroundColor Cyan
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Check if node-windows is installed
-$nodeWindowsPath = Join-Path $projectDir "node_modules\node-windows"
-if (-not (Test-Path $nodeWindowsPath)) {
-    Write-Host "Installing node-windows..." -ForegroundColor Yellow
-    Set-Location $projectDir
-    npm install node-windows
+# 1. Check if Node.js is installed
+try {
+    $nodePath = (Get-Command node -ErrorAction Stop).Source
+    $nodeVersion = & node --version
+    Write-Host "[OK] Node.js found: $nodeVersion ($nodePath)" -ForegroundColor Green
+} catch {
+    Write-Host "[ERROR] Node.js is not installed or not in PATH." -ForegroundColor Red
+    Write-Host "        Install from https://nodejs.org/ and try again." -ForegroundColor Yellow
+    exit 1
 }
 
-# Check if dist/index.js exists
+# 2. Check if dist/index.js exists, build if not
 if (-not (Test-Path $scriptPath)) {
-    Write-Host "Building project first..." -ForegroundColor Yellow
+    Write-Host "[INFO] dist/index.js not found — building project..." -ForegroundColor Yellow
     Set-Location $projectDir
     npm run build
+    if (-not (Test-Path $scriptPath)) {
+        Write-Host "[ERROR] Build failed — dist/index.js still missing." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "[OK] Build complete." -ForegroundColor Green
+} else {
+    Write-Host "[OK] dist/index.js found." -ForegroundColor Green
 }
 
-# Create the service installer script
-$installerScript = @"
-const { Service } = require('node-windows');
-const path = require('path');
+# 3. Remove existing task if present
+$existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+if ($existing) {
+    Write-Host "[INFO] Removing existing '$TaskName' task..." -ForegroundColor Yellow
+    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+}
 
-const svc = new Service({
-  name: 'MyAgent Gateway',
-  description: 'Phone-accessible Claude Code agent gateway',
-  script: path.resolve('$($scriptPath.Replace('\', '\\'))'),
-  nodeOptions: [],
-  workingDirectory: path.resolve('$($projectDir.Replace('\', '\\'))'),
-  env: [
-    { name: 'HOME', value: process.env.USERPROFILE },
-    { name: 'USERPROFILE', value: process.env.USERPROFILE },
-  ]
-});
+# 4. Create the scheduled task
+Write-Host "[INFO] Creating Task Scheduler entry '$TaskName'..." -ForegroundColor Green
 
-svc.on('install', () => {
-  console.log('Service installed. Starting...');
-  svc.start();
-});
+$action = New-ScheduledTaskAction `
+    -Execute $nodePath `
+    -Argument "`"$scriptPath`"" `
+    -WorkingDirectory $projectDir
 
-svc.on('start', () => {
-  console.log('Service started successfully.');
-  console.log('Check Services (services.msc) for "MyAgent Gateway"');
-});
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 
-svc.on('error', (err) => {
-  console.error('Service error:', err);
-});
+$settings = New-ScheduledTaskSettingsSet `
+    -AllowStartIfOnBatteries `
+    -DontStopIfGoingOnBatteries `
+    -StartWhenAvailable `
+    -ExecutionTimeLimit ([TimeSpan]::Zero) `
+    -RestartCount 3 `
+    -RestartInterval (New-TimeSpan -Minutes 1)
 
-svc.install();
-"@
-
-$tempScript = Join-Path $projectDir "tmp\install-service.cjs"
-New-Item -ItemType Directory -Path (Join-Path $projectDir "tmp") -Force | Out-Null
-Set-Content -Path $tempScript -Value $installerScript
-
-Write-Host "Installing Windows Service..." -ForegroundColor Green
-Set-Location $projectDir
-node $tempScript
+Register-ScheduledTask `
+    -TaskName $TaskName `
+    -Action $action `
+    -Trigger $trigger `
+    -Settings $settings `
+    -Description "MyAgent — Phone-accessible Claude Code agent gateway" `
+    -RunLevel Highest | Out-Null
 
 Write-Host ""
-Write-Host "Done! The service 'MyAgent Gateway' should now be running." -ForegroundColor Green
-Write-Host "Manage it via: services.msc" -ForegroundColor Gray
+Write-Host "===== SUCCESS =====" -ForegroundColor Green
+Write-Host "Task '$TaskName' registered to run at login." -ForegroundColor Green
 Write-Host ""
+Write-Host "Commands:" -ForegroundColor Cyan
+Write-Host "  Start now:   schtasks /Run /TN $TaskName" -ForegroundColor Gray
+Write-Host "  Stop:        schtasks /End /TN $TaskName" -ForegroundColor Gray
+Write-Host "  Status:      schtasks /Query /TN $TaskName" -ForegroundColor Gray
+Write-Host "  Uninstall:   powershell -File scripts\uninstall-service-windows.ps1" -ForegroundColor Gray
+Write-Host ""
+
+# 5. Show status
+schtasks /Query /TN $TaskName /FO LIST

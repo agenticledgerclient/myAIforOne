@@ -5,9 +5,10 @@
  */
 
 import { execSync } from "node:child_process";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
-const DB_PATH = join(process.env.HOME || "", "Library", "Messages", "chat.db");
+const DB_PATH = join(homedir(), "Library", "Messages", "chat.db");
 
 interface DBMessage {
   rowid: number;

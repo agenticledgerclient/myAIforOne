@@ -41,7 +41,7 @@ async function main(): Promise<void> {
     switch (channelCfg.driver) {
       case "imessage":
         if (!isMac) {
-          log.warn("iMessage driver is macOS-only, skipping on this platform");
+          log.warn("iMessage channel is macOS-only and has been disabled on this platform. Use Telegram, Slack, or Discord instead.");
           continue;
         }
         // Dynamic import — imsg CLI only exists on macOS

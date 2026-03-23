@@ -2,6 +2,8 @@
   "service": {
     "logLevel": "debug",
     "logFile": "./logs/service.log",
+    "_comment_personalAgentsDir": "Override where agent home dirs live (default: ~/Desktop/personalAgents)",
+    "personalAgentsDir": "~/Desktop/personalAgents",
     "webUI": {
       "enabled": true,
       "port": 4888,

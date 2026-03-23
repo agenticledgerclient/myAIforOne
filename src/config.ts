@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 import type { LogLevel } from "./logger.js";
 
@@ -109,6 +110,7 @@ export interface ServiceConfig {
   logLevel: LogLevel;
   logFile?: string;
   pairingCode?: string;
+  personalAgentsDir?: string;  // Override path to personalAgents dir (default: ~/Desktop/personalAgents)
   webUI?: WebUIConfig;
   claudeAccounts?: Record<string, string>;  // name → config dir path, e.g. {"main": "~/.claude"}
 }
@@ -153,7 +155,7 @@ export function loadConfig(configPath: string): AppConfig {
     }
 
     // Resolve ~ in paths (works on macOS and Windows)
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = homedir();
     const resolveTilde = (p: string) =>
       p.startsWith("~") ? p.replace("~", home) : p;
     agent.workspace = resolveTilde(agent.workspace);
@@ -211,5 +213,24 @@ export function loadConfig(configPath: string): AppConfig {
   config.service.logLevel = config.service.logLevel ?? "info";
   config.defaultAgent = config.defaultAgent ?? null;
 
+  // Resolve personalAgentsDir (expand ~)
+  if (config.service.personalAgentsDir) {
+    const home = homedir();
+    config.service.personalAgentsDir = config.service.personalAgentsDir.startsWith("~")
+      ? config.service.personalAgentsDir.replace("~", home)
+      : config.service.personalAgentsDir;
+  }
+  _personalAgentsDir = config.service.personalAgentsDir || resolve(homedir(), "Desktop", "personalAgents");
+
   return config;
+}
+
+/** Resolved personalAgents directory — set during config loading, used by executor and keystore */
+let _personalAgentsDir: string | null = null;
+
+/** Resolve the personalAgents directory from config, falling back to ~/Desktop/personalAgents */
+export function getPersonalAgentsDir(config?: AppConfig): string {
+  if (_personalAgentsDir) return _personalAgentsDir;
+  if (config) return config.service.personalAgentsDir || resolve(homedir(), "Desktop", "personalAgents");
+  return resolve(homedir(), "Desktop", "personalAgents");
 }

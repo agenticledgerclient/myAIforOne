@@ -1,36 +1,23 @@
-# MyAgent — Windows Service Uninstaller
+# MyAgent — Windows Task Scheduler Uninstaller
 # Run: powershell -ExecutionPolicy Bypass -File scripts/uninstall-service-windows.ps1
 
 $ErrorActionPreference = "Stop"
-
-$projectDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$scriptPath = Join-Path $projectDir "dist\index.js"
+$TaskName = "MyAgentGateway"
 
 Write-Host ""
 Write-Host "MyAgent — Uninstalling Windows Service" -ForegroundColor Yellow
 Write-Host ""
 
-$uninstallerScript = @"
-const { Service } = require('node-windows');
-const path = require('path');
+$existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+if ($existing) {
+    # Stop it if running
+    schtasks /End /TN $TaskName 2>$null
+    Start-Sleep -Seconds 1
 
-const svc = new Service({
-  name: 'MyAgent Gateway',
-  script: path.resolve('$($scriptPath.Replace('\', '\\'))'),
-});
+    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+    Write-Host "[OK] Task '$TaskName' has been removed." -ForegroundColor Green
+} else {
+    Write-Host "[INFO] Task '$TaskName' not found — nothing to remove." -ForegroundColor Gray
+}
 
-svc.on('uninstall', () => {
-  console.log('Service uninstalled.');
-});
-
-svc.uninstall();
-"@
-
-$tempScript = Join-Path $projectDir "tmp\uninstall-service.cjs"
-New-Item -ItemType Directory -Path (Join-Path $projectDir "tmp") -Force | Out-Null
-Set-Content -Path $tempScript -Value $uninstallerScript
-
-Set-Location $projectDir
-node $tempScript
-
-Write-Host "Done." -ForegroundColor Green
+Write-Host ""
