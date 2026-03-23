@@ -24,6 +24,8 @@ interface WebUIOptions {
 // ─── Job Store (event buffer for reconnectable streaming) ────────────
 interface StreamJob {
   events: Array<{ idx: number; data: string }>;
+  rawLines: string[]; // raw stdout/stderr lines (unparsed)
+  rawListeners: Set<(idx: number) => void>;
   done: boolean;
   stopped: boolean;
   createdAt: number;
@@ -322,7 +324,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
     // Create job
     const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const job: StreamJob = { events: [], done: false, stopped: false, createdAt: Date.now(), listeners: new Set() };
+    const job: StreamJob = { events: [], rawLines: [], rawListeners: new Set(), done: false, stopped: false, createdAt: Date.now(), listeners: new Set() };
     jobStore.set(jobId, job);
 
     const pushEvent = (data: string) => {
@@ -355,9 +357,15 @@ export function startWebUI(opts: WebUIOptions): void {
       route: effectiveAgent.routes[0],
     };
 
+    const pushRawLine = (line: string) => {
+      const idx = job.rawLines.length;
+      job.rawLines.push(line);
+      for (const cb of job.rawListeners) cb(idx);
+    };
+
     (async () => {
       try {
-        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
+        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, pushRawLine)) {
           if (job.stopped) break;
           pushEvent(JSON.stringify(event));
         }
@@ -453,6 +461,71 @@ export function startWebUI(opts: WebUIOptions): void {
 
     log.info(`[WebUI] Job ${req.params.jobId} stopped by user`);
     res.json({ ok: true });
+  });
+
+  // ─── API: Raw log stream for a job (tail -f style) ──────────────
+  app.get("/api/chat/jobs/:jobId/raw", (req, res) => {
+    const job = jobStore.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: "Job not found" });
+
+    const after = parseInt(req.query.after as string) || 0;
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.flushHeaders();
+    if (res.socket) res.socket.setNoDelay(true);
+
+    let closed = false;
+    req.on("close", () => { closed = true; });
+
+    // Send buffered raw lines
+    for (let i = after; i < job.rawLines.length; i++) {
+      if (closed) return;
+      res.write(`data: ${job.rawLines[i]}\n\n`);
+    }
+
+    if (job.done && after >= job.rawLines.length) {
+      res.write(`data: [DONE]\n\n`);
+      res.end();
+      return;
+    }
+
+    const keepalive = setInterval(() => {
+      if (closed) { clearInterval(keepalive); return; }
+      try { res.write(`: keepalive\n\n`); } catch { closed = true; }
+    }, 15_000);
+
+    const onRaw = (idx: number) => {
+      if (closed) { cleanup(); return; }
+      try {
+        res.write(`data: ${job.rawLines[idx]}\n\n`);
+      } catch { closed = true; cleanup(); }
+    };
+
+    const cleanup = () => {
+      clearInterval(keepalive);
+      job.rawListeners.delete(onRaw);
+    };
+
+    job.rawListeners.add(onRaw);
+    req.on("close", cleanup);
+
+    // If job finishes while connected, send done and close
+    const checkDone = () => {
+      if (job.done && !closed) {
+        res.write(`data: [DONE]\n\n`);
+        cleanup();
+        res.end();
+      }
+    };
+    // Piggyback on the regular event listener to detect done
+    const onEvent = () => { if (job.done) checkDone(); };
+    job.listeners.add(onEvent);
+    req.on("close", () => job.listeners.delete(onEvent));
   });
 
   // ─── API: Upload file ────────────────────────────────────────────

@@ -762,6 +762,26 @@ html,body{
 }
 .stop-btn:hover{filter:brightness(1.1);transform:scale(1.05);background:#ef4444}
 
+/* ─── Raw Logs Drawer ────────────────────────────────────────── */
+.raw-logs-btn{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:all .2s;flex-shrink:0;
+}
+.raw-logs-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.raw-logs-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(139,92,246,0.1)}
+.raw-logs-drawer{
+  display:none;height:200px;background:#0a0a0a;border-top:1px solid var(--border-dim);
+  overflow:auto;font-family:var(--font-mono);font-size:11px;line-height:1.5;
+  color:#8b8b8b;padding:8px 12px;
+}
+.raw-logs-drawer.open{display:block}
+.raw-logs-drawer pre{margin:0;white-space:pre-wrap;word-break:break-all}
+.raw-logs-drawer .log-line{opacity:0.7}
+.raw-logs-drawer .log-line:last-child{opacity:1}
+.raw-logs-drawer .log-stderr{color:#ef4444}
+
 /* ─── Queue Button variant ───────────────────────────────────── */
 .send-btn.queue-mode{
   background:var(--amber);
@@ -950,6 +970,66 @@ let accountOverrides = {}; // agentId -> account name (in-memory only)
 // Canvas state (ephemeral, never persisted)
 let canvasOpen = false;
 let canvasFile = null; // {path, name, ext, content, type}
+let rawLogsOpen = false;
+let rawLogsReader = null; // active fetch reader for raw stream
+
+function toggleRawLogs() {
+  rawLogsOpen = !rawLogsOpen;
+  const drawer = document.getElementById('rawLogsDrawer');
+  const btn = document.getElementById('rawLogsBtn');
+  if (drawer) drawer.classList.toggle('open', rawLogsOpen);
+  if (btn) btn.classList.toggle('active', rawLogsOpen);
+  if (rawLogsOpen) connectRawLogs();
+}
+
+function connectRawLogs() {
+  const ss = getStream(selectedAgent);
+  if (!ss.jobId) {
+    const el = document.getElementById('rawLogsContent');
+    if (el) el.textContent = 'No active job. Send a message to start streaming logs.\n';
+    return;
+  }
+  streamRawLogs(ss.jobId);
+}
+
+async function streamRawLogs(jobId) {
+  const el = document.getElementById('rawLogsContent');
+  if (!el) return;
+  el.textContent = '';
+
+  try {
+    const res = await fetch(`/api/chat/jobs/${jobId}/raw?after=0`);
+    const reader = res.body.getReader();
+    rawLogsReader = reader;
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') {
+          el.textContent += '\n--- Job complete ---\n';
+          break;
+        }
+        const span = document.createElement('span');
+        span.className = data.startsWith('[stderr]') ? 'log-line log-stderr' : 'log-line';
+        span.textContent = data + '\n';
+        el.appendChild(span);
+        // Auto-scroll
+        const drawer = document.getElementById('rawLogsDrawer');
+        if (drawer) drawer.scrollTop = drawer.scrollHeight;
+      }
+    }
+  } catch { /* connection closed */ }
+}
 
 // ─── Theme ─────────────────────────────────────────────────────
 function toggleTheme() {
@@ -1095,6 +1175,8 @@ async function sendMessage(agentId, text) {
       ss.jobId = jobId;
       // Re-render input area to show Stop button and Queue mode
       if (isViewing()) updateInputButtons(ss);
+      // Auto-connect raw logs if drawer is open
+      if (rawLogsOpen) streamRawLogs(jobId);
 
       // Step 2: Stream events with auto-reconnect
       let lastEventId = 0;
@@ -1383,12 +1465,14 @@ function renderChat() {
         <div class="chat-input-box">
           <button class="clip-btn" id="clipBtn" onclick="toggleFileZone()" title="Attach files">📎</button>
           <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
+          <button class="raw-logs-btn${rawLogsOpen ? ' active' : ''}" id="rawLogsBtn" onclick="toggleRawLogs()" title="Raw logs (live feed)">&#x2630;</button>
           <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
             onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
           ${ss.jobId ? `<button class="stop-btn" onclick="stopStreaming()" title="Stop (Esc)">&#x25A0;</button>` : ''}
           <button class="send-btn${ss.jobId ? ' queue-mode' : ''}" id="sendBtn" onclick="doSend()">${ss.jobId ? 'Queue' : '→'}</button>
         </div>
         <div id="queueContainer"></div>
+        <div class="raw-logs-drawer${rawLogsOpen ? ' open' : ''}" id="rawLogsDrawer"><pre id="rawLogsContent"></pre></div>
       </div>
     `;
     setTimeout(() => {

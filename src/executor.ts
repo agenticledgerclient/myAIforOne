@@ -1101,6 +1101,7 @@ export async function* executeAgentStreaming(
   baseDir: string,
   mcpRegistry?: Record<string, McpServerConfig>,
   claudeAccounts?: Record<string, string>,
+  onRawLine?: (line: string) => void,
 ): AsyncGenerator<StreamEvent> {
   const { agentId, agentConfig } = route;
   const workspace = resolve(agentConfig.workspace);
@@ -1479,9 +1480,18 @@ export async function* executeAgentStreaming(
 
     for (const line of lines) {
       if (!line.trim()) continue;
+      if (onRawLine) onRawLine(line);
       for (const event of processLine(line)) {
         pushEvent(event);
       }
+    }
+  });
+
+  // Also capture stderr as raw lines
+  proc.stderr.on("data", (data: Buffer) => {
+    const text = data.toString();
+    for (const line of text.split("\n")) {
+      if (line.trim() && onRawLine) onRawLine(`[stderr] ${line}`);
     }
   });
 
