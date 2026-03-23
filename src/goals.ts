@@ -93,6 +93,103 @@ export function buildGoalPrompt(goal: GoalConfig, budgetRemaining: number, budge
   return lines.join("\n");
 }
 
+// ─── Execute a single goal (used by cron and trigger endpoint) ───────
+
+export async function executeGoal(
+  agentId: string,
+  agent: AppConfig["agents"][string],
+  goal: GoalConfig,
+  baseDir: string,
+  driverMap: Map<string, ChannelDriver>,
+  mcpRegistry?: Record<string, McpServerConfig>,
+  claudeAccounts?: Record<string, string>,
+): Promise<{ status: string; response: string }> {
+  const agentHome = agent.agentHome || resolve(baseDir, agent.memoryDir, "..");
+
+  // Check budget
+  const dailyLimit = goal.budget?.maxDailyUsd ?? Infinity;
+  const budget = readBudget(agentHome, dailyLimit);
+
+  if (dailyLimit !== Infinity && isBudgetExhausted(budget)) {
+    logGoalExecution(agentHome, goal.id, "skipped-budget", {
+      spent: budget.spent,
+      limit: budget.limit,
+    });
+    return { status: "skipped-budget", response: `Budget exhausted ($${budget.spent.toFixed(2)}/$${budget.limit.toFixed(2)})` };
+  }
+
+  // Build the goal prompt
+  const budgetRemaining = dailyLimit === Infinity
+    ? Infinity
+    : Math.max(0, dailyLimit - budget.spent);
+  const prompt = buildGoalPrompt(goal, budgetRemaining, dailyLimit);
+
+  // Build synthetic message
+  const syntheticMsg: InboundMessage = {
+    id: `goal-${goal.id}-${Date.now()}`,
+    channel: "goals",
+    chatId: `goal-${goal.id}`,
+    chatType: "group",
+    sender: "goals-runner",
+    senderName: "Autonomous Goal",
+    text: prompt,
+    timestamp: Date.now(),
+    isFromMe: false,
+    isGroup: true,
+    raw: { type: "goal", goalId: goal.id },
+  };
+
+  const route: ResolvedRoute = {
+    agentId,
+    agentConfig: agent,
+    route: agent.routes[0],
+  };
+
+  // Execute the agent
+  const response = await executeAgent(route, syntheticMsg, baseDir, mcpRegistry, claudeAccounts);
+
+  // Track cost
+  let cost = 0;
+  try {
+    const parsed = JSON.parse(response);
+    if (parsed.total_cost_usd) cost = parsed.total_cost_usd;
+  } catch { /* not JSON */ }
+
+  // Update budget
+  if (dailyLimit !== Infinity) {
+    budget.spent += cost;
+    budget.executions += 1;
+    writeBudget(agentHome, budget);
+  }
+
+  // Log execution
+  logGoalExecution(agentHome, goal.id, "executed", {
+    cost,
+    responseLength: response.length,
+  });
+
+  // Send report to channel(s) if configured
+  if (goal.reportTo) {
+    const targets = Array.isArray(goal.reportTo) ? goal.reportTo : [goal.reportTo];
+    for (const target of targets) {
+      const [channelName, ...chatIdParts] = target.split(":");
+      const chatId = chatIdParts.join(":");
+      const driver = driverMap.get(channelName);
+      if (driver && chatId) {
+        try {
+          const report = `[Goal: ${goal.id}]\n${response}`;
+          await driver.send({ text: report, chatId });
+        } catch (err) {
+          log.error(`Failed to send goal report for ${agentId}/${goal.id} to ${target}: ${err}`);
+        }
+      }
+    }
+  }
+
+  log.info(`Goal completed: ${agentId}/${goal.id} (${response.length} chars)`);
+  return { status: "executed", response };
+}
+
 // ─── Goals runner ────────────────────────────────────────────────────
 
 const activeTasks: cron.ScheduledTask[] = [];
@@ -120,94 +217,8 @@ export function startGoals(
 
       const task = cron.schedule(goal.heartbeat, async () => {
         log.info(`Goal heartbeat fired: ${agentId}/${goal.id}`);
-
         try {
-          // Check budget
-          const dailyLimit = goal.budget?.maxDailyUsd ?? Infinity;
-          const budget = readBudget(agentHome, dailyLimit);
-
-          if (dailyLimit !== Infinity && isBudgetExhausted(budget)) {
-            log.info(`Budget exhausted for goal ${agentId}/${goal.id} ($${budget.spent.toFixed(2)}/$${budget.limit.toFixed(2)})`);
-            logGoalExecution(agentHome, goal.id, "skipped-budget", {
-              spent: budget.spent,
-              limit: budget.limit,
-            });
-            return;
-          }
-
-          // Build the goal prompt
-          const budgetRemaining = dailyLimit === Infinity
-            ? Infinity
-            : Math.max(0, dailyLimit - budget.spent);
-          const prompt = buildGoalPrompt(goal, budgetRemaining, dailyLimit);
-
-          // Build synthetic message
-          const syntheticMsg: InboundMessage = {
-            id: `goal-${goal.id}-${Date.now()}`,
-            channel: "goals",
-            chatId: `goal-${goal.id}`,
-            chatType: "group",
-            sender: "goals-runner",
-            senderName: "Autonomous Goal",
-            text: prompt,
-            timestamp: Date.now(),
-            isFromMe: false,
-            isGroup: true,
-            raw: { type: "goal", goalId: goal.id },
-          };
-
-          const route: ResolvedRoute = {
-            agentId,
-            agentConfig: agent,
-            route: agent.routes[0],
-          };
-
-          // Execute the agent
-          const response = await executeAgent(route, syntheticMsg, baseDir, mcpRegistry, config.service.claudeAccounts);
-
-          // Track cost — try to parse the response for cost info
-          // The executor returns plain text for non-persistent agents,
-          // but we can check the JSON output for persistent ones
-          let cost = 0;
-          try {
-            // Try parsing as JSON in case it's a raw JSON response
-            const parsed = JSON.parse(response);
-            if (parsed.total_cost_usd) cost = parsed.total_cost_usd;
-          } catch {
-            // Not JSON — cost tracking relies on budget file updates
-          }
-
-          // Update budget
-          if (dailyLimit !== Infinity) {
-            budget.spent += cost;
-            budget.executions += 1;
-            writeBudget(agentHome, budget);
-          }
-
-          // Log execution
-          logGoalExecution(agentHome, goal.id, "executed", {
-            cost,
-            responseLength: response.length,
-          });
-
-          // Send report to channel if configured
-          if (goal.reportTo) {
-            const [channelName, ...chatIdParts] = goal.reportTo.split(":");
-            const chatId = chatIdParts.join(":");
-            const driver = driverMap.get(channelName);
-            if (driver && chatId) {
-              try {
-                const report = `[Goal: ${goal.id}]\n${response}`;
-                await driver.send({ text: report, chatId });
-              } catch (err) {
-                log.error(`Failed to send goal report for ${agentId}/${goal.id}: ${err}`);
-              }
-            } else {
-              log.warn(`Goal ${agentId}/${goal.id} reportTo channel "${channelName}" not found`);
-            }
-          }
-
-          log.info(`Goal completed: ${agentId}/${goal.id} (${response.length} chars)`);
+          await executeGoal(agentId, agent, goal, baseDir, driverMap, mcpRegistry, config.service.claudeAccounts);
         } catch (err) {
           log.error(`Goal execution failed for ${agentId}/${goal.id}: ${err}`);
           logGoalExecution(agentHome, goal.id, "error", { error: String(err) });

@@ -365,7 +365,8 @@ async function executeParallel(
       args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
     }
 
-    args.push("--permission-mode", "acceptEdits");
+    // Use bypassPermissions when agent has MCPs (headless can't approve MCP tool prompts)
+    args.push("--permission-mode", agentConfig.mcps?.length ? "bypassPermissions" : "acceptEdits");
     return args;
   };
 
@@ -497,8 +498,28 @@ function buildMcpConfigFile(
   const home = process.env.HOME || process.env.USERPROFILE || "";
   const mcpServers: Record<string, any> = {};
 
+  // Discover named connection key files for auto-expansion
+  // e.g., gmail-agenticledger.env, gmail-bst.env under the agent's mcp-keys/
+  function discoverNamedConnections(baseMcpName: string): string[] {
+    const connections: string[] = [];
+    if (!agentMemoryDir) return connections;
+    const keysDir = join(agentMemoryDir, "..", "mcp-keys");
+    try {
+      const files = readdirSync(keysDir);
+      for (const f of files) {
+        if (f.startsWith(baseMcpName + "-") && f.endsWith(".env")) {
+          const instanceName = f.replace(".env", "");
+          connections.push(instanceName);
+        }
+      }
+    } catch { /* dir doesn't exist */ }
+    return connections;
+  }
+
   for (const name of mcpNames) {
     const def = mcpRegistry[name];
+    if (!def) continue;
+
     if (def.type === "stdio") {
       const args = (def.args || []).map((a) =>
         a.startsWith("~") ? a.replace("~", home) : a,
@@ -529,18 +550,36 @@ function buildMcpConfigFile(
       const fileEnv = loadMcpKeys(baseDir, name, agentMemoryDir);
       for (const [hk, hv] of Object.entries(headers)) {
         if (typeof hv === "string" && hv.includes("${")) {
-          // Replace ${VAR_NAME} with value from .env file
           headers[hk] = hv.replace(/\$\{(\w+)\}/g, (_, varName) => {
             return fileEnv[varName] || process.env[varName] || "";
           });
         }
       }
 
-      mcpServers[name] = {
-        type: def.type,
-        url: httpDef.url,
-        headers,
-      };
+      // Auto-expand named connections: create additional MCP server entries
+      // e.g., gmail-agenticledger, gmail-bst each get their own server entry
+      // using the same URL but with their specific Bearer token
+      const namedConns = discoverNamedConnections(name);
+
+      // Only create the base entry if there are no named connections
+      // (otherwise the base has no token and just fails)
+      if (namedConns.length === 0) {
+        mcpServers[name] = {
+          type: def.type,
+          url: httpDef.url,
+          headers,
+        };
+      }
+      for (const instanceName of namedConns) {
+        const instanceEnv = loadMcpKeys(baseDir, instanceName, agentMemoryDir);
+        // Use the first key value directly as the Bearer token
+        const tokenValue = Object.values(instanceEnv)[0] || "";
+        mcpServers[instanceName] = {
+          type: def.type,
+          url: httpDef.url,
+          headers: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
+        };
+      }
     }
   }
 
@@ -732,6 +771,28 @@ export async function executeAgent(
     systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
   }
 
+  // ── Append MCP account mapping (multi-account) ──
+  {
+    const agentHome = agentConfig.agentHome || resolve(memoryDir, "..");
+    const resolvedHome = agentHome.startsWith("~") ? agentHome.replace("~", home) : agentHome;
+    const accountsPath = join(resolvedHome, "mcp-accounts.json");
+    if (existsSync(accountsPath)) {
+      try {
+        const accounts = JSON.parse(readFileSync(accountsPath, "utf-8")) as Record<string, { label: string; baseMcp: string; description?: string }>;
+        if (Object.keys(accounts).length > 0) {
+          const lines = ["\n\n## MCP Account Mapping", "You have multiple accounts connected for some services. Use the correct MCP instance based on which account the user is asking about.\n"];
+          lines.push("| MCP Instance | Label | Service | Description |");
+          lines.push("|---|---|---|---|");
+          for (const [name, info] of Object.entries(accounts)) {
+            lines.push(`| ${name} | ${info.label} | ${info.baseMcp} | ${info.description || ""} |`);
+          }
+          lines.push("\nWhen the user asks about a specific account (e.g., \"check my work email\"), use the matching MCP instance. If unclear, check all connected accounts.");
+          systemPrompt += lines.join("\n");
+        }
+      } catch { /* ignore */ }
+    }
+  }
+
   // ── Append active tasks context ──
   {
     const agentHomeForTasks = agentConfig.agentHome || resolve(memoryDir, "..");
@@ -886,9 +947,9 @@ export async function executeAgent(
     log.debug(`MCP config for ${agentId}: ${mcpConfigPath} (servers: ${agentConfig.mcps.join(", ")})`);
   }
 
-  // Permission mode for persistent agents (skip permission prompts)
+  // Permission mode: bypassPermissions when agent has MCPs (headless can't approve tool prompts)
   if (isPersistent) {
-    args.push("--permission-mode", "acceptEdits");
+    args.push("--permission-mode", agentConfig.mcps?.length ? "bypassPermissions" : "acceptEdits");
   }
 
   // ── Spawn claude ──
@@ -1185,6 +1246,28 @@ export async function* executeAgentStreaming(
     systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
   }
 
+  // ── Append MCP account mapping (multi-account) ──
+  {
+    const agentHome = agentConfig.agentHome || resolve(memoryDir, "..");
+    const resolvedHome = agentHome.startsWith("~") ? agentHome.replace("~", home) : agentHome;
+    const accountsPath = join(resolvedHome, "mcp-accounts.json");
+    if (existsSync(accountsPath)) {
+      try {
+        const accounts = JSON.parse(readFileSync(accountsPath, "utf-8")) as Record<string, { label: string; baseMcp: string; description?: string }>;
+        if (Object.keys(accounts).length > 0) {
+          const lines = ["\n\n## MCP Account Mapping", "You have multiple accounts connected for some services. Use the correct MCP instance based on which account the user is asking about.\n"];
+          lines.push("| MCP Instance | Label | Service | Description |");
+          lines.push("|---|---|---|---|");
+          for (const [name, info] of Object.entries(accounts)) {
+            lines.push(`| ${name} | ${info.label} | ${info.baseMcp} | ${info.description || ""} |`);
+          }
+          lines.push("\nWhen the user asks about a specific account (e.g., \"check my work email\"), use the matching MCP instance. If unclear, check all connected accounts.");
+          systemPrompt += lines.join("\n");
+        }
+      } catch { /* ignore */ }
+    }
+  }
+
   // ── Append active tasks context ──
   {
     const agentHomeForTasks = agentConfig.agentHome || resolve(memoryDir, "..");
@@ -1276,7 +1359,7 @@ export async function* executeAgentStreaming(
     args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
   }
 
-  if (isPersistent) args.push("--permission-mode", "acceptEdits");
+  if (isPersistent) args.push("--permission-mode", agentConfig.mcps?.length ? "bypassPermissions" : "acceptEdits");
 
   const timeout = agentConfig.timeout ?? 120_000;
 

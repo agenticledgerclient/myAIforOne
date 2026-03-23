@@ -1,11 +1,12 @@
 import express from "express";
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlinkSync } from "node:fs";
 import { join, resolve, basename, extname, relative } from "node:path";
 import { execSync } from "node:child_process";
 import type { AppConfig } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { executeAgent, executeAgentStreaming } from "./executor.js";
+import { executeGoal } from "./goals.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
 
@@ -15,6 +16,7 @@ interface WebUIOptions {
   port: number;
   webhookSecret?: string;
   onWebhookMessage?: (agentId: string, text: string, channel: string, chatId: string) => Promise<void>;
+  driverMap?: Map<string, import("./channels/types.js").ChannelDriver>;
 }
 
 // ─── Job Store (event buffer for reconnectable streaming) ────────────
@@ -39,10 +41,11 @@ export function startWebUI(opts: WebUIOptions): void {
   const app = express();
   app.use(express.json());
 
-  // ─── Serve the UI HTML ────────────────────────────────────────────
+  // ─── Serve the UI HTML (no-cache to always get latest) ──────────
   app.get("/ui", (_req, res) => {
     const htmlPath = join(opts.baseDir, "public", "index.html");
     if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("UI not found. Create public/index.html");
@@ -981,6 +984,280 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/api/mcps", (_req, res) => {
     const mcps = Object.keys(opts.config.mcps || {});
     res.json({ mcps });
+  });
+
+  // ─── API: MCP catalog (for connect UI) ─────────────────────────────
+  app.get("/api/mcp-catalog", (_req, res) => {
+    const catalogPath = join(opts.baseDir, "mcp-catalog.json");
+    if (!existsSync(catalogPath)) return res.json({ mcps: {} });
+    try {
+      const catalog = JSON.parse(readFileSync(catalogPath, "utf-8"));
+      res.json({ mcps: catalog.mcps || {} });
+    } catch {
+      res.json({ mcps: {} });
+    }
+  });
+
+  // ─── API: Agent MCP keys — list configured (names only, not values) ──
+  app.get("/api/agents/:id/mcp-keys", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const agentHome = agent.agentHome
+      ? resolveTilde(agent.agentHome)
+      : resolve(opts.baseDir, agent.memoryDir, "..");
+    const keysDir = join(agentHome, "mcp-keys");
+
+    const configured: Record<string, string[]> = {};
+    if (existsSync(keysDir)) {
+      try {
+        const files = readdirSync(keysDir);
+        for (const file of files) {
+          if (!file.endsWith(".env")) continue;
+          const mcpName = file.replace(".env", "");
+          try {
+            const content = readFileSync(join(keysDir, file), "utf-8");
+            const keys = content.split("\n")
+              .filter(l => l.includes("=") && !l.startsWith("#"))
+              .map(l => l.split("=")[0].trim());
+            configured[mcpName] = keys;
+          } catch { /* skip */ }
+        }
+      } catch { /* skip */ }
+    }
+    res.json({ configured });
+  });
+
+  // ─── API: Agent MCP keys — save a key ─────────────────────────────
+  app.post("/api/agents/:id/mcp-keys", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const { mcpName, envVar, value } = req.body as { mcpName?: string; envVar?: string; value?: string };
+    if (!mcpName || !envVar || !value) {
+      return res.status(400).json({ error: "Missing mcpName, envVar, or value" });
+    }
+
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const agentHome = agent.agentHome
+      ? resolveTilde(agent.agentHome)
+      : resolve(opts.baseDir, agent.memoryDir, "..");
+    const keysDir = join(agentHome, "mcp-keys");
+    mkdirSync(keysDir, { recursive: true });
+
+    const envFile = join(keysDir, `${mcpName}.env`);
+    // Read existing content and update or append the key
+    let lines: string[] = [];
+    if (existsSync(envFile)) {
+      lines = readFileSync(envFile, "utf-8").split("\n");
+    }
+    const idx = lines.findIndex(l => l.startsWith(`${envVar}=`));
+    if (idx >= 0) {
+      lines[idx] = `${envVar}=${value}`;
+    } else {
+      lines.push(`${envVar}=${value}`);
+    }
+    writeFileSync(envFile, lines.filter(l => l.trim()).join("\n") + "\n");
+
+    log.info(`[MCP Keys] Saved ${envVar} for ${req.params.id} → ${mcpName}.env`);
+    res.json({ ok: true, mcpName, envVar });
+  });
+
+  // ─── API: Agent MCP keys — delete a key ───────────────────────────
+  app.delete("/api/agents/:id/mcp-keys/:mcpName", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const agentHome = agent.agentHome
+      ? resolveTilde(agent.agentHome)
+      : resolve(opts.baseDir, agent.memoryDir, "..");
+    const envFile = join(agentHome, "mcp-keys", `${req.params.mcpName}.env`);
+
+    if (existsSync(envFile)) {
+      unlinkSync(envFile);
+      log.info(`[MCP Keys] Deleted ${req.params.mcpName}.env for ${req.params.id}`);
+    }
+    res.json({ ok: true });
+  });
+
+  // ─── API: Named MCP connections (multi-account) ─────────────────
+  // Creates a named instance of an MCP (e.g., "gmail-work") pointing to the same server
+  // but with different credentials. Also stores label metadata for agent context.
+
+  app.post("/api/agents/:id/mcp-connections", async (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const { baseMcp, label, envVar, value, description } = req.body as {
+      baseMcp?: string; label?: string; envVar?: string; value?: string; description?: string;
+    };
+    if (!baseMcp || !label || !envVar || !value) {
+      return res.status(400).json({ error: "Missing baseMcp, label, envVar, or value" });
+    }
+
+    // Generate instance name from base + label: "gmail" + "Work" → "gmail-work"
+    const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const instanceName = `${baseMcp}-${slug}`;
+
+    // Check if the base MCP exists in registry
+    const mcpRegistry = opts.config.mcps || {};
+    const baseMcpConfig = mcpRegistry[baseMcp];
+    if (!baseMcpConfig) {
+      return res.status(400).json({ error: `Base MCP "${baseMcp}" not found in registry` });
+    }
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      // Ensure the base MCP is in the agent's mcps array (don't add named instance)
+      if (!rawConfig.agents[agentId].mcps) rawConfig.agents[agentId].mcps = [];
+      if (!rawConfig.agents[agentId].mcps.includes(baseMcp)) {
+        rawConfig.agents[agentId].mcps.push(baseMcp);
+      }
+
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Save the key to agent's mcp-keys
+      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+      const agentHome = agent.agentHome
+        ? resolveTilde(agent.agentHome)
+        : resolve(opts.baseDir, agent.memoryDir, "..");
+      const keysDir = join(agentHome, "mcp-keys");
+      mkdirSync(keysDir, { recursive: true });
+      writeFileSync(join(keysDir, `${instanceName}.env`), `${envVar}=${value}\n`);
+
+      // Save metadata (label + description) for agent context injection
+      const accountsPath = join(agentHome, "mcp-accounts.json");
+      let accounts: Record<string, { label: string; baseMcp: string; description?: string }> = {};
+      if (existsSync(accountsPath)) {
+        try { accounts = JSON.parse(readFileSync(accountsPath, "utf-8")); } catch { /* ignore */ }
+      }
+      accounts[instanceName] = { label, baseMcp, description };
+      writeFileSync(accountsPath, JSON.stringify(accounts, null, 2));
+
+      // Update in-memory config — sync from what was written to disk
+      if (opts.config.mcps) opts.config.mcps[instanceName] = { ...baseMcpConfig };
+      const savedAgent = rawConfig.agents[agentId];
+      opts.config.agents[agentId].mcps = savedAgent.mcps;
+
+      log.info(`[MCP Connect] Created ${instanceName} for ${agentId} (base: ${baseMcp}, label: ${label})`);
+      res.json({ ok: true, instanceName, label, baseMcp });
+    } catch (err) {
+      log.error(`Failed to create MCP connection: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // List named connections for an agent
+  app.get("/api/agents/:id/mcp-connections", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const agentHome = agent.agentHome
+      ? resolveTilde(agent.agentHome)
+      : resolve(opts.baseDir, agent.memoryDir, "..");
+    const accountsPath = join(agentHome, "mcp-accounts.json");
+
+    let accounts: Record<string, any> = {};
+    if (existsSync(accountsPath)) {
+      try { accounts = JSON.parse(readFileSync(accountsPath, "utf-8")); } catch { /* ignore */ }
+    }
+    res.json({ connections: accounts });
+  });
+
+  // Delete a named connection
+  app.delete("/api/agents/:id/mcp-connections/:instanceName", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const instanceName = req.params.instanceName;
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      // Remove from mcps registry
+      delete rawConfig.mcps[instanceName];
+
+      // Remove from agent's mcps array
+      if (rawConfig.agents[agentId].mcps) {
+        rawConfig.agents[agentId].mcps = rawConfig.agents[agentId].mcps.filter((m: string) => m !== instanceName);
+      }
+
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Remove key file
+      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+      const agentHome = agent.agentHome
+        ? resolveTilde(agent.agentHome)
+        : resolve(opts.baseDir, agent.memoryDir, "..");
+      const envFile = join(agentHome, "mcp-keys", `${instanceName}.env`);
+      if (existsSync(envFile)) {
+        unlinkSync(envFile);
+      }
+
+      // Remove from accounts metadata
+      const accountsPath = join(agentHome, "mcp-accounts.json");
+      if (existsSync(accountsPath)) {
+        try {
+          const accounts = JSON.parse(readFileSync(accountsPath, "utf-8"));
+          delete accounts[instanceName];
+          writeFileSync(accountsPath, JSON.stringify(accounts, null, 2));
+        } catch { /* ignore */ }
+      }
+
+      // Update in-memory
+      if (opts.config.mcps) delete opts.config.mcps[instanceName];
+      if (agent.mcps) {
+        agent.mcps = agent.mcps.filter((m: string) => m !== instanceName);
+      }
+
+      log.info(`[MCP Connect] Deleted ${instanceName} from ${agentId}`);
+      res.json({ ok: true });
+    } catch (err) {
+      log.error(`Failed to delete MCP connection: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Trigger goal now ──────────────────────────────────────────
+  app.post("/api/agents/:id/goals/:goalId/trigger", async (req, res) => {
+    const agentId = req.params.id;
+    const goalId = req.params.goalId;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const goal = agent.goals?.find((g: any) => g.id === goalId);
+    if (!goal) return res.status(404).json({ error: `Goal "${goalId}" not found` });
+
+    log.info(`[Goal Trigger] Manual trigger: ${agentId}/${goalId}`);
+
+    // Respond immediately — execution happens async
+    res.json({ ok: true, message: `Goal "${goalId}" triggered. Running in background...` });
+
+    // Execute in background
+    try {
+      const driverMap = opts.driverMap || new Map();
+      const result = await executeGoal(
+        agentId, agent, goal, opts.baseDir, driverMap,
+        opts.config.mcps, opts.config.service.claudeAccounts,
+      );
+      log.info(`[Goal Trigger] Completed: ${agentId}/${goalId} — ${result.status}`);
+    } catch (err) {
+      log.error(`[Goal Trigger] Failed: ${agentId}/${goalId} — ${err}`);
+    }
   });
 
   // ─── Task helpers ──────────────────────────────────────────────────

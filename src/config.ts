@@ -54,7 +54,7 @@ export interface GoalConfig {
   instructions?: string;
   heartbeat: string;       // cron expression
   budget?: { maxDailyUsd: number };
-  reportTo?: string;       // "channel:chatId" e.g. "telegram:-5112439418"
+  reportTo?: string | string[];  // "channel:chatId" or array of them e.g. ["telegram:-5112439418", "slack:C0ALHTDD6JF"]
 }
 
 // ─── Agent config ────────────────────────────────────────────────────

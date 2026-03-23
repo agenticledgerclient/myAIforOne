@@ -185,7 +185,10 @@ html,body{
 .agent-session-dot.inactive{background:var(--text-muted)}
 .agent-alias{
   font-family:var(--font-mono);font-size:11px;color:var(--accent);
-  margin-bottom:4px;
+  margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;
+}
+.agent-last-msg{
+  font-family:var(--font-sans);font-size:10px;color:var(--text-muted);font-weight:400;
 }
 .agent-desc{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:8px}
 .agent-meta{display:flex;gap:6px;flex-wrap:wrap}
@@ -1024,16 +1027,26 @@ function getFilteredAgents() {
   const orgFilter = document.getElementById('filterOrg')?.value || '';
   const deptFilter = document.getElementById('filterDept')?.value || '';
 
-  if (!orgFilter && !deptFilter) return agents;
+  let result = agents;
 
-  return agents.filter(a => {
-    const orgEntries = a.org || [];
-    if (orgEntries.length === 0) return !orgFilter && !deptFilter;
-    return orgEntries.some(o => {
-      const orgMatch = !orgFilter || o.organization === orgFilter;
-      const deptMatch = !deptFilter || o.function === deptFilter;
-      return orgMatch && deptMatch;
+  // Apply org/dept filters if set
+  if (orgFilter || deptFilter) {
+    result = result.filter(a => {
+      const orgEntries = a.org || [];
+      if (orgEntries.length === 0) return !orgFilter && !deptFilter;
+      return orgEntries.some(o => {
+        const orgMatch = !orgFilter || o.organization === orgFilter;
+        const deptMatch = !deptFilter || o.function === deptFilter;
+        return orgMatch && deptMatch;
+      });
     });
+  }
+
+  // Always sort by most recent conversation first
+  return result.slice().sort((a, b) => {
+    const aTime = a.lastMessage && a.lastMessage !== 'never' ? new Date(a.lastMessage).getTime() : 0;
+    const bTime = b.lastMessage && b.lastMessage !== 'never' ? new Date(b.lastMessage).getTime() : 0;
+    return bTime - aTime;
   });
 }
 
@@ -1278,23 +1291,28 @@ function renderAgentList() {
     if (a.mcps.length) tags.push(`<span class="agent-tag tag-mcp">${a.mcps.length} MCP${a.mcps.length>1?'s':''}</span>`);
 
     const blurClass = isAgentOrgHidden(a) ? ' name-blurred' : '';
+    const lastMsg = a.lastMessage && a.lastMessage !== 'never' ? formatRelativeTime(a.lastMessage) : '';
     return `<div class="agent-card${isSelected?' selected':''}" onclick="selectAgent('${a.id}')">
       <div class="agent-card-top">
         <div class="agent-avatar">${initials}</div>
         <div class="agent-name${blurClass}">${a.name}</div>
         <div class="agent-session-dot ${a.sessionActive?'active':'inactive'}"></div>
       </div>
-      <div class="agent-alias${blurClass}">${a.aliases[0] || a.id}</div>
+      <div class="agent-alias${blurClass}">${a.aliases[0] || a.id}${lastMsg ? `<span class="agent-last-msg">${lastMsg}</span>` : ''}</div>
       <div class="agent-desc">${a.description}</div>
       <div class="agent-meta">${tags.join('')}</div>
     </div>`;
   }).join('');
 }
 
+// Track which agent the frame was built for — avoid rebuilding header/input unnecessarily
+let renderedFrameAgent = null;
+
 function renderChat() {
   if (!selectedAgent) return;
   const agent = agents.find(a => a.id === selectedAgent);
   if (!agent) return;
+
   // Sync globals from selected agent's stream state
   const ss = getStream(selectedAgent);
   isThinking = ss.isThinking;
@@ -1302,96 +1320,128 @@ function renderChat() {
   streamingStatus = ss.status;
   streamingTools = ss.tools;
 
-  const messages = chatHistory[selectedAgent] || [];
-  const main = document.getElementById('mainArea');
-
-  main.innerHTML = `
-    <div class="chat-header">
-      <div class="agent-avatar" style="width:40px;height:40px;font-size:14px">
-        ${agent.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || '??'}
-      </div>
-      <div class="chat-header-info">
-        <div class="chat-header-name${isAgentOrgHidden(agent) ? ' name-blurred' : ''}">${agent.name}</div>
-        <div class="chat-header-alias"><span class="${isAgentOrgHidden(agent) ? 'name-blurred' : ''}">${agent.aliases[0] || agent.id}</span> · ${agent.persistent?'persistent session':'single-shot'}</div>
-      </div>
-      <div class="chat-header-actions">
-        ${availableAccounts.length > 0 ? `<select class="header-btn" style="padding:2px 6px;font-size:11px;cursor:pointer" onchange="accountOverrides['${agent.id}']=this.value||undefined" title="Claude Account override (in-memory only)">
-          <option value="">${agent.claudeAccount || 'default'}</option>
-          ${availableAccounts.filter(a => a !== agent.claudeAccount).map(a => `<option value="${a}" ${accountOverrides[agent.id]===a?'selected':''}>${a}</option>`).join('')}
-        </select>` : ''}
-        <button class="header-btn" onclick="window.location='/org'" title="Go to Dashboard">&#x25C7; Dashboard</button>
-        <button class="canvas-toggle-btn${canvasOpen ? ' active' : ''}" onclick="toggleCanvas()" title="Toggle preview panel">&#x25A8; Canvas</button>
-        ${agent.persistent ? `<button class="header-btn danger" onclick="resetSession('${agent.id}')">&#x21BA; Reset</button>` : ''}
-      </div>
-    </div>
-    <div class="chat-body-wrap${canvasOpen ? ' canvas-open' : ''}" id="chatBodyWrap">
-    <div class="chat-messages" id="chatMessages">
-      ${messages.length === 0 ? `<div class="msg-system">Start a conversation with ${agent.aliases[0] || agent.name}</div>` : ''}
-      ${messages.map(m => {
-        const cls = m.role === 'user' ? 'msg-user' : 'msg-agent';
-        const formatted = m.role === 'agent' ? formatMarkdown(m.text) : escapeHtml(m.text);
-        const time = formatTime(m.time);
-        const channelBadge = m.channel && m.channel !== 'web' && m.channel !== 'unknown' ? `<span class="channel-badge">${m.channel}</span>` : '';
-        const toolHtml = (m.tools && m.tools.length) ? renderActivityFeed(m.tools, false) : '';
-        return `${toolHtml}<div class="msg ${cls}">${formatted}<div class="msg-time">${channelBadge}${time}</div></div>`;
-      }).join('')}
-      <div id="streamingToolsWrap">${streamingTools.length ? renderActivityFeed(streamingTools, true) : ''}</div>
-      ${streamingText ? `<div class="msg msg-agent" id="streamingMsg"><div id="streamingContent">${formatMarkdown(streamingText)}</div><div class="msg-time">streaming...</div></div>` : ''}
-      <div id="thinkingWrap">${isThinking && !streamingText && !streamingTools.length ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}</div>
-    </div>
-    <div class="canvas-panel" id="canvasPanel">
-      ${canvasFile ? `
-        <div class="canvas-header">
-          <span class="canvas-file-icon">${getFileIcon(canvasFile.ext)}</span>
-          <span class="canvas-filename" title="${escapeHtml(canvasFile.path)}">${escapeHtml(canvasFile.name)}</span>
-          <button class="canvas-header-btn" onclick="downloadFile('${encodeURIComponent(canvasFile.path)}')" title="Download">&#x2B07;</button>
-          <button class="canvas-header-btn" onclick="closeCanvas()" title="Close">&#x2715;</button>
+  // Only rebuild the full frame (header + input) when switching agents
+  if (renderedFrameAgent !== selectedAgent) {
+    renderedFrameAgent = selectedAgent;
+    const main = document.getElementById('mainArea');
+    main.innerHTML = `
+      <div class="chat-header">
+        <div class="agent-avatar" style="width:40px;height:40px;font-size:14px">
+          ${agent.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || '??'}
         </div>
-        <div class="canvas-content" id="canvasContent"></div>
-      ` : `
-        <div class="canvas-header">
-          <span class="canvas-file-icon">&#x25A8;</span>
-          <span class="canvas-filename" style="color:var(--text-muted)">No file open</span>
-          <button class="canvas-header-btn" onclick="closeCanvas()" title="Close">&#x2715;</button>
+        <div class="chat-header-info">
+          <div class="chat-header-name${isAgentOrgHidden(agent) ? ' name-blurred' : ''}">${agent.name}</div>
+          <div class="chat-header-alias"><span class="${isAgentOrgHidden(agent) ? 'name-blurred' : ''}">${agent.aliases[0] || agent.id}</span> · ${agent.persistent?'persistent session':'single-shot'}</div>
         </div>
-        <div class="canvas-content" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px">
-          <div style="text-align:center">
-            <div style="font-size:32px;opacity:.3;margin-bottom:8px">&#x25A8;</div>
-            <div>Click "Preview" on a file path to open it here</div>
+        <div class="chat-header-actions">
+          ${availableAccounts.length > 0 ? `<select class="header-btn" style="padding:2px 6px;font-size:11px;cursor:pointer" onchange="accountOverrides['${agent.id}']=this.value||undefined" title="Claude Account override (in-memory only)">
+            <option value="">${agent.claudeAccount || 'default'}</option>
+            ${availableAccounts.filter(a => a !== agent.claudeAccount).map(a => `<option value="${a}" ${accountOverrides[agent.id]===a?'selected':''}>${a}</option>`).join('')}
+          </select>` : ''}
+          <button class="header-btn" onclick="window.location='/org'" title="Go to Dashboard">&#x25C7; Dashboard</button>
+          <button class="canvas-toggle-btn${canvasOpen ? ' active' : ''}" onclick="toggleCanvas()" title="Toggle preview panel">&#x25A8; Canvas</button>
+          ${agent.persistent ? `<button class="header-btn danger" onclick="resetSession('${agent.id}')">&#x21BA; Reset</button>` : ''}
+        </div>
+      </div>
+      <div class="chat-body-wrap${canvasOpen ? ' canvas-open' : ''}" id="chatBodyWrap">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="canvas-panel" id="canvasPanel">
+        ${canvasFile ? `
+          <div class="canvas-header">
+            <span class="canvas-file-icon">${getFileIcon(canvasFile.ext)}</span>
+            <span class="canvas-filename" title="${escapeHtml(canvasFile.path)}">${escapeHtml(canvasFile.name)}</span>
+            <button class="canvas-header-btn" onclick="downloadFile('${encodeURIComponent(canvasFile.path)}')" title="Download">&#x2B07;</button>
+            <button class="canvas-header-btn" onclick="closeCanvas()" title="Close">&#x2715;</button>
+          </div>
+          <div class="canvas-content" id="canvasContent"></div>
+        ` : `
+          <div class="canvas-header">
+            <span class="canvas-file-icon">&#x25A8;</span>
+            <span class="canvas-filename" style="color:var(--text-muted)">No file open</span>
+            <button class="canvas-header-btn" onclick="closeCanvas()" title="Close">&#x2715;</button>
+          </div>
+          <div class="canvas-content" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px">
+            <div style="text-align:center">
+              <div style="font-size:32px;opacity:.3;margin-bottom:8px">&#x25A8;</div>
+              <div>Click "Preview" on a file path to open it here</div>
+            </div>
+          </div>
+        `}
+      </div>
+      </div>
+      <div class="chat-input-wrap">
+        <div class="file-drop-zone hidden" id="fileDropZone"
+          onclick="document.getElementById('fileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')"
+          ondrop="event.preventDefault();this.classList.remove('dragover');handleFileDrop(event)">
+          <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
+          <div id="fileListArea">
+            <span>Drop files here or click to browse</span>
           </div>
         </div>
-      `}
-    </div>
-    </div>
-    <div class="chat-input-wrap">
-      <div class="file-drop-zone hidden" id="fileDropZone"
-        onclick="document.getElementById('fileInput').click()"
-        ondragover="event.preventDefault();this.classList.add('dragover')"
-        ondragleave="this.classList.remove('dragover')"
-        ondrop="event.preventDefault();this.classList.remove('dragover');handleFileDrop(event)">
-        <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
-        <div id="fileListArea">
-          <span>Drop files here or click to browse</span>
+        <div class="chat-input-box">
+          <button class="clip-btn" id="clipBtn" onclick="toggleFileZone()" title="Attach files">📎</button>
+          <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
+          <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          ${ss.jobId ? `<button class="stop-btn" onclick="stopStreaming()" title="Stop (Esc)">&#x25A0;</button>` : ''}
+          <button class="send-btn${ss.jobId ? ' queue-mode' : ''}" id="sendBtn" onclick="doSend()">${ss.jobId ? 'Queue' : '→'}</button>
         </div>
+        <div id="queueContainer"></div>
       </div>
-      <div class="chat-input-box">
-        <button class="clip-btn" id="clipBtn" onclick="toggleFileZone()" title="Attach files">📎</button>
-        <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
-        <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
-          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-        ${ss.jobId ? `<button class="stop-btn" onclick="stopStreaming()" title="Stop (Esc)">&#x25A0;</button>` : ''}
-        <button class="send-btn${ss.jobId ? ' queue-mode' : ''}" id="sendBtn" onclick="doSend()">${ss.jobId ? 'Queue' : '→'}</button>
-      </div>
-      <div id="queueContainer"></div>
-    </div>
-  `;
+    `;
+    setTimeout(() => {
+      const inp = document.getElementById('chatInput');
+      if (inp) inp.focus();
+      renderQueueUI();
+    }, 50);
+  }
 
-  // Focus input and render queue
-  setTimeout(() => {
-    const inp = document.getElementById('chatInput');
-    if (inp) inp.focus();
-    renderQueueUI();
-  }, 50);
+  // Update only the messages area — leaves header, input, and canvas untouched
+  updateMessages();
+}
+
+function updateMessages() {
+  const chatEl = document.getElementById('chatMessages');
+  if (!chatEl) return;
+
+  const agent = agents.find(a => a.id === selectedAgent);
+  if (!agent) return;
+
+  const messages = chatHistory[selectedAgent] || [];
+  const ss = getStream(selectedAgent);
+  isThinking = ss.isThinking;
+  streamingText = ss.text;
+  streamingStatus = ss.status;
+  streamingTools = ss.tools;
+
+  // Build messages HTML
+  let html = '';
+  if (messages.length === 0 && !streamingText && !streamingTools.length && !isThinking) {
+    html = `<div class="msg-system">Start a conversation with ${agent.aliases[0] || agent.name}</div>`;
+  } else {
+    html = messages.map(m => {
+      const cls = m.role === 'user' ? 'msg-user' : 'msg-agent';
+      const formatted = m.role === 'agent' ? formatMarkdown(m.text) : escapeHtml(m.text);
+      const time = formatTime(m.time);
+      const channelBadge = m.channel && m.channel !== 'web' && m.channel !== 'unknown' ? `<span class="channel-badge">${m.channel}</span>` : '';
+      const toolHtml = (m.tools && m.tools.length) ? renderActivityFeed(m.tools, false) : '';
+      return `${toolHtml}<div class="msg ${cls}">${formatted}<div class="msg-time">${channelBadge}${time}</div></div>`;
+    }).join('');
+  }
+
+  // Streaming state
+  html += `<div id="streamingToolsWrap">${streamingTools.length ? renderActivityFeed(streamingTools, true) : ''}</div>`;
+  if (streamingText) {
+    html += `<div class="msg msg-agent" id="streamingMsg"><div id="streamingContent">${formatMarkdown(streamingText)}</div><div class="msg-time">streaming...</div></div>`;
+  }
+  html += `<div id="thinkingWrap">${isThinking && !streamingText && !streamingTools.length ? `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">${streamingStatus || 'Thinking...'}</span></div>` : ''}</div>`;
+
+  chatEl.innerHTML = html;
+
+  // Update input buttons (stop/queue) without touching textarea
+  updateInputButtons(ss);
 }
 
 function scrollChat() {
@@ -1747,6 +1797,8 @@ function formatMarkdown(text) {
     const fileName = decoded.split('/').pop();
     return `<code>${match}</code> <button class="download-btn" onclick="downloadFile('${encodeURIComponent(decoded)}')" title="Download ${fileName}">&#x2B07; ${fileName}</button> <button class="canvas-btn" onclick="openInCanvas('${encodeURIComponent(decoded)}')" title="Preview in canvas">&#x25A8; Preview</button>`;
   });
+  // Break run-on sentences: period followed immediately by capital letter
+  html = html.replace(/\.([A-Z])/g, '.<br>$1');
   // Paragraph breaks (double newline) get spacing, single newlines get line breaks
   html = html.replace(/\n{2,}/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
@@ -1804,6 +1856,24 @@ function formatTime(ts) {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
            d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   } catch { return ts; }
+}
+
+function formatRelativeTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = now - d;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + 'h ago';
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'yesterday';
+    if (days < 7) return days + 'd ago';
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  } catch { return ''; }
 }
 
 // ─── File Upload ───────────────────────────────────────────────

@@ -467,6 +467,109 @@ html,body{
 .btn-confirm-delete:disabled{cursor:not-allowed;opacity:0.4}
 .btn-confirm-delete:not(:disabled){opacity:1}
 .btn-confirm-delete:not(:disabled):hover{background:#dc2626}
+.mcp-key-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;margin:6px 0;border-radius:10px;
+  background:var(--bg-input);border:1px solid var(--border-dim);
+  font-size:13px;transition:border-color .2s;
+}
+.mcp-key-card.connected{border-color:rgba(74,222,128,0.3)}
+.mcp-key-name{font-weight:600;color:var(--text-primary);min-width:100px}
+.mcp-key-status{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.mcp-key-status.ok{background:var(--green-bg);color:var(--green)}
+.mcp-key-status.missing{background:var(--amber-bg);color:var(--amber)}
+.mcp-key-input{
+  flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);
+  font-family:var(--font-mono);font-size:11px;
+}
+.mcp-key-input:focus{outline:none;border-color:var(--accent)}
+.mcp-key-btn{
+  padding:4px 12px;border-radius:6px;border:1px solid var(--border-glow);
+  background:var(--accent-bg);color:var(--accent);cursor:pointer;
+  font-size:11px;font-weight:600;white-space:nowrap;transition:all .2s;
+}
+.mcp-key-btn:hover{background:var(--accent);color:#000}
+.mcp-key-btn.oauth{border-color:rgba(66,133,244,0.3);background:rgba(66,133,244,0.1);color:#4285F4}
+.mcp-key-btn.oauth:hover{background:#4285F4;color:#fff}
+.mcp-key-btn.disconnect{border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#ef4444;font-size:10px}
+.mcp-key-btn.disconnect:hover{background:#ef4444;color:#fff}
+.mcp-accordion{margin:4px 0;border-radius:10px;border:1px solid var(--border-dim);overflow:hidden;transition:border-color .2s}
+.mcp-accordion:hover{border-color:var(--border-glow)}
+.mcp-accordion-header{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;
+  background:var(--bg-input);user-select:none;transition:background .2s;
+}
+.mcp-accordion-header:hover{background:rgba(139,92,246,0.05)}
+.mcp-accordion-arrow{font-size:10px;color:var(--text-muted);transition:transform .2s;width:12px}
+.mcp-accordion.open .mcp-accordion-arrow{transform:rotate(90deg)}
+.mcp-accordion-name{font-weight:600;font-size:13px;color:var(--text-primary);flex:1}
+.mcp-accordion-summary{font-size:11px;color:var(--text-muted);font-family:var(--font-mono)}
+.mcp-accordion-body{display:none;padding:4px 14px 10px;background:var(--bg-deep)}
+.mcp-accordion.open .mcp-accordion-body{display:block}
+.mcp-category-label{
+  font-family:var(--font-mono);font-size:11px;font-weight:600;
+  color:var(--accent-soft);margin:10px 0 4px;padding:0 4px;
+  letter-spacing:0.03em;
+}
+.mcp-auth-modal{
+  width:420px;max-width:92vw;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:16px;padding:0;
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),0 0 60px rgba(34,211,238,0.06);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  animation:modalIn .25s ease-out;
+}
+.mcp-auth-modal .modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 16px;border-bottom:1px solid var(--border-dim);
+}
+.mcp-auth-modal .modal-title{font-family:var(--font-display);font-size:16px;font-weight:700}
+.mcp-auth-modal .mcp-auth-body{padding:20px 24px}
+.mcp-auth-modal .mcp-auth-body .form-group{margin-bottom:14px}
+.mcp-auth-modal .mcp-auth-body .form-label{
+  display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;
+}
+.mcp-auth-modal .mcp-auth-body .form-input{
+  width:100%;padding:8px 12px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:12px;
+  transition:border-color .2s;
+}
+.mcp-auth-modal .mcp-auth-body .form-input:focus{outline:none;border-color:var(--accent)}
+.mcp-auth-modal .mcp-auth-actions{
+  display:flex;justify-content:flex-end;gap:10px;
+  padding:16px 24px;border-top:1px solid var(--border-dim);
+}
+.mcp-auth-modal .btn-cancel{
+  padding:8px 18px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-secondary);cursor:pointer;
+  font-size:13px;font-weight:500;transition:all .2s;
+}
+.mcp-auth-modal .btn-cancel:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.mcp-auth-modal .btn-save{
+  padding:8px 18px;border-radius:8px;border:none;
+  background:var(--accent);color:#000;cursor:pointer;
+  font-size:13px;font-weight:600;transition:all .2s;
+}
+.mcp-auth-modal .btn-save:hover{filter:brightness(1.1)}
+.mcp-auth-modal .btn-danger{
+  padding:8px 18px;border-radius:8px;border:none;
+  background:#ef4444;color:#fff;cursor:pointer;
+  font-size:13px;font-weight:600;transition:all .2s;
+}
+.mcp-auth-modal .btn-danger:hover{filter:brightness(1.1)}
+.mcp-auth-modal .mcp-auth-hint{
+  font-size:11px;color:var(--text-muted);margin-top:4px;
+}
+.mcp-auth-modal .mcp-oauth-link{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:6px;
+  border:1px solid rgba(66,133,244,0.3);background:rgba(66,133,244,0.1);color:#4285F4;
+  cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;
+  margin-bottom:12px;
+}
+.mcp-auth-modal .mcp-oauth-link:hover{background:#4285F4;color:#fff}
 .btn-save{
   padding:10px 24px;border-radius:10px;border:none;
   background:var(--accent);color:#fff;cursor:pointer;
@@ -848,6 +951,12 @@ html,body{
         <div class="form-hint" id="f-mcps-hint">Loading available MCPs...</div>
       </div>
 
+      <div class="form-section" id="mcpKeysSection" style="display:none">MCP Connections</div>
+      <div id="mcpKeysArea" style="display:none">
+        <div class="form-hint">Connect API keys or authorize services for the selected MCPs.</div>
+        <div id="mcpKeysList"></div>
+      </div>
+
       <div class="form-section">Organization</div>
       <div id="orgEntries"></div>
       <button class="add-entry-btn" onclick="addOrgEntry()">+ Add Org Entry</button>
@@ -906,6 +1015,18 @@ html,body{
       <button class="btn-cancel" onclick="hideDeleteConfirm()">Cancel</button>
       <button class="btn-confirm-delete" id="confirmDeleteBtn" onclick="executeDelete()" disabled>Delete Forever</button>
     </div>
+  </div>
+</div>
+
+<!-- MCP Auth Modal (reusable for add account, confirm disconnect/remove) -->
+<div class="modal-overlay" id="mcpAuthModal">
+  <div class="mcp-auth-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="mcpAuthTitle">Add Account</div>
+      <button class="modal-close" onclick="closeMcpAuthModal()">&#10005;</button>
+    </div>
+    <div class="mcp-auth-body" id="mcpAuthBody"></div>
+    <div class="mcp-auth-actions" id="mcpAuthActions"></div>
   </div>
 </div>
 
@@ -1330,6 +1451,7 @@ async function openModal(agentId) {
 
     // MCPs
     renderMcpPills(a.mcps || []);
+    loadMcpKeys(agentId, a.mcps || []);
 
     // Org entries
     const orgContainer = document.getElementById('orgEntries');
@@ -1403,6 +1525,8 @@ async function openModal(agentId) {
 
     // MCPs
     renderMcpPills([]);
+    document.getElementById('mcpKeysSection').style.display = 'none';
+    document.getElementById('mcpKeysArea').style.display = 'none';
 
     // Clear org, routes, schedules & goals
     document.getElementById('orgEntries').innerHTML = '';
@@ -1425,12 +1549,330 @@ function renderMcpPills(selectedMcps) {
   if (availableMcps.length > 0) {
     mcpGroup.innerHTML = availableMcps.map(m => {
       const checked = selectedMcps.includes(m) ? ' checked' : '';
-      return `<div class="checkbox-pill${checked}" data-val="${m}" onclick="togglePill(this)">${m}</div>`;
+      return `<div class="checkbox-pill${checked}" data-val="${m}" onclick="toggleMcpPill(this)">${m}</div>`;
     }).join('');
     mcpHint.textContent = 'Select which MCP servers this agent can use.';
   } else {
     mcpGroup.innerHTML = '';
     mcpHint.textContent = 'No MCPs registered. Add them in config.json.';
+  }
+}
+
+function toggleMcpPill(el) {
+  togglePill(el);
+  // Refresh the connections section with currently selected MCPs
+  const selectedMcps = getSelectedMcps();
+  const agentId = editingAgentId;
+  if (agentId) {
+    loadMcpKeys(agentId, selectedMcps);
+  } else {
+    // Create mode — show connections section with placeholder
+    showCreateModeConnections(selectedMcps);
+  }
+}
+
+function getSelectedMcps() {
+  return [...document.querySelectorAll('#f-mcps .checkbox-pill.checked')].map(p => p.dataset.val);
+}
+
+function showCreateModeConnections(selectedMcps) {
+  const section = document.getElementById('mcpKeysSection');
+  const area = document.getElementById('mcpKeysArea');
+  const list = document.getElementById('mcpKeysList');
+  if (!selectedMcps.length) {
+    section.style.display = 'none';
+    area.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  area.style.display = '';
+  list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Save the agent first, then connect credentials from the Config modal.</div>';
+}
+
+// ─── MCP Keys / Connections ─────────────────────────────────
+let mcpCatalog = {};
+
+async function loadMcpKeys(agentId, agentMcps) {
+  const section = document.getElementById('mcpKeysSection');
+  const area = document.getElementById('mcpKeysArea');
+  const list = document.getElementById('mcpKeysList');
+
+  // Always show section — show helpful message when no MCPs selected
+  section.style.display = '';
+  area.style.display = '';
+
+  if (!agentMcps.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Select MCPs above to configure connections.</div>';
+    return;
+  }
+  list.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Loading...</div>';
+
+  try {
+    const [catalogRes, keysRes, connRes] = await Promise.all([
+      fetch('/api/mcp-catalog'),
+      fetch(`/api/agents/${agentId}/mcp-keys`),
+      fetch(`/api/agents/${agentId}/mcp-connections`),
+    ]);
+    const catalogData = await catalogRes.json();
+    const keysData = await keysRes.json();
+    const connData = await connRes.json();
+    mcpCatalog = catalogData.mcps || {};
+    const configured = keysData.configured || {};
+    const connections = connData.connections || {};
+
+    // Group named connections by base MCP
+    const connectionsByBase = {};
+    for (const [name, info] of Object.entries(connections)) {
+      const base = info.baseMcp;
+      if (!connectionsByBase[base]) connectionsByBase[base] = [];
+      connectionsByBase[base].push({ name, ...info });
+    }
+
+    // Filter to base MCPs only (not named instances like gmail-work)
+    const baseMcps = agentMcps.filter(m => !Object.keys(connections).includes(m));
+
+    // Build card data for each MCP
+    const mcpCards = baseMcps.map(mcpName => {
+      const cat = mcpCatalog[mcpName];
+      const isConfigured = !!configured[mcpName];
+      const requiredKeys = cat?.requiredKeys || [];
+      const isOAuth = cat?.oauth || mcpName.startsWith('gmail') || mcpName.startsWith('google') || mcpName.startsWith('youtube');
+      const label = cat?.name || mcpName;
+      const hint = requiredKeys[0]?.hint || '';
+      const envVar = requiredKeys[0]?.env || mcpName.toUpperCase().replace(/-/g, '_') + '_API_KEY';
+      const keyLabel = requiredKeys[0]?.label || 'API Key';
+      const namedConns = connectionsByBase[mcpName] || [];
+      const noKeyRequired = requiredKeys.length === 0 && !isOAuth;
+      const hasAnyConnection = isConfigured || namedConns.some(c => !!configured[c.name]);
+      return { mcpName, cat, isConfigured, requiredKeys, isOAuth, label, hint, envVar, keyLabel, namedConns, noKeyRequired, hasAnyConnection };
+    });
+
+    const connectedMcps = mcpCards.filter(m => m.hasAnyConnection || m.noKeyRequired);
+    const notConnectedMcps = mcpCards.filter(m => !m.hasAnyConnection && !m.noKeyRequired);
+
+    function renderMcpAccordion(m) {
+      const connCount = m.namedConns.length + (m.isConfigured ? 1 : 0);
+      const isReady = m.noKeyRequired || m.isConfigured || connCount > 0;
+      const statusDot = isReady ? '🟢' : '🔴';
+      let summary = '';
+      if (m.noKeyRequired) summary = 'Ready';
+      else if (connCount > 0) summary = `${connCount} account${connCount > 1 ? 's' : ''}`;
+      else summary = 'Not connected';
+
+      const uid = 'mcp-acc-' + m.mcpName.replace(/[^a-z0-9]/gi, '');
+
+      let innerHtml = '';
+
+      // Base MCP key (for non-OAuth, non-noKey MCPs)
+      if (!m.noKeyRequired && !m.isOAuth) {
+        if (m.isConfigured) {
+          innerHtml += `<div class="mcp-key-card connected">
+            <span class="mcp-key-name">Default Key</span>
+            <span class="mcp-key-status ok">Connected</span>
+            <button class="mcp-key-btn disconnect" onclick="event.stopPropagation();disconnectMcpKey('${agentId}','${m.mcpName}')">Disconnect</button>
+          </div>`;
+        } else if (connCount === 0) {
+          innerHtml += `<div class="mcp-key-card">
+            <input class="mcp-key-input" id="mcpkey-${m.mcpName}" placeholder="${escapeHtml(m.keyLabel)}" title="${escapeHtml(m.hint)}">
+            <button class="mcp-key-btn" onclick="event.stopPropagation();saveMcpKey('${agentId}','${m.mcpName}','${m.envVar}')">Save</button>
+          </div>`;
+        }
+      }
+
+      // Named connections
+      for (const conn of m.namedConns) {
+        const connConfigured = !!configured[conn.name];
+        innerHtml += `<div class="mcp-key-card ${connConfigured ? 'connected' : ''}">
+          <span class="mcp-key-name">${escapeHtml(conn.label)}</span>
+          <span style="font-size:10px;color:var(--text-muted)">${escapeHtml(conn.description || '')}</span>
+          <span class="mcp-key-status ${connConfigured ? 'ok' : 'missing'}">${connConfigured ? 'Connected' : 'Pending'}</span>
+          <button class="mcp-key-btn disconnect" onclick="event.stopPropagation();deleteConnection('${agentId}','${conn.name}')">Remove</button>
+        </div>`;
+      }
+
+      // Add Account button (for MCPs that need keys)
+      if (m.requiredKeys.length > 0 || m.isOAuth) {
+        innerHtml += `<div style="margin:4px 0">
+          <button class="mcp-key-btn" style="font-size:10px" onclick="event.stopPropagation();showAddAccount('${agentId}','${m.mcpName}','${m.isOAuth}')">+ Add Account</button>
+        </div>`;
+      }
+
+      return `<div class="mcp-accordion" id="${uid}">
+        <div class="mcp-accordion-header" onclick="this.parentElement.classList.toggle('open')">
+          <span class="mcp-accordion-arrow">▸</span>
+          <span class="mcp-accordion-name">${escapeHtml(m.label)}</span>
+          <span class="mcp-accordion-summary">${statusDot} ${summary}</span>
+        </div>
+        <div class="mcp-accordion-body">${innerHtml}</div>
+      </div>`;
+    }
+
+    const allMcps = [...connectedMcps, ...notConnectedMcps].sort((a, b) => a.label.localeCompare(b.label));
+    let html = '';
+    if (allMcps.length > 0) {
+      html = allMcps.map(renderMcpAccordion).join('');
+    } else {
+      html = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">All selected MCPs are ready (no keys required).</div>';
+    }
+
+    list.innerHTML = html;
+  } catch (err) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--amber)">Failed to load MCP keys</div>';
+  }
+}
+
+function openMcpAuthModal(title, bodyHtml, actionsHtml) {
+  document.getElementById('mcpAuthTitle').textContent = title;
+  document.getElementById('mcpAuthBody').innerHTML = bodyHtml;
+  document.getElementById('mcpAuthActions').innerHTML = actionsHtml;
+  document.getElementById('mcpAuthModal').classList.add('show');
+}
+function closeMcpAuthModal() {
+  document.getElementById('mcpAuthModal').classList.remove('show');
+}
+
+function showAddAccount(agentId, baseMcp, isOAuth) {
+  const cat = mcpCatalog[baseMcp];
+  const isOAuthBool = isOAuth === 'true' || isOAuth === true;
+  const keyLabel = cat?.requiredKeys?.[0]?.label || 'API Key';
+  const hint = cat?.requiredKeys?.[0]?.hint || '';
+  const mcpUrl = isOAuthBool ? (cat?.url?.replace('/mcp', '') || '') : '';
+  const displayName = cat?.name || baseMcp;
+
+  let bodyHtml = `
+    <div class="form-group">
+      <label class="form-label">Account Label</label>
+      <input class="form-input" id="mcpAuthLabel" placeholder='e.g. "Work", "Personal", "Client - Acme"'>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="mcpAuthDesc" placeholder="e.g. email address or account name">
+    </div>`;
+  if (isOAuthBool && mcpUrl) {
+    bodyHtml += `
+    <div class="form-group">
+      <a class="mcp-oauth-link" href="${escapeHtml(mcpUrl)}/authorize" target="_blank" rel="noopener">Authorize ${escapeHtml(displayName)} &rarr;</a>
+      <div class="mcp-auth-hint">Click above to authorize, then paste the refresh token below.</div>
+    </div>`;
+  }
+  bodyHtml += `
+    <div class="form-group">
+      <label class="form-label">${isOAuthBool ? 'Refresh Token' : escapeHtml(keyLabel)}</label>
+      <input class="form-input" id="mcpAuthToken" placeholder="${isOAuthBool ? 'Paste refresh token' : escapeHtml(keyLabel)}" ${hint ? 'title="' + escapeHtml(hint) + '"' : ''}>
+      ${hint ? '<div class="mcp-auth-hint">' + escapeHtml(hint) + '</div>' : ''}
+    </div>`;
+
+  const actionsHtml = `
+    <button class="btn-cancel" onclick="closeMcpAuthModal()">Cancel</button>
+    <button class="btn-save" onclick="submitAddAccount('${agentId}','${baseMcp}')">Save</button>`;
+
+  openMcpAuthModal('Add Account — ' + displayName, bodyHtml, actionsHtml);
+  setTimeout(() => { const el = document.getElementById('mcpAuthLabel'); if (el) el.focus(); }, 100);
+}
+
+function submitAddAccount(agentId, baseMcp) {
+  const label = document.getElementById('mcpAuthLabel')?.value?.trim();
+  const description = document.getElementById('mcpAuthDesc')?.value?.trim() || '';
+  const token = document.getElementById('mcpAuthToken')?.value?.trim();
+  if (!label) { document.getElementById('mcpAuthLabel').style.borderColor = '#ef4444'; return; }
+  if (!token) { document.getElementById('mcpAuthToken').style.borderColor = '#ef4444'; return; }
+  closeMcpAuthModal();
+  createConnection(agentId, baseMcp, label, description, token);
+}
+
+async function createConnection(agentId, baseMcp, label, description, value) {
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const envVar = (baseMcp.toUpperCase().replace(/-/g, '_') + '_' + slug.toUpperCase().replace(/-/g, '_')).replace(/__+/g, '_');
+
+  try {
+    const res = await fetch(`/api/agents/${agentId}/mcp-connections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ baseMcp, label, envVar, value, description }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const a = agents.find(x => x.id === agentId);
+      loadMcpKeys(agentId, a?.mcps || []);
+    } else {
+      alert('Failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+function deleteConnection(agentId, instanceName) {
+  const bodyHtml = `
+    <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
+      Remove account <strong style="color:var(--text-primary)">${escapeHtml(instanceName)}</strong>?
+      <div style="margin-top:8px;color:var(--text-muted);font-size:12px">This deletes the saved credentials and removes the connection.</div>
+    </div>`;
+  const actionsHtml = `
+    <button class="btn-cancel" onclick="closeMcpAuthModal()">Cancel</button>
+    <button class="btn-danger" onclick="executeDeleteConnection('${agentId}','${instanceName}')">Remove</button>`;
+  openMcpAuthModal('Remove Connection', bodyHtml, actionsHtml);
+}
+
+async function executeDeleteConnection(agentId, instanceName) {
+  closeMcpAuthModal();
+  try {
+    await fetch(`/api/agents/${agentId}/mcp-connections/${instanceName}`, { method: 'DELETE' });
+    const a = agents.find(x => x.id === agentId);
+    if (a) a.mcps = a.mcps.filter(m => m !== instanceName);
+    loadMcpKeys(agentId, getSelectedMcps());
+  } catch (err) {
+    openMcpAuthModal('Error', `<div style="color:#ef4444;font-size:13px">${escapeHtml(err.message)}</div>`,
+      '<button class="btn-cancel" onclick="closeMcpAuthModal()">Close</button>');
+  }
+}
+
+async function saveMcpKey(agentId, mcpName, envVar) {
+  const input = document.getElementById('mcpkey-' + mcpName);
+  if (!input || !input.value.trim()) {
+    alert('Please enter a key or token');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/agents/${agentId}/mcp-keys`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mcpName, envVar, value: input.value.trim() }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = '';
+      // Reload using currently selected MCPs from UI (not stale in-memory list)
+      loadMcpKeys(agentId, getSelectedMcps());
+    } else {
+      alert('Failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+function disconnectMcpKey(agentId, mcpName) {
+  const displayName = mcpCatalog[mcpName]?.name || mcpName;
+  const bodyHtml = `
+    <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">
+      Disconnect <strong style="color:var(--text-primary)">${escapeHtml(displayName)}</strong>?
+      <div style="margin-top:8px;color:var(--text-muted);font-size:12px">This removes the saved API key/token for this MCP.</div>
+    </div>`;
+  const actionsHtml = `
+    <button class="btn-cancel" onclick="closeMcpAuthModal()">Cancel</button>
+    <button class="btn-danger" onclick="executeDisconnectMcp('${agentId}','${mcpName}')">Disconnect</button>`;
+  openMcpAuthModal('Disconnect MCP', bodyHtml, actionsHtml);
+}
+
+async function executeDisconnectMcp(agentId, mcpName) {
+  closeMcpAuthModal();
+  try {
+    await fetch(`/api/agents/${agentId}/mcp-keys/${mcpName}`, { method: 'DELETE' });
+    loadMcpKeys(agentId, getSelectedMcps());
+  } catch (err) {
+    openMcpAuthModal('Error', `<div style="color:#ef4444;font-size:13px">${escapeHtml(err.message)}</div>`,
+      '<button class="btn-cancel" onclick="closeMcpAuthModal()">Close</button>');
   }
 }
 
@@ -1641,8 +2083,12 @@ function addGoalEntry(goal) {
   const criteria = g.successCriteria || '';
   const instructions = g.instructions || '';
   const budget = g.budget && g.budget.maxDailyUsd != null ? g.budget.maxDailyUsd : '';
-  const reportChannel = g.reportTo ? g.reportTo.split(':')[0] : '';
-  const reportChatId = g.reportTo ? g.reportTo.split(':').slice(1).join(':') : '';
+  // Support multi-channel reportTo
+  const reportTargets = g.reportTo
+    ? (Array.isArray(g.reportTo) ? g.reportTo : [g.reportTo])
+    : [];
+  const reportChannel = reportTargets[0] ? reportTargets[0].split(':')[0] : '';
+  const reportChatId = reportTargets[0] ? reportTargets[0].split(':').slice(1).join(':') : '';
 
   // Parse heartbeat cron
   const hb = g.heartbeat ? cronToHuman(g.heartbeat) : { frequency: 'day', days: '1', time: '9', min: '0' };
@@ -1730,15 +2176,32 @@ function addGoalEntry(goal) {
       </div>
       <div style="flex:0.6">
         <label class="goal-label">Report To</label>
-        <div style="display:flex;gap:6px">
-          <select class="goal-select" data-field="goalReportChannel" style="width:100px">
-            <option value="">None</option>
-            ${channels.map(c => '<option value="'+c+'" '+(c===reportChannel?'selected':'')+'>'+c+'</option>').join('')}
-          </select>
-          <input class="goal-input" data-field="goalReportChatId" placeholder="Chat/Channel ID" value="${escapeHtml(reportChatId)}" style="flex:1">
+        <div class="goal-report-targets" data-field="goalReportTargets">
+          ${reportTargets.length > 0 ? reportTargets.map((t, i) => {
+            const ch = t.split(':')[0];
+            const cid = t.split(':').slice(1).join(':');
+            return `<div style="display:flex;gap:6px;margin-bottom:4px" class="report-target-row">
+              <select class="goal-select" data-field="goalReportChannel" style="width:100px">
+                <option value="">None</option>
+                ${channels.map(c => '<option value="'+c+'" '+(c===ch?'selected':'')+'>'+c+'</option>').join('')}
+              </select>
+              <input class="goal-input" data-field="goalReportChatId" placeholder="Chat/Channel ID" value="${escapeHtml(cid)}" style="flex:1">
+              ${i > 0 ? '<button class="entry-remove" style="position:static;font-size:14px;width:24px;height:24px" onclick="this.parentElement.remove()">&times;</button>' : ''}
+            </div>`;
+          }).join('') : `<div style="display:flex;gap:6px;margin-bottom:4px" class="report-target-row">
+            <select class="goal-select" data-field="goalReportChannel" style="width:100px">
+              <option value="">None</option>
+              ${channels.map(c => '<option value="'+c+'" '+(c===reportChannel?'selected':'')+'>'+c+'</option>').join('')}
+            </select>
+            <input class="goal-input" data-field="goalReportChatId" placeholder="Chat/Channel ID" value="${escapeHtml(reportChatId)}" style="flex:1">
+          </div>`}
         </div>
+        <button class="mcp-key-btn" style="font-size:10px;margin-top:2px" onclick="addReportTarget(this)">+ Add Channel</button>
       </div>
     </div>
+    ${id && editingAgentId ? `<div class="goal-row" style="justify-content:flex-end;padding-top:4px;border-top:1px solid var(--border-dim)">
+      <button class="mcp-key-btn oauth" style="font-size:11px" onclick="triggerGoal('${id}')">Trigger Now</button>
+    </div>` : ''}
   `;
   container.appendChild(div);
   toggleGoalHeartbeatFields(div);
@@ -1762,6 +2225,41 @@ function autoGoalId(entry) {
     const kebab = desc.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
     idField.value = kebab;
   }
+}
+
+async function triggerGoal(goalId) {
+  if (!editingAgentId) return;
+  if (!confirm(`Trigger goal "${goalId}" now? It will run in the background and report to configured channels.`)) return;
+  try {
+    const res = await fetch(`/api/agents/${editingAgentId}/goals/${goalId}/trigger`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      alert(`Goal "${goalId}" triggered! Running in background. Check configured report channels for results.`);
+    } else {
+      alert('Failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+function addReportTarget(btn) {
+  const targetsDiv = btn.previousElementSibling;
+  const channels = agents.length > 0
+    ? [...new Set(agents.flatMap(a => (a.routes||[]).map(r => r.split(':')[0])))]
+    : ['telegram', 'slack', 'imessage', 'discord'];
+  const row = document.createElement('div');
+  row.className = 'report-target-row';
+  row.style.cssText = 'display:flex;gap:6px;margin-bottom:4px';
+  row.innerHTML = `
+    <select class="goal-select" data-field="goalReportChannel" style="width:100px">
+      <option value="">None</option>
+      ${channels.map(c => '<option value="'+c+'">'+c+'</option>').join('')}
+    </select>
+    <input class="goal-input" data-field="goalReportChatId" placeholder="Chat/Channel ID" style="flex:1">
+    <button class="entry-remove" style="position:static;font-size:14px;width:24px;height:24px" onclick="this.parentElement.remove()">&times;</button>
+  `;
+  targetsDiv.appendChild(row);
 }
 
 function removeGoal(btn) {
@@ -1799,15 +2297,21 @@ function getGoalsFromForm() {
     const instructions = entry.querySelector('[data-field="goalInstructions"]').value.trim();
     const heartbeat = buildGoalCron(entry);
     const budgetVal = entry.querySelector('[data-field="goalBudget"]').value.trim();
-    const reportChannel = entry.querySelector('[data-field="goalReportChannel"]').value;
-    const reportChatId = entry.querySelector('[data-field="goalReportChatId"]').value.trim();
+    // Collect all report targets
+    const reportRows = entry.querySelectorAll('.report-target-row');
+    const reportTargets = [...reportRows].map(row => {
+      const ch = row.querySelector('[data-field="goalReportChannel"]')?.value || '';
+      const cid = row.querySelector('[data-field="goalReportChatId"]')?.value?.trim() || '';
+      return ch && cid ? ch + ':' + cid : null;
+    }).filter(Boolean);
 
     if (!description || !id) return null;
     const goal = { id, enabled, description, heartbeat };
     if (successCriteria) goal.successCriteria = successCriteria;
     if (instructions) goal.instructions = instructions;
     if (budgetVal) goal.budget = { maxDailyUsd: parseFloat(budgetVal) };
-    if (reportChannel && reportChatId) goal.reportTo = reportChannel + ':' + reportChatId;
+    if (reportTargets.length === 1) goal.reportTo = reportTargets[0];
+    else if (reportTargets.length > 1) goal.reportTo = reportTargets;
     return goal;
   }).filter(Boolean);
 }
@@ -1910,9 +2414,15 @@ document.getElementById('agentModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
+document.getElementById('mcpAuthModal').addEventListener('click', function(e) {
+  if (e.target === this) closeMcpAuthModal();
+});
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (!document.getElementById('deleteOverlay').classList.contains('hidden')) {
+    if (document.getElementById('mcpAuthModal').classList.contains('show')) {
+      closeMcpAuthModal();
+    } else if (!document.getElementById('deleteOverlay').classList.contains('hidden')) {
       hideDeleteConfirm();
     } else {
       closeModal();

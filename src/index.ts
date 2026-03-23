@@ -72,7 +72,7 @@ async function main(): Promise<void> {
     driver.onMessage(async (msg: InboundMessage) => {
       // Anti-echo: ignore bot's own messages and echo loops
       if (msg.isFromMe) return;
-      if (msg.text === "On it..." || msg.text?.startsWith("Paired successfully")) return;
+      if (msg.text === "On it..." || msg.text?.startsWith("Paired successfully") || msg.text?.startsWith("Still working...")) return;
       const msgKey = `${msg.chatId}:${msg.text?.slice(0, 50)}`;
       if (recentBotMessages.has(msgKey)) {
         recentBotMessages.delete(msgKey);
@@ -114,30 +114,46 @@ async function main(): Promise<void> {
       }
 
       // Execute agent — streaming or regular
-      let response: string;
+      // Heartbeat: send "Still working..." every 4 minutes to keep channel alive
+      const HEARTBEAT_MS = 4 * 60 * 1000;
+      let heartbeatCount = 0;
+      const heartbeat = setInterval(() => {
+        heartbeatCount++;
+        const elapsed = heartbeatCount * 4;
+        const heartbeatMsg = `Still working... (${elapsed} min)`;
+        recentBotMessages.add(`${msg.chatId}:${heartbeatMsg}`);
+        driver.send({ text: heartbeatMsg, chatId: msg.chatId }).catch((err) => {
+          log.warn(`Heartbeat send failed: ${err}`);
+        });
+      }, HEARTBEAT_MS);
 
-      if (match.agentConfig.streaming) {
-        // Streaming mode: send status updates to phone channel
-        let lastStatus = "";
-        let fullText = "";
-        for await (const event of executeAgentStreaming(match, msg, baseDir, config.mcps, config.service.claudeAccounts)) {
-          if (event.type === "status" && event.data !== lastStatus) {
-            lastStatus = event.data;
-            // Send status updates (throttle — only unique ones)
-            if (driver.sendTyping) {
-              driver.sendTyping(msg.chatId).catch(() => {});
+      let response: string;
+      try {
+        if (match.agentConfig.streaming) {
+          // Streaming mode: send status updates to phone channel
+          let lastStatus = "";
+          let fullText = "";
+          for await (const event of executeAgentStreaming(match, msg, baseDir, config.mcps, config.service.claudeAccounts)) {
+            if (event.type === "status" && event.data !== lastStatus) {
+              lastStatus = event.data;
+              // Send status updates (throttle — only unique ones)
+              if (driver.sendTyping) {
+                driver.sendTyping(msg.chatId).catch(() => {});
+              }
+            } else if (event.type === "text") {
+              fullText += event.data;
+            } else if (event.type === "done") {
+              response = event.data || fullText;
+            } else if (event.type === "error") {
+              response = `Error: ${event.data}`;
             }
-          } else if (event.type === "text") {
-            fullText += event.data;
-          } else if (event.type === "done") {
-            response = event.data || fullText;
-          } else if (event.type === "error") {
-            response = `Error: ${event.data}`;
           }
+          response = response! || fullText || "No response from agent.";
+        } else {
+          response = await executeAgent(match, msg, baseDir, config.mcps, config.service.claudeAccounts);
         }
-        response = response! || fullText || "No response from agent.";
-      } else {
-        response = await executeAgent(match, msg, baseDir, config.mcps, config.service.claudeAccounts);
+      } finally {
+        clearInterval(heartbeat);
       }
 
       // Reply via originating channel (retry once on failure)
@@ -218,6 +234,7 @@ async function main(): Promise<void> {
       baseDir,
       port: webUI.port || 8080,
       webhookSecret: webUI.webhookSecret,
+      driverMap,
       onWebhookMessage: async (agentId, text, channel, chatId) => {
         await cronMessageHandler(agentId, text, channel, chatId);
       },
