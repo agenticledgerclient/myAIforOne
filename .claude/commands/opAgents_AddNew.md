@@ -62,7 +62,7 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 | `discordChannelId` | no | — | Discord channel ID |
 | `requireMention` | no | `true` | Require @mention to trigger |
 | `autoCommit` | no | `false` | Auto-commit git changes after agent runs |
-| `timeout` | no | `120000` | Max execution time in ms |
+| `timeout` | no | `14400000` | Max execution time in ms (default 240 min) |
 | `instructions` | no | auto | Custom CLAUDE.md content. If provided, use this verbatim instead of the template. If not provided, generate from name/description using the template below. |
 | `cron` | no | `[]` | Scheduled messages. Each entry: `{ schedule, message, channel, chatId }`. Schedule is cron syntax (e.g., `"0 9 * * 1-5"` = 9am weekdays). |
 | `goals` | no | `[]` | Autonomous goals. Each entry: `{ id, enabled, description, successCriteria, instructions, heartbeat: { schedule }, budget: { dailyUsd }, reportTo: { channel, chatId } }` |

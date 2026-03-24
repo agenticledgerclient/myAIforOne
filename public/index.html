@@ -764,9 +764,9 @@ html,body{
 
 /* ─── Raw Logs Drawer ────────────────────────────────────────── */
 .raw-logs-btn{
-  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  width:44px;height:44px;border-radius:10px;border:1px solid var(--border-dim);
   background:transparent;color:var(--text-muted);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-size:14px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
   transition:all .2s;flex-shrink:0;
 }
 .raw-logs-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
@@ -777,10 +777,14 @@ html,body{
   color:#8b8b8b;padding:8px 12px;
 }
 .raw-logs-drawer.open{display:block}
+.raw-logs-header{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px}
+.raw-logs-mode-btn{background:none;border:1px solid var(--border-dim);color:var(--text-muted);font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer;font-family:var(--font-mono)}
+.raw-logs-mode-btn:hover{border-color:var(--accent);color:var(--accent)}
 .raw-logs-drawer pre{margin:0;white-space:pre-wrap;word-break:break-all}
 .raw-logs-drawer .log-line{opacity:0.7}
 .raw-logs-drawer .log-line:last-child{opacity:1}
 .raw-logs-drawer .log-stderr{color:#ef4444}
+.raw-logs-drawer .log-dim{opacity:0.4}
 
 /* ─── Queue Button variant ───────────────────────────────────── */
 .send-btn.queue-mode{
@@ -972,6 +976,7 @@ let canvasOpen = false;
 let canvasFile = null; // {path, name, ext, content, type}
 let rawLogsOpen = false;
 let rawLogsReader = null; // active fetch reader for raw stream
+let rawMode = false; // false = clean view, true = raw JSON
 
 function toggleRawLogs() {
   rawLogsOpen = !rawLogsOpen;
@@ -1019,16 +1024,93 @@ async function streamRawLogs(jobId) {
           el.textContent += '\n--- Job complete ---\n';
           break;
         }
-        const span = document.createElement('span');
-        span.className = data.startsWith('[stderr]') ? 'log-line log-stderr' : 'log-line';
-        span.textContent = data + '\n';
-        el.appendChild(span);
+        if (rawMode) {
+          const span = document.createElement('span');
+          span.className = data.startsWith('[stderr]') ? 'log-line log-stderr' : 'log-line';
+          span.textContent = data + '\n';
+          el.appendChild(span);
+        } else {
+          const fmt = formatLogLine(data);
+          if (fmt) {
+            const span = document.createElement('span');
+            span.className = 'log-line' + (fmt.cls ? ' ' + fmt.cls : '');
+            span.textContent = fmt.icon + ' ' + fmt.text + '\n';
+            el.appendChild(span);
+          }
+        }
         // Auto-scroll
         const drawer = document.getElementById('rawLogsDrawer');
         if (drawer) drawer.scrollTop = drawer.scrollHeight;
       }
     }
   } catch { /* connection closed */ }
+}
+
+function toggleRawMode() {
+  rawMode = !rawMode;
+  const btn = document.getElementById('rawModeBtn');
+  if (btn) btn.textContent = rawMode ? '● Raw' : '○ Clean';
+}
+
+function formatLogLine(data) {
+  if (data.startsWith('[stderr]')) return { icon: '⚠', text: data.slice(9), cls: 'log-stderr' };
+  try {
+    let evt = JSON.parse(data);
+    // Unwrap stream_event
+    if (evt.type === 'stream_event' && evt.event) evt = evt.event;
+
+    // Text output
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta')
+      return { icon: '💬', text: evt.delta.text };
+
+    // Thinking
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'thinking_delta')
+      return { icon: '🧠', text: evt.delta.thinking };
+
+    // Tool starting
+    if (evt.type === 'content_block_start' && evt.content_block?.type === 'tool_use')
+      return { icon: '🔧', text: evt.content_block.name };
+
+    // Tool call complete (from assistant message)
+    if (evt.type === 'assistant' && evt.message?.content) {
+      const tools = evt.message.content.filter(b => b.type === 'tool_use');
+      if (tools.length) {
+        return { icon: '📖', text: tools.map(t => {
+          const path = t.input?.file_path || t.input?.command?.slice(0, 80) || t.input?.pattern || '';
+          return t.name + (path ? ' ' + path : '');
+        }).join(', ') };
+      }
+      const texts = evt.message.content.filter(b => b.type === 'text' && b.text);
+      if (texts.length) return { icon: '💬', text: texts.map(t => t.text).join(' ') };
+    }
+
+    // Tool result
+    if (evt.type === 'user' && evt.message?.content?.[0]?.type === 'tool_result')
+      return { icon: '✓', text: 'tool_result', cls: 'log-dim' };
+
+    // Skip noise
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'input_json_delta') return null;
+    if (evt.type === 'content_block_stop' || evt.type === 'message_stop' || evt.type === 'message_delta') return null;
+    if (evt.type === 'rate_limit_event') return null;
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'signature_delta') return null;
+
+    // System init
+    if (evt.type === 'system' && evt.subtype === 'init')
+      return { icon: '●', text: 'Session started — ' + (evt.model || '') + ' | ' + (evt.mcp_servers?.length || 0) + ' MCPs' };
+    if (evt.type === 'system') return { icon: '⚙', text: evt.subtype || 'system' };
+
+    // Result
+    if (evt.type === 'result')
+      return { icon: '🏁', text: 'Done — ' + (evt.duration_ms ? Math.round(evt.duration_ms/1000) + 's' : '') };
+
+    // Message start
+    if (evt.type === 'message_start') return null;
+
+    // Fallback: show type
+    return { icon: '·', text: evt.type || data.slice(0, 80), cls: 'log-dim' };
+  } catch {
+    return { icon: '·', text: data.slice(0, 120) };
+  }
 }
 
 // ─── Theme ─────────────────────────────────────────────────────
@@ -1472,7 +1554,13 @@ function renderChat() {
           <button class="send-btn${ss.jobId ? ' queue-mode' : ''}" id="sendBtn" onclick="doSend()">${ss.jobId ? 'Queue' : '→'}</button>
         </div>
         <div id="queueContainer"></div>
-        <div class="raw-logs-drawer${rawLogsOpen ? ' open' : ''}" id="rawLogsDrawer"><pre id="rawLogsContent"></pre></div>
+        <div class="raw-logs-drawer${rawLogsOpen ? ' open' : ''}" id="rawLogsDrawer">
+          <div class="raw-logs-header">
+            <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Activity</span>
+            <button class="raw-logs-mode-btn" id="rawModeBtn" onclick="toggleRawMode()">${rawMode ? '● Raw' : '○ Clean'}</button>
+          </div>
+          <pre id="rawLogsContent"></pre>
+        </div>
       </div>
     `;
     setTimeout(() => {

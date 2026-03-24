@@ -372,7 +372,7 @@ async function executeParallel(
     return args;
   };
 
-  const timeout = agentConfig.timeout ?? 120_000;
+  const timeout = agentConfig.timeout ?? 14_400_000;
 
   // Spawn all workers in parallel
   const results = await Promise.allSettled(
@@ -955,7 +955,7 @@ export async function executeAgent(
   }
 
   // ── Spawn claude ──
-  const timeout = agentConfig.timeout ?? 120_000;
+  const timeout = agentConfig.timeout ?? 14_400_000;
   let rawOutput: string;
 
   try {
@@ -1364,7 +1364,7 @@ export async function* executeAgentStreaming(
 
   if (isPersistent) args.push("--permission-mode", agentConfig.mcps?.length ? "bypassPermissions" : "acceptEdits");
 
-  const timeout = agentConfig.timeout ?? 120_000;
+  const timeout = agentConfig.timeout ?? 14_400_000;
 
   // Spawn claude and stream output
   yield { type: "status", data: "Starting..." };
