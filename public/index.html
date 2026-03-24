@@ -1391,10 +1391,15 @@ async function sendMessage(agentId, text) {
     } catch (err) {
       ss.isThinking = false;
       ss.jobId = null;
+      // Save partial response if any text was streamed before disconnect
+      if (ss.text) {
+        chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+      } else {
+        chatHistory[agentId].push({ role: 'agent', text: `Error: ${err.message}`, time: new Date().toISOString() });
+      }
       ss.text = '';
       ss.status = '';
       ss.tools = [];
-      chatHistory[agentId].push({ role: 'agent', text: `Error: ${err.message}`, time: new Date().toISOString() });
     }
     if (isViewing()) { renderChat(); scrollChat(); }
     // Auto-send next queued message if any
