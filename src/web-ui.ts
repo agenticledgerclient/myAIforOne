@@ -1,7 +1,7 @@
 import express from "express";
 import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve, basename, extname, relative } from "node:path";
+import { join, resolve, basename, extname, relative, isAbsolute } from "node:path";
 import { execSync } from "node:child_process";
 import type { AppConfig } from "./config.js";
 import { getPersonalAgentsDir } from "./config.js";
@@ -658,7 +658,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (type === "skill") {
         const destDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "skills");
         mkdirSync(destDir, { recursive: true });
-        const srcPath = join(opts.baseDir, entry.localPath);
+        const srcPath = isAbsolute(entry.localPath) ? entry.localPath : join(opts.baseDir, entry.localPath);
         const destPath = join(destDir, `${id}.md`);
         if (!existsSync(srcPath)) return res.status(500).json({ error: `Source file not found: ${entry.localPath}` });
         copyFileSync(srcPath, destPath);
@@ -778,6 +778,141 @@ export function startWebUI(opts: WebUIOptions): void {
 
     log.info(`[Marketplace] Assigned ${type}/${id} to agents: ${agentIds.join(", ")}`);
     res.json({ ok: true, assigned: agentIds, missingKeys });
+  });
+
+  // ─── API: Marketplace — scan local skills dir ────────────────────
+  app.get("/api/marketplace/scan-skills", (req, res) => {
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const scanDir = req.query.dir
+      ? resolveTilde(req.query.dir as string)
+      : join(home, ".claude", "commands");
+
+    if (!existsSync(scanDir)) {
+      return res.status(404).json({ error: `Directory not found: ${scanDir}` });
+    }
+
+    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    const existingIds = new Set<string>();
+    try {
+      const data = JSON.parse(readFileSync(registryPath, "utf-8"));
+      for (const s of (data.skills || [])) existingIds.add(s.id);
+    } catch { /* registry may not exist yet */ }
+
+    let files: any[] = [];
+    try {
+      const mdFiles = readdirSync(scanDir).filter((f: string) => f.endsWith(".md"));
+      for (const file of mdFiles) {
+        const id = file.replace(".md", "");
+        if (existingIds.has(id)) continue;
+        const filePath = join(scanDir, file);
+        const content = readFileSync(filePath, "utf-8");
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        let name = id.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        let description = "";
+        if (fmMatch) {
+          for (const line of fmMatch[1].split("\n")) {
+            const [k, ...rest] = line.split(":");
+            if (k?.trim() === "name") name = rest.join(":").trim();
+            if (k?.trim() === "description") description = rest.join(":").trim();
+          }
+        }
+        files.push({ id, filename: file, path: filePath, name, description });
+      }
+    } catch (err) {
+      return res.status(500).json({ error: `Failed to scan directory: ${err}` });
+    }
+
+    res.json({ dir: scanDir, files });
+  });
+
+  // ─── API: Marketplace — import personal skills ───────────────────
+  app.post("/api/marketplace/import-skills", (req, res) => {
+    const { files } = req.body as { files?: Array<{ id: string; path: string; name: string; description: string }> };
+    if (!files?.length) return res.status(400).json({ error: "No files provided" });
+
+    const home = homedir();
+    const commandsDir = join(home, ".claude", "commands");
+    const personalDir = join(opts.baseDir, "registry", "skills", "personal");
+    mkdirSync(personalDir, { recursive: true });
+
+    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    let registryData: any = { skills: [] };
+    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
+
+    const imported: any[] = [];
+    for (const file of files) {
+      const isInCommandsDir = file.path.startsWith(commandsDir);
+      let localPath: string;
+      if (isInCommandsDir) {
+        localPath = file.path; // absolute reference — no copy needed
+      } else {
+        const dest = join(personalDir, `${file.id}.md`);
+        copyFileSync(file.path, dest);
+        localPath = `registry/skills/personal/${file.id}.md`;
+      }
+      const entry = {
+        id: file.id,
+        name: file.name,
+        provider: "me",
+        description: file.description,
+        category: "personal",
+        verified: false,
+        source: "local",
+        tags: ["personal"],
+        localPath,
+        fetch: { type: "file" },
+      };
+      registryData.skills = registryData.skills.filter((s: any) => s.id !== file.id);
+      registryData.skills.push(entry);
+      imported.push(entry);
+    }
+
+    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
+    log.info(`[Marketplace] Imported ${imported.length} personal skills`);
+    res.json({ ok: true, imported });
+  });
+
+  // ─── API: Marketplace — add custom MCP ───────────────────────────
+  app.post("/api/marketplace/add-mcp", (req, res) => {
+    const { id, name, description, mcpType, url, command, args, env: envVars } = req.body as {
+      id?: string; name?: string; description?: string; mcpType?: string;
+      url?: string; command?: string; args?: string[]; env?: Record<string, string>;
+    };
+    if (!id || !name || !mcpType) return res.status(400).json({ error: "Missing id, name, or mcpType" });
+
+    const configPath = join(opts.baseDir, "config.json");
+    const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+    if (!rawConfig.mcps) rawConfig.mcps = {};
+
+    let mcpEntry: any;
+    if (mcpType === "http") {
+      if (!url) return res.status(400).json({ error: "URL required for HTTP MCP" });
+      mcpEntry = { type: "http", url, headers: {} };
+    } else {
+      if (!command) return res.status(400).json({ error: "Command required for stdio MCP" });
+      mcpEntry = { type: "stdio", command, args: args || [], env: envVars || {} };
+    }
+
+    rawConfig.mcps[id] = mcpEntry;
+    writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+    if (!(opts.config as any).mcps) (opts.config as any).mcps = {};
+    (opts.config as any).mcps[id] = mcpEntry;
+
+    const registryPath = join(opts.baseDir, "registry", "mcps.json");
+    let registryData: any = { mcps: [] };
+    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
+    registryData.mcps = registryData.mcps.filter((m: any) => m.id !== id);
+    registryData.mcps.push({
+      id, name, provider: "me", description: description || "",
+      category: "personal", verified: false, source: "local",
+      tags: ["personal"], requiredKeys: [],
+      fetch: mcpType === "http" ? { type: "http", url } : { type: "local", command, args: args || [] },
+    });
+    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
+
+    log.info(`[Marketplace] Added personal MCP: ${id}`);
+    res.json({ ok: true });
   });
 
   // ─── API: Raw log stream for a job (tail -f style) ──────────────

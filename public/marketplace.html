@@ -7,37 +7,17 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
 :root{
-  --bg-deep:#060a13;
-  --bg-surface:rgba(12,18,33,0.92);
-  --bg-card:rgba(16,22,40,0.85);
-  --bg-input:rgba(0,0,0,0.35);
-  --border-dim:rgba(56,189,248,0.08);
-  --border-glow:rgba(56,189,248,0.18);
-  --border-active:rgba(56,189,248,0.45);
-  --text-primary:rgba(255,255,255,0.92);
-  --text-secondary:rgba(255,255,255,0.68);
-  --text-muted:rgba(148,163,184,0.55);
-  --accent:#22d3ee;
-  --accent-soft:#38bdf8;
-  --accent-bg:rgba(6,182,212,0.15);
-  --accent-glow:rgba(34,211,238,0.12);
-  --purple:rgba(139,92,246,0.7);
-  --purple-bg:rgba(139,92,246,0.12);
-  --green:#4ade80;
-  --green-bg:rgba(74,222,128,0.1);
-  --amber:#fbbf24;
-  --amber-bg:rgba(251,191,36,0.1);
-  --red:#f87171;
-  --red-bg:rgba(248,113,113,0.1);
-  --shadow:0 2px 12px rgba(0,0,0,0.3);
-  --shadow-glow:0 0 20px rgba(34,211,238,0.08);
-  --radius:12px;
-  --font-sans:'DM Sans',system-ui,sans-serif;
-  --font-mono:'IBM Plex Mono',monospace;
-  --font-display:'Syne',sans-serif;
-  --line-color:rgba(56,189,248,0.12);
+  --bg-deep:#060a13;--bg-surface:rgba(12,18,33,0.92);--bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);--border-dim:rgba(56,189,248,0.08);--border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);--text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);--text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;--accent-soft:#38bdf8;--accent-bg:rgba(6,182,212,0.15);
+  --accent-glow:rgba(34,211,238,0.12);--purple:rgba(139,92,246,0.7);--purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);--amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--shadow:0 2px 12px rgba(0,0,0,0.3);
+  --shadow-glow:0 0 20px rgba(34,211,238,0.08);--radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;--font-display:'Syne',sans-serif;
 }
 [data-theme="light"]{
   --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
@@ -48,12 +28,10 @@
   --accent-glow:rgba(14,116,144,0.06);--purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
   --green:#16a34a;--green-bg:rgba(22,163,74,0.08);--amber:#d97706;--amber-bg:rgba(217,119,6,0.08);
   --red:#dc2626;--red-bg:rgba(220,38,38,0.08);--shadow:0 1px 8px rgba(0,0,0,0.06);--shadow-glow:none;
-  --line-color:rgba(14,116,144,0.12);
 }
-
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
 
-/* ─── Top Bar ──────────────────────────────────────────────── */
+/* ── Topbar ── */
 .topbar{height:56px;display:flex;align-items:center;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;z-index:100}
 .topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px}
 .logo-mark{width:32px;height:32px;border-radius:8px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent)}
@@ -67,11 +45,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .theme-toggle{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
 .theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
-/* ─── Canvas ───────────────────────────────────────────────── */
+/* ── Canvas ── */
 .canvas{position:fixed;top:56px;left:0;right:0;bottom:0;overflow:auto;padding:32px 40px}
 
-/* ─── Toolbar ──────────────────────────────────────────────── */
-.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+/* ── Toolbar ── */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:28px;flex-wrap:wrap}
 .type-tabs{display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:10px;padding:4px}
 .type-tab{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:6px 18px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s}
 .type-tab:hover{color:var(--text-secondary)}
@@ -86,45 +64,80 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .pill.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
 
-/* ─── Grid ─────────────────────────────────────────────────── */
+/* ── Sections ── */
+.sections{display:flex;flex-direction:column;gap:36px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border-dim)}
+.section-title{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.section-count{font-family:var(--font-mono);font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim)}
+.section-action{margin-left:auto}
+
+/* ── Grid ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 
-/* ─── Card ─────────────────────────────────────────────────── */
+/* ── Card ── */
 .card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:10px;transition:all .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .card:hover{border-color:var(--border-glow);box-shadow:var(--shadow),var(--shadow-glow);transform:translateY(-1px)}
 .card.installed{border-color:rgba(74,222,128,0.2)}
-
 .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .card-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);line-height:1.2}
 .card-badges{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
 .badge{font-family:var(--font-mono);font-size:9px;font-weight:600;padding:3px 7px;border-radius:4px;white-space:nowrap;letter-spacing:.03em}
 .badge-verified{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.3)}
 .badge-external{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim)}
+.badge-personal{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,0.3)}
 .badge-installed{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.3)}
-.badge-draft{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.3)}
-
 .card-provider{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:1px}
 .card-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;flex:1}
 .card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tag{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,0.2)}
 .assigned-label{font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}
-
 .card-actions{display:flex;gap:8px;margin-top:4px}
 .btn{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;transition:all .2s;flex:1;text-align:center}
 .btn-install{background:var(--accent-bg);color:var(--accent);border:1px solid var(--border-active)}
 .btn-install:hover{background:var(--accent);color:#000}
-.btn-install:disabled{opacity:0.5;cursor:not-allowed;pointer-events:none}
+.btn-install:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
 .btn-manage{background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border-dim)}
 .btn-manage:hover{border-color:var(--border-glow);color:var(--text-primary)}
 .btn-installing{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim);pointer-events:none}
 
-/* ─── Empty state ──────────────────────────────────────────── */
-.empty-state{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)}
-.empty-state-icon{font-size:40px;margin-bottom:12px}
-.empty-state-title{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-secondary);margin-bottom:6px}
-.empty-state-sub{font-size:13px}
+/* ── Small buttons ── */
+.btn-sm{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-sm-accent{background:var(--accent-bg);color:var(--accent);border:1px solid var(--border-active)}
+.btn-sm-accent:hover{background:var(--accent);color:#000}
+.btn-sm-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border-dim)}
+.btn-sm-ghost:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.btn-sm-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.3)}
+.btn-sm-green:hover{background:var(--green);color:#000}
+.btn-sm-green:disabled{opacity:.4;cursor:not-allowed}
 
-/* ─── Toast ────────────────────────────────────────────────── */
+/* ── Scan / Add panels ── */
+.panel{background:var(--bg-input);border:1px solid var(--border-dim);border-radius:10px;padding:16px;margin-bottom:16px}
+.panel.hidden{display:none}
+.panel-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.panel-input{flex:1;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:7px;padding:7px 11px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);outline:none;transition:border-color .2s}
+.panel-input::placeholder{color:var(--text-muted)}
+.panel-input:focus{border-color:var(--border-active)}
+.scan-results{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;max-height:200px;overflow-y:auto}
+.scan-result-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;border:1px solid var(--border-dim);background:var(--bg-card);cursor:pointer;transition:border-color .2s}
+.scan-result-item:hover{border-color:var(--border-glow)}
+.scan-result-item input{accent-color:var(--accent);flex-shrink:0}
+.scan-result-name{font-size:12px;font-weight:600;color:var(--text-primary);flex:1}
+.scan-result-desc{font-size:10px;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.panel-label{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.panel-hint{font-size:11px;color:var(--text-muted);margin-top:8px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.form-grid-full{grid-column:1/-1}
+.type-toggle{display:flex;gap:4px;margin-bottom:10px}
+.type-toggle-btn{font-family:var(--font-mono);font-size:11px;padding:5px 14px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s}
+.type-toggle-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+/* ── Empty state ── */
+.empty-state{padding:32px 20px;text-align:center;color:var(--text-muted)}
+.empty-icon{font-size:28px;margin-bottom:8px}
+.empty-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-secondary);margin-bottom:4px}
+.empty-sub{font-size:12px}
+
+/* ── Toast ── */
 #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{font-family:var(--font-sans);font-size:12px;font-weight:500;padding:10px 16px;border-radius:8px;border:1px solid;backdrop-filter:blur(20px);pointer-events:none;animation:toast-in .2s ease;max-width:320px}
 .toast-success{background:var(--green-bg);color:var(--green);border-color:rgba(74,222,128,0.3)}
@@ -132,7 +145,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .toast-info{background:var(--accent-bg);color:var(--accent);border-color:rgba(34,211,238,0.3)}
 @keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 
-/* ─── Modal overlay ────────────────────────────────────────── */
+/* ── Modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:16px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5);transform:translateY(8px);transition:transform .2s}
@@ -157,7 +170,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 </head>
 <body>
 
-<!-- ── Top Bar ──────────────────────────────────────────────────── -->
 <div class="topbar">
   <div class="topbar-logo">
     <div class="logo-mark">M</div>
@@ -174,10 +186,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   </div>
 </div>
 
-<!-- ── Canvas ───────────────────────────────────────────────────── -->
 <div class="canvas" id="canvas">
-
-  <!-- Toolbar -->
   <div class="toolbar">
     <div class="type-tabs">
       <button class="type-tab active" data-type="mcps" onclick="switchType('mcps')">MCPs</button>
@@ -186,24 +195,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     </div>
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
-      <input class="search-input" id="search-input" placeholder="Search…" oninput="renderGrid()">
+      <input class="search-input" id="search-input" placeholder="Search…" oninput="render()">
     </div>
     <div class="filter-pills" id="filter-pills"></div>
   </div>
-
-  <!-- Grid -->
-  <div class="grid" id="grid"></div>
-
+  <div id="content"></div>
 </div>
 
-<!-- ── Toast container ──────────────────────────────────────────── -->
 <div id="toast-container"></div>
 
-<!-- ── Assign Modal ──────────────────────────────────────────────── -->
+<!-- Assign Modal -->
 <div class="modal-overlay" id="assign-modal">
   <div class="modal">
     <div class="modal-title" id="modal-title">Assign to agents</div>
-    <div class="modal-sub" id="modal-sub">Select one or more agents (optional)</div>
+    <div class="modal-sub" id="modal-sub">Select agents (optional)</div>
     <div class="agent-list" id="modal-agent-list"></div>
     <div id="modal-missing-keys"></div>
     <div class="modal-actions">
@@ -220,20 +225,20 @@ let allItems = [];
 let activeCategory = 'all';
 let modalItem = null;
 let modalType = null;
-let agentsList = []; // all agents from config
+let agentsList = [];
 
 // ─── Theme ────────────────────────────────────────────────────────
-(function initTheme(){
-  const saved = localStorage.getItem('theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  document.querySelector('.theme-toggle').textContent = saved === 'dark' ? '☀' : '☾';
+(function(){
+  const s = localStorage.getItem('theme')||'dark';
+  document.documentElement.setAttribute('data-theme', s);
+  document.querySelector('.theme-toggle').textContent = s==='dark'?'☀':'☾';
 })();
 function toggleTheme(){
-  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('theme', next);
-  document.querySelector('.theme-toggle').textContent = next === 'dark' ? '☀' : '☾';
+  const c = document.documentElement.getAttribute('data-theme')||'dark';
+  const n = c==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  localStorage.setItem('theme',n);
+  document.querySelector('.theme-toggle').textContent = n==='dark'?'☀':'☾';
 }
 
 // ─── Toast ────────────────────────────────────────────────────────
@@ -242,259 +247,382 @@ function toast(msg, type='info'){
   el.className = `toast toast-${type}`;
   el.textContent = msg;
   document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(()=>el.remove(), 3500);
 }
 
-// ─── Load agents list (for assign modal) ─────────────────────────
+// ─── Escape ───────────────────────────────────────────────────────
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+
+// ─── Slug ─────────────────────────────────────────────────────────
+function slugify(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') }
+
+// ─── Load agents ──────────────────────────────────────────────────
 async function loadAgents(){
-  try {
-    const res = await fetch('/api/agents');
-    const data = await res.json();
-    agentsList = data.agents || [];
-  } catch { agentsList = []; }
+  try{ const d = await (await fetch('/api/agents')).json(); agentsList = d.agents||[]; } catch{ agentsList=[]; }
 }
 
 // ─── Type switch ──────────────────────────────────────────────────
 function switchType(type){
-  currentType = type;
-  activeCategory = 'all';
-  document.querySelectorAll('.type-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.type === type);
-  });
+  currentType = type; activeCategory = 'all';
+  document.querySelectorAll('.type-tab').forEach(t=>t.classList.toggle('active', t.dataset.type===type));
   document.getElementById('search-input').value = '';
   loadItems();
 }
 
-// ─── Load items from API ──────────────────────────────────────────
+// ─── Load items ───────────────────────────────────────────────────
 async function loadItems(){
-  document.getElementById('grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⟳</div><div class="empty-state-title">Loading…</div></div>';
-  try {
-    const res = await fetch(`/api/marketplace/${currentType}`);
-    const data = await res.json();
-    allItems = data.items || [];
-    buildCategoryPills();
-    renderGrid();
-  } catch(e) {
-    document.getElementById('grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-title">Failed to load registry</div><div class="empty-state-sub">Check that the server is running and the registry files exist.</div></div>';
+  document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)">Loading…</div>';
+  try{
+    const d = await (await fetch(`/api/marketplace/${currentType}`)).json();
+    allItems = d.items||[];
+    buildPills();
+    render();
+  } catch{
+    document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)">Failed to load registry.</div>';
   }
 }
 
-// ─── Build category pills ─────────────────────────────────────────
-function buildCategoryPills(){
-  const cats = [...new Set(allItems.map(i => i.category).filter(Boolean))].sort();
-  const pillsEl = document.getElementById('filter-pills');
-  pillsEl.innerHTML = '';
-  const all = document.createElement('button');
-  all.className = 'pill active';
-  all.textContent = 'all';
-  all.onclick = () => setCat('all');
-  pillsEl.appendChild(all);
-  for (const cat of cats){
-    const btn = document.createElement('button');
-    btn.className = 'pill';
-    btn.textContent = cat;
-    btn.onclick = () => setCat(cat);
-    pillsEl.appendChild(btn);
-  }
+// ─── Category pills ───────────────────────────────────────────────
+function buildPills(){
+  const cats = [...new Set(allItems.map(i=>i.category).filter(Boolean))].sort();
+  const el = document.getElementById('filter-pills');
+  el.innerHTML = '';
+  const all = mkPill('all', true); el.appendChild(all);
+  cats.forEach(c=>el.appendChild(mkPill(c, false)));
+}
+function mkPill(cat, active){
+  const b = document.createElement('button');
+  b.className = 'pill'+(active?' active':''); b.textContent = cat;
+  b.onclick = ()=>{ activeCategory=cat; document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active', p.textContent===cat)); render(); };
+  return b;
 }
 
-function setCat(cat){
-  activeCategory = cat;
-  document.querySelectorAll('.filter-pills .pill').forEach(p => {
-    p.classList.toggle('active', p.textContent === cat);
-  });
-  renderGrid();
-}
-
-// ─── Render grid ──────────────────────────────────────────────────
-function renderGrid(){
-  const query = (document.getElementById('search-input').value || '').toLowerCase().trim();
+// ─── Main render ──────────────────────────────────────────────────
+function render(){
+  const q = (document.getElementById('search-input').value||'').toLowerCase().trim();
   let items = allItems;
-  if (activeCategory !== 'all') items = items.filter(i => i.category === activeCategory);
-  if (query) items = items.filter(i =>
-    (i.name||'').toLowerCase().includes(query) ||
-    (i.description||'').toLowerCase().includes(query) ||
-    (i.tags||[]).some(t => t.toLowerCase().includes(query))
-  );
+  if(activeCategory!=='all') items = items.filter(i=>i.category===activeCategory);
+  if(q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q)||(i.tags||[]).some(t=>t.toLowerCase().includes(q)));
 
-  const grid = document.getElementById('grid');
-  if (!items.length){
-    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">Nothing found</div><div class="empty-state-sub">Try a different search or category.</div></div>';
-    return;
-  }
-
-  grid.innerHTML = '';
-  for (const item of items){
-    grid.appendChild(buildCard(item));
+  if(currentType==='agents'){
+    renderFlat(items);
+  } else {
+    renderSections(items);
   }
 }
 
-// ─── Build card ───────────────────────────────────────────────────
-function buildCard(item){
-  const card = document.createElement('div');
-  card.className = 'card' + (item.installed ? ' installed' : '');
-  card.id = `card-${item.id}`;
+function renderFlat(items){
+  const el = document.getElementById('content');
+  if(!items.length){ el.innerHTML = emptyHtml('Nothing found'); return; }
+  el.innerHTML = `<div class="grid">${items.map(i=>cardHtml(i, currentType==='mcps'?'mcp':'agent')).join('')}</div>`;
+}
 
-  const typeSingular = currentType === 'mcps' ? 'mcp' : currentType === 'skills' ? 'skill' : 'agent';
+function renderSections(items){
+  const typeSingular = currentType==='mcps'?'mcp':'skill';
+  const platform = items.filter(i=>i.provider==='AgenticLedger');
+  const personal  = items.filter(i=>i.provider==='me');
+  const community = items.filter(i=>i.provider!=='AgenticLedger' && i.provider!=='me');
 
-  // badges
-  const verifiedBadge = item.verified
-    ? `<span class="badge badge-verified">✓ verified</span>`
-    : `<span class="badge badge-external">external</span>`;
-  const installedBadge = item.installed
-    ? (typeSingular === 'agent' && item.draft
-        ? `<span class="badge badge-draft">needs setup</span>`
-        : `<span class="badge badge-installed">✓ installed</span>`)
-    : '';
+  let html = '<div class="sections">';
 
-  // assigned-to label
-  const assignedLabel = (item.assignedTo && item.assignedTo.length > 0)
-    ? `<span class="assigned-label">→ ${item.assignedTo.slice(0,3).join(', ')}${item.assignedTo.length > 3 ? ` +${item.assignedTo.length - 3}` : ''}</span>`
-    : '';
+  // ── Platform ──
+  html += section('Built by Platform', platform, typeSingular, platform.length);
 
-  // tags
-  const tagsHtml = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+  // ── Community ──
+  html += section('Community', community, typeSingular, community.length);
 
-  // action button
-  let actionBtn;
-  if (item.installed && typeSingular !== 'agent'){
-    actionBtn = `<button class="btn btn-manage" onclick='openAssignModal(${JSON.stringify(item)}, "${typeSingular}", false)'>Manage</button>`;
-  } else if (item.installed && typeSingular === 'agent'){
-    actionBtn = `<button class="btn btn-manage" disabled title="Go to Org to configure this agent">Needs setup → Org</button>`;
-  } else {
-    actionBtn = `<button class="btn btn-install" id="install-btn-${item.id}" onclick='installItem(${JSON.stringify(item)}, "${typeSingular}")'>+ Install</button>`;
-  }
+  // ── Built by Me (always shown, at bottom) ──
+  html += sectionPersonal(personal, typeSingular);
 
-  card.innerHTML = `
-    <div class="card-top">
-      <div>
-        <div class="card-name">${esc(item.name)}</div>
-        <div class="card-provider">${esc(item.provider || '')}</div>
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function section(title, items, typeSingular, count){
+  return `
+    <div>
+      <div class="section-header">
+        <span class="section-title">${esc(title)}</span>
+        <span class="section-count">${count}</span>
       </div>
-      <div class="card-badges">
-        ${verifiedBadge}
-        ${installedBadge}
+      ${items.length
+        ? `<div class="grid">${items.map(i=>cardHtml(i,typeSingular)).join('')}</div>`
+        : `<div class="empty-state"><div class="empty-sub">None available.</div></div>`}
+    </div>`;
+}
+
+function sectionPersonal(items, typeSingular){
+  const actionBtn = typeSingular==='skill'
+    ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleScanPanel()">⊕ Scan my skills</button>`
+    : `<button class="btn-sm btn-sm-accent section-action" onclick="toggleAddMcpPanel()">⊕ Add my MCP</button>`;
+
+  const panelHtml = typeSingular==='skill' ? scanPanelHtml() : addMcpPanelHtml();
+
+  return `
+    <div>
+      <div class="section-header">
+        <span class="section-title">Built by Me</span>
+        <span class="section-count">${items.length}</span>
+        ${actionBtn}
+      </div>
+      ${panelHtml}
+      ${items.length
+        ? `<div class="grid">${items.map(i=>cardHtml(i,typeSingular)).join('')}</div>`
+        : `<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">None yet</div><div class="empty-sub">${typeSingular==='skill'?'Scan your skills folder to import personal skills.':'Add a custom HTTP or stdio MCP you built.'}</div></div>`}
+    </div>`;
+}
+
+// ─── Scan panel (skills) ──────────────────────────────────────────
+function scanPanelHtml(){
+  return `
+  <div class="panel hidden" id="scan-panel">
+    <div class="panel-label">Scan folder</div>
+    <div class="panel-row">
+      <input class="panel-input" id="scan-dir-input" placeholder="~/.claude/commands" value="">
+      <button class="btn-sm btn-sm-accent" onclick="doScan()">Scan</button>
+    </div>
+    <div class="panel-hint">Default: ~/.claude/commands — change to any folder containing .md skill files.</div>
+    <div id="scan-results" style="margin-top:10px"></div>
+  </div>`;
+}
+
+function toggleScanPanel(){
+  const p = document.getElementById('scan-panel');
+  if(!p) return;
+  const open = !p.classList.contains('hidden');
+  p.classList.toggle('hidden', open);
+  if(!open && !document.getElementById('scan-dir-input').value){
+    document.getElementById('scan-dir-input').value = '~/.claude/commands';
+  }
+}
+
+async function doScan(){
+  const dir = document.getElementById('scan-dir-input').value.trim() || '~/.claude/commands';
+  const el = document.getElementById('scan-results');
+  el.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Scanning…</div>';
+  try{
+    const res = await fetch(`/api/marketplace/scan-skills?dir=${encodeURIComponent(dir)}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Scan failed');
+    if(!data.files.length){
+      el.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No new skills found — all .md files in this folder are already in the registry.</div>';
+      return;
+    }
+    let html = `<div class="scan-results">`;
+    for(const f of data.files){
+      html += `<label class="scan-result-item">
+        <input type="checkbox" value="${esc(JSON.stringify(f))}" checked>
+        <span class="scan-result-name">${esc(f.name||f.id)}</span>
+        <span class="scan-result-desc">${esc(f.description||f.filename)}</span>
+      </label>`;
+    }
+    html += `</div>`;
+    html += `<button class="btn-sm btn-sm-green" id="import-btn" onclick="doImport(${esc(JSON.stringify(data.files))})">Import selected (${data.files.length})</button>`;
+    el.innerHTML = html;
+    // Update import btn count on checkbox change
+    el.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', ()=>{
+        const n = el.querySelectorAll('input[type=checkbox]:checked').length;
+        const btn = document.getElementById('import-btn');
+        if(btn){ btn.textContent = `Import selected (${n})`; btn.disabled = n===0; }
+      });
+    });
+  } catch(e){ el.innerHTML = `<div style="font-size:11px;color:var(--red)">${esc(e.message)}</div>`; }
+}
+
+async function doImport(allFiles){
+  const el = document.getElementById('scan-results');
+  const checked = el.querySelectorAll('input[type=checkbox]:checked');
+  const files = [...checked].map(cb=>{ try{ return JSON.parse(cb.value); } catch{ return null; } }).filter(Boolean);
+  if(!files.length) return;
+  const btn = document.getElementById('import-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Importing…'; }
+  try{
+    const res = await fetch('/api/marketplace/import-skills',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({files})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Import failed');
+    toast(`${data.imported.length} skill${data.imported.length!==1?'s':''} imported`, 'success');
+    document.getElementById('scan-panel').classList.add('hidden');
+    await loadItems();
+  } catch(e){ toast(`Import failed: ${e.message}`,'error'); if(btn){btn.disabled=false;btn.textContent='Import selected';} }
+}
+
+// ─── Add MCP panel ────────────────────────────────────────────────
+let addMcpType = 'http';
+
+function addMcpPanelHtml(){
+  return `
+  <div class="panel hidden" id="add-mcp-panel">
+    <div class="form-grid" style="margin-bottom:10px">
+      <div>
+        <div class="panel-label">Name</div>
+        <input class="panel-input" id="mcp-name" placeholder="My MCP" style="width:100%" oninput="syncMcpId()">
+      </div>
+      <div>
+        <div class="panel-label">ID <span style="font-size:9px;color:var(--text-muted)">(auto)</span></div>
+        <input class="panel-input" id="mcp-id" placeholder="my-mcp" style="width:100%">
+      </div>
+      <div class="form-grid-full">
+        <div class="panel-label">Description (optional)</div>
+        <input class="panel-input" id="mcp-desc" placeholder="What does this MCP do?" style="width:100%">
       </div>
     </div>
-    <div class="card-desc">${esc(item.description || '')}</div>
-    <div class="card-meta">${tagsHtml}${assignedLabel}</div>
-    <div class="card-actions">${actionBtn}</div>
-  `;
-  return card;
+    <div class="panel-label" style="margin-bottom:6px">Type</div>
+    <div class="type-toggle">
+      <button class="type-toggle-btn active" id="mcp-type-http" onclick="setMcpType('http')">HTTP</button>
+      <button class="type-toggle-btn" id="mcp-type-stdio" onclick="setMcpType('stdio')">stdio</button>
+    </div>
+    <div id="mcp-http-fields">
+      <div class="panel-label">URL</div>
+      <input class="panel-input" id="mcp-url" placeholder="https://mymcp.example.com/mcp" style="width:100%;margin-bottom:10px">
+    </div>
+    <div id="mcp-stdio-fields" style="display:none">
+      <div class="form-grid" style="margin-bottom:10px">
+        <div>
+          <div class="panel-label">Command</div>
+          <input class="panel-input" id="mcp-command" placeholder="node" style="width:100%">
+        </div>
+        <div>
+          <div class="panel-label">Args (space-separated)</div>
+          <input class="panel-input" id="mcp-args" placeholder="./server.js" style="width:100%">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm btn-sm-green" onclick="doAddMcp()">Add MCP</button>
+      <button class="btn-sm btn-sm-ghost" onclick="toggleAddMcpPanel()">Cancel</button>
+    </div>
+  </div>`;
 }
 
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function toggleAddMcpPanel(){
+  const p = document.getElementById('add-mcp-panel');
+  if(p) p.classList.toggle('hidden');
+}
+
+function setMcpType(type){
+  addMcpType = type;
+  document.getElementById('mcp-type-http').classList.toggle('active', type==='http');
+  document.getElementById('mcp-type-stdio').classList.toggle('active', type==='stdio');
+  document.getElementById('mcp-http-fields').style.display = type==='http'?'':'none';
+  document.getElementById('mcp-stdio-fields').style.display = type==='stdio'?'':'none';
+}
+
+function syncMcpId(){
+  const name = document.getElementById('mcp-name').value;
+  document.getElementById('mcp-id').value = slugify(name);
+}
+
+async function doAddMcp(){
+  const id   = document.getElementById('mcp-id').value.trim();
+  const name = document.getElementById('mcp-name').value.trim();
+  const desc = document.getElementById('mcp-desc').value.trim();
+  if(!id||!name){ toast('Name and ID are required','error'); return; }
+  const body = { id, name, description: desc, mcpType: addMcpType };
+  if(addMcpType==='http'){
+    const url = document.getElementById('mcp-url').value.trim();
+    if(!url){ toast('URL is required for HTTP MCP','error'); return; }
+    Object.assign(body, { url });
+  } else {
+    const command = document.getElementById('mcp-command').value.trim();
+    const argsRaw = document.getElementById('mcp-args').value.trim();
+    if(!command){ toast('Command is required for stdio MCP','error'); return; }
+    Object.assign(body, { command, args: argsRaw ? argsRaw.split(/\s+/) : [] });
+  }
+  try{
+    const res = await fetch('/api/marketplace/add-mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Failed to add MCP');
+    toast(`${name} added`, 'success');
+    document.getElementById('add-mcp-panel').classList.add('hidden');
+    await loadItems();
+  } catch(e){ toast(`Error: ${e.message}`,'error'); }
+}
+
+// ─── Card ─────────────────────────────────────────────────────────
+function cardHtml(item, typeSingular){
+  const providerBadge = item.provider==='AgenticLedger'
+    ? `<span class="badge badge-verified">✓ verified</span>`
+    : item.provider==='me'
+      ? `<span class="badge badge-personal">built by me</span>`
+      : `<span class="badge badge-external">community</span>`;
+  const installedBadge = item.installed ? `<span class="badge badge-installed">✓ installed</span>` : '';
+  const assignedLabel = (item.assignedTo?.length)
+    ? `<span class="assigned-label">→ ${item.assignedTo.slice(0,3).join(', ')}${item.assignedTo.length>3?` +${item.assignedTo.length-3}`:''}</span>`
+    : '';
+  const tagsHtml = (item.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+  let actionBtn;
+  if(item.installed && typeSingular!=='agent'){
+    actionBtn = `<button class="btn btn-manage" onclick='openAssignModal(${JSON.stringify(item)}, "${typeSingular}", false)'>Manage</button>`;
+  } else if(item.installed){
+    actionBtn = `<button class="btn btn-manage" disabled>Needs setup → Org</button>`;
+  } else {
+    actionBtn = `<button class="btn btn-install" id="install-btn-${esc(item.id)}" onclick='installItem(${JSON.stringify(item)}, "${typeSingular}")'>+ Install</button>`;
+  }
+  return `<div class="card${item.installed?' installed':''}" id="card-${esc(item.id)}">
+    <div class="card-top">
+      <div><div class="card-name">${esc(item.name)}</div><div class="card-provider">${esc(item.provider||'')}</div></div>
+      <div class="card-badges">${providerBadge}${installedBadge}</div>
+    </div>
+    <div class="card-desc">${esc(item.description||'')}</div>
+    <div class="card-meta">${tagsHtml}${assignedLabel}</div>
+    <div class="card-actions">${actionBtn}</div>
+  </div>`;
+}
+
+function emptyHtml(msg){ return `<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">${esc(msg)}</div></div>`; }
 
 // ─── Install ──────────────────────────────────────────────────────
 async function installItem(item, typeSingular){
   const btn = document.getElementById(`install-btn-${item.id}`);
-  if (btn){ btn.textContent = 'Installing…'; btn.className = 'btn btn-installing'; }
-
-  try {
-    const res = await fetch('/api/marketplace/install', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ type: typeSingular, id: item.id })
-    });
+  if(btn){ btn.textContent='Installing…'; btn.className='btn btn-installing'; }
+  try{
+    const res = await fetch('/api/marketplace/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:typeSingular,id:item.id})});
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Install failed');
-
-    toast(`${item.name} installed`, 'success');
-
-    // Refresh items in background, then open assign modal
+    if(!res.ok) throw new Error(data.error||'Install failed');
+    toast(`${item.name} installed`,'success');
     await loadItems();
-
-    // If it's not an agent, open assign modal
-    if (typeSingular !== 'agent'){
-      openAssignModal({ ...item, installed: true }, typeSingular, true, data.requiresKeys);
-    }
-  } catch(e) {
-    toast(`Install failed: ${e.message}`, 'error');
-    // Revert card
-    await loadItems();
-  }
+    if(typeSingular!=='agent') openAssignModal({...item,installed:true}, typeSingular, true, data.requiresKeys);
+  } catch(e){ toast(`Install failed: ${e.message}`,'error'); await loadItems(); }
 }
 
 // ─── Assign modal ─────────────────────────────────────────────────
 function openAssignModal(item, typeSingular, justInstalled, requiresKeys){
-  modalItem = item;
-  modalType = typeSingular;
-
-  document.getElementById('modal-title').textContent =
-    justInstalled ? `✓ ${item.name} installed` : `Manage — ${item.name}`;
-  document.getElementById('modal-sub').textContent =
-    justInstalled ? 'Assign to agents now? (optional)' : 'Update agent assignments';
-
-  // Build agent list
+  modalItem=item; modalType=typeSingular;
+  document.getElementById('modal-title').textContent = justInstalled ? `✓ ${item.name} installed` : `Manage — ${item.name}`;
+  document.getElementById('modal-sub').textContent = justInstalled ? 'Assign to agents now? (optional)' : 'Update agent assignments';
   const listEl = document.getElementById('modal-agent-list');
-  listEl.innerHTML = '';
-  if (!agentsList.length){
-    listEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px">No agents configured</div>';
-  } else {
-    for (const agent of agentsList){
-      const isAssigned = (item.assignedTo || []).includes(agent.id);
-      const row = document.createElement('label');
-      row.className = 'agent-check-item';
-      row.innerHTML = `
-        <input type="checkbox" value="${agent.id}" ${isAssigned ? 'checked' : ''}>
-        <span class="agent-check-name">${esc(agent.name || agent.id)}</span>
-        <span class="agent-check-id">${esc(agent.id)}</span>
-      `;
-      listEl.appendChild(row);
-    }
-  }
-
-  document.getElementById('modal-missing-keys').innerHTML = '';
-  document.getElementById('modal-assign-btn').disabled = false;
+  listEl.innerHTML = agentsList.length
+    ? agentsList.map(a=>`<label class="agent-check-item"><input type="checkbox" value="${esc(a.id)}" ${(item.assignedTo||[]).includes(a.id)?'checked':''}><span class="agent-check-name">${esc(a.name||a.id)}</span><span class="agent-check-id">${esc(a.id)}</span></label>`).join('')
+    : '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px">No agents configured</div>';
+  document.getElementById('modal-missing-keys').innerHTML='';
+  document.getElementById('modal-assign-btn').disabled=false;
+  document.getElementById('modal-assign-btn').textContent='Assign selected';
   document.getElementById('assign-modal').classList.add('open');
 }
-
-function closeModal(){
-  document.getElementById('assign-modal').classList.remove('open');
-  modalItem = null;
-  modalType = null;
-}
+function closeModal(){ document.getElementById('assign-modal').classList.remove('open'); modalItem=null; modalType=null; }
+document.getElementById('assign-modal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 
 async function doAssign(){
-  if (!modalItem || !modalType) return;
-  const checkboxes = document.querySelectorAll('#modal-agent-list input[type="checkbox"]:checked');
-  const agentIds = [...checkboxes].map(c => c.value);
-
-  if (!agentIds.length){ closeModal(); return; }
-
-  document.getElementById('modal-assign-btn').disabled = true;
-  document.getElementById('modal-assign-btn').textContent = 'Assigning…';
-
-  try {
-    const res = await fetch('/api/marketplace/assign', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ type: modalType, id: modalItem.id, agentIds })
-    });
+  if(!modalItem||!modalType) return;
+  const agentIds = [...document.querySelectorAll('#modal-agent-list input:checked')].map(c=>c.value);
+  if(!agentIds.length){ closeModal(); return; }
+  document.getElementById('modal-assign-btn').disabled=true;
+  document.getElementById('modal-assign-btn').textContent='Assigning…';
+  try{
+    const res = await fetch('/api/marketplace/assign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:modalType,id:modalItem.id,agentIds})});
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Assign failed');
-
-    if (data.missingKeys && data.missingKeys.length > 0){
-      document.getElementById('modal-missing-keys').innerHTML =
-        `<div class="missing-keys-alert">⚠ API key needed for: ${data.missingKeys.map(a => `<strong>${a}</strong>`).join(', ')} — add the key in Org to activate.</div>`;
-      document.getElementById('modal-assign-btn').textContent = 'Assigned';
+    if(!res.ok) throw new Error(data.error||'Assign failed');
+    if(data.missingKeys?.length){
+      document.getElementById('modal-missing-keys').innerHTML=`<div class="missing-keys-alert">⚠ API key needed for: ${data.missingKeys.map(a=>`<strong>${a}</strong>`).join(', ')} — add in Org to activate.</div>`;
+      document.getElementById('modal-assign-btn').textContent='Assigned';
     } else {
-      toast(`Assigned to ${agentIds.length} agent${agentIds.length > 1 ? 's' : ''}`, 'success');
+      toast(`Assigned to ${agentIds.length} agent${agentIds.length!==1?'s':''}`,'success');
       closeModal();
     }
-
     await loadItems();
-  } catch(e){
-    toast(`Assign failed: ${e.message}`, 'error');
-    document.getElementById('modal-assign-btn').disabled = false;
-    document.getElementById('modal-assign-btn').textContent = 'Assign selected';
-  }
+  } catch(e){ toast(`Assign failed: ${e.message}`,'error'); document.getElementById('modal-assign-btn').disabled=false; document.getElementById('modal-assign-btn').textContent='Assign selected'; }
 }
-
-// Close modal on overlay click
-document.getElementById('assign-modal').addEventListener('click', function(e){
-  if (e.target === this) closeModal();
-});
 
 // ─── Init ─────────────────────────────────────────────────────────
 loadAgents();
