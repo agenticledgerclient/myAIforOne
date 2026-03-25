@@ -1,5 +1,5 @@
 import express from "express";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, statSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, basename, extname, relative } from "node:path";
 import { execSync } from "node:child_process";
@@ -76,6 +76,17 @@ export function startWebUI(opts: WebUIOptions): void {
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("UI not found. Create public/index.html");
+    }
+  });
+
+  // ─── Serve the Marketplace page ────────────────────────────────
+  app.get("/marketplace", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "marketplace.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Marketplace page not found.");
     }
   });
 
@@ -562,6 +573,211 @@ export function startWebUI(opts: WebUIOptions): void {
       log.warn(`[WebUI] Failed to write recovery log: ${err}`);
       res.status(500).json({ error: "Failed to write recovery log" });
     }
+  });
+
+  // ─── API: Marketplace ──────────────────────────────────────────────
+
+  app.get("/api/marketplace/:type", (req, res) => {
+    const { type } = req.params;
+    if (!["mcps", "skills", "agents"].includes(type)) {
+      return res.status(400).json({ error: "type must be mcps, skills, or agents" });
+    }
+
+    const registryPath = join(opts.baseDir, "registry", `${type}.json`);
+    if (!existsSync(registryPath)) {
+      return res.json({ items: [] });
+    }
+
+    let entries: any[] = [];
+    try {
+      const data = JSON.parse(readFileSync(registryPath, "utf-8"));
+      entries = data[type] || [];
+    } catch {
+      return res.status(500).json({ error: "Failed to read registry" });
+    }
+
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const personalSkillsDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "skills");
+    const claudeCommandsDir = join(home, ".claude", "commands");
+
+    const items = entries.map((entry: any) => {
+      let installed = false;
+      const assignedTo: string[] = [];
+
+      if (type === "skills") {
+        const id = entry.id;
+        installed = existsSync(join(personalSkillsDir, `${id}.md`))
+          || existsSync(join(claudeCommandsDir, `${id}.md`));
+        for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+          if ((agent as any).skills?.includes(id)) assignedTo.push(agentId);
+        }
+      } else if (type === "mcps") {
+        installed = !!(opts.config.mcps as any)?.[entry.id];
+        for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+          if ((agent as any).mcps?.includes(entry.id)) assignedTo.push(agentId);
+        }
+      } else if (type === "agents") {
+        const draftsPath = join(opts.baseDir, "registry", "installed-drafts.json");
+        let drafts: string[] = [];
+        try {
+          drafts = JSON.parse(readFileSync(draftsPath, "utf-8")).drafts.map((d: any) => d.id);
+        } catch { /* ignore */ }
+        installed = existsSync(join(opts.baseDir, "agents", entry.id))
+          || drafts.includes(entry.id)
+          || !!opts.config.agents[entry.id];
+      }
+
+      return { ...entry, installed, assignedTo };
+    });
+
+    res.json({ items });
+  });
+
+  app.post("/api/marketplace/install", (req, res) => {
+    const { type, id } = req.body as { type?: string; id?: string };
+    if (!type || !id) return res.status(400).json({ error: "Missing type or id" });
+
+    const registryPath = join(opts.baseDir, "registry", `${type}s.json`);
+    if (!existsSync(registryPath)) return res.status(404).json({ error: "Registry not found" });
+
+    let entry: any;
+    try {
+      const data = JSON.parse(readFileSync(registryPath, "utf-8"));
+      const key = type === "mcp" ? "mcps" : type === "skill" ? "skills" : "agents";
+      entry = (data[key] || []).find((e: any) => e.id === id);
+    } catch {
+      return res.status(500).json({ error: "Failed to read registry" });
+    }
+    if (!entry) return res.status(404).json({ error: `${type} "${id}" not found in registry` });
+
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+
+    try {
+      if (type === "skill") {
+        const destDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "skills");
+        mkdirSync(destDir, { recursive: true });
+        const srcPath = join(opts.baseDir, entry.localPath);
+        const destPath = join(destDir, `${id}.md`);
+        if (!existsSync(srcPath)) return res.status(500).json({ error: `Source file not found: ${entry.localPath}` });
+        copyFileSync(srcPath, destPath);
+        log.info(`[Marketplace] Installed skill ${id} → ${destPath}`);
+
+      } else if (type === "mcp") {
+        const configPath = join(opts.baseDir, "config.json");
+        const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+        if (!rawConfig.mcps) rawConfig.mcps = {};
+
+        if (entry.fetch?.type === "http") {
+          rawConfig.mcps[id] = { type: "http", url: entry.fetch.url, headers: {} };
+          writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+          if (!(opts.config as any).mcps) (opts.config as any).mcps = {};
+          (opts.config as any).mcps[id] = { type: "http", url: entry.fetch.url, headers: {} };
+          log.info(`[Marketplace] Installed MCP ${id} (http)`);
+
+        } else if (entry.fetch?.type === "npm") {
+          execSync(`npm install ${entry.fetch.package}`, { cwd: opts.baseDir, timeout: 30_000 });
+          rawConfig.mcps[id] = { type: "stdio", command: "npx", args: entry.fetch.args || ["-y", entry.fetch.package], env: {} };
+          writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+          if (!(opts.config as any).mcps) (opts.config as any).mcps = {};
+          (opts.config as any).mcps[id] = rawConfig.mcps[id];
+          log.info(`[Marketplace] Installed MCP ${id} (npm: ${entry.fetch.package})`);
+        }
+
+      } else if (type === "agent") {
+        const srcDir = join(opts.baseDir, entry.localPath);
+        const destDir = join(opts.baseDir, "agents", id);
+        if (existsSync(srcDir)) {
+          mkdirSync(destDir, { recursive: true });
+          for (const file of readdirSync(srcDir)) {
+            copyFileSync(join(srcDir, file), join(destDir, file));
+          }
+        } else {
+          mkdirSync(join(destDir, "memory"), { recursive: true });
+          writeFileSync(join(destDir, "CLAUDE.md"), `# ${entry.name}\n\n${entry.description}\n`);
+          writeFileSync(join(destDir, "agent.json"), JSON.stringify({ id, name: entry.name, draft: true, version: "1.0.0", created: new Date().toISOString() }, null, 2));
+        }
+        const draftsPath = join(opts.baseDir, "registry", "installed-drafts.json");
+        let draftsData: { drafts: any[] } = { drafts: [] };
+        try { draftsData = JSON.parse(readFileSync(draftsPath, "utf-8")); } catch { /* fresh */ }
+        if (!draftsData.drafts.find((d: any) => d.id === id)) {
+          draftsData.drafts.push({ id, name: entry.name, installedAt: new Date().toISOString() });
+          writeFileSync(draftsPath, JSON.stringify(draftsData, null, 2));
+        }
+        log.info(`[Marketplace] Installed agent template ${id} → draft`);
+      }
+
+      const requiresKeys = type === "mcp" && (entry.requiredKeys?.length > 0);
+      res.json({ ok: true, item: { ...entry, installed: true }, requiresKeys });
+
+    } catch (err) {
+      log.error(`[Marketplace] Install failed for ${type}/${id}: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.post("/api/marketplace/assign", (req, res) => {
+    const { type, id, agentIds } = req.body as { type?: string; id?: string; agentIds?: string[] };
+    if (!type || !id || !Array.isArray(agentIds) || agentIds.length === 0) {
+      return res.status(400).json({ error: "Missing type, id, or agentIds" });
+    }
+
+    const configPath = join(opts.baseDir, "config.json");
+    let rawConfig: any;
+    try {
+      rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+    } catch {
+      return res.status(500).json({ error: "Failed to read config.json" });
+    }
+
+    const missingKeys: string[] = [];
+
+    for (const agentId of agentIds) {
+      if (!rawConfig.agents[agentId]) continue;
+
+      if (type === "skill") {
+        if (!rawConfig.agents[agentId].skills) rawConfig.agents[agentId].skills = [];
+        if (!rawConfig.agents[agentId].skills.includes(id)) {
+          rawConfig.agents[agentId].skills.push(id);
+        }
+        if (!(opts.config.agents[agentId] as any).skills) (opts.config.agents[agentId] as any).skills = [];
+        if (!(opts.config.agents[agentId] as any).skills.includes(id)) {
+          (opts.config.agents[agentId] as any).skills.push(id);
+        }
+
+      } else if (type === "mcp") {
+        if (!rawConfig.agents[agentId].mcps) rawConfig.agents[agentId].mcps = [];
+        if (!rawConfig.agents[agentId].mcps.includes(id)) {
+          rawConfig.agents[agentId].mcps.push(id);
+        }
+        if (!(opts.config.agents[agentId] as any).mcps) (opts.config.agents[agentId] as any).mcps = [];
+        if (!(opts.config.agents[agentId] as any).mcps.includes(id)) {
+          (opts.config.agents[agentId] as any).mcps.push(id);
+        }
+        const home = homedir();
+        const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+        const agentCfg = opts.config.agents[agentId] as any;
+        const agentHome = agentCfg.agentHome
+          ? resolveTilde(agentCfg.agentHome)
+          : join(resolveTilde(agentCfg.memoryDir || ""), "..");
+        const keyFile = join(agentHome, "mcp-keys", `${id}.env`);
+        if (!existsSync(keyFile)) {
+          missingKeys.push(agentId);
+          mkdirSync(join(agentHome, "mcp-keys"), { recursive: true });
+          writeFileSync(keyFile, "");
+        }
+      }
+    }
+
+    try {
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+    } catch (err) {
+      return res.status(500).json({ error: `Failed to write config: ${err}` });
+    }
+
+    log.info(`[Marketplace] Assigned ${type}/${id} to agents: ${agentIds.join(", ")}`);
+    res.json({ ok: true, assigned: agentIds, missingKeys });
   });
 
   // ─── API: Raw log stream for a job (tail -f style) ──────────────

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — Marketplace</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg-deep:#060a13;
+  --bg-surface:rgba(12,18,33,0.92);
+  --bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);
+  --border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;
+  --accent-soft:#38bdf8;
+  --accent-bg:rgba(6,182,212,0.15);
+  --accent-glow:rgba(34,211,238,0.12);
+  --purple:rgba(139,92,246,0.7);
+  --purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;
+  --green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;
+  --amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;
+  --red-bg:rgba(248,113,113,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);
+  --shadow-glow:0 0 20px rgba(34,211,238,0.08);
+  --radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+  --line-color:rgba(56,189,248,0.12);
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);--border-dim:rgba(0,0,0,0.08);--border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);--text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);--text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;--accent-soft:#0e7490;--accent-bg:rgba(14,116,144,0.08);
+  --accent-glow:rgba(14,116,144,0.06);--purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);--amber:#d97706;--amber-bg:rgba(217,119,6,0.08);
+  --red:#dc2626;--red-bg:rgba(220,38,38,0.08);--shadow:0 1px 8px rgba(0,0,0,0.06);--shadow-glow:none;
+  --line-color:rgba(14,116,144,0.12);
+}
+
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+/* ─── Top Bar ──────────────────────────────────────────────── */
+.topbar{height:56px;display:flex;align-items:center;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;z-index:100}
+.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px}
+.logo-mark{width:32px;height:32px;border-radius:8px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent)}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700}
+.tab-group{display:flex;gap:0}
+.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;padding:16px 20px;cursor:pointer;position:relative;transition:color .2s;text-decoration:none;display:block}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.theme-toggle{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* ─── Canvas ───────────────────────────────────────────────── */
+.canvas{position:fixed;top:56px;left:0;right:0;bottom:0;overflow:auto;padding:32px 40px}
+
+/* ─── Toolbar ──────────────────────────────────────────────── */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.type-tabs{display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:10px;padding:4px}
+.type-tab{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:6px 18px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s}
+.type-tab:hover{color:var(--text-secondary)}
+.type-tab.active{background:var(--accent-bg);color:var(--accent);border:1px solid var(--border-active)}
+.search-wrap{flex:1;max-width:320px;position:relative}
+.search-input{width:100%;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:8px 12px 8px 34px;font-family:var(--font-sans);font-size:13px;color:var(--text-primary);outline:none;transition:border-color .2s}
+.search-input::placeholder{color:var(--text-muted)}
+.search-input:focus{border-color:var(--border-active)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text-muted);pointer-events:none}
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s;white-space:nowrap}
+.pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.pill.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+/* ─── Grid ─────────────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+
+/* ─── Card ─────────────────────────────────────────────────── */
+.card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:10px;transition:all .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.card:hover{border-color:var(--border-glow);box-shadow:var(--shadow),var(--shadow-glow);transform:translateY(-1px)}
+.card.installed{border-color:rgba(74,222,128,0.2)}
+
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);line-height:1.2}
+.card-badges{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.badge{font-family:var(--font-mono);font-size:9px;font-weight:600;padding:3px 7px;border-radius:4px;white-space:nowrap;letter-spacing:.03em}
+.badge-verified{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.3)}
+.badge-external{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim)}
+.badge-installed{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.3)}
+.badge-draft{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.3)}
+
+.card-provider{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:1px}
+.card-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;flex:1}
+.card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,0.2)}
+.assigned-label{font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}
+
+.card-actions{display:flex;gap:8px;margin-top:4px}
+.btn{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;transition:all .2s;flex:1;text-align:center}
+.btn-install{background:var(--accent-bg);color:var(--accent);border:1px solid var(--border-active)}
+.btn-install:hover{background:var(--accent);color:#000}
+.btn-install:disabled{opacity:0.5;cursor:not-allowed;pointer-events:none}
+.btn-manage{background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border-dim)}
+.btn-manage:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.btn-installing{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim);pointer-events:none}
+
+/* ─── Empty state ──────────────────────────────────────────── */
+.empty-state{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state-icon{font-size:40px;margin-bottom:12px}
+.empty-state-title{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-secondary);margin-bottom:6px}
+.empty-state-sub{font-size:13px}
+
+/* ─── Toast ────────────────────────────────────────────────── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{font-family:var(--font-sans);font-size:12px;font-weight:500;padding:10px 16px;border-radius:8px;border:1px solid;backdrop-filter:blur(20px);pointer-events:none;animation:toast-in .2s ease;max-width:320px}
+.toast-success{background:var(--green-bg);color:var(--green);border-color:rgba(74,222,128,0.3)}
+.toast-error{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,0.3)}
+.toast-info{background:var(--accent-bg);color:var(--accent);border-color:rgba(34,211,238,0.3)}
+@keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─── Modal overlay ────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:16px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5);transform:translateY(8px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--text-muted);margin-bottom:18px}
+.agent-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;margin-bottom:18px}
+.agent-check-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-dim);cursor:pointer;transition:all .2s;background:var(--bg-card)}
+.agent-check-item:hover{border-color:var(--border-glow)}
+.agent-check-item input[type="checkbox"]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+.agent-check-name{font-size:12px;font-weight:600;color:var(--text-primary);flex:1}
+.agent-check-id{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.modal-actions{display:flex;gap:8px}
+.modal-btn{font-family:var(--font-sans);font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;border:none;cursor:pointer;transition:all .2s;flex:1}
+.modal-btn-primary{background:var(--accent);color:#000}
+.modal-btn-primary:hover{opacity:.9}
+.modal-btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.modal-btn-secondary{background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border-dim)}
+.modal-btn-secondary:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.missing-keys-alert{background:var(--amber-bg);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--amber);margin-top:12px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- ── Top Bar ──────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-mark">M</div>
+    <span class="logo-text">MyAIforOne</span>
+  </div>
+  <nav class="tab-group">
+    <a class="tab-btn" href="/">Dashboard</a>
+    <a class="tab-btn" href="/org">Org</a>
+    <a class="tab-btn active" href="/marketplace">Marketplace</a>
+    <a class="tab-btn" href="/activity">Activity</a>
+  </nav>
+  <div class="topbar-right">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
+  </div>
+</div>
+
+<!-- ── Canvas ───────────────────────────────────────────────────── -->
+<div class="canvas" id="canvas">
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="type-tabs">
+      <button class="type-tab active" data-type="mcps" onclick="switchType('mcps')">MCPs</button>
+      <button class="type-tab" data-type="skills" onclick="switchType('skills')">Skills</button>
+      <button class="type-tab" data-type="agents" onclick="switchType('agents')">Agents</button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="search-input" placeholder="Search…" oninput="renderGrid()">
+    </div>
+    <div class="filter-pills" id="filter-pills"></div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid" id="grid"></div>
+
+</div>
+
+<!-- ── Toast container ──────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ── Assign Modal ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="assign-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Assign to agents</div>
+    <div class="modal-sub" id="modal-sub">Select one or more agents (optional)</div>
+    <div class="agent-list" id="modal-agent-list"></div>
+    <div id="modal-missing-keys"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-primary" id="modal-assign-btn" onclick="doAssign()">Assign selected</button>
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Skip for now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────
+let currentType = 'mcps';
+let allItems = [];
+let activeCategory = 'all';
+let modalItem = null;
+let modalType = null;
+let agentsList = []; // all agents from config
+
+// ─── Theme ────────────────────────────────────────────────────────
+(function initTheme(){
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.querySelector('.theme-toggle').textContent = saved === 'dark' ? '☀' : '☾';
+})();
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.querySelector('.theme-toggle').textContent = next === 'dark' ? '☀' : '☾';
+}
+
+// ─── Toast ────────────────────────────────────────────────────────
+function toast(msg, type='info'){
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ─── Load agents list (for assign modal) ─────────────────────────
+async function loadAgents(){
+  try {
+    const res = await fetch('/api/agents');
+    const data = await res.json();
+    agentsList = data.agents || [];
+  } catch { agentsList = []; }
+}
+
+// ─── Type switch ──────────────────────────────────────────────────
+function switchType(type){
+  currentType = type;
+  activeCategory = 'all';
+  document.querySelectorAll('.type-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.type === type);
+  });
+  document.getElementById('search-input').value = '';
+  loadItems();
+}
+
+// ─── Load items from API ──────────────────────────────────────────
+async function loadItems(){
+  document.getElementById('grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⟳</div><div class="empty-state-title">Loading…</div></div>';
+  try {
+    const res = await fetch(`/api/marketplace/${currentType}`);
+    const data = await res.json();
+    allItems = data.items || [];
+    buildCategoryPills();
+    renderGrid();
+  } catch(e) {
+    document.getElementById('grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-title">Failed to load registry</div><div class="empty-state-sub">Check that the server is running and the registry files exist.</div></div>';
+  }
+}
+
+// ─── Build category pills ─────────────────────────────────────────
+function buildCategoryPills(){
+  const cats = [...new Set(allItems.map(i => i.category).filter(Boolean))].sort();
+  const pillsEl = document.getElementById('filter-pills');
+  pillsEl.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = 'pill active';
+  all.textContent = 'all';
+  all.onclick = () => setCat('all');
+  pillsEl.appendChild(all);
+  for (const cat of cats){
+    const btn = document.createElement('button');
+    btn.className = 'pill';
+    btn.textContent = cat;
+    btn.onclick = () => setCat(cat);
+    pillsEl.appendChild(btn);
+  }
+}
+
+function setCat(cat){
+  activeCategory = cat;
+  document.querySelectorAll('.filter-pills .pill').forEach(p => {
+    p.classList.toggle('active', p.textContent === cat);
+  });
+  renderGrid();
+}
+
+// ─── Render grid ──────────────────────────────────────────────────
+function renderGrid(){
+  const query = (document.getElementById('search-input').value || '').toLowerCase().trim();
+  let items = allItems;
+  if (activeCategory !== 'all') items = items.filter(i => i.category === activeCategory);
+  if (query) items = items.filter(i =>
+    (i.name||'').toLowerCase().includes(query) ||
+    (i.description||'').toLowerCase().includes(query) ||
+    (i.tags||[]).some(t => t.toLowerCase().includes(query))
+  );
+
+  const grid = document.getElementById('grid');
+  if (!items.length){
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">Nothing found</div><div class="empty-state-sub">Try a different search or category.</div></div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  for (const item of items){
+    grid.appendChild(buildCard(item));
+  }
+}
+
+// ─── Build card ───────────────────────────────────────────────────
+function buildCard(item){
+  const card = document.createElement('div');
+  card.className = 'card' + (item.installed ? ' installed' : '');
+  card.id = `card-${item.id}`;
+
+  const typeSingular = currentType === 'mcps' ? 'mcp' : currentType === 'skills' ? 'skill' : 'agent';
+
+  // badges
+  const verifiedBadge = item.verified
+    ? `<span class="badge badge-verified">✓ verified</span>`
+    : `<span class="badge badge-external">external</span>`;
+  const installedBadge = item.installed
+    ? (typeSingular === 'agent' && item.draft
+        ? `<span class="badge badge-draft">needs setup</span>`
+        : `<span class="badge badge-installed">✓ installed</span>`)
+    : '';
+
+  // assigned-to label
+  const assignedLabel = (item.assignedTo && item.assignedTo.length > 0)
+    ? `<span class="assigned-label">→ ${item.assignedTo.slice(0,3).join(', ')}${item.assignedTo.length > 3 ? ` +${item.assignedTo.length - 3}` : ''}</span>`
+    : '';
+
+  // tags
+  const tagsHtml = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+
+  // action button
+  let actionBtn;
+  if (item.installed && typeSingular !== 'agent'){
+    actionBtn = `<button class="btn btn-manage" onclick='openAssignModal(${JSON.stringify(item)}, "${typeSingular}", false)'>Manage</button>`;
+  } else if (item.installed && typeSingular === 'agent'){
+    actionBtn = `<button class="btn btn-manage" disabled title="Go to Org to configure this agent">Needs setup → Org</button>`;
+  } else {
+    actionBtn = `<button class="btn btn-install" id="install-btn-${item.id}" onclick='installItem(${JSON.stringify(item)}, "${typeSingular}")'>+ Install</button>`;
+  }
+
+  card.innerHTML = `
+    <div class="card-top">
+      <div>
+        <div class="card-name">${esc(item.name)}</div>
+        <div class="card-provider">${esc(item.provider || '')}</div>
+      </div>
+      <div class="card-badges">
+        ${verifiedBadge}
+        ${installedBadge}
+      </div>
+    </div>
+    <div class="card-desc">${esc(item.description || '')}</div>
+    <div class="card-meta">${tagsHtml}${assignedLabel}</div>
+    <div class="card-actions">${actionBtn}</div>
+  `;
+  return card;
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+
+// ─── Install ──────────────────────────────────────────────────────
+async function installItem(item, typeSingular){
+  const btn = document.getElementById(`install-btn-${item.id}`);
+  if (btn){ btn.textContent = 'Installing…'; btn.className = 'btn btn-installing'; }
+
+  try {
+    const res = await fetch('/api/marketplace/install', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type: typeSingular, id: item.id })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Install failed');
+
+    toast(`${item.name} installed`, 'success');
+
+    // Refresh items in background, then open assign modal
+    await loadItems();
+
+    // If it's not an agent, open assign modal
+    if (typeSingular !== 'agent'){
+      openAssignModal({ ...item, installed: true }, typeSingular, true, data.requiresKeys);
+    }
+  } catch(e) {
+    toast(`Install failed: ${e.message}`, 'error');
+    // Revert card
+    await loadItems();
+  }
+}
+
+// ─── Assign modal ─────────────────────────────────────────────────
+function openAssignModal(item, typeSingular, justInstalled, requiresKeys){
+  modalItem = item;
+  modalType = typeSingular;
+
+  document.getElementById('modal-title').textContent =
+    justInstalled ? `✓ ${item.name} installed` : `Manage — ${item.name}`;
+  document.getElementById('modal-sub').textContent =
+    justInstalled ? 'Assign to agents now? (optional)' : 'Update agent assignments';
+
+  // Build agent list
+  const listEl = document.getElementById('modal-agent-list');
+  listEl.innerHTML = '';
+  if (!agentsList.length){
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px">No agents configured</div>';
+  } else {
+    for (const agent of agentsList){
+      const isAssigned = (item.assignedTo || []).includes(agent.id);
+      const row = document.createElement('label');
+      row.className = 'agent-check-item';
+      row.innerHTML = `
+        <input type="checkbox" value="${agent.id}" ${isAssigned ? 'checked' : ''}>
+        <span class="agent-check-name">${esc(agent.name || agent.id)}</span>
+        <span class="agent-check-id">${esc(agent.id)}</span>
+      `;
+      listEl.appendChild(row);
+    }
+  }
+
+  document.getElementById('modal-missing-keys').innerHTML = '';
+  document.getElementById('modal-assign-btn').disabled = false;
+  document.getElementById('assign-modal').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('assign-modal').classList.remove('open');
+  modalItem = null;
+  modalType = null;
+}
+
+async function doAssign(){
+  if (!modalItem || !modalType) return;
+  const checkboxes = document.querySelectorAll('#modal-agent-list input[type="checkbox"]:checked');
+  const agentIds = [...checkboxes].map(c => c.value);
+
+  if (!agentIds.length){ closeModal(); return; }
+
+  document.getElementById('modal-assign-btn').disabled = true;
+  document.getElementById('modal-assign-btn').textContent = 'Assigning…';
+
+  try {
+    const res = await fetch('/api/marketplace/assign', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type: modalType, id: modalItem.id, agentIds })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Assign failed');
+
+    if (data.missingKeys && data.missingKeys.length > 0){
+      document.getElementById('modal-missing-keys').innerHTML =
+        `<div class="missing-keys-alert">⚠ API key needed for: ${data.missingKeys.map(a => `<strong>${a}</strong>`).join(', ')} — add the key in Org to activate.</div>`;
+      document.getElementById('modal-assign-btn').textContent = 'Assigned';
+    } else {
+      toast(`Assigned to ${agentIds.length} agent${agentIds.length > 1 ? 's' : ''}`, 'success');
+      closeModal();
+    }
+
+    await loadItems();
+  } catch(e){
+    toast(`Assign failed: ${e.message}`, 'error');
+    document.getElementById('modal-assign-btn').disabled = false;
+    document.getElementById('modal-assign-btn').textContent = 'Assign selected';
+  }
+}
+
+// Close modal on overlay click
+document.getElementById('assign-modal').addEventListener('click', function(e){
+  if (e.target === this) closeModal();
+});
+
+// ─── Init ─────────────────────────────────────────────────────────
+loadAgents();
+loadItems();
+</script>
+</body>
+</html>
