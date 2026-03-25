@@ -347,9 +347,12 @@ export function startWebUI(opts: WebUIOptions): void {
     const { text, accountOverride } = req.body as { text?: string; accountOverride?: string };
     if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
 
-    // Apply account override from web UI dropdown
+    // Apply account override from web UI dropdown.
+    // When the account changes, set forceNewSession so the executor doesn't
+    // try to --resume a session that belongs to a different account's history.
+    const accountChanged = accountOverride && accountOverride !== (agent.claudeAccount || "");
     const effectiveAgent = accountOverride
-      ? { ...agent, claudeAccount: accountOverride }
+      ? { ...agent, claudeAccount: accountOverride, ...(accountChanged ? { forceNewSession: true } : {}) }
       : agent;
 
     log.info(`[WebUI Stream] ${agentId} <- web: ${text.slice(0, 80)}${accountOverride ? ` (account: ${accountOverride})` : ''}`);

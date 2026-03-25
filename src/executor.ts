@@ -1348,8 +1348,9 @@ export async function* executeAgentStreaming(
   const args: string[] = ["-p", "-"];
 
   let session: SessionState | null = null;
+  const forceNewSession = (agentConfig as any).forceNewSession ?? false;
   if (isPersistent) {
-    session = loadSession(memoryDir, senderSessionKey);
+    session = forceNewSession ? null : loadSession(memoryDir, senderSessionKey);
     if (session) {
       args.push("--resume", session.sessionId);
     } else {
