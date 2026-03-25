@@ -10,7 +10,13 @@ import type { ResolvedRoute } from "./router.js";
 import { formatMessage } from "./utils/message-formatter.js";
 import { createMemoryManager, type MemoryManager } from "./memory/index.js";
 import { loadMcpKeysWithDecryption } from "./keystore.js";
+import { buildAgentRegistry, buildGroupAgentPrompt } from "./agent-registry.js";
 import { log } from "./logger.js";
+
+// Module-level config reference for group agent registry
+import type { AppConfig } from "./config.js";
+let _appConfig: AppConfig | null = null;
+export function setAppConfig(config: AppConfig): void { _appConfig = config; }
 
 // Cache memory managers per agent to avoid re-creating on every message
 const memoryManagers = new Map<string, MemoryManager>();
@@ -795,6 +801,14 @@ export async function executeAgent(
     }
   }
 
+  // ── Append group agent delegation (sub-agents) ──
+  if (agentConfig.subAgents && _appConfig) {
+    const registry = buildAgentRegistry(_appConfig, agentConfig.subAgents);
+    if (registry.length > 0) {
+      systemPrompt += buildGroupAgentPrompt(registry, msg.text);
+    }
+  }
+
   // ── Append active tasks context ──
   {
     const agentHomeForTasks = agentConfig.agentHome || resolve(memoryDir, "..");
@@ -1268,6 +1282,14 @@ export async function* executeAgentStreaming(
           systemPrompt += lines.join("\n");
         }
       } catch { /* ignore */ }
+    }
+  }
+
+  // ── Append group agent delegation (sub-agents) ──
+  if (agentConfig.subAgents && _appConfig) {
+    const registry = buildAgentRegistry(_appConfig, agentConfig.subAgents);
+    if (registry.length > 0) {
+      systemPrompt += buildGroupAgentPrompt(registry, msg.text);
     }
   }
 

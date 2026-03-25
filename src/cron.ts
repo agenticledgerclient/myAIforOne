@@ -13,6 +13,8 @@ export function startCronJobs(config: AppConfig, handler: CronHandler): void {
     if (!agent.cron?.length) continue;
 
     for (const job of agent.cron) {
+      if (job.enabled === false) continue;
+
       if (!cron.validate(job.schedule)) {
         log.error(`Invalid cron schedule for ${agentId}: "${job.schedule}"`);
         continue;

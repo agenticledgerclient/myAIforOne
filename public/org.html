@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MyAgent — Org</title>
+<title>MyAIforOne — Org</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -219,6 +219,22 @@ html,body{
   45%{transform:scale(1.2);opacity:.8}
   60%{transform:scale(1);opacity:.3}
   100%{opacity:.3}
+}
+
+/* Spinning circle for agents with active automations (goals/schedules) */
+.node-avatar.automated::after{
+  content:'';position:absolute;top:-10px;right:6px;
+  width:12px;height:12px;
+  border:2px solid transparent;
+  border-top:2px solid var(--green);
+  border-right:2px solid var(--green);
+  border-radius:50%;
+  animation:automationSpin 1.2s linear infinite;
+  filter:drop-shadow(0 0 4px rgba(74,222,128,0.6));
+}
+@keyframes automationSpin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
 }
 
 .node-info{flex:1;min-width:0}
@@ -819,12 +835,15 @@ html,body{
 <div class="topbar">
   <div class="topbar-logo">
     <div class="logo-mark">A</div>
-    <div class="logo-text">MyAgent</div>
+    <div class="logo-text">MyAIforOne</div>
   </div>
   <div class="tab-group">
+    <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn" href="/org" id="tabOrg">Org</a>
     <a class="tab-btn" href="/tasks">Tasks</a>
+    <a class="tab-btn" href="/activity">Activity</a>
+    <a class="tab-btn" href="/automations">Automations</a>
     <a class="tab-btn" href="/channels" id="tabChannels">Channels</a>
   </div>
   <div class="topbar-right">
@@ -1315,12 +1334,13 @@ function renderNode(a, dimmed, isLead, blurNames) {
   const func = orgData?.function || '';
   const isActive = a.sessionActive;
   const isRecent = a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000;
+  const hasAutomation = (a.activeGoals || 0) + (a.activeCron || 0) > 0;
   const opacity = dimmed ? 'opacity:.5;' : '';
   const leadClass = isLead ? ' is-lead' : '';
   const blurClass = blurNames ? ' name-blurred' : '';
 
   return `<div class="agent-node${leadClass}" style="${opacity};width:300px">
-    <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}">${initials}</div>
+    <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}${hasAutomation ? ' automated' : ''}">${initials}</div>
     <div class="node-info">
       ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
       <div class="node-name${blurClass}">${escapeHtml(a.name)}</div>
@@ -1473,9 +1493,10 @@ async function openModal(agentId) {
     schedContainer.innerHTML = '<div class="no-schedules" id="noSchedules" style="display:none">No scheduled messages yet</div>';
     const cronJobs = a.cron || [];
     if (cronJobs.length > 0) {
-      for (const job of cronJobs) {
+      for (let ci = 0; ci < cronJobs.length; ci++) {
+        const job = cronJobs[ci];
         const parsed = cronToHuman(job.schedule);
-        addScheduleEntry(parsed.frequency, parsed.days, parsed.time, job.message, job.channel, job.chatId, parsed.min);
+        addScheduleEntry(parsed.frequency, parsed.days, parsed.time, job.message, job.channel, job.chatId, parsed.min, ci, job.enabled);
       }
     } else {
       document.getElementById('noSchedules').style.display = '';
@@ -1915,7 +1936,7 @@ function addRouteEntry(channel, chatId) {
 }
 
 // ─── Schedule Entries ──────────────────────────────────────────
-function addScheduleEntry(frequency, days, time, message, channel, chatId, minute) {
+function addScheduleEntry(frequency, days, time, message, channel, chatId, minute, cronIndex, cronEnabled) {
   const container = document.getElementById('scheduleEntries');
   const noMsg = document.getElementById('noSchedules');
   if (noMsg) noMsg.style.display = 'none';
@@ -1982,6 +2003,10 @@ function addScheduleEntry(frequency, days, time, message, channel, chatId, minut
       <input class="schedule-select" style="flex:1;min-width:100px" placeholder="Chat/Channel ID" value="${escapeHtml(chatId||'')}" data-field="chatId">
     </div>
     <div class="schedule-preview" id="sched-preview"></div>
+    ${cronIndex !== undefined && editingAgentId ? `<div style="display:flex;gap:8px;justify-content:flex-end;padding-top:6px;border-top:1px solid var(--border-dim);margin-top:8px">
+      <button class="mcp-key-btn${cronEnabled === false ? ' disconnect' : ''}" style="font-size:10px" onclick="toggleCron(${cronIndex})">${cronEnabled === false ? 'Resume' : 'Pause'}</button>
+      <button class="mcp-key-btn oauth" style="font-size:11px" onclick="triggerCron(${cronIndex})">Trigger Now</button>
+    </div>` : ''}
   `;
   container.appendChild(div);
 
@@ -2199,7 +2224,8 @@ function addGoalEntry(goal) {
         <button class="mcp-key-btn" style="font-size:10px;margin-top:2px" onclick="addReportTarget(this)">+ Add Channel</button>
       </div>
     </div>
-    ${id && editingAgentId ? `<div class="goal-row" style="justify-content:flex-end;padding-top:4px;border-top:1px solid var(--border-dim)">
+    ${id && editingAgentId ? `<div class="goal-row" style="justify-content:flex-end;gap:8px;padding-top:4px;border-top:1px solid var(--border-dim)">
+      <button class="mcp-key-btn${enabled ? '' : ' disconnect'}" style="font-size:10px" onclick="toggleGoal('${id}')">${enabled ? 'Pause' : 'Resume'}</button>
       <button class="mcp-key-btn oauth" style="font-size:11px" onclick="triggerGoal('${id}')">Trigger Now</button>
     </div>` : ''}
   `;
@@ -2235,6 +2261,74 @@ async function triggerGoal(goalId) {
     const data = await res.json();
     if (data.ok) {
       alert(`Goal "${goalId}" triggered! Running in background. Check configured report channels for results.`);
+    } else {
+      alert('Failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+async function toggleGoal(goalId) {
+  if (!editingAgentId) return;
+  try {
+    const res = await fetch(`/api/agents/${editingAgentId}/goals/${goalId}/toggle`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      // Reload goals to reflect new state
+      await fetchData();
+      const a = agents.find(x => x.id === editingAgentId);
+      if (a) {
+        const goalContainer = document.getElementById('goalEntries');
+        goalContainer.innerHTML = '<div class="no-goals" id="noGoals" style="display:none">No goals yet</div>';
+        for (const g of (a.goals || [])) { addGoalEntry(g); }
+      }
+    } else {
+      alert('Failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+async function toggleCron(index) {
+  if (!editingAgentId) return;
+  try {
+    const res = await fetch(`/api/agents/${editingAgentId}/cron/${index}/toggle`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      await fetchData();
+      const a = agents.find(x => x.id === editingAgentId);
+      if (a) {
+        const schedContainer = document.getElementById('scheduleEntries');
+        schedContainer.innerHTML = '<div class="no-schedules" id="noSchedules" style="display:none">No scheduled messages yet</div>';
+        const cronJobs = a.cron || [];
+        if (cronJobs.length > 0) {
+          for (let ci = 0; ci < cronJobs.length; ci++) {
+            const job = cronJobs[ci];
+            const parsed = cronToHuman(job.schedule);
+            addScheduleEntry(parsed.frequency, parsed.days, parsed.time, job.message, job.channel, job.chatId, parsed.min, ci, job.enabled);
+          }
+        } else {
+          document.getElementById('noSchedules').style.display = '';
+        }
+      }
+    } else {
+      alert('Failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+async function triggerCron(index) {
+  if (!editingAgentId) return;
+  if (!confirm('Trigger this schedule now? It will run in the background.')) return;
+  try {
+    const res = await fetch(`/api/agents/${editingAgentId}/cron/${index}/trigger`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      alert('Schedule triggered! Running in background.');
     } else {
       alert('Failed: ' + (data.error || 'Unknown error'));
     }

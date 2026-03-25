@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — Activity</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;--bg-surface:rgba(12,18,33,0.92);--bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);--border-dim:rgba(56,189,248,0.08);--border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);--text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);--text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;--accent-bg:rgba(6,182,212,0.15);
+  --purple:rgba(139,92,246,0.7);--purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);--radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;--font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);--border-dim:rgba(0,0,0,0.08);--border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);--text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);--text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
+  --purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);--shadow:0 1px 8px rgba(0,0,0,0.06);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* Header */
+.header{
+  padding:12px 24px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg-surface);backdrop-filter:blur(20px);flex-shrink:0;
+}
+.logo{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent)}
+.header-spacer{flex:1}
+.nav-link{
+  font-size:12px;color:var(--text-muted);text-decoration:none;
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);transition:all .2s;
+}
+.nav-link:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.nav-link.active{color:var(--accent);border-color:var(--accent)}
+.theme-toggle{
+  background:none;border:1px solid var(--border-dim);border-radius:6px;
+  padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text-muted);transition:all .2s;
+}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* Toolbar */
+.toolbar{
+  padding:12px 24px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;
+}
+.filter-select{
+  padding:6px 12px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;
+  cursor:pointer;transition:border-color .2s;
+}
+.filter-select:focus{outline:none;border-color:var(--border-active)}
+.search-input{
+  flex:1;min-width:200px;padding:6px 14px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);font-family:var(--font-sans);font-size:13px;
+  transition:border-color .2s;
+}
+.search-input:focus{outline:none;border-color:var(--border-active)}
+.search-input::placeholder{color:var(--text-muted)}
+.result-count{font-size:11px;color:var(--text-muted)}
+
+/* Activity list */
+.activity-list{flex:1;overflow-y:auto;padding:12px 24px}
+.activity-list::-webkit-scrollbar{width:4px}
+.activity-list::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+
+.activity-entry{
+  padding:12px 16px;margin-bottom:6px;border-radius:10px;
+  background:var(--bg-card);border:1px solid var(--border-dim);
+  transition:all .2s;cursor:pointer;
+}
+.activity-entry:hover{border-color:var(--border-glow)}
+.activity-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.activity-avatar{
+  width:28px;height:28px;border-radius:7px;flex-shrink:0;
+  background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);
+}
+.activity-agent{font-size:13px;font-weight:600;color:var(--accent)}
+.activity-channel{
+  font-size:10px;padding:2px 6px;border-radius:4px;
+  background:var(--purple-bg);color:var(--purple);font-weight:500;
+}
+.activity-time{font-size:11px;color:var(--text-muted);margin-left:auto}
+.activity-query{font-size:13px;color:var(--text-primary);margin-bottom:4px;line-height:1.5}
+.activity-response{
+  font-size:12px;color:var(--text-secondary);line-height:1.5;
+  max-height:0;overflow:hidden;transition:max-height .3s ease;
+  border-top:1px solid transparent;
+}
+.activity-entry.expanded .activity-response{max-height:500px;overflow-y:auto;padding-top:8px;margin-top:8px;border-top-color:var(--border-dim)}
+.activity-expand{font-size:10px;color:var(--text-muted);cursor:pointer}
+
+.no-activity{text-align:center;padding:40px;color:var(--text-muted);font-size:14px}
+.loading{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <span class="logo">MyAIforOne</span>
+    <div class="header-spacer"></div>
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="/ui">Chat</a>
+    <a class="nav-link" href="/org">Org</a>
+    <a class="nav-link" href="/tasks">Tasks</a>
+    <a class="nav-link active" href="/activity">Activity</a>
+    <a class="nav-link" href="/automations">Automations</a>
+    <a class="nav-link" href="/channels">Channels</a>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  </div>
+
+  <div class="toolbar">
+    <select class="filter-select" id="agentFilter" onchange="fetchActivity()">
+      <option value="">All Agents</option>
+    </select>
+    <select class="filter-select" id="channelFilter" onchange="renderActivity()">
+      <option value="">All Channels</option>
+      <option value="web">Web</option>
+      <option value="telegram">Telegram</option>
+      <option value="slack">Slack</option>
+      <option value="imessage">iMessage</option>
+      <option value="goals">Goals</option>
+      <option value="delegate">Delegate</option>
+    </select>
+    <input class="search-input" id="searchInput" placeholder="Search messages..." oninput="debounceSearch()">
+    <span class="result-count" id="resultCount"></span>
+  </div>
+
+  <div class="activity-list" id="activityList">
+    <div class="loading">Loading activity...</div>
+  </div>
+</div>
+
+<script>
+let agents = [];
+let allEntries = [];
+let searchTimeout = null;
+
+async function init() {
+  // Fetch agents for filter dropdown
+  try {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+    agents = data.agents || [];
+
+    const select = document.getElementById('agentFilter');
+    const sorted = agents.slice().sort((a, b) => a.name.localeCompare(b.name));
+    for (const a of sorted) {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name} (${a.aliases?.[0] || a.id})`;
+      select.appendChild(opt);
+    }
+  } catch { /* ignore */ }
+
+  fetchActivity();
+}
+
+async function fetchActivity() {
+  const agentId = document.getElementById('agentFilter').value;
+  const search = document.getElementById('searchInput').value.trim();
+  const params = new URLSearchParams();
+  if (agentId) params.set('agent', agentId);
+  if (search) params.set('q', search);
+  params.set('limit', '300');
+
+  try {
+    const res = await fetch('/api/activity?' + params.toString());
+    const data = await res.json();
+    allEntries = data.entries || [];
+    renderActivity();
+  } catch {
+    document.getElementById('activityList').innerHTML = '<div class="no-activity">Failed to load activity</div>';
+  }
+}
+
+function renderActivity() {
+  const channelFilter = document.getElementById('channelFilter').value;
+  let entries = allEntries;
+
+  if (channelFilter) {
+    entries = entries.filter(e => e.channel === channelFilter);
+  }
+
+  document.getElementById('resultCount').textContent = `${entries.length} entries`;
+
+  if (entries.length === 0) {
+    document.getElementById('activityList').innerHTML = '<div class="no-activity">No activity found</div>';
+    return;
+  }
+
+  const html = entries.map((e, i) => {
+    const agent = agents.find(a => a.id === e.agentId);
+    const initials = (agent?.aliases?.[0] || e.agentId || '??').replace('@','').slice(0,2).toUpperCase();
+    const name = agent?.name || e.agentId;
+    const time = formatTime(e.ts);
+    const date = formatDate(e.ts);
+    const channel = e.channel || '';
+    const query = escapeHtml((e.text || '').slice(0, 200));
+    const response = escapeHtml((e.response || '').slice(0, 800));
+    const agentLink = e.agentId ? `/ui#${e.agentId}${e.ts ? '?ts=' + encodeURIComponent(e.ts) : ''}` : '#';
+
+    return `<div class="activity-entry" onclick="this.classList.toggle('expanded')">
+      <div class="activity-top">
+        <div class="activity-avatar">${initials}</div>
+        <a class="activity-agent" href="${agentLink}" onclick="event.stopPropagation()" style="text-decoration:none">${escapeHtml(name)}</a>
+        ${channel ? `<span class="activity-channel">${channel}</span>` : ''}
+        ${e.sessionId ? `<span class="activity-channel" style="background:var(--green-bg);color:var(--green)">session</span>` : ''}
+        <span class="activity-time">${date} ${time}</span>
+        <a href="${agentLink}" onclick="event.stopPropagation()" style="font-size:10px;color:var(--text-muted);text-decoration:none;padding:2px 8px;border-radius:4px;border:1px solid var(--border-dim)" onmouseover="this.style.borderColor='var(--border-glow)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-muted)'">Chat &#x2192;</a>
+      </div>
+      <div class="activity-query">${query}</div>
+      <div class="activity-response">${response}</div>
+      <span class="activity-expand">Click to expand response</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('activityList').innerHTML = html;
+}
+
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(fetchActivity, 400);
+}
+
+function escapeHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch { return ''; }
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return 'Today';
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString([], {month:'short',day:'numeric'});
+  } catch { return ''; }
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  html.setAttribute('data-theme', isLight ? '' : 'light');
+  document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
+  localStorage.setItem('theme', isLight ? 'dark' : 'light');
+}
+
+// Load saved theme
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    setTimeout(() => { document.getElementById('themeBtn').textContent = '☀️'; }, 50);
+  }
+})();
+
+init();
+</script>
+</body>
+</html>

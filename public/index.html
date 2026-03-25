@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MyAgent</title>
+<title>MyAIforOne</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -87,8 +87,28 @@ html,body{
   border-right:1px solid var(--border-dim);
   display:flex;flex-direction:column;
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  transition:background .3s,border .3s;
+  transition:all .3s ease;overflow:hidden;
 }
+.sidebar.collapsed{width:0;min-width:0;border-right:none;padding:0}
+.sidebar-expand{
+  position:fixed;top:12px;left:8px;z-index:50;
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-surface);color:var(--text-muted);cursor:pointer;
+  display:none;align-items:center;justify-content:center;font-size:16px;
+  transition:all .2s;
+}
+.sidebar-expand:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.sidebar-expand.visible{display:flex}
+.sidebar-collapse{
+  padding:8px;border-top:1px solid var(--border-dim);
+  display:flex;align-items:center;justify-content:center;
+}
+.sidebar-collapse button{
+  width:100%;padding:6px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  font-size:11px;font-family:var(--font-sans);transition:all .2s;
+}
+.sidebar-collapse button:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
 .main{flex:1;display:flex;flex-direction:column;position:relative}
 
@@ -833,11 +853,11 @@ html,body{
     <div class="sidebar-header">
       <div class="logo-group">
         <div class="logo-mark">A</div>
-        <div class="logo-text">MyAgent</div>
+        <div class="logo-text">MyAIforOne</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
+        <a href="/" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none;transition:all .2s" title="Home" onmouseover="this.style.borderColor='var(--border-glow)';this.style.color='var(--text-secondary)'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-muted)'">⌂</a>
         <a href="/org" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none;transition:all .2s" title="Org Chart" onmouseover="this.style.borderColor='var(--border-glow)';this.style.color='var(--text-secondary)'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-muted)'">◇</a>
-        <a href="/tasks" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none;transition:all .2s" title="Tasks" onmouseover="this.style.borderColor='var(--border-glow)';this.style.color='var(--text-secondary)'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-muted)'">T</a>
         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
       </div>
     </div>
@@ -855,7 +875,13 @@ html,body{
       </select>
     </div>
     <div class="agent-list" id="agentList"></div>
+    <div class="sidebar-collapse">
+      <button onclick="toggleSidebar()">&#x25C0; Collapse</button>
+    </div>
   </div>
+
+  <!-- Sidebar expand button (outside main so it survives re-renders) -->
+  <button class="sidebar-expand" id="sidebarExpandBtn" onclick="toggleSidebar()" title="Show sidebar">&#x2630;</button>
 
   <!-- Main -->
   <div class="main" id="mainArea">
@@ -1169,8 +1195,12 @@ function buildFilterDropdowns() {
     [...deptSet].sort().map(d => `<option value="${d}">${d}</option>`).join('');
 
   if (!filtersInitialized && orgSet.size > 0) {
-    // Default to first org on initial load
-    orgSelect.value = [...orgSet].sort()[0];
+    // Default to org of the most recently chatted agent
+    const mostRecent = agents
+      .filter(a => a.lastMessage && a.lastMessage !== 'never')
+      .sort((a, b) => new Date(b.lastMessage).getTime() - new Date(a.lastMessage).getTime())[0];
+    const recentOrg = mostRecent?.org?.[0]?.organization;
+    orgSelect.value = recentOrg && [...orgSet].includes(recentOrg) ? recentOrg : '';
     filtersInitialized = true;
   } else {
     if (prevOrg && [...orgSet].includes(prevOrg)) orgSelect.value = prevOrg;
@@ -1210,6 +1240,27 @@ function getFilteredAgents() {
     const bTime = b.lastMessage && b.lastMessage !== 'never' ? new Date(b.lastMessage).getTime() : 0;
     return bTime - aTime;
   });
+}
+
+// Recover latest exchange from server log when streaming disconnects
+async function recoverFromLog(agentId) {
+  try {
+    // Wait a moment for the executor to finish writing
+    await new Promise(r => setTimeout(r, 3000));
+    const res = await fetch(`/api/agents/${agentId}`);
+    const data = await res.json();
+    if (data.recentMessages && data.recentMessages.length > 0) {
+      const latest = data.recentMessages[data.recentMessages.length - 1];
+      if (latest.response) {
+        // Check if we already have this response (avoid duplicates)
+        const lastInHistory = chatHistory[agentId]?.[chatHistory[agentId].length - 1];
+        if (lastInHistory?.role === 'agent' && lastInHistory.text === latest.response) return true;
+        chatHistory[agentId].push({ role: 'agent', text: latest.response, time: latest.ts, channel: latest.channel || 'unknown' });
+        return true;
+      }
+    }
+  } catch { /* ignore */ }
+  return false;
 }
 
 async function fetchAgentMessages(agentId) {
@@ -1265,18 +1316,48 @@ async function sendMessage(agentId, text) {
       let isDone = false;
       let retries = 0;
       const MAX_RETRIES = 10;
+      console.log(`[Stream] Starting job ${jobId} for ${agentId}`);
 
       while (!isDone && retries < MAX_RETRIES) {
         try {
+          console.log(`[Stream] Connecting to job ${jobId} after=${lastEventId} retry=${retries}`);
           const streamRes = await fetch(`/api/chat/jobs/${jobId}/stream?after=${lastEventId}`);
+          if (!streamRes.ok) {
+            console.warn(`[Stream] HTTP ${streamRes.status} from stream endpoint`);
+            if (streamRes.status === 404) {
+              // Service restarted — job is gone from memory. Post the exchange
+              // back to the new server so it gets saved to conversation_log.jsonl.
+              console.log(`[Stream] 404 = service restart. Recovering exchange (textLen=${ss.text.length})`);
+              try {
+                await fetch(`/api/agents/${agentId}/recover`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userText: text, response: ss.text }),
+                });
+              } catch { /* best effort */ }
+              if (ss.text) {
+                chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+                ss.text = '';
+              }
+              isDone = true;
+              break;
+            }
+            retries++;
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
           const reader = streamRes.body.getReader();
           const decoder = new TextDecoder();
           let buffer = '';
+          let eventsThisConnection = 0;
           retries = 0; // reset on successful connect
 
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              console.log(`[Stream] Reader done. Events this connection: ${eventsThisConnection}, isDone: ${isDone}, lastEventId: ${lastEventId}`);
+              break;
+            }
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
@@ -1290,7 +1371,8 @@ async function sendMessage(agentId, text) {
               }
               if (!line.startsWith('data: ')) continue;
               const data = line.slice(6);
-              if (data === '[DONE]') { isDone = true; continue; }
+              if (data === '[DONE]') { isDone = true; console.log(`[Stream] Received [DONE] for job ${jobId}`); continue; }
+              eventsThisConnection++;
 
               try {
                 const event = JSON.parse(data);
@@ -1357,24 +1439,27 @@ async function sendMessage(agentId, text) {
             }
           }
 
-          // Stream ended naturally — if not done, reconnect
+          // Stream ended naturally — if not done, reconnect silently
           if (!isDone) {
             retries++;
-            if (isViewing()) {
-              const thinkWrap = document.getElementById('thinkingWrap');
-              if (thinkWrap) thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">Reconnecting...</span></div>`;
-            }
-            await new Promise(r => setTimeout(r, 1000));
-          }
-        } catch (streamErr) {
-          // Connection failed — retry
-          retries++;
-          if (retries < MAX_RETRIES) {
-            if (isViewing()) {
+            console.warn(`[Stream] Stream ended without [DONE]. Retry ${retries}/${MAX_RETRIES}. lastEventId=${lastEventId}, textLen=${ss.text.length}`);
+            // Only show reconnecting after 3+ retries (indicates real problem)
+            if (retries >= 3 && isViewing()) {
               const thinkWrap = document.getElementById('thinkingWrap');
               if (thinkWrap) thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">Reconnecting... (${retries}/${MAX_RETRIES})</span></div>`;
             }
-            await new Promise(r => setTimeout(r, 1000 * retries));
+            await new Promise(r => setTimeout(r, 500));
+          }
+        } catch (streamErr) {
+          // Connection failed — retry silently
+          retries++;
+          console.error(`[Stream] Connection error:`, streamErr, `Retry ${retries}/${MAX_RETRIES}`);
+          if (retries >= 3 && retries < MAX_RETRIES && isViewing()) {
+            const thinkWrap = document.getElementById('thinkingWrap');
+            if (thinkWrap) thinkWrap.innerHTML = `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">Reconnecting... (${retries}/${MAX_RETRIES})</span></div>`;
+          }
+          if (retries < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 500 * retries));
           }
         }
       }
@@ -1384,6 +1469,10 @@ async function sendMessage(agentId, text) {
       ss.jobId = null;
       if (ss.text) {
         chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+      } else if (!isDone) {
+        // Stream disconnected without completing — reload from server log
+        // The executor runs to completion regardless, so the log should have the response
+        await recoverFromLog(agentId);
       }
       ss.text = '';
       ss.status = '';
@@ -1395,7 +1484,11 @@ async function sendMessage(agentId, text) {
       if (ss.text) {
         chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
       } else {
-        chatHistory[agentId].push({ role: 'agent', text: `Error: ${err.message}`, time: new Date().toISOString() });
+        // Try to recover from server log before falling back to error
+        const recovered = await recoverFromLog(agentId);
+        if (!recovered) {
+          chatHistory[agentId].push({ role: 'agent', text: `Connection lost. The agent may still be running — check back shortly.`, time: new Date().toISOString() });
+        }
       }
       ss.text = '';
       ss.status = '';
@@ -1507,6 +1600,7 @@ function renderChat() {
             <option value="">${agent.claudeAccount || 'default'}</option>
             ${availableAccounts.filter(a => a !== agent.claudeAccount).map(a => `<option value="${a}" ${accountOverrides[agent.id]===a?'selected':''}>${a}</option>`).join('')}
           </select>` : ''}
+          <button class="header-btn" onclick="window.location='/activity'" title="Activity Logs">Activity</button>
           <button class="header-btn" onclick="window.location='/org'" title="Go to Dashboard">&#x25C7; Dashboard</button>
           <button class="canvas-toggle-btn${canvasOpen ? ' active' : ''}" onclick="toggleCanvas()" title="Toggle preview panel">&#x25A8; Canvas</button>
           ${agent.persistent ? `<button class="header-btn danger" onclick="resetSession('${agent.id}')">&#x21BA; Reset</button>` : ''}
@@ -1552,7 +1646,7 @@ function renderChat() {
         <div class="chat-input-box">
           <button class="clip-btn" id="clipBtn" onclick="toggleFileZone()" title="Attach files">📎</button>
           <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
-          <button class="raw-logs-btn${rawLogsOpen ? ' active' : ''}" id="rawLogsBtn" onclick="toggleRawLogs()" title="Raw logs (live feed)">&#x2630;</button>
+          <button class="raw-logs-btn${rawLogsOpen ? ' active' : ''}" id="rawLogsBtn" onclick="toggleRawLogs()" title="Raw logs (live feed)">&#x2318;</button>
           <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
             onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
           ${ss.jobId ? `<button class="stop-btn" onclick="stopStreaming()" title="Stop (Esc)">&#x25A0;</button>` : ''}
@@ -2745,11 +2839,15 @@ function formatCanvasMarkdown(text) {
 
 // ─── Init ──────────────────────────────────────────────────────
 fetchDashboard().then(() => {
-  // Check URL hash for deep-link to agent (from org page "Chat" button)
-  const hash = window.location.hash.slice(1);
-  if (hash && agents.find(a => a.id === hash)) {
+  // Check URL hash for deep-link to agent (from org page "Chat" or activity page)
+  // Format: #agentId or #agentId?ts=2026-03-25T12:00:00Z
+  const rawHash = window.location.hash.slice(1);
+  const [hashId, hashParams] = rawHash.split('?');
+  const tsParam = hashParams ? new URLSearchParams(hashParams).get('ts') : null;
+
+  if (hashId && agents.find(a => a.id === hashId)) {
     // Auto-filter to this agent's org/dept
-    const agent = agents.find(a => a.id === hash);
+    const agent = agents.find(a => a.id === hashId);
     if (agent?.org?.length) {
       const orgSelect = document.getElementById('filterOrg');
       const deptSelect = document.getElementById('filterDept');
@@ -2757,11 +2855,54 @@ fetchDashboard().then(() => {
       if (deptSelect) deptSelect.value = agent.org[0].function || '';
       renderAgentList();
     }
-    selectAgent(hash);
+    selectAgent(hashId).then(() => {
+      // Scroll to specific message if ts param provided
+      if (tsParam) {
+        setTimeout(() => scrollToMessage(decodeURIComponent(tsParam)), 300);
+      }
+    });
     window.location.hash = ''; // clean up URL
   }
 });
 setInterval(fetchDashboard, 30000);
+
+// ─── Scroll to specific message by timestamp ───────────
+function scrollToMessage(ts) {
+  if (!selectedAgent) return;
+  const messages = chatHistory[selectedAgent] || [];
+  // Find the message index matching this timestamp
+  const idx = messages.findIndex(m => m.time === ts);
+  if (idx < 0) return;
+
+  const chatEl = document.getElementById('chatMessages');
+  if (!chatEl) return;
+  const msgEls = chatEl.querySelectorAll('.msg');
+  if (idx >= msgEls.length) return;
+
+  const targetEl = msgEls[idx];
+  targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Flash highlight
+  targetEl.style.transition = 'box-shadow 0.3s';
+  targetEl.style.boxShadow = '0 0 0 2px var(--accent), 0 0 20px rgba(34,211,238,0.3)';
+  setTimeout(() => { targetEl.style.boxShadow = ''; }, 3000);
+}
+
+// ─── Sidebar Toggle ────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const expandBtn = document.getElementById('sidebarExpandBtn');
+  sidebar.classList.toggle('collapsed');
+  const isCollapsed = sidebar.classList.contains('collapsed');
+  if (expandBtn) expandBtn.classList.toggle('visible', isCollapsed);
+  localStorage.setItem('sidebarCollapsed', isCollapsed);
+}
+// Restore sidebar state
+(function() {
+  if (localStorage.getItem('sidebarCollapsed') === 'true') {
+    document.querySelector('.sidebar')?.classList.add('collapsed');
+    document.getElementById('sidebarExpandBtn')?.classList.add('visible');
+  }
+})();
 </script>
 </body>
 </html>

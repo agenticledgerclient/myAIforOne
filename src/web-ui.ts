@@ -1,5 +1,5 @@
 import express from "express";
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, statSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, basename, extname, relative } from "node:path";
 import { execSync } from "node:child_process";
@@ -44,6 +44,29 @@ setInterval(() => {
 export function startWebUI(opts: WebUIOptions): void {
   const app = express();
   app.use(express.json());
+
+  // ─── Serve the Home page ─────────────────────────────────────────
+  app.get("/", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "home.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      // Fallback to chat UI if home page doesn't exist
+      res.redirect("/ui");
+    }
+  });
+
+  // ─── Serve the Activity Logs page ────────────────────────────────
+  app.get("/activity", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "activity.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.redirect("/ui");
+    }
+  });
 
   // ─── Serve the UI HTML (no-cache to always get latest) ──────────
   app.get("/ui", (_req, res) => {
@@ -156,9 +179,11 @@ export function startWebUI(opts: WebUIOptions): void {
         cron: agent.cron || [],
         goals: agent.goals || [],
         activeGoals: (agent.goals || []).filter(g => g.enabled).length,
+        activeCron: (agent.cron || []).filter((c: any) => c.enabled !== false).length,
         agentHome,
         claudeAccount: agent.claudeAccount || null,
         taskCounts,
+        subAgents: agent.subAgents || null,
       };
     });
 
@@ -166,17 +191,24 @@ export function startWebUI(opts: WebUIOptions): void {
       .filter(([, c]) => c.enabled)
       .map(([id]) => id);
 
+    // Find default group agent (first one with subAgents, or explicitly set)
+    const defaultGroupAgent = (opts.config.service as any).defaultGroupAgent
+      || Object.entries(opts.config.agents).find(([, a]) => a.subAgents)?.[0]
+      || null;
+
     res.json({
       status: "running",
       uptime: process.uptime(),
       channels,
       agents,
+      mcpCount: Object.keys(opts.config.mcps || {}).length,
       claudeAccounts: Object.keys(opts.config.service.claudeAccounts || {}),
+      defaultGroupAgent,
     });
   });
 
-  // ─── Legacy dashboard (keep backward compat) ──────────────────────
-  app.get("/", (_req, res) => {
+  // ─── Legacy dashboard redirect ────────────────────────────────────
+  app.get("/dashboard-legacy", (_req, res) => {
     res.redirect("/ui");
   });
 
@@ -383,9 +415,14 @@ export function startWebUI(opts: WebUIOptions): void {
   // GET: Stream events for a job, supports reconnect via ?after=N
   app.get("/api/chat/jobs/:jobId/stream", (req, res) => {
     const job = jobStore.get(req.params.jobId);
-    if (!job) return res.status(404).json({ error: "Job not found" });
+    if (!job) {
+      log.warn(`[SSE] Job not found: ${req.params.jobId}`);
+      return res.status(404).json({ error: "Job not found" });
+    }
 
     const after = parseInt(req.query.after as string) || 0;
+    const connId = `sse-${Date.now().toString(36)}`;
+    log.debug(`[SSE:${connId}] Connected to job ${req.params.jobId} after=${after} events=${job.events.length} done=${job.done}`);
 
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -397,39 +434,65 @@ export function startWebUI(opts: WebUIOptions): void {
     if (res.socket) res.socket.setNoDelay(true);
 
     let closed = false;
-    req.on("close", () => { closed = true; });
+    req.on("close", () => {
+      closed = true;
+      log.debug(`[SSE:${connId}] Client disconnected (req close event)`);
+    });
 
     // Send any buffered events the client missed
     let cursor = after;
     for (let i = after; i < job.events.length; i++) {
-      if (closed) return;
+      if (closed) {
+        log.debug(`[SSE:${connId}] Client closed during buffer replay at event ${i}`);
+        return;
+      }
       res.write(`id: ${job.events[i].idx}\ndata: ${job.events[i].data}\n\n`);
       cursor = i + 1;
+    }
+    if (cursor > after) {
+      log.debug(`[SSE:${connId}] Replayed ${cursor - after} buffered events`);
     }
 
     // If job already done and we've sent everything, close
     if (job.done && cursor >= job.events.length) {
+      log.debug(`[SSE:${connId}] Job already done, closing after replay`);
       res.end();
       return;
     }
 
-    // Otherwise listen for new events
+    // Otherwise listen for new events (5s keepalive prevents browser background throttling)
+    let keepaliveCount = 0;
     const keepalive = setInterval(() => {
       if (closed) { clearInterval(keepalive); return; }
-      try { res.write(`: keepalive\n\n`); } catch { closed = true; }
-    }, 15_000);
+      try {
+        res.write(`: keepalive\n\n`);
+        keepaliveCount++;
+      } catch (err) {
+        log.debug(`[SSE:${connId}] Keepalive write failed after ${keepaliveCount} keepalives: ${err}`);
+        closed = true;
+      }
+    }, 5_000);
 
     const onEvent = (idx: number) => {
-      if (closed) { cleanup(); return; }
+      if (closed) {
+        log.debug(`[SSE:${connId}] Event ${idx} arrived but client already closed`);
+        cleanup();
+        return;
+      }
       const evt = job.events[idx];
       if (!evt) return;
       try {
         res.write(`id: ${evt.idx}\ndata: ${evt.data}\n\n`);
         if (evt.data === "[DONE]") {
+          log.debug(`[SSE:${connId}] [DONE] sent, closing. Total events: ${idx + 1}, keepalives: ${keepaliveCount}`);
           cleanup();
           res.end();
         }
-      } catch { closed = true; cleanup(); }
+      } catch (err) {
+        log.debug(`[SSE:${connId}] Event write failed at idx ${idx}: ${err}`);
+        closed = true;
+        cleanup();
+      }
     };
 
     const cleanup = () => {
@@ -461,6 +524,41 @@ export function startWebUI(opts: WebUIOptions): void {
 
     log.info(`[WebUI] Job ${req.params.jobId} stopped by user`);
     res.json({ ok: true });
+  });
+
+  // ─── API: Recover lost exchange after service restart ───────────────
+  // Browser POSTs the user message + streamed response back when it detects
+  // a 404 (job not found = service restarted before log was written).
+  app.post("/api/agents/:agentId/recover", (req, res) => {
+    const { agentId } = req.params;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    const { userText, response, ts } = req.body as { userText?: string; response?: string; ts?: string };
+    if (!userText?.trim() && !response?.trim()) {
+      return res.status(400).json({ error: "Must provide userText or response" });
+    }
+
+    const memoryDir = resolve(opts.baseDir, agent.memoryDir);
+    const logPath = join(memoryDir, "conversation_log.jsonl");
+    try {
+      mkdirSync(memoryDir, { recursive: true });
+      const entry = {
+        ts: ts || new Date().toISOString(),
+        from: "web-user",
+        text: userText || "",
+        response: (response || "").slice(0, 2000),
+        agentId,
+        channel: "web",
+        recovered: true,
+      };
+      appendFileSync(logPath, JSON.stringify(entry) + "\n");
+      log.info(`[WebUI] Recovered exchange for ${agentId} (${(response || "").length} chars)`);
+      res.json({ ok: true });
+    } catch (err) {
+      log.warn(`[WebUI] Failed to write recovery log: ${err}`);
+      res.status(500).json({ error: "Failed to write recovery log" });
+    }
   });
 
   // ─── API: Raw log stream for a job (tail -f style) ──────────────
@@ -497,7 +595,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const keepalive = setInterval(() => {
       if (closed) { clearInterval(keepalive); return; }
       try { res.write(`: keepalive\n\n`); } catch { closed = true; }
-    }, 15_000);
+    }, 5_000);
 
     const onRaw = (idx: number) => {
       if (closed) { cleanup(); return; }
@@ -1308,6 +1406,43 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── API: Activity feed (recent messages across all agents) ────────
+  // Query params: ?agent=agentId&q=searchTerm&limit=200
+  app.get("/api/activity", (req, res) => {
+    const filterAgent = req.query.agent as string || "";
+    const searchQuery = (req.query.q as string || "").toLowerCase();
+    const limit = Math.min(parseInt(req.query.limit as string) || 200, 500);
+    const entries: any[] = [];
+    const home2 = process.env.HOME || process.env.USERPROFILE || "";
+    const rt = (p: string) => p.startsWith("~") ? p.replace("~", home2) : p;
+
+    const agentEntries = filterAgent
+      ? [[filterAgent, opts.config.agents[filterAgent]] as const].filter(([, a]) => a)
+      : Object.entries(opts.config.agents);
+
+    for (const [agentId, agent] of agentEntries) {
+      try {
+        const memDir = rt(agent.memoryDir);
+        const logPath = join(memDir, "conversation_log.jsonl");
+        if (!existsSync(logPath)) continue;
+        const content = readFileSync(logPath, "utf-8");
+        const lines = content.trim().split("\n").slice(-50); // last 50 per agent
+        for (const line of lines) {
+          try {
+            const entry = { ...JSON.parse(line), agentId };
+            if (searchQuery) {
+              const text = ((entry.text || "") + " " + (entry.response || "")).toLowerCase();
+              if (!text.includes(searchQuery)) continue;
+            }
+            entries.push(entry);
+          } catch { /* skip */ }
+        }
+      } catch { /* skip */ }
+    }
+    entries.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+    res.json({ entries: entries.slice(0, limit) });
+  });
+
   // ─── API: Trigger goal now ──────────────────────────────────────────
   app.post("/api/agents/:id/goals/:goalId/trigger", async (req, res) => {
     const agentId = req.params.id;
@@ -1333,6 +1468,355 @@ export function startWebUI(opts: WebUIOptions): void {
       log.info(`[Goal Trigger] Completed: ${agentId}/${goalId} — ${result.status}`);
     } catch (err) {
       log.error(`[Goal Trigger] Failed: ${agentId}/${goalId} — ${err}`);
+    }
+  });
+
+  // ─── API: Delegate to agent (used by group agents) ─────────────────
+  app.post("/api/delegate", async (req, res) => {
+    const { agentId, text } = req.body as { agentId?: string; text?: string };
+    if (!agentId || !text) return res.status(400).json({ error: "Missing agentId or text" });
+
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    log.info(`[Delegate] → ${agentId}: ${text.slice(0, 80)}`);
+
+    const syntheticMsg: InboundMessage = {
+      id: `delegate-${Date.now()}`,
+      channel: "delegate",
+      chatId: "group-agent",
+      chatType: "dm",
+      sender: "group-agent",
+      senderName: "Group Agent",
+      text,
+      timestamp: Date.now(),
+      isFromMe: false,
+      isGroup: false,
+      raw: { type: "delegate" },
+    };
+
+    const route: ResolvedRoute = {
+      agentId,
+      agentConfig: agent,
+      route: agent.routes[0],
+    };
+
+    try {
+      const response = await executeAgent(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts);
+      log.info(`[Delegate] ← ${agentId}: ${response.slice(0, 80)}`);
+      res.json({ ok: true, agentId, response });
+    } catch (err) {
+      log.error(`[Delegate] Failed for ${agentId}: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Agent registry (for group agent RAG) ────────────────────
+  app.get("/api/agent-registry", (_req, res) => {
+    const registry = Object.entries(opts.config.agents).map(([id, agent]) => ({
+      id,
+      name: agent.name,
+      description: agent.description,
+      aliases: agent.mentionAliases || [],
+      mcps: agent.mcps || [],
+      org: agent.org || [],
+      capabilities: agent.allowedTools || [],
+      hasGoals: (agent.goals || []).length > 0,
+      isGroupAgent: !!agent.subAgents,
+    }));
+    res.json({ agents: registry });
+  });
+
+  // ─── API: Toggle goal enabled/paused ────────────────────────────────
+  app.post("/api/agents/:id/goals/:goalId/toggle", (req, res) => {
+    const agentId = req.params.id;
+    const goalId = req.params.goalId;
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+      const goal = agent.goals?.find((g: any) => g.id === goalId);
+      if (!goal) return res.status(404).json({ error: `Goal "${goalId}" not found` });
+
+      goal.enabled = !goal.enabled;
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memGoal = opts.config.agents[agentId]?.goals?.find((g: any) => g.id === goalId);
+      if (memGoal) memGoal.enabled = goal.enabled;
+
+      log.info(`[Goal Toggle] ${agentId}/${goalId} → ${goal.enabled ? 'enabled' : 'paused'}`);
+      res.json({ ok: true, goalId, enabled: goal.enabled });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Toggle schedule enabled/paused ──────────────────────────
+  app.post("/api/agents/:id/cron/:index/toggle", (req, res) => {
+    const agentId = req.params.id;
+    const index = parseInt(req.params.index);
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      if (!agent.cron?.[index]) return res.status(404).json({ error: "Schedule not found" });
+
+      const job = agent.cron[index];
+      job.enabled = job.enabled === false ? true : false;
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      if (opts.config.agents[agentId]?.cron?.[index]) {
+        opts.config.agents[agentId].cron[index].enabled = job.enabled;
+      }
+
+      log.info(`[Cron Toggle] ${agentId}/cron[${index}] → ${job.enabled ? 'enabled' : 'paused'}`);
+      res.json({ ok: true, index, enabled: job.enabled });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Trigger schedule now ────────────────────────────────────
+  app.post("/api/agents/:id/cron/:index/trigger", async (req, res) => {
+    const agentId = req.params.id;
+    const index = parseInt(req.params.index);
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    if (!agent.cron?.[index]) return res.status(404).json({ error: "Schedule not found" });
+
+    const job = agent.cron[index];
+    log.info(`[Cron Trigger] Manual trigger: ${agentId}/cron[${index}] — "${job.message.slice(0, 60)}"`);
+
+    res.json({ ok: true, message: `Schedule triggered. Running in background...` });
+
+    // Execute via webhook handler
+    if (opts.onWebhookMessage) {
+      try {
+        await opts.onWebhookMessage(agentId, job.message, job.channel, job.chatId);
+        log.info(`[Cron Trigger] Completed: ${agentId}/cron[${index}]`);
+      } catch (err) {
+        log.error(`[Cron Trigger] Failed: ${agentId}/cron[${index}] — ${err}`);
+      }
+    }
+  });
+
+  // ─── API: All automations (goals + crons across all agents) ────────
+  app.get("/api/automations", (_req, res) => {
+    const goals: any[] = [];
+    const crons: any[] = [];
+    const home2 = process.env.HOME || process.env.USERPROFILE || "";
+    const rt = (p: string) => p.startsWith("~") ? p.replace("~", home2) : p;
+
+    for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+      for (const g of (agent.goals || [])) {
+        goals.push({ ...g, agentId, agentName: agent.name });
+      }
+      for (let i = 0; i < (agent.cron || []).length; i++) {
+        const c = agent.cron![i];
+        crons.push({ ...c, index: i, agentId, agentName: agent.name });
+      }
+    }
+    res.json({ goals, crons });
+  });
+
+  // ─── API: Goal run history ────────────────────────────────────────
+  app.get("/api/agents/:id/goals/:goalId/history", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const home2 = process.env.HOME || process.env.USERPROFILE || "";
+    const rt = (p: string) => p.startsWith("~") ? p.replace("~", home2) : p;
+    const agentHome = agent.agentHome ? rt(agent.agentHome) : resolve(opts.baseDir, agent.memoryDir, "..");
+    const goalsDir = join(agentHome, "goals");
+    const entries: any[] = [];
+
+    if (existsSync(goalsDir)) {
+      try {
+        const files = readdirSync(goalsDir).filter(f => f.startsWith("log-") && f.endsWith(".jsonl")).sort().reverse();
+        for (const file of files.slice(0, 7)) { // last 7 days
+          try {
+            const content = readFileSync(join(goalsDir, file), "utf-8");
+            for (const line of content.trim().split("\n")) {
+              try {
+                const entry = JSON.parse(line);
+                if (entry.goalId === req.params.goalId) entries.push(entry);
+              } catch { /* skip */ }
+            }
+          } catch { /* skip */ }
+        }
+      } catch { /* skip */ }
+    }
+    entries.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+    res.json({ history: entries });
+  });
+
+  // ─── API: Cron run history (from conversation logs) ───────────────
+  app.get("/api/agents/:id/cron/:index/history", (req, res) => {
+    const agent = opts.config.agents[req.params.id];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    const index = parseInt(req.params.index);
+    const cronJob = agent.cron?.[index];
+    if (!cronJob) return res.status(404).json({ error: "Schedule not found" });
+
+    const home2 = process.env.HOME || process.env.USERPROFILE || "";
+    const rt = (p: string) => p.startsWith("~") ? p.replace("~", home2) : p;
+    const memDir = rt(agent.memoryDir);
+    const logPath = join(memDir, "conversation_log.jsonl");
+    const entries: any[] = [];
+
+    if (existsSync(logPath)) {
+      try {
+        const content = readFileSync(logPath, "utf-8");
+        const lines = content.trim().split("\n").slice(-200);
+        for (const line of lines) {
+          try {
+            const entry = JSON.parse(line);
+            // Match cron entries by channel and message content
+            if ((entry.channel === "cron" || entry.channel === "webhook") &&
+                entry.text && cronJob.message && entry.text.includes(cronJob.message.slice(0, 30))) {
+              entries.push(entry);
+            }
+          } catch { /* skip */ }
+        }
+      } catch { /* skip */ }
+    }
+    entries.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+    res.json({ history: entries.slice(0, 20) });
+  });
+
+  // ─── API: Delete goal ─────────────────────────────────────────────
+  app.delete("/api/agents/:id/goals/:goalId", (req, res) => {
+    const agentId = req.params.id;
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+      const idx = (agent.goals || []).findIndex((g: any) => g.id === req.params.goalId);
+      if (idx < 0) return res.status(404).json({ error: "Goal not found" });
+
+      agent.goals.splice(idx, 1);
+      if (agent.goals.length === 0) delete agent.goals;
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[agentId];
+      if (memAgent?.goals) {
+        memAgent.goals = memAgent.goals.filter((g: any) => g.id !== req.params.goalId);
+      }
+
+      log.info(`[Goal Delete] ${agentId}/${req.params.goalId}`);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Delete cron ─────────────────────────────────────────────
+  app.delete("/api/agents/:id/cron/:index", (req, res) => {
+    const agentId = req.params.id;
+    const index = parseInt(req.params.index);
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      if (!agent.cron?.[index]) return res.status(404).json({ error: "Schedule not found" });
+
+      agent.cron.splice(index, 1);
+      if (agent.cron.length === 0) delete agent.cron;
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[agentId];
+      if (memAgent?.cron) {
+        memAgent.cron.splice(index, 1);
+      }
+
+      log.info(`[Cron Delete] ${agentId}/cron[${index}]`);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Create goal for agent ───────────────────────────────────
+  app.post("/api/agents/:id/goals", (req, res) => {
+    const agentId = req.params.id;
+    const goal = req.body as any;
+    if (!goal?.id || !goal?.description || !goal?.heartbeat) {
+      return res.status(400).json({ error: "Missing id, description, or heartbeat" });
+    }
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+      if (!agent.goals) agent.goals = [];
+      if (agent.goals.some((g: any) => g.id === goal.id)) {
+        return res.status(409).json({ error: `Goal "${goal.id}" already exists` });
+      }
+      agent.goals.push(goal);
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[agentId];
+      if (!memAgent.goals) memAgent.goals = [];
+      memAgent.goals.push(goal);
+
+      log.info(`[Goal Create] ${agentId}/${goal.id}`);
+      res.json({ ok: true, goalId: goal.id });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Create cron for agent ───────────────────────────────────
+  app.post("/api/agents/:id/cron", (req, res) => {
+    const agentId = req.params.id;
+    const cronJob = req.body as any;
+    if (!cronJob?.schedule || !cronJob?.message || !cronJob?.channel || !cronJob?.chatId) {
+      return res.status(400).json({ error: "Missing schedule, message, channel, or chatId" });
+    }
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+      if (!agent.cron) agent.cron = [];
+      agent.cron.push(cronJob);
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[agentId];
+      if (!memAgent.cron) memAgent.cron = [];
+      memAgent.cron.push(cronJob);
+
+      log.info(`[Cron Create] ${agentId} — "${cronJob.schedule}"`);
+      res.json({ ok: true, index: agent.cron.length - 1 });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── Serve Automations page ───────────────────────────────────────
+  app.get("/automations", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "automations.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.redirect("/ui");
     }
   });
 

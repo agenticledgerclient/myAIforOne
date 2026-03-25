@@ -43,6 +43,7 @@ export interface CronJobConfig {
   message: string;        // message to send to the agent
   channel: string;        // which channel to reply on
   chatId: string;         // which chat to reply in
+  enabled?: boolean;      // default true — set false to pause
 }
 
 // ─── Goals config ───────────────────────────────────────────────────
@@ -90,6 +91,7 @@ export interface AgentConfig {
   timeout?: number;
   cron?: CronJobConfig[];
   goals?: GoalConfig[];
+  subAgents?: string[] | "*";  // Group agent: list of agent IDs to delegate to, or "*" for all
 }
 
 export interface ChannelConfig {

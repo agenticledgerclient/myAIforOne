@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — Automations</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;--bg-surface:rgba(12,18,33,0.92);--bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);--border-dim:rgba(56,189,248,0.08);--border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);--text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);--text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;--accent-bg:rgba(6,182,212,0.15);
+  --purple:rgba(139,92,246,0.7);--purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);--radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;--font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);--border-dim:rgba(0,0,0,0.08);--border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);--text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);--text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
+  --purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);
+  --red:#dc2626;--red-bg:rgba(220,38,38,0.06);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* Header */
+.header{
+  padding:12px 24px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg-surface);backdrop-filter:blur(20px);flex-shrink:0;
+}
+.logo{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent)}
+.header-spacer{flex:1}
+.nav-link{
+  font-size:12px;color:var(--text-muted);text-decoration:none;
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);transition:all .2s;
+}
+.nav-link:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.nav-link.active{color:var(--accent);border-color:var(--accent)}
+.theme-toggle{
+  background:none;border:1px solid var(--border-dim);border-radius:6px;
+  padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text-muted);transition:all .2s;
+}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* Toolbar */
+.toolbar{
+  padding:12px 24px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;
+}
+.filter-select{
+  padding:6px 12px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;
+  cursor:pointer;transition:border-color .2s;
+}
+.filter-select:focus{outline:none;border-color:var(--border-active)}
+
+/* Tabs */
+.tab-bar{display:flex;gap:0;margin-right:auto}
+.tab-btn{
+  padding:6px 18px;font-size:13px;font-weight:600;font-family:var(--font-sans);
+  background:none;border:1px solid var(--border-dim);color:var(--text-muted);
+  cursor:pointer;transition:all .2s;
+}
+.tab-btn:first-child{border-radius:8px 0 0 8px}
+.tab-btn:last-child{border-radius:0 8px 8px 0}
+.tab-btn.active{color:var(--accent);border-color:var(--accent);background:var(--accent-bg)}
+
+/* Create buttons */
+.btn-create{
+  padding:6px 14px;border-radius:8px;border:1px solid var(--accent);
+  background:var(--accent-bg);color:var(--accent);font-family:var(--font-sans);
+  font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;
+}
+.btn-create:hover{background:var(--accent);color:#000}
+
+/* Content area */
+.content{flex:1;overflow-y:auto;padding:12px 24px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+
+/* Cards */
+.auto-card{
+  padding:14px 18px;margin-bottom:8px;border-radius:10px;
+  background:var(--bg-card);border:1px solid var(--border-dim);
+  transition:all .2s;
+}
+.auto-card:hover{border-color:var(--border-glow)}
+.card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.card-agent{
+  font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;
+  cursor:pointer;
+}
+.card-agent:hover{text-decoration:underline}
+.badge{
+  font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;
+}
+.badge-active{background:var(--green-bg);color:var(--green)}
+.badge-paused{background:var(--amber-bg);color:var(--amber)}
+.badge-label{background:var(--purple-bg);color:var(--purple)}
+.card-spacer{flex:1}
+.card-detail{font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:8px}
+.card-detail span{color:var(--text-muted);font-size:11px}
+.card-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-sm{
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);
+  background:none;color:var(--text-secondary);font-family:var(--font-sans);
+  font-size:11px;cursor:pointer;transition:all .2s;
+}
+.btn-sm:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.btn-sm.danger{color:var(--red);border-color:rgba(248,113,113,0.2)}
+.btn-sm.danger:hover{background:var(--red-bg);border-color:var(--red)}
+
+/* History section */
+.history-toggle{
+  font-size:11px;color:var(--text-muted);cursor:pointer;
+  margin-top:8px;display:inline-block;
+}
+.history-toggle:hover{color:var(--accent)}
+.history-section{
+  max-height:0;overflow:hidden;transition:max-height .3s ease;
+}
+.history-section.open{max-height:600px;overflow-y:auto;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-dim)}
+.history-row{
+  padding:6px 10px;margin-bottom:4px;border-radius:6px;
+  background:var(--bg-input);font-size:11px;color:var(--text-secondary);
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;cursor:pointer;
+}
+.history-row:hover{background:var(--border-dim)}
+.history-detail{
+  max-height:0;overflow:hidden;transition:max-height .3s ease;
+  font-size:11px;color:var(--text-muted);padding:0 10px;
+  line-height:1.5;white-space:pre-wrap;word-break:break-word;
+}
+.history-detail.open{max-height:400px;overflow-y:auto;padding:6px 10px;margin-bottom:4px;
+  background:var(--bg-input);border-radius:0 0 6px 6px;border-top:1px solid var(--border-dim)}
+
+.no-data{text-align:center;padding:40px;color:var(--text-muted);font-size:14px}
+.loading{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
+.result-count{font-size:11px;color:var(--text-muted)}
+
+/* Modal */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;
+  padding:24px;width:90%;max-width:520px;max-height:85vh;overflow-y:auto;
+  box-shadow:var(--shadow);
+}
+.modal h3{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:16px}
+.modal-field{margin-bottom:12px}
+.modal-field label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:600}
+.modal-field input,.modal-field select,.modal-field textarea{
+  width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);
+  font-size:13px;transition:border-color .2s;
+}
+.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{outline:none;border-color:var(--border-active)}
+.modal-field textarea{resize:vertical;min-height:60px;font-family:var(--font-mono);font-size:12px}
+.modal-field .checkbox-row{display:flex;align-items:center;gap:8px}
+.modal-field .checkbox-row input{width:auto}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-modal{
+  padding:8px 18px;border-radius:8px;font-family:var(--font-sans);font-size:13px;
+  font-weight:600;cursor:pointer;transition:all .2s;
+}
+.btn-modal.primary{background:var(--accent);color:#000;border:none}
+.btn-modal.primary:hover{opacity:0.85}
+.btn-modal.secondary{background:none;border:1px solid var(--border-dim);color:var(--text-secondary)}
+.btn-modal.secondary:hover{border-color:var(--border-glow)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <span class="logo">MyAIforOne</span>
+    <div class="header-spacer"></div>
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="/ui">Chat</a>
+    <a class="nav-link" href="/org">Org</a>
+    <a class="nav-link" href="/tasks">Tasks</a>
+    <a class="nav-link" href="/activity">Activity</a>
+    <a class="nav-link active" href="/automations">Automations</a>
+    <a class="nav-link" href="/channels">Channels</a>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="goals" onclick="switchTab('goals')">Goals</button>
+      <button class="tab-btn" data-tab="schedules" onclick="switchTab('schedules')">Schedules</button>
+    </div>
+    <select class="filter-select" id="agentFilter" onchange="renderCurrent()">
+      <option value="">All Agents</option>
+    </select>
+    <select class="filter-select" id="statusFilter" onchange="renderCurrent()">
+      <option value="">All Status</option>
+      <option value="active">Active</option>
+      <option value="paused">Paused</option>
+    </select>
+    <span class="result-count" id="resultCount"></span>
+    <div style="flex:1"></div>
+    <button class="btn-create" id="createBtn" onclick="openCreateModal()">+ New Goal</button>
+  </div>
+
+  <div class="content" id="content">
+    <div class="loading">Loading automations...</div>
+  </div>
+</div>
+
+<!-- Create Goal Modal -->
+<div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <h3>New Goal</h3>
+    <div class="modal-field">
+      <label>Agent</label>
+      <select id="gm_agent"></select>
+    </div>
+    <div class="modal-field">
+      <label>Goal ID</label>
+      <input id="gm_id" placeholder="e.g. daily-review">
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <input id="gm_desc" placeholder="What this goal does">
+    </div>
+    <div class="modal-field">
+      <label>Success Criteria</label>
+      <textarea id="gm_criteria" placeholder="How to determine success"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Instructions</label>
+      <textarea id="gm_instructions" placeholder="Detailed instructions for the agent"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Heartbeat (cron expression)</label>
+      <input id="gm_heartbeat" placeholder="0 9 * * * (every day at 9am)">
+    </div>
+    <div class="modal-field">
+      <label>Budget (max daily USD)</label>
+      <input id="gm_budget" type="number" step="0.01" placeholder="1.00">
+    </div>
+    <div class="modal-field">
+      <label>Report To</label>
+      <input id="gm_reportTo" placeholder="Channel or agent to report to">
+    </div>
+    <div class="modal-field">
+      <div class="checkbox-row">
+        <input type="checkbox" id="gm_enabled" checked>
+        <label for="gm_enabled" style="margin:0">Enabled</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal secondary" onclick="closeModal('goalModal')">Cancel</button>
+      <button class="btn-modal primary" onclick="createGoal()">Create Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Schedule Modal -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal">
+    <h3>New Schedule</h3>
+    <div class="modal-field">
+      <label>Agent</label>
+      <select id="sm_agent"></select>
+    </div>
+    <div class="modal-field">
+      <label>Schedule (cron expression)</label>
+      <input id="sm_schedule" placeholder="*/30 * * * * (every 30 min)">
+    </div>
+    <div class="modal-field">
+      <label>Message</label>
+      <textarea id="sm_message" placeholder="Message to send to the agent"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Channel</label>
+      <select id="sm_channel">
+        <option value="telegram">Telegram</option>
+        <option value="slack">Slack</option>
+        <option value="imessage">iMessage</option>
+        <option value="web">Web</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Chat ID</label>
+      <input id="sm_chatId" placeholder="Chat/channel ID">
+    </div>
+    <div class="modal-field">
+      <div class="checkbox-row">
+        <input type="checkbox" id="sm_enabled" checked>
+        <label for="sm_enabled" style="margin:0">Enabled</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal secondary" onclick="closeModal('scheduleModal')">Cancel</button>
+      <button class="btn-modal primary" onclick="createSchedule()">Create Schedule</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let agents = [];
+let goals = [];
+let crons = [];
+let currentTab = 'goals';
+let historyCache = {};
+
+async function init() {
+  try {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+    agents = data.agents || [];
+    const sorted = agents.slice().sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const sel of [document.getElementById('agentFilter'), document.getElementById('gm_agent'), document.getElementById('sm_agent')]) {
+      for (const a of sorted) {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = a.name + (a.aliases?.[0] ? ` (${a.aliases[0]})` : '');
+        sel.appendChild(opt);
+      }
+    }
+  } catch {}
+  await fetchAutomations();
+}
+
+async function fetchAutomations() {
+  try {
+    const res = await fetch('/api/automations');
+    const data = await res.json();
+    goals = data.goals || [];
+    crons = data.crons || [];
+    renderCurrent();
+  } catch {
+    document.getElementById('content').innerHTML = '<div class="no-data">Failed to load automations</div>';
+  }
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('createBtn').textContent = tab === 'goals' ? '+ New Goal' : '+ New Schedule';
+  renderCurrent();
+}
+
+function renderCurrent() {
+  if (currentTab === 'goals') renderGoals();
+  else renderSchedules();
+}
+
+function applyFilters(items) {
+  const agentId = document.getElementById('agentFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  let filtered = items;
+  if (agentId) filtered = filtered.filter(i => i.agentId === agentId);
+  if (status === 'active') filtered = filtered.filter(i => i.enabled !== false);
+  if (status === 'paused') filtered = filtered.filter(i => i.enabled === false);
+  return filtered;
+}
+
+function renderGoals() {
+  const filtered = applyFilters(goals);
+  document.getElementById('resultCount').textContent = filtered.length + ' goal' + (filtered.length !== 1 ? 's' : '');
+
+  if (!filtered.length) {
+    document.getElementById('content').innerHTML = '<div class="no-data">No goals found</div>';
+    return;
+  }
+
+  const html = filtered.map((g, i) => {
+    const active = g.enabled !== false;
+    const hb = g.heartbeat || 'N/A';
+    const budget = g.budget != null ? '$' + (typeof g.budget === 'object' ? g.budget.maxDailyUsd : g.budget) : 'N/A';
+    const uid = 'goal_' + g.agentId + '_' + g.id;
+    return `<div class="auto-card" id="${uid}">
+      <div class="card-top">
+        <a class="card-agent" href="/ui#${g.agentId}">${esc(g.agentName || g.agentId)}</a>
+        <span class="badge badge-label">${esc(g.id)}</span>
+        <span class="badge ${active ? 'badge-active' : 'badge-paused'}">${active ? 'Active' : 'Paused'}</span>
+        <span class="card-spacer"></span>
+        <div class="card-actions">
+          <button class="btn-sm" onclick="triggerGoal('${g.agentId}','${g.id}')">Trigger Now</button>
+          <button class="btn-sm" onclick="toggleGoal('${g.agentId}','${g.id}')">${active ? 'Pause' : 'Resume'}</button>
+          <button class="btn-sm danger" onclick="deleteGoal('${g.agentId}','${g.id}')">Delete</button>
+        </div>
+      </div>
+      <div class="card-detail">
+        ${g.description ? esc(g.description) + '<br>' : ''}
+        <span>Heartbeat:</span> ${esc(hb)} &nbsp; <span>Budget:</span> ${esc(budget)} &nbsp; <span>Report to:</span> ${esc(g.reportTo || 'N/A')}
+      </div>
+      <span class="history-toggle" onclick="toggleHistory('${uid}','goal','${g.agentId}','${g.id}')">&#9654; Run History</span>
+      <div class="history-section" id="${uid}_hist"></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderSchedules() {
+  const filtered = applyFilters(crons);
+  document.getElementById('resultCount').textContent = filtered.length + ' schedule' + (filtered.length !== 1 ? 's' : '');
+
+  if (!filtered.length) {
+    document.getElementById('content').innerHTML = '<div class="no-data">No schedules found</div>';
+    return;
+  }
+
+  const html = filtered.map((c, i) => {
+    const active = c.enabled !== false;
+    const msg = (c.message || '').slice(0, 80) + ((c.message || '').length > 80 ? '...' : '');
+    const uid = 'cron_' + c.agentId + '_' + c.index;
+    return `<div class="auto-card" id="${uid}">
+      <div class="card-top">
+        <a class="card-agent" href="/ui#${c.agentId}">${esc(c.agentName || c.agentId)}</a>
+        <span class="badge badge-label" style="font-family:var(--font-mono)">${esc(c.schedule || '')}</span>
+        <span class="badge ${active ? 'badge-active' : 'badge-paused'}">${active ? 'Active' : 'Paused'}</span>
+        ${c.channel ? `<span class="badge" style="background:var(--purple-bg);color:var(--purple)">${esc(c.channel)}</span>` : ''}
+        <span class="card-spacer"></span>
+        <div class="card-actions">
+          <button class="btn-sm" onclick="triggerCron('${c.agentId}',${c.index})">Trigger Now</button>
+          <button class="btn-sm" onclick="toggleCron('${c.agentId}',${c.index})">${active ? 'Pause' : 'Resume'}</button>
+          <button class="btn-sm danger" onclick="deleteCron('${c.agentId}',${c.index})">Delete</button>
+        </div>
+      </div>
+      <div class="card-detail">
+        <span>Message:</span> ${esc(msg)}<br>
+        ${c.chatId ? '<span>Chat ID:</span> ' + esc(c.chatId) : ''}
+      </div>
+      <span class="history-toggle" onclick="toggleHistory('${uid}','cron','${c.agentId}','${c.index}')">&#9654; Run History</span>
+      <div class="history-section" id="${uid}_hist"></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = html;
+}
+
+async function toggleHistory(uid, type, agentId, itemId) {
+  const el = document.getElementById(uid + '_hist');
+  if (el.classList.contains('open')) {
+    el.classList.remove('open');
+    return;
+  }
+
+  const cacheKey = type + '_' + agentId + '_' + itemId;
+  if (historyCache[cacheKey]) {
+    el.innerHTML = historyCache[cacheKey];
+    el.classList.add('open');
+    return;
+  }
+
+  el.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--text-muted)">Loading...</div>';
+  el.classList.add('open');
+
+  try {
+    const url = type === 'goal'
+      ? `/api/agents/${agentId}/goals/${itemId}/history`
+      : `/api/agents/${agentId}/cron/${itemId}/history`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const history = data.history || [];
+
+    if (!history.length) {
+      const h = '<div style="padding:8px;font-size:11px;color:var(--text-muted)">No runs yet</div>';
+      historyCache[cacheKey] = h;
+      el.innerHTML = h;
+      return;
+    }
+
+    let html;
+    if (type === 'goal') {
+      html = history.map((r, i) => {
+        const rid = uid + '_run_' + i;
+        const statusColor = r.status === 'executed' ? 'var(--green)' : r.status === 'error' ? 'var(--red)' : 'var(--amber)';
+        return `<div class="history-row" onclick="document.getElementById('${rid}').classList.toggle('open')">
+          <span style="color:var(--text-muted)">${fmtTime(r.ts)}</span>
+          <span style="color:${statusColor};font-weight:600">${esc(r.status || 'unknown')}</span>
+          ${r.cost != null ? `<span>$${Number(r.cost).toFixed(4)}</span>` : ''}
+          ${r.responseLength != null ? `<span>${r.responseLength} chars</span>` : ''}
+        </div>
+        <div class="history-detail" id="${rid}">${esc(JSON.stringify(r, null, 2))}</div>`;
+      }).join('');
+    } else {
+      html = history.map((r, i) => {
+        const rid = uid + '_run_' + i;
+        const resp = (r.response || '').slice(0, 120) + ((r.response || '').length > 120 ? '...' : '');
+        return `<div class="history-row" onclick="document.getElementById('${rid}').classList.toggle('open')">
+          <span style="color:var(--text-muted)">${fmtTime(r.ts)}</span>
+          <span>${esc((r.text || '').slice(0, 60))}</span>
+        </div>
+        <div class="history-detail" id="${rid}"><strong>Message:</strong> ${esc(r.text || '')}\n\n<strong>Response:</strong> ${esc(r.response || '')}</div>`;
+      }).join('');
+    }
+
+    historyCache[cacheKey] = html;
+    el.innerHTML = html;
+  } catch {
+    el.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--red)">Failed to load history</div>';
+  }
+}
+
+// Goal actions
+async function triggerGoal(agentId, goalId) {
+  try {
+    await fetch(`/api/agents/${agentId}/goals/${goalId}/trigger`, { method: 'POST' });
+    flash('Goal triggered');
+  } catch { flash('Failed to trigger', true); }
+}
+
+async function toggleGoal(agentId, goalId) {
+  try {
+    const res = await fetch(`/api/agents/${agentId}/goals/${goalId}/toggle`, { method: 'POST' });
+    const data = await res.json();
+    const g = goals.find(g => g.agentId === agentId && g.id === goalId);
+    if (g) g.enabled = data.enabled;
+    renderCurrent();
+  } catch { flash('Failed to toggle', true); }
+}
+
+async function deleteGoal(agentId, goalId) {
+  if (!confirm('Delete goal "' + goalId + '"? This cannot be undone.')) return;
+  try {
+    await fetch(`/api/agents/${agentId}/goals/${goalId}`, { method: 'DELETE' });
+    goals = goals.filter(g => !(g.agentId === agentId && g.id === goalId));
+    renderCurrent();
+    flash('Goal deleted');
+  } catch { flash('Failed to delete', true); }
+}
+
+// Cron actions
+async function triggerCron(agentId, index) {
+  try {
+    await fetch(`/api/agents/${agentId}/cron/${index}/trigger`, { method: 'POST' });
+    flash('Schedule triggered');
+  } catch { flash('Failed to trigger', true); }
+}
+
+async function toggleCron(agentId, index) {
+  try {
+    const res = await fetch(`/api/agents/${agentId}/cron/${index}/toggle`, { method: 'POST' });
+    const data = await res.json();
+    const c = crons.find(c => c.agentId === agentId && c.index === index);
+    if (c) c.enabled = data.enabled;
+    renderCurrent();
+  } catch { flash('Failed to toggle', true); }
+}
+
+async function deleteCron(agentId, index) {
+  if (!confirm('Delete this schedule? This cannot be undone.')) return;
+  try {
+    await fetch(`/api/agents/${agentId}/cron/${index}`, { method: 'DELETE' });
+    crons = crons.filter(c => !(c.agentId === agentId && c.index === index));
+    renderCurrent();
+    flash('Schedule deleted');
+  } catch { flash('Failed to delete', true); }
+}
+
+// Create
+function openCreateModal() {
+  if (currentTab === 'goals') {
+    document.getElementById('goalModal').classList.add('open');
+  } else {
+    document.getElementById('scheduleModal').classList.add('open');
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+async function createGoal() {
+  const agentId = document.getElementById('gm_agent').value;
+  if (!agentId) { flash('Select an agent', true); return; }
+  const body = {
+    id: document.getElementById('gm_id').value.trim(),
+    description: document.getElementById('gm_desc').value.trim(),
+    successCriteria: document.getElementById('gm_criteria').value.trim(),
+    instructions: document.getElementById('gm_instructions').value.trim(),
+    heartbeat: document.getElementById('gm_heartbeat').value.trim(),
+    budget: { maxDailyUsd: parseFloat(document.getElementById('gm_budget').value) || 1 },
+    reportTo: document.getElementById('gm_reportTo').value.trim(),
+    enabled: document.getElementById('gm_enabled').checked,
+  };
+  if (!body.id) { flash('Goal ID is required', true); return; }
+
+  try {
+    await fetch(`/api/agents/${agentId}/goals`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    closeModal('goalModal');
+    await fetchAutomations();
+    flash('Goal created');
+  } catch { flash('Failed to create goal', true); }
+}
+
+async function createSchedule() {
+  const agentId = document.getElementById('sm_agent').value;
+  if (!agentId) { flash('Select an agent', true); return; }
+  const body = {
+    schedule: document.getElementById('sm_schedule').value.trim(),
+    message: document.getElementById('sm_message').value.trim(),
+    channel: document.getElementById('sm_channel').value,
+    chatId: document.getElementById('sm_chatId').value.trim(),
+    enabled: document.getElementById('sm_enabled').checked,
+  };
+  if (!body.schedule) { flash('Schedule expression is required', true); return; }
+
+  try {
+    await fetch(`/api/agents/${agentId}/cron`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    closeModal('scheduleModal');
+    await fetchAutomations();
+    flash('Schedule created');
+  } catch { flash('Failed to create schedule', true); }
+}
+
+// Helpers
+function esc(s) {
+  return (s || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function fmtTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const now = new Date();
+    const day = d.toDateString() === now.toDateString() ? 'Today'
+      : d.toDateString() === new Date(now - 86400000).toDateString() ? 'Yesterday'
+      : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return day + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
+function flash(msg, isError) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  Object.assign(el.style, {
+    position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+    padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600',
+    background: isError ? 'var(--red-bg)' : 'var(--green-bg)',
+    color: isError ? 'var(--red)' : 'var(--green)',
+    border: '1px solid ' + (isError ? 'rgba(248,113,113,0.3)' : 'rgba(74,222,128,0.3)'),
+    zIndex: '200', transition: 'opacity 0.3s',
+  });
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2000);
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  html.setAttribute('data-theme', isLight ? '' : 'light');
+  document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
+  localStorage.setItem('theme', isLight ? 'dark' : 'light');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// Load saved theme
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    setTimeout(() => { document.getElementById('themeBtn').textContent = '☀️'; }, 50);
+  }
+})();
+
+init();
+</script>
+</body>
+</html>

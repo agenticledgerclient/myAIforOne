@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
 import { configureLogger, log } from "./logger.js";
 import { resolveRoute, isPairingAttempt, pairSender } from "./router.js";
-import { executeAgent, executeAgentStreaming } from "./executor.js";
+import { executeAgent, executeAgentStreaming, setAppConfig } from "./executor.js";
 import { SlackDriver } from "./channels/slack.js";
 import { WhatsAppDriver } from "./channels/whatsapp.js";
 import { TelegramDriver } from "./channels/telegram.js";
@@ -21,6 +21,7 @@ const baseDir = resolve(__dirname, "..");
 async function main(): Promise<void> {
   const configPath = resolve(baseDir, "config.json");
   const config = loadConfig(configPath);
+  setAppConfig(config);
 
   configureLogger(config.service.logLevel, config.service.logFile);
 
