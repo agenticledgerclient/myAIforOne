@@ -61,6 +61,8 @@ const COMPACT_PATTERN = /^\s*\/opcompact\b/i;
 const RELOGIN_PATTERN = /^\s*\/relogin(?:\s+(\S+))?\s*$/i;
 const PARALLEL_PATTERN = /^\s*\/parallel\s*\n/i;
 const TASK_PATTERN = /^\s*\/task\b/i;
+const MODEL_PATTERN = /^\s*\/model(?:\s+(\S+))?\s*$/i;
+const COST_PATTERN = /^\s*\/cost\b/i;
 
 // ─── Task helpers ─────────────────────────────────────────────────
 
@@ -273,7 +275,73 @@ function handleInterceptedCommand(
     return `No active session to reset. Next message will start a new one.`;
   }
 
+  // ── /model ──
+  const modelMatch = MODEL_PATTERN.exec(text);
+  if (modelMatch) {
+    const arg = modelMatch[1]?.toLowerCase();
+    if (!arg || arg === "show" || arg === "current") {
+      const current = loadModelOverride(memoryDir);
+      return current
+        ? `Current model override: **${current}**\n\nUse \`/model default\` to reset.`
+        : `No model override set. Using agent default.\n\nOptions: \`/model sonnet\`, \`/model opus\`, \`/model haiku\`, or any full model ID.`;
+    }
+    if (arg === "default" || arg === "reset") {
+      clearModelOverride(memoryDir);
+      return `Model override cleared. Using agent default.`;
+    }
+    const resolved = MODEL_ALIASES[arg] || arg;
+    saveModelOverride(memoryDir, resolved);
+    return `Model set to **${resolved}**.\n\nThis applies to all future messages until you use \`/model default\`.`;
+  }
+
+  // ── /cost ──
+  if (COST_PATTERN.test(text)) {
+    const logPath = join(memoryDir, "conversation_log.jsonl");
+    if (!existsSync(logPath)) return "No conversation history yet — no cost data.";
+    try {
+      const entries = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean)
+        .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      const sum = (arr: any[]) => arr.reduce((s, e) => s + (e.cost || 0), 0);
+      const today = new Date().toISOString().slice(0, 10);
+      const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+      const todayEntries = entries.filter((e: any) => e.ts?.startsWith(today));
+      const weekEntries = entries.filter((e: any) => e.ts >= weekAgo);
+      const totalCost = sum(entries);
+      const todayCost = sum(todayEntries);
+      const weekCost = sum(weekEntries);
+      if (totalCost === 0) return `No cost data recorded yet.\n\n(Cost tracking applies to new messages going forward.)`;
+      return `**Cost Summary**\n\nToday: $${todayCost.toFixed(4)}\nLast 7 days: $${weekCost.toFixed(4)}\nAll time: $${totalCost.toFixed(4)}\n\nTotal messages: ${entries.length}`;
+    } catch {
+      return "Could not read cost data.";
+    }
+  }
+
   return null;
+}
+
+// ─── Model override helpers ──────────────────────────────────────────
+
+const MODEL_ALIASES: Record<string, string> = {
+  opus:     "claude-opus-4-6",
+  sonnet:   "claude-sonnet-4-6",
+  haiku:    "claude-haiku-4-5-20251001",
+  "opus-4": "claude-opus-4-6",
+  "sonnet-4": "claude-sonnet-4-6",
+};
+
+function loadModelOverride(memoryDir: string): string | null {
+  const p = join(memoryDir, "model-override.json");
+  if (!existsSync(p)) return null;
+  try { return (JSON.parse(readFileSync(p, "utf-8")) as any).model || null; } catch { return null; }
+}
+
+function saveModelOverride(memoryDir: string, model: string): void {
+  writeFileSync(join(memoryDir, "model-override.json"), JSON.stringify({ model }));
+}
+
+function clearModelOverride(memoryDir: string): void {
+  const p = join(memoryDir, "model-override.json");
+  if (existsSync(p)) try { unlinkSync(p); } catch { /* ignore */ }
 }
 
 // ─── Re-login handler ───────────────────────────────────────────────
@@ -898,6 +966,10 @@ export async function executeAgent(
   // ── Build claude -p args ──
   const args: string[] = ["-p", "-"];
 
+  // Model override (from /model command)
+  const modelOverride = loadModelOverride(memoryDir);
+  if (modelOverride) args.push("--model", modelOverride);
+
   // Session management for persistent agents
   let session: SessionState | null = null;
   if (isPersistent) {
@@ -985,11 +1057,13 @@ export async function executeAgent(
 
   // ── Parse response ──
   let response: string;
+  let costUsd: number | undefined;
   if (isPersistent) {
     // Parse JSON output
     try {
       const result = JSON.parse(rawOutput) as ClaudeJsonResult;
       response = result.result;
+      costUsd = result.total_cost_usd;
       log.debug(`Session ${result.session_id}: cost=$${result.total_cost_usd.toFixed(4)}, duration=${result.duration_ms}ms`);
 
       // Update session state
@@ -1025,6 +1099,7 @@ export async function executeAgent(
       agentId,
       channel: msg.channel,
       ...(session ? { sessionId: session.sessionId, messageNum: session.messageCount } : {}),
+      ...(costUsd !== undefined ? { cost: costUsd } : {}),
     };
     appendFileSync(logPath, JSON.stringify(entry) + "\n");
   } catch (err) {
@@ -1347,6 +1422,10 @@ export async function* executeAgentStreaming(
   // Build args with stream-json output
   const args: string[] = ["-p", "-"];
 
+  // Model override (from /model command)
+  const modelOverride = loadModelOverride(memoryDir);
+  if (modelOverride) args.push("--model", modelOverride);
+
   let session: SessionState | null = null;
   const forceNewSession = (agentConfig as any).forceNewSession ?? false;
   if (isPersistent) {
@@ -1410,6 +1489,7 @@ export async function* executeAgentStreaming(
 
   let fullResponse = "";
   let buffer = "";
+  let lastCostUsd: number | undefined;
 
   // Process stream-json output line by line
   // With --include-partial-messages, events come wrapped as:
@@ -1467,6 +1547,7 @@ export async function* executeAgentStreaming(
           fullResponse = event.result;
           yield { type: "text", data: event.result } as StreamEvent;
         }
+        if (typeof event.total_cost_usd === "number") lastCostUsd = event.total_cost_usd;
         if (event.session_id && session) {
           session.messageCount += 1;
           saveSession(memoryDir, session, senderSessionKey);
@@ -1571,6 +1652,7 @@ export async function* executeAgentStreaming(
       ts: new Date().toISOString(), from: msg.sender, text: msg.text,
       response: fullResponse.slice(0, 2000), agentId, channel: msg.channel,
       ...(session ? { sessionId: session.sessionId, messageNum: session.messageCount } : {}),
+      ...(lastCostUsd !== undefined ? { cost: lastCostUsd } : {}),
     }) + "\n");
   } catch { /* ignore */ }
 
