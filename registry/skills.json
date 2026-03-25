@@ -293,6 +293,40 @@
       "fetch": {
         "type": "file"
       }
+    },
+    {
+      "id": "ext-frontend-slides",
+      "name": "Frontend Slides",
+      "provider": "affaan-m",
+      "description": "Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files.",
+      "category": "design",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/skills/frontend-slides/SKILL.md",
+      "tags": [
+        "design",
+        "external"
+      ],
+      "localPath": "registry/skills/external/frontend-slides.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-frontend-patterns",
+      "name": "Frontend Patterns",
+      "provider": "affaan-m",
+      "description": "Frontend development patterns for React, Next.js, state management, performance optimization, and UI best practices.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/skills/frontend-patterns/SKILL.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/frontend-patterns.md",
+      "fetch": {
+        "type": "file"
+      }
     }
   ]
 }
