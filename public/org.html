@@ -100,6 +100,10 @@ html,body{
   content:'';position:absolute;bottom:0;left:12px;right:12px;
   height:2px;background:var(--accent);border-radius:1px;
 }
+.sub-nav{position:fixed;top:56px;left:0;right:0;z-index:99;height:36px;display:flex;align-items:center;gap:2px;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.sub-nav-link{font-family:var(--font-sans);font-size:12px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:4px 10px;border-radius:5px;transition:color .2s}
+.sub-nav-link:hover{color:var(--text-secondary)}
+.sub-nav-link.active{color:var(--accent)}
 
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
 .org-select{
@@ -126,7 +130,7 @@ html,body{
 
 /* ─── Canvas ──────────────────────────────────────────────────── */
 .canvas{
-  position:fixed;top:56px;left:0;right:0;bottom:0;
+  position:fixed;top:92px;left:0;right:0;bottom:0;
   overflow:auto;padding:40px;
 }
 
@@ -840,12 +844,8 @@ html,body{
   <div class="tab-group">
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/ui">Chat</a>
-    <a class="tab-btn" href="/org" id="tabOrg">Org</a>
-    <a class="tab-btn" href="/tasks">Tasks</a>
-    <a class="tab-btn" href="/activity">Activity</a>
-    <a class="tab-btn" href="/automations">Automations</a>
-    <a class="tab-btn" href="/channels" id="tabChannels">Channels</a>
-    <a class="tab-btn" href="/marketplace">Registry</a>
+    <a class="tab-btn" href="/org" id="tabAgents">Agents</a>
+    <a class="tab-btn" href="/channels" id="tabConfigure">Configure</a>
   </div>
   <div class="topbar-right">
     <input type="text" id="agentSearch" placeholder="Search agents..." oninput="handleSearch()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;width:160px;outline:none">
@@ -857,6 +857,8 @@ html,body{
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
   </div>
 </div>
+
+<div class="sub-nav" id="subNav"></div>
 
 <div class="canvas" id="canvas"></div>
 
@@ -2826,7 +2828,15 @@ async function removeMonitoredId(chatId) {
 
 // Set active tab based on URL
 const isChannelsPage = location.pathname === '/channels';
-document.getElementById(isChannelsPage ? 'tabChannels' : 'tabOrg')?.classList.add('active');
+document.getElementById(isChannelsPage ? 'tabConfigure' : 'tabAgents')?.classList.add('active');
+
+// Render contextual sub-nav
+const subNav = document.getElementById('subNav');
+if (isChannelsPage) {
+  subNav.innerHTML = `<a class="sub-nav-link active" href="/channels">Channels</a><a class="sub-nav-link" href="/marketplace">Registry</a>`;
+} else {
+  subNav.innerHTML = `<a class="sub-nav-link active" href="/org">Org</a><a class="sub-nav-link" href="/activity">Activity</a><a class="sub-nav-link" href="/tasks">Tasks</a><a class="sub-nav-link" href="/automations">Automations</a>`;
+}
 if (isChannelsPage) {
   document.getElementById('orgSelect').style.display = 'none';
   document.getElementById('hideAllBtn').style.display = 'none';
