@@ -71,6 +71,7 @@ export interface AgentConfig {
   skills?: string[];        // shared skills from ~/.claude/commands/
   agentSkills?: string[];   // agent-specific skills from agent's skills/ folder
   mcps?: string[];
+  prompts?: string[];       // prompt templates available to this agent
   persistent?: boolean;
   perSenderSessions?: boolean;
   streaming?: boolean;
@@ -123,6 +124,10 @@ export interface AppConfig {
   agents: Record<string, AgentConfig>;
   mcps?: Record<string, McpServerConfig>;
   defaultAgent: string | null;
+  defaultSkills?: string[];   // skills given to every agent automatically
+  defaultMcps?: string[];     // MCPs given to every agent automatically
+  defaultPrompts?: string[];  // prompt templates given to every agent automatically
+  promptTrigger?: string;     // character used to invoke prompt templates (default: "!")
 }
 
 export function loadConfig(configPath: string): AppConfig {

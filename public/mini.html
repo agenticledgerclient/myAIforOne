@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne · Mini</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f1e;--bg-card:rgba(16,22,40,0.98);--border:rgba(56,189,248,0.12);
+  --border-glow:rgba(56,189,248,0.3);--accent:#22d3ee;--accent-bg:rgba(6,182,212,0.15);
+  --text:rgba(255,255,255,0.92);--text-muted:rgba(148,163,184,0.6);
+  --green:#4ade80;--red:#f87171;--amber:#fbbf24;
+  --font:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;
+}
+[data-theme="light"]{
+  --bg:#f0f4f8;--bg-card:rgba(255,255,255,0.98);--border:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.3);--accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
+  --text:rgba(15,23,42,0.92);--text-muted:rgba(100,116,139,0.7);
+}
+html,body{width:100%;background:transparent;font-family:var(--font);overflow:auto}
+
+.bar{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+  padding:10px 10px;display:flex;flex-direction:column;gap:7px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  width:100%;
+}
+
+/* ── Top row ── */
+.top-row{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;min-width:0}
+
+.agent-select{
+  flex:1;min-width:0;background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:7px;padding:5px 6px;font-family:var(--font);font-size:11px;
+  font-weight:600;color:var(--text);outline:none;cursor:pointer;
+  transition:border-color .2s;
+}
+.agent-select:focus{border-color:var(--border-glow)}
+.agent-select option{background:#1e293b;color:var(--text)}
+
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);flex-shrink:0;transition:background .3s}
+.status-dot.listening{background:var(--green);box-shadow:0 0 5px var(--green);animation:pulse .8s infinite alternate}
+.status-dot.thinking{background:var(--amber);box-shadow:0 0 5px var(--amber);animation:pulse .5s infinite alternate}
+@keyframes pulse{from{opacity:.5}to{opacity:1}}
+
+.icon-btn{
+  width:26px;height:26px;border-radius:7px;border:1px solid var(--border);
+  background:transparent;color:var(--text-muted);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;font-size:13px;transition:all .2s;flex-shrink:0;
+}
+.icon-btn:hover{border-color:var(--border-glow);color:var(--text)}
+.icon-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.icon-btn.listening{border-color:var(--green);color:var(--green);background:rgba(74,222,128,0.1);animation:pulse .8s infinite alternate}
+
+/* ── Thought bubble ── */
+.response{
+  font-size:12px;line-height:1.6;color:rgba(255,255,255,0.75);
+  font-style:italic;letter-spacing:.01em;
+  max-height:120px;overflow-y:auto;padding:10px 12px;
+  border-radius:12px;
+  background:linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(34,211,238,0.06) 100%);
+  border:1px solid rgba(139,92,246,0.18);
+  box-shadow:0 0 16px rgba(139,92,246,0.08),inset 0 1px 0 rgba(255,255,255,0.05);
+  display:none;opacity:0;
+  transition:opacity .4s ease;
+  scrollbar-width:thin;
+  position:relative;
+}
+.response::before{
+  content:'';position:absolute;bottom:-6px;left:18px;
+  width:10px;height:10px;
+  background:rgba(139,92,246,0.15);
+  border-right:1px solid rgba(139,92,246,0.18);
+  border-bottom:1px solid rgba(139,92,246,0.18);
+  transform:rotate(45deg);
+}
+.response.visible{display:block}
+.response.shown{opacity:1}
+.response.fading{opacity:0}
+[data-theme="light"] .response{
+  color:rgba(15,23,42,0.65);
+  background:linear-gradient(135deg,rgba(139,92,246,0.06) 0%,rgba(14,116,144,0.04) 100%);
+  border-color:rgba(139,92,246,0.15);
+}
+.response::-webkit-scrollbar{width:3px}
+.response::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:2px}
+
+/* ── Input row ── */
+.input-row{display:flex;align-items:center;gap:5px}
+.text-input{
+  flex:1;min-width:0;background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:7px;padding:5px 8px;font-family:var(--font);font-size:12px;
+  color:var(--text);outline:none;transition:border-color .2s;
+}
+.text-input::placeholder{color:var(--text-muted)}
+.text-input:focus{border-color:var(--border-glow)}
+.send-btn{
+  width:26px;height:26px;border-radius:7px;border:none;
+  background:var(--accent-bg);color:var(--accent);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:all .2s;flex-shrink:0;
+}
+.send-btn:hover{background:var(--accent);color:#000}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Status line ── */
+.status-line{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);text-align:center;letter-spacing:.04em}
+
+</style>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body style="padding:6px">
+
+<div class="bar" id="bar">
+
+  <!-- Top row: agent selector + mic + voice out + theme -->
+  <div class="top-row">
+    <div class="status-dot" id="statusDot"></div>
+    <select class="agent-select" id="agentSelect">
+      <option value="">Loading agents…</option>
+    </select>
+    <button class="icon-btn" id="micBtn" onclick="toggleListen()" title="Listen mode">🎤</button>
+    <button class="icon-btn" id="voiceBtn" onclick="toggleVoice()" title="Read responses aloud">🔇</button>
+    <button class="icon-btn" onclick="toggleTheme()" title="Theme" style="font-size:12px" id="themeBtn">☀</button>
+    <a class="icon-btn" href="/" target="_blank" title="Open full UI" style="text-decoration:none;font-size:11px;font-weight:700;color:var(--text-muted)">⤢</a>
+  </div>
+
+  <!-- Response -->
+  <div class="response" id="response"></div>
+
+  <!-- Input row -->
+  <div class="input-row">
+    <input class="text-input" id="textInput" placeholder="Type a message…" onkeydown="handleKey(event)">
+    <button class="send-btn" id="sendBtn" onclick="send()" title="Send">→</button>
+  </div>
+
+  <div class="status-line" id="statusLine">idle · select an agent above</div>
+</div>
+
+<script>
+// ─── Theme ────────────────────────────────────────────
+(function(){
+  const s = localStorage.getItem('mini-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', s);
+  document.getElementById('themeBtn').textContent = s==='dark'?'☀':'☾';
+})();
+function toggleTheme(){
+  const c = document.documentElement.getAttribute('data-theme')||'dark';
+  const n = c==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  localStorage.setItem('mini-theme',n);
+  document.getElementById('themeBtn').textContent = n==='dark'?'☀':'☾';
+}
+
+// ─── State ────────────────────────────────────────────
+let agents = [];
+let selectedAgentId = '';
+let isListening = false;
+let voiceOn = false;
+let isThinking = false;
+let recognition = null;
+let streamingText = '';
+
+// ─── Load agents ──────────────────────────────────────
+async function loadAgents(){
+  try{
+    const d = await (await fetch('/api/dashboard')).json();
+    agents = (d.agents||[]).filter(a => !a.subAgents);
+    const sel = document.getElementById('agentSelect');
+    sel.innerHTML = '';
+    // Default hub agent first
+    const hub = d.defaultGroupAgent || agents.find(a=>a.subAgents!==undefined)?.id || agents[0]?.id;
+    agents.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = (a.aliases?.[0] ? a.aliases[0]+' · ' : '') + a.name;
+      if(a.id === hub) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    selectedAgentId = sel.value;
+    sel.onchange = () => { selectedAgentId = sel.value; updateStatus(); };
+    updateStatus();
+  } catch{ document.getElementById('agentSelect').innerHTML = '<option>No agents</option>'; }
+}
+
+// ─── Status helpers ───────────────────────────────────
+function setDot(state){ // idle | listening | thinking
+  const d = document.getElementById('statusDot');
+  d.className = 'status-dot' + (state!=='idle' ? ' '+state : '');
+}
+function updateStatus(msg){
+  const agent = agents.find(a=>a.id===selectedAgentId);
+  const alias = agent?.aliases?.[0] || (agent ? '@'+agent.id : '?');
+  const state = isThinking ? 'thinking…' : isListening ? 'listening…' : 'idle';
+  document.getElementById('statusLine').textContent = msg || `${alias} · ${state}`;
+}
+
+// ─── Voice output ─────────────────────────────────────
+function toggleVoice(){
+  voiceOn = !voiceOn;
+  const btn = document.getElementById('voiceBtn');
+  btn.textContent = voiceOn ? '🔊' : '🔇';
+  btn.classList.toggle('active', voiceOn);
+  if(!voiceOn) window.speechSynthesis?.cancel();
+}
+function speak(text){
+  if(!voiceOn || !window.speechSynthesis) return;
+  const clean = text.replace(/\[via:[^\]]+\]/g,'').replace(/[*_`#>~]/g,'').replace(/\n+/g,' ').trim();
+  if(!clean) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.rate = 1.05;
+  window.speechSynthesis.speak(u);
+}
+
+// ─── Listen mode (speech recognition) ────────────────
+function toggleListen(){
+  if(isListening){ stopListen(); return; }
+  startListen();
+}
+function startListen(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ alert('Speech recognition not supported in this browser. Try Chrome.'); return; }
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('micBtn').classList.add('listening');
+    setDot('listening');
+    updateStatus();
+  };
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
+    document.getElementById('textInput').value = transcript;
+    if(e.results[e.results.length-1].isFinal){
+      stopListen();
+      send();
+    }
+  };
+  recognition.onerror = () => stopListen();
+  recognition.onend = () => { if(isListening) stopListen(); };
+  recognition.start();
+}
+function stopListen(){
+  isListening = false;
+  recognition?.stop();
+  recognition = null;
+  document.getElementById('micBtn').classList.remove('listening');
+  setDot(isThinking ? 'thinking' : 'idle');
+  updateStatus();
+}
+
+// ─── Send message ─────────────────────────────────────
+async function send(){
+  const input = document.getElementById('textInput');
+  const text = input.value.trim();
+  if(!text || !selectedAgentId || isThinking) return;
+  input.value = '';
+  isThinking = true;
+  setDot('thinking');
+  document.getElementById('sendBtn').disabled = true;
+  showResponse('…');
+  updateStatus();
+
+  try{
+    const startRes = await fetch(`/api/chat/${selectedAgentId}/stream`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text: text, channel: 'web', chatId: 'mini' })
+    });
+    if(!startRes.ok) throw new Error('Failed to start');
+    const { jobId } = await startRes.json();
+    if(!jobId) throw new Error('No jobId');
+
+    streamingText = '';
+    let lastEventId = 0;
+    let isDone = false;
+    let retries = 0;
+    const MAX_RETRIES = 5;
+
+    while(!isDone && retries < MAX_RETRIES){
+      try{
+        const streamRes = await fetch(`/api/chat/jobs/${jobId}/stream?after=${lastEventId}`);
+        if(!streamRes.ok){ retries++; await sleep(1000); continue; }
+        const reader = streamRes.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while(true){
+          const { done, value } = await reader.read();
+          if(done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for(const line of lines){
+            if(!line.startsWith('data:')) continue;
+            const data = line.slice(5).trim();
+            if(!data) continue;
+            lastEventId++;
+            if(data==='[DONE]'){ isDone=true; continue; }
+            try{
+              const ev = JSON.parse(data);
+              if(ev.type==='text'){
+                streamingText += ev.data;
+                showResponse(streamingText);
+              } else if(ev.type==='error'){
+                streamingText = 'Error: '+ev.data;
+                isDone = true;
+              }
+            } catch{ /* skip */ }
+          }
+        }
+        if(!isDone){ retries++; await sleep(800); }
+      } catch{ retries++; await sleep(1000*retries); }
+    }
+
+    if(streamingText){
+      speak(streamingText);
+      showResponse(streamingText);
+      scheduleResponseFade();
+    }
+  } catch(e){
+    showResponse('Error: '+e.message);
+    scheduleResponseFade(8000);
+  } finally{
+    isThinking = false;
+    setDot('idle');
+    document.getElementById('sendBtn').disabled = false;
+    updateStatus();
+    // Re-arm listen mode if it was on before
+    if(voiceOn && !isListening) {
+      // small delay then listen again
+      setTimeout(startListen, 600);
+    }
+  }
+}
+
+let fadeTimer = null;
+
+function showResponse(text){
+  const el = document.getElementById('response');
+  el.textContent = text.replace(/\[via:[^\]]+\]/g,'').trim();
+  // Clear any pending fade
+  if(fadeTimer) clearTimeout(fadeTimer);
+  el.classList.remove('fading');
+  el.classList.add('visible');
+  // Trigger fade-in on next frame
+  requestAnimationFrame(() => el.classList.add('shown'));
+  el.scrollTop = el.scrollHeight;
+}
+
+function scheduleResponseFade(delayMs = 15000){
+  if(fadeTimer) clearTimeout(fadeTimer);
+  fadeTimer = setTimeout(() => {
+    const el = document.getElementById('response');
+    el.classList.add('fading');
+    setTimeout(() => { el.classList.remove('visible','shown','fading'); }, 400);
+  }, delayMs);
+}
+
+function handleKey(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ─── Init ─────────────────────────────────────────────
+loadAgents();
+</script>
+</body>
+</html>

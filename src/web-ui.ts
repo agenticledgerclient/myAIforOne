@@ -120,6 +120,145 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── Serve the Apps page ─────────────────────────────────────────
+  app.get("/apps", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "apps.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Apps page not found.");
+    }
+  });
+
+  app.get("/mini", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "mini.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Mini bar not found.");
+    }
+  });
+
+  // ─── Apps helpers ────────────────────────────────────────────────
+  const appsRegistryPath = () => join(opts.baseDir, "registry", "apps.json");
+  function readApps(): any[] {
+    const p = appsRegistryPath();
+    if (!existsSync(p)) return [];
+    try { return JSON.parse(readFileSync(p, "utf8")); } catch { return []; }
+  }
+  function writeApps(list: any[]) {
+    writeFileSync(appsRegistryPath(), JSON.stringify(list, null, 2));
+  }
+  function slugify(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+
+  // ─── API: Apps CRUD ──────────────────────────────────────────────
+  app.get("/api/apps", (_req, res) => {
+    res.json(readApps());
+  });
+
+  app.post("/api/apps", (req, res) => {
+    try {
+      const { name, url, shortDescription, description, category, status, tags, agentDeveloper, githubRepo, githubBranch, deployPlatform, otherDetails, provider } = req.body as any;
+      if (!name) return res.status(400).json({ error: "name is required" });
+      const list = readApps();
+      let id = slugify(name);
+      // ensure unique
+      let suffix = 2;
+      while (list.find((a: any) => a.id === id)) { id = slugify(name) + "-" + suffix++; }
+      const app: any = {
+        id, name, url: url || "",
+        provider: provider || "me",
+        shortDescription: shortDescription || "",
+        description: description || "",
+        category: category || "",
+        status: status || "draft",
+        tags: Array.isArray(tags) ? tags : [],
+        agentDeveloper: agentDeveloper || null,
+        githubRepo: githubRepo || "",
+        githubBranch: githubBranch || "main",
+        deployPlatform: deployPlatform || null,
+        otherDetails: otherDetails || "",
+        healthStatus: "unknown",
+        lastHealthCheck: null,
+        createdAt: new Date().toISOString(),
+      };
+      list.push(app);
+      writeApps(list);
+      res.json(app);
+    } catch (err) { res.status(500).json({ error: String(err) }); }
+  });
+
+  app.put("/api/apps/:id", (req, res) => {
+    try {
+      const list = readApps();
+      const idx = list.findIndex((a: any) => a.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: "App not found" });
+      const { name, url, shortDescription, description, category, status, tags, agentDeveloper, githubRepo, githubBranch, deployPlatform, otherDetails } = req.body as any;
+      const existing = list[idx];
+      list[idx] = {
+        ...existing,
+        name: name ?? existing.name,
+        url: url ?? existing.url,
+        shortDescription: shortDescription ?? existing.shortDescription,
+        description: description ?? existing.description,
+        category: category ?? existing.category,
+        status: status ?? existing.status,
+        tags: Array.isArray(tags) ? tags : existing.tags,
+        agentDeveloper: agentDeveloper !== undefined ? (agentDeveloper || null) : existing.agentDeveloper,
+        githubRepo: githubRepo ?? existing.githubRepo,
+        githubBranch: githubBranch || existing.githubBranch,
+        deployPlatform: deployPlatform !== undefined ? (deployPlatform || null) : existing.deployPlatform,
+        otherDetails: otherDetails ?? existing.otherDetails,
+        updatedAt: new Date().toISOString(),
+      };
+      writeApps(list);
+      res.json(list[idx]);
+    } catch (err) { res.status(500).json({ error: String(err) }); }
+  });
+
+  app.delete("/api/apps/:id", (req, res) => {
+    try {
+      const list = readApps();
+      const idx = list.findIndex((a: any) => a.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: "App not found" });
+      list.splice(idx, 1);
+      writeApps(list);
+      res.json({ ok: true });
+    } catch (err) { res.status(500).json({ error: String(err) }); }
+  });
+
+  app.post("/api/apps/:id/check-health", async (req, res) => {
+    try {
+      const list = readApps();
+      const app = list.find((a: any) => a.id === req.params.id);
+      if (!app) return res.status(404).json({ error: "App not found" });
+      if (!app.url) return res.status(400).json({ error: "App has no URL" });
+      const start = Date.now();
+      let healthy = false;
+      let status = 0;
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const resp = await fetch(app.url, { method: "GET", signal: controller.signal, redirect: "follow" });
+        clearTimeout(timeout);
+        status = resp.status;
+        healthy = resp.ok;
+      } catch { healthy = false; }
+      const ms = Date.now() - start;
+      const idx = list.findIndex((a: any) => a.id === req.params.id);
+      if (idx !== -1) {
+        list[idx].healthStatus = healthy ? "healthy" : "down";
+        list[idx].lastHealthCheck = new Date().toISOString();
+        writeApps(list);
+      }
+      res.json({ healthy, status, ms });
+    } catch (err) { res.status(500).json({ error: String(err) }); }
+  });
+
   // ─── API: Dashboard ───────────────────────────────────────────────
   app.get("/api/dashboard", (_req, res) => {
     const agents = Object.entries(opts.config.agents).map(([id, agent]) => {
@@ -221,6 +360,16 @@ export function startWebUI(opts: WebUIOptions): void {
   // ─── Legacy dashboard redirect ────────────────────────────────────
   app.get("/dashboard-legacy", (_req, res) => {
     res.redirect("/ui");
+  });
+
+  // ─── API: Agent list (for marketplace assign modal) ───────────────
+  app.get("/api/agents", (req, res) => {
+    const agents = Object.entries(opts.config.agents).map(([id, agent]) => ({
+      id,
+      name: agent.name || id,
+      skills: agent.skills || [],
+    }));
+    res.json({ agents });
   });
 
   // ─── API: Agent detail ────────────────────────────────────────────
@@ -326,7 +475,7 @@ export function startWebUI(opts: WebUIOptions): void {
       // If agent has streaming enabled, use streaming executor but collect full response
       if (agent.streaming) {
         let fullResponse = "";
-        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts)) {
+        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, undefined, { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger })) {
           if (event.type === "text") fullResponse += event.data;
           else if (event.type === "done" && event.data && !fullResponse) fullResponse = event.data;
           else if (event.type === "error") {
@@ -337,7 +486,7 @@ export function startWebUI(opts: WebUIOptions): void {
         log.info(`[WebUI Chat] ${agentId} -> web: ${fullResponse.slice(0, 80)}`);
         res.json({ ok: true, response: fullResponse });
       } else {
-        const response = await executeAgent(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts);
+        const response = await executeAgent(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger });
         log.info(`[WebUI Chat] ${agentId} -> web: ${response.slice(0, 80)}`);
         res.json({ ok: true, response });
       }
@@ -411,7 +560,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
     (async () => {
       try {
-        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, pushRawLine)) {
+        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, pushRawLine, { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger })) {
           if (job.stopped) break;
           pushEvent(JSON.stringify(event));
         }
@@ -579,8 +728,33 @@ export function startWebUI(opts: WebUIOptions): void {
 
   app.get("/api/marketplace/:type", (req, res) => {
     const { type } = req.params;
-    if (!["mcps", "skills", "agents"].includes(type)) {
-      return res.status(400).json({ error: "type must be mcps, skills, or agents" });
+    if (!["mcps", "skills", "agents", "prompts", "apps"].includes(type)) {
+      return res.status(400).json({ error: "type must be mcps, skills, agents, prompts, or apps" });
+    }
+
+    // Apps: flat array in registry/apps.json
+    if (type === "apps") {
+      const appsPath = join(opts.baseDir, "registry", "apps.json");
+      if (!existsSync(appsPath)) return res.json({ items: [] });
+      try {
+        const apps = JSON.parse(readFileSync(appsPath, "utf-8")) as any[];
+        const items = apps.map((app: any) => {
+          const agentId = app.agentDeveloper || null;
+          const agentAlias = agentId && opts.config.agents[agentId]
+            ? (opts.config.agents[agentId] as any).mentionAliases?.[0] || `@${agentId}`
+            : agentId ? `@${agentId}` : null;
+          return {
+            ...app,
+            provider: app.provider || "me",
+            installed: true,
+            assignedTo: agentId ? [agentId] : [],
+            agentAlias,
+          };
+        });
+        return res.json({ items });
+      } catch {
+        return res.status(500).json({ error: "Failed to read apps registry" });
+      }
     }
 
     const registryPath = join(opts.baseDir, "registry", `${type}.json`);
@@ -599,6 +773,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const home = homedir();
     const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
     const personalSkillsDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "skills");
+    const personalPromptsDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "prompts");
     const claudeCommandsDir = join(home, ".claude", "commands");
 
     const items = entries.map((entry: any) => {
@@ -607,10 +782,25 @@ export function startWebUI(opts: WebUIOptions): void {
 
       if (type === "skills") {
         const id = entry.id;
-        installed = existsSync(join(personalSkillsDir, `${id}.md`))
-          || existsSync(join(claudeCommandsDir, `${id}.md`));
+        const isPlatformSkill = entry.source === "agenticledger/platform";
+        const localPathExists = entry.localPath && existsSync(join(opts.baseDir, entry.localPath));
+        installed = isPlatformSkill
+          ? localPathExists
+          : existsSync(join(personalSkillsDir, `${id}.md`))
+            || existsSync(join(claudeCommandsDir, `${id}.md`))
+            || !!localPathExists;
         for (const [agentId, agent] of Object.entries(opts.config.agents)) {
           if ((agent as any).skills?.includes(id)) assignedTo.push(agentId);
+        }
+      } else if (type === "prompts") {
+        const id = entry.id;
+        const isPlatformPrompt = entry.source === "agenticledger/platform";
+        const localPathExists = entry.localPath && existsSync(join(opts.baseDir, entry.localPath));
+        installed = isPlatformPrompt
+          ? localPathExists
+          : existsSync(join(personalPromptsDir, `${id}.md`)) || !!localPathExists;
+        for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+          if ((agent as any).prompts?.includes(id)) assignedTo.push(agentId);
         }
       } else if (type === "mcps") {
         installed = !!(opts.config.mcps as any)?.[entry.id];
@@ -628,7 +818,16 @@ export function startWebUI(opts: WebUIOptions): void {
           || !!opts.config.agents[entry.id];
       }
 
-      return { ...entry, installed, assignedTo };
+      let isPlatformDefault = false;
+      if (type === "skills") {
+        isPlatformDefault = !!(opts.config.defaultSkills?.includes(entry.id));
+      } else if (type === "mcps") {
+        isPlatformDefault = !!(opts.config.defaultMcps?.includes(entry.id));
+      } else if (type === "prompts") {
+        isPlatformDefault = !!(opts.config.defaultPrompts?.includes(entry.id));
+      }
+
+      return { ...entry, installed, assignedTo, isPlatformDefault };
     });
 
     res.json({ items });
@@ -644,7 +843,7 @@ export function startWebUI(opts: WebUIOptions): void {
     let entry: any;
     try {
       const data = JSON.parse(readFileSync(registryPath, "utf-8"));
-      const key = type === "mcp" ? "mcps" : type === "skill" ? "skills" : "agents";
+      const key = type === "mcp" ? "mcps" : type === "skill" ? "skills" : type === "prompt" ? "prompts" : "agents";
       entry = (data[key] || []).find((e: any) => e.id === id);
     } catch {
       return res.status(500).json({ error: "Failed to read registry" });
@@ -663,6 +862,15 @@ export function startWebUI(opts: WebUIOptions): void {
         if (!existsSync(srcPath)) return res.status(500).json({ error: `Source file not found: ${entry.localPath}` });
         copyFileSync(srcPath, destPath);
         log.info(`[Marketplace] Installed skill ${id} → ${destPath}`);
+
+      } else if (type === "prompt") {
+        const destDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "prompts");
+        mkdirSync(destDir, { recursive: true });
+        const srcPath = isAbsolute(entry.localPath) ? entry.localPath : join(opts.baseDir, entry.localPath);
+        const destPath = join(destDir, `${id}.md`);
+        if (!existsSync(srcPath)) return res.status(500).json({ error: `Source file not found: ${entry.localPath}` });
+        copyFileSync(srcPath, destPath);
+        log.info(`[Marketplace] Installed prompt ${id} → ${destPath}`);
 
       } else if (type === "mcp") {
         const configPath = join(opts.baseDir, "config.json");
@@ -717,6 +925,43 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── API: Toggle platform default for skill or MCP ──────────────
+  app.post("/api/marketplace/platform-default", (req, res) => {
+    const { type, id, enabled } = req.body as { type?: string; id?: string; enabled?: boolean };
+    if (!type || !id || typeof enabled !== "boolean") {
+      return res.status(400).json({ error: "Missing type, id, or enabled" });
+    }
+    if (!["skill", "mcp", "prompt"].includes(type)) {
+      return res.status(400).json({ error: "type must be skill, mcp, or prompt" });
+    }
+
+    const configPath = join(opts.baseDir, "config.json");
+    let rawConfig: any;
+    try {
+      rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+    } catch {
+      return res.status(500).json({ error: "Failed to read config.json" });
+    }
+
+    const field = type === "skill" ? "defaultSkills" : type === "mcp" ? "defaultMcps" : "defaultPrompts";
+    if (!rawConfig[field]) rawConfig[field] = [];
+
+    if (enabled) {
+      if (!rawConfig[field].includes(id)) rawConfig[field].push(id);
+    } else {
+      rawConfig[field] = rawConfig[field].filter((x: string) => x !== id);
+    }
+
+    try {
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+      (opts.config as any)[field] = rawConfig[field];
+      log.info(`[Marketplace] ${enabled ? "Set" : "Unset"} platform default: ${type}/${id}`);
+      res.json({ ok: true, id, type, enabled });
+    } catch {
+      return res.status(500).json({ error: "Failed to write config.json" });
+    }
+  });
+
   app.post("/api/marketplace/assign", (req, res) => {
     const { type, id, agentIds } = req.body as { type?: string; id?: string; agentIds?: string[] };
     if (!type || !id || !Array.isArray(agentIds) || agentIds.length === 0) {
@@ -744,6 +989,16 @@ export function startWebUI(opts: WebUIOptions): void {
         if (!(opts.config.agents[agentId] as any).skills) (opts.config.agents[agentId] as any).skills = [];
         if (!(opts.config.agents[agentId] as any).skills.includes(id)) {
           (opts.config.agents[agentId] as any).skills.push(id);
+        }
+
+      } else if (type === "prompt") {
+        if (!rawConfig.agents[agentId].prompts) rawConfig.agents[agentId].prompts = [];
+        if (!rawConfig.agents[agentId].prompts.includes(id)) {
+          rawConfig.agents[agentId].prompts.push(id);
+        }
+        if (!(opts.config.agents[agentId] as any).prompts) (opts.config.agents[agentId] as any).prompts = [];
+        if (!(opts.config.agents[agentId] as any).prompts.includes(id)) {
+          (opts.config.agents[agentId] as any).prompts.push(id);
         }
 
       } else if (type === "mcp") {
@@ -871,6 +1126,55 @@ export function startWebUI(opts: WebUIOptions): void {
     writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
     log.info(`[Marketplace] Imported ${imported.length} personal skills`);
     res.json({ ok: true, imported });
+  });
+
+  // ─── API: Marketplace — scan local prompts dir ───────────────────
+  // ─── API: Marketplace — create personal prompt ───────────────────
+  app.post("/api/marketplace/create-prompt", (req, res) => {
+    const { id, name, description, content } = req.body as { id?: string; name?: string; description?: string; content?: string };
+    if (!id || !name || !content) return res.status(400).json({ error: "id, name, and content are required" });
+
+    const registryPersonalDir = join(opts.baseDir, "registry", "prompts", "personal");
+    mkdirSync(registryPersonalDir, { recursive: true });
+
+    const localPath = `registry/prompts/personal/${id}.md`;
+    const filePath = join(opts.baseDir, localPath);
+    const fileContent = `---\nname: ${name}\ndescription: ${description || ""}\n---\n\n${content}\n`;
+    writeFileSync(filePath, fileContent);
+
+    const registryPath = join(opts.baseDir, "registry", "prompts.json");
+    let registryData: any = { prompts: [] };
+    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
+    registryData.prompts = registryData.prompts.filter((p: any) => p.id !== id);
+    registryData.prompts.push({
+      id, name, provider: "me", description: description || "",
+      category: "personal", source: "personal", tags: [],
+      localPath, fetch: { type: "file" },
+    });
+    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
+    log.info(`[Marketplace] Created personal prompt: ${id}`);
+    res.json({ ok: true, id });
+  });
+
+  // ─── API: Get/set prompt trigger character ───────────────────────
+  app.get("/api/marketplace/prompt-trigger", (_req, res) => {
+    res.json({ trigger: opts.config.promptTrigger || "!" });
+  });
+
+  app.post("/api/marketplace/prompt-trigger", (req, res) => {
+    const { trigger } = req.body as { trigger?: string };
+    if (!trigger || trigger.length !== 1) return res.status(400).json({ error: "trigger must be a single character" });
+    const configPath = join(opts.baseDir, "config.json");
+    try {
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      rawConfig.promptTrigger = trigger;
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+      (opts.config as any).promptTrigger = trigger;
+      log.info(`[Marketplace] Prompt trigger set to: ${trigger}`);
+      res.json({ ok: true, trigger });
+    } catch {
+      res.status(500).json({ error: "Failed to write config.json" });
+    }
   });
 
   // ─── API: Marketplace — add custom MCP ───────────────────────────
@@ -1856,7 +2160,7 @@ export function startWebUI(opts: WebUIOptions): void {
     };
 
     try {
-      const response = await executeAgent(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts);
+      const response = await executeAgent(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger });
       log.info(`[Delegate] ← ${agentId}: ${response.slice(0, 80)}`);
       res.json({ ok: true, agentId, response });
     } catch (err) {

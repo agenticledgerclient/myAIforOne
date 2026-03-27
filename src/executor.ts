@@ -551,6 +551,75 @@ function buildSkillIndex(
   return lines.join("\n");
 }
 
+// ─── Prompt template helpers ─────────────────────────────────────────
+
+function getPromptsDir(): string {
+  const home = homedir();
+  const personalDir = join(getPersonalAgentsDir(), "prompts");
+  return personalDir;
+}
+
+function findPromptFile(name: string, baseDir: string): string | null {
+  const personalDir = getPromptsDir();
+  const registryDir = join(baseDir, "registry", "prompts", "platform");
+
+  const candidates = [
+    join(personalDir, `${name}.md`),
+    join(registryDir, `${name}.md`),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
+
+function buildPromptIndex(promptNames: string[], baseDir: string, trigger: string): string {
+  const lines: string[] = [
+    `\n## Available Prompt Templates`,
+    `You have prompt templates available. When a user message starts with \`${trigger}name\`, load the matching template and apply its instructions to frame your response.\n`,
+    "| Trigger | Description | Path |",
+    "|---------|-------------|------|",
+  ];
+
+  for (const name of promptNames) {
+    const filePath = findPromptFile(name, baseDir);
+    if (!filePath) continue;
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const descMatch = content.match(/description:\s*(.+)/);
+      const desc = descMatch ? descMatch[1].trim() : "No description";
+      lines.push(`| \`${trigger}${name}\` | ${desc} | \`${filePath}\` |`);
+    } catch {
+      lines.push(`| \`${trigger}${name}\` | (could not read) | \`${filePath}\` |`);
+    }
+  }
+
+  if (lines.length <= 4) return "";
+  lines.push("");
+  return lines.join("\n");
+}
+
+function resolvePromptTrigger(msg: string, effectivePrompts: string[], baseDir: string, trigger: string): { promptContent: string; userText: string } | null {
+  if (!msg.startsWith(trigger) || !effectivePrompts.length) return null;
+  const after = msg.slice(trigger.length);
+  const spaceIdx = after.indexOf(" ");
+  const promptName = spaceIdx === -1 ? after : after.slice(0, spaceIdx);
+  const userText = spaceIdx === -1 ? "" : after.slice(spaceIdx + 1).trim();
+
+  if (!effectivePrompts.includes(promptName)) return null;
+  const filePath = findPromptFile(promptName, baseDir);
+  if (!filePath) return null;
+
+  try {
+    const content = readFileSync(filePath, "utf-8");
+    // Strip frontmatter
+    const body = content.replace(/^---[\s\S]*?---\s*/m, "").trim();
+    return { promptContent: body, userText };
+  } catch {
+    return null;
+  }
+}
+
 // ─── MCP key loader ──────────────────────────────────────────────────
 // Dual-level: agent-specific keys override shared keys.
 // Supports encrypted .env.enc files (decrypted with MYAGENT_MASTER_PASSWORD).
@@ -698,8 +767,12 @@ export async function executeAgent(
   baseDir: string,
   mcpRegistry?: Record<string, McpServerConfig>,
   claudeAccounts?: Record<string, string>,
+  globalDefaults?: { skills?: string[]; mcps?: string[]; prompts?: string[]; promptTrigger?: string },
 ): Promise<string> {
   const { agentId, agentConfig } = route;
+  const effectiveSkills = [...new Set([...(agentConfig.skills || []), ...(globalDefaults?.skills || [])])];
+  const effectiveMcps = [...new Set([...(agentConfig.mcps || []), ...(globalDefaults?.mcps || [])])];
+  const effectivePrompts = [...new Set([...(agentConfig.prompts || []), ...(globalDefaults?.prompts || [])])];
   const workspace = resolve(agentConfig.workspace);
   const claudeMdPath = resolve(baseDir, agentConfig.claudeMd);
   const memoryDir = resolve(baseDir, agentConfig.memoryDir);
@@ -842,9 +915,15 @@ export async function executeAgent(
   }
 
   // ── Append skill index if configured ──
-  const hasSkills = (agentConfig.skills?.length || 0) + (agentConfig.agentSkills?.length || 0) > 0;
+  const hasSkills = effectiveSkills.length > 0 || (agentConfig.agentSkills?.length || 0) > 0;
   if (hasSkills) {
-    systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
+    systemPrompt += buildSkillIndex(effectiveSkills, agentConfig.agentSkills || [], memoryDir);
+  }
+
+  // ── Append prompt template index if configured ──
+  if (effectivePrompts.length > 0) {
+    const trigger = globalDefaults?.promptTrigger || "!";
+    systemPrompt += buildPromptIndex(effectivePrompts, baseDir, trigger);
   }
 
   // ── Append MCP account mapping (multi-account) ──
@@ -909,17 +988,29 @@ export async function executeAgent(
 `;
   }
 
+  // ── Resolve prompt template trigger ──
+  const promptTrigger = globalDefaults?.promptTrigger || "!";
+  let promptInjection = "";
+  let msgText = msg.text;
+  if (effectivePrompts.length > 0 && msg.text.startsWith(promptTrigger)) {
+    const resolved = resolvePromptTrigger(msg.text, effectivePrompts, baseDir, promptTrigger);
+    if (resolved) {
+      promptInjection = `[PROMPT TEMPLATE ACTIVE]\n${resolved.promptContent}\n[END PROMPT TEMPLATE]\n\n`;
+      msgText = resolved.userText || msg.text.slice(promptTrigger.length + (msg.text.slice(promptTrigger.length).indexOf(" ") + 1 || 0));
+      log.debug(`[${agentId}] Prompt template injected`);
+    }
+  }
+  const effectiveMsg = msgText !== msg.text ? { ...msg, text: msgText } : msg;
+
   // ── Format message ──
   // For persistent sessions: skip conversation history injection (Claude manages its own)
   // Still inject memory context for non-persistent sessions
   let formattedMessage: string;
   if (isPersistent) {
-    // Persistent: just the message itself, no history (Claude has session history)
-    formattedMessage = formatMessage(msg);
+    formattedMessage = promptInjection + formatMessage(effectiveMsg);
   } else {
-    // Non-persistent: inject context + history as before
-    formattedMessage = formatMessage(
-      msg,
+    formattedMessage = promptInjection + formatMessage(
+      effectiveMsg,
       existsSync(contextPath) ? contextPath : undefined,
       existsSync(logPath) ? logPath : undefined,
     );
@@ -1005,10 +1096,10 @@ export async function executeAgent(
     const personalSkillsDir = join(getPersonalAgentsDir(), "skills");
     const agentSkillsDir = join(memoryDir, "..", "skills");
 
-    if (existsSync(claudeSkillsDir) && agentConfig.skills?.length) {
+    if (existsSync(claudeSkillsDir) && effectiveSkills.length) {
       args.push("--add-dir", claudeSkillsDir);
     }
-    if (existsSync(personalSkillsDir) && agentConfig.skills?.length) {
+    if (existsSync(personalSkillsDir) && effectiveSkills.length) {
       args.push("--add-dir", personalSkillsDir);
     }
     if (existsSync(agentSkillsDir) && agentConfig.agentSkills?.length) {
@@ -1018,8 +1109,8 @@ export async function executeAgent(
 
   // Allowed tools — include MCP tool patterns
   const allowedTools = [...agentConfig.allowedTools];
-  if (agentConfig.mcps && agentConfig.mcps.length > 0) {
-    for (const mcpName of agentConfig.mcps) {
+  if (effectiveMcps.length > 0) {
+    for (const mcpName of effectiveMcps) {
       allowedTools.push(`mcp__${mcpName}__*`);
     }
   }
@@ -1029,15 +1120,15 @@ export async function executeAgent(
 
   // MCP servers
   let mcpConfigPath: string | null = null;
-  if (agentConfig.mcps && agentConfig.mcps.length > 0 && mcpRegistry) {
-    mcpConfigPath = buildMcpConfigFile(agentId, agentConfig.mcps, mcpRegistry, baseDir, memoryDir);
+  if (effectiveMcps.length > 0 && mcpRegistry) {
+    mcpConfigPath = buildMcpConfigFile(agentId, effectiveMcps, mcpRegistry, baseDir, memoryDir);
     args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
-    log.debug(`MCP config for ${agentId}: ${mcpConfigPath} (servers: ${agentConfig.mcps.join(", ")})`);
+    log.debug(`MCP config for ${agentId}: ${mcpConfigPath} (servers: ${effectiveMcps.join(", ")})`);
   }
 
   // Permission mode: bypassPermissions when agent has MCPs (headless can't approve tool prompts)
   if (isPersistent) {
-    args.push("--permission-mode", agentConfig.mcps?.length ? "bypassPermissions" : "acceptEdits");
+    args.push("--permission-mode", effectiveMcps.length ? "bypassPermissions" : "acceptEdits");
   }
 
   // ── Spawn claude ──
@@ -1191,8 +1282,12 @@ export async function* executeAgentStreaming(
   mcpRegistry?: Record<string, McpServerConfig>,
   claudeAccounts?: Record<string, string>,
   onRawLine?: (line: string) => void,
+  globalDefaults?: { skills?: string[]; mcps?: string[]; prompts?: string[]; promptTrigger?: string },
 ): AsyncGenerator<StreamEvent> {
   const { agentId, agentConfig } = route;
+  const effectiveSkills = [...new Set([...(agentConfig.skills || []), ...(globalDefaults?.skills || [])])];
+  const effectiveMcps = [...new Set([...(agentConfig.mcps || []), ...(globalDefaults?.mcps || [])])];
+  const effectivePrompts = [...new Set([...(agentConfig.prompts || []), ...(globalDefaults?.prompts || [])])];
   const workspace = resolve(agentConfig.workspace);
   const claudeMdPath = resolve(baseDir, agentConfig.claudeMd);
   const memoryDir = resolve(baseDir, agentConfig.memoryDir);
@@ -1333,9 +1428,15 @@ export async function* executeAgentStreaming(
     } catch { /* ignore */ }
   }
 
-  const hasSkills = (agentConfig.skills?.length || 0) + (agentConfig.agentSkills?.length || 0) > 0;
+  const hasSkills = effectiveSkills.length > 0 || (agentConfig.agentSkills?.length || 0) > 0;
   if (hasSkills) {
-    systemPrompt += buildSkillIndex(agentConfig.skills || [], agentConfig.agentSkills || [], memoryDir);
+    systemPrompt += buildSkillIndex(effectiveSkills, agentConfig.agentSkills || [], memoryDir);
+  }
+
+  // ── Append prompt template index if configured ──
+  if (effectivePrompts.length > 0) {
+    const trigger = globalDefaults?.promptTrigger || "!";
+    systemPrompt += buildPromptIndex(effectivePrompts, baseDir, trigger);
   }
 
   // ── Append MCP account mapping (multi-account) ──
@@ -1391,12 +1492,25 @@ export async function* executeAgentStreaming(
     systemPrompt += `\n\n## Session Commands\n- When the user sends \`/opcompact\` followed by instructions, save the specified information to \`${contextPath}\` using the Write tool.\n- \`/opreset\` is handled automatically by the gateway.\n`;
   }
 
+  // ── Resolve prompt template trigger ──
+  const promptTriggerStr = globalDefaults?.promptTrigger || "!";
+  let promptInjectionStr = "";
+  let streamMsgText = msg.text;
+  if (effectivePrompts.length > 0 && msg.text.startsWith(promptTriggerStr)) {
+    const resolved = resolvePromptTrigger(msg.text, effectivePrompts, baseDir, promptTriggerStr);
+    if (resolved) {
+      promptInjectionStr = `[PROMPT TEMPLATE ACTIVE]\n${resolved.promptContent}\n[END PROMPT TEMPLATE]\n\n`;
+      streamMsgText = resolved.userText || msg.text.slice(promptTriggerStr.length + (msg.text.slice(promptTriggerStr.length).indexOf(" ") + 1 || 0));
+    }
+  }
+  const effectiveStreamMsg = streamMsgText !== msg.text ? { ...msg, text: streamMsgText } : msg;
+
   let formattedMessage: string;
   if (isPersistent) {
-    formattedMessage = formatMessage(msg);
+    formattedMessage = promptInjectionStr + formatMessage(effectiveStreamMsg);
   } else {
-    formattedMessage = formatMessage(
-      msg,
+    formattedMessage = promptInjectionStr + formatMessage(
+      effectiveStreamMsg,
       existsSync(contextPath) ? contextPath : undefined,
       existsSync(logPath) ? logPath : undefined,
     );
@@ -1447,24 +1561,24 @@ export async function* executeAgentStreaming(
   args.push("--output-format", "stream-json", "--verbose", "--include-partial-messages");
   args.push("--add-dir", workspace);
 
-  if (agentConfig.skills && agentConfig.skills.length > 0) {
+  if (effectiveSkills.length > 0) {
     const skillsDir = join(homedir(), ".claude", "commands");
     if (existsSync(skillsDir)) args.push("--add-dir", skillsDir);
   }
 
   const allowedTools = [...agentConfig.allowedTools];
-  if (agentConfig.mcps && agentConfig.mcps.length > 0) {
-    for (const mcpName of agentConfig.mcps) allowedTools.push(`mcp__${mcpName}__*`);
+  if (effectiveMcps.length > 0) {
+    for (const mcpName of effectiveMcps) allowedTools.push(`mcp__${mcpName}__*`);
   }
   if (allowedTools.length > 0) args.push("--allowedTools", allowedTools.join(","));
 
   let mcpConfigPath: string | null = null;
-  if (agentConfig.mcps && agentConfig.mcps.length > 0 && mcpRegistry) {
-    mcpConfigPath = buildMcpConfigFile(agentId, agentConfig.mcps, mcpRegistry, baseDir, memoryDir);
+  if (effectiveMcps.length > 0 && mcpRegistry) {
+    mcpConfigPath = buildMcpConfigFile(agentId, effectiveMcps, mcpRegistry, baseDir, memoryDir);
     args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
   }
 
-  if (isPersistent) args.push("--permission-mode", agentConfig.mcps?.length ? "bypassPermissions" : "acceptEdits");
+  if (isPersistent) args.push("--permission-mode", effectiveMcps.length ? "bypassPermissions" : "acceptEdits");
 
   const timeout = agentConfig.timeout ?? 14_400_000;
 

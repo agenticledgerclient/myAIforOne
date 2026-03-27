@@ -50,7 +50,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
 /* ── Canvas ── */
-.canvas{position:fixed;top:92px;left:0;right:0;bottom:0;overflow:auto;padding:32px 40px}
+.canvas{position:fixed;top:56px;left:0;right:0;bottom:0;overflow:auto;padding:32px 40px}
 
 /* ── Toolbar ── */
 .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:28px;flex-wrap:wrap}
@@ -170,6 +170,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .modal-btn-secondary{background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border-dim)}
 .modal-btn-secondary:hover{border-color:var(--border-glow);color:var(--text-primary)}
 .missing-keys-alert{background:var(--amber-bg);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--amber);margin-top:12px;line-height:1.5}
+/* ── Platform default toggle ── */
+.pill-platform{border-color:rgba(251,191,36,0.4);color:var(--amber)}
+.pill-platform.active{border-color:var(--amber);color:var(--amber);background:var(--amber-bg)}
+.badge-platform{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.35)}
+.btn-default-on{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.4);font-size:11px;padding:5px 10px;border-radius:7px;cursor:pointer;font-family:var(--font-mono);font-weight:600;transition:all .2s;white-space:nowrap}
+.btn-default-on:hover{background:var(--amber);color:#000}
+.btn-default-off{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim);font-size:11px;padding:5px 10px;border-radius:7px;cursor:pointer;font-family:var(--font-mono);font-weight:600;transition:all .2s;white-space:nowrap}
+.btn-default-off:hover{border-color:rgba(251,191,36,0.4);color:var(--amber)}
+.card-platform-default{border-color:rgba(251,191,36,0.25)}
 </style>
 </head>
 <body>
@@ -183,16 +192,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn" href="/org">Agents</a>
-    <a class="tab-btn active" href="/channels">Configure</a>
+    <a class="tab-btn" href="/apps">Apps</a>
+    <a class="tab-btn active" href="/marketplace">Registry</a>
   </nav>
   <div class="topbar-right">
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
   </div>
-</div>
-
-<div class="sub-nav">
-  <a class="sub-nav-link" href="/channels">Channels</a>
-  <a class="sub-nav-link active" href="/marketplace">Registry</a>
 </div>
 
 <div class="canvas" id="canvas">
@@ -200,7 +205,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     <div class="type-tabs">
       <button class="type-tab active" data-type="mcps" onclick="switchType('mcps')">MCPs</button>
       <button class="type-tab" data-type="skills" onclick="switchType('skills')">Skills</button>
+      <button class="type-tab" data-type="prompts" onclick="switchType('prompts')">Prompts</button>
       <button class="type-tab" data-type="agents" onclick="switchType('agents')">Agents</button>
+      <button class="type-tab" data-type="apps" onclick="switchType('apps')">Apps</button>
+    </div>
+    <div id="trigger-config" style="display:none;align-items:center;gap:6px;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:5px 10px">
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">trigger:</span>
+      <span id="trigger-display" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--accent);min-width:16px;text-align:center"></span>
+      <button class="btn-sm btn-sm-ghost" style="padding:3px 8px;font-size:10px" onclick="editTrigger()">✎</button>
     </div>
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
@@ -212,6 +224,44 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 </div>
 
 <div id="toast-container"></div>
+
+<!-- Add App Panel (sits above canvas content, shown on demand) -->
+<div class="panel hidden" id="add-app-panel" style="position:fixed;top:68px;left:40px;right:40px;z-index:200;max-width:700px;margin:0 auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <span class="panel-label" style="margin:0">Register <span id="add-app-provider-label">External Source</span> App</span>
+    <button class="btn-sm btn-sm-ghost" style="padding:3px 8px;font-size:10px" onclick="toggleAddAppPanel()">✕</button>
+  </div>
+  <div class="form-grid" style="margin-bottom:10px">
+    <div>
+      <div class="panel-label">Name</div>
+      <input class="panel-input" id="app-name" placeholder="My App" style="width:100%" oninput="syncAppId()">
+    </div>
+    <div>
+      <div class="panel-label">ID <span style="font-size:9px;color:var(--text-muted)">(auto)</span></div>
+      <input class="panel-input" id="app-id" placeholder="my-app" style="width:100%">
+    </div>
+    <div class="form-grid-full">
+      <div class="panel-label">URL</div>
+      <input class="panel-input" id="app-url" placeholder="https://myapp.example.com" style="width:100%">
+    </div>
+    <div class="form-grid-full">
+      <div class="panel-label">Short description</div>
+      <input class="panel-input" id="app-desc" placeholder="What does this app do?" style="width:100%">
+    </div>
+    <div>
+      <div class="panel-label">Category</div>
+      <input class="panel-input" id="app-category" placeholder="Finance, Compliance…" style="width:100%">
+    </div>
+    <div>
+      <div class="panel-label">GitHub Repo (optional)</div>
+      <input class="panel-input" id="app-repo" placeholder="owner/repo" style="width:100%">
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-sm btn-sm-green" onclick="doAddApp()">Register App</button>
+    <button class="btn-sm btn-sm-ghost" onclick="toggleAddAppPanel()">Cancel</button>
+  </div>
+</div>
 
 <!-- Assign Modal -->
 <div class="modal-overlay" id="assign-modal">
@@ -232,9 +282,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 let currentType = 'mcps';
 let allItems = [];
 let activeCategory = 'all';
+let showPlatformDefaultsOnly = false;
 let modalItem = null;
 let modalType = null;
 let agentsList = [];
+let promptTrigger = '!';
 
 // ─── Theme ────────────────────────────────────────────────────────
 (function(){
@@ -270,11 +322,27 @@ async function loadAgents(){
   try{ const d = await (await fetch('/api/agents')).json(); agentsList = d.agents||[]; } catch{ agentsList=[]; }
 }
 
+// ─── Prompt trigger config ────────────────────────────────────────
+async function loadTrigger(){
+  try{ const d = await (await fetch('/api/marketplace/prompt-trigger')).json(); promptTrigger = d.trigger||'!'; } catch{ promptTrigger='!'; }
+  document.getElementById('trigger-display').textContent = promptTrigger;
+}
+function editTrigger(){
+  const c = prompt(`Set prompt trigger character (current: "${promptTrigger}"):`, promptTrigger);
+  if(!c || c.length !== 1){ if(c!==null) toast('Must be exactly 1 character','error'); return; }
+  fetch('/api/marketplace/prompt-trigger',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trigger:c})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ promptTrigger=c; document.getElementById('trigger-display').textContent=c; toast(`Trigger set to "${c}"`,'success'); } else toast(d.error||'Failed','error'); })
+    .catch(()=>toast('Failed to set trigger','error'));
+}
+
 // ─── Type switch ──────────────────────────────────────────────────
 function switchType(type){
-  currentType = type; activeCategory = 'all';
+  currentType = type; activeCategory = 'all'; showPlatformDefaultsOnly = false;
   document.querySelectorAll('.type-tab').forEach(t=>t.classList.toggle('active', t.dataset.type===type));
   document.getElementById('search-input').value = '';
+  // Show trigger config only on Prompts tab
+  const tc = document.getElementById('trigger-config');
+  tc.style.display = type==='prompts' ? 'flex' : 'none';
   loadItems();
 }
 
@@ -298,6 +366,19 @@ function buildPills(){
   el.innerHTML = '';
   const all = mkPill('all', true); el.appendChild(all);
   cats.forEach(c=>el.appendChild(mkPill(c, false)));
+  // Platform Defaults pill (skills and MCPs only)
+  if(currentType !== 'agents' && currentType !== 'apps'){
+    const pd = document.createElement('button');
+    pd.id = 'pill-platform-defaults';
+    pd.className = 'pill pill-platform' + (showPlatformDefaultsOnly ? ' active' : '');
+    pd.textContent = '★ Platform Defaults';
+    pd.onclick = ()=>{
+      showPlatformDefaultsOnly = !showPlatformDefaultsOnly;
+      pd.classList.toggle('active', showPlatformDefaultsOnly);
+      render();
+    };
+    el.appendChild(pd);
+  }
 }
 function mkPill(cat, active){
   const b = document.createElement('button');
@@ -312,12 +393,14 @@ function render(){
   let items = allItems;
   if(activeCategory!=='all') items = items.filter(i=>i.category===activeCategory);
   if(q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q)||(i.tags||[]).some(t=>t.toLowerCase().includes(q)));
+  if(showPlatformDefaultsOnly) items = items.filter(i=>i.isPlatformDefault);
 
   if(currentType==='agents'){
     renderFlat(items);
   } else {
     renderSections(items);
   }
+
 }
 
 function renderFlat(items){
@@ -327,7 +410,7 @@ function renderFlat(items){
 }
 
 function renderSections(items){
-  const typeSingular = currentType==='mcps'?'mcp':'skill';
+  const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':'skill';
   const platform = items.filter(i=>i.provider==='AgenticLedger');
   const personal  = items.filter(i=>i.provider==='me');
   const community = items.filter(i=>i.provider!=='AgenticLedger' && i.provider!=='me');
@@ -335,10 +418,14 @@ function renderSections(items){
   let html = '<div class="sections">';
 
   // ── Platform ──
-  html += section('Built by Platform', platform, typeSingular, platform.length);
+  const platformBtn = typeSingular==='app'
+    ? `<button class="btn-sm btn-sm-ghost section-action" onclick="openAddAppPanel('AgenticLedger')">⊕ Add</button>` : '';
+  html += section('Built by Platform', platform, typeSingular, platform.length, platformBtn);
 
-  // ── Community ──
-  html += section('Community', community, typeSingular, community.length);
+  // ── External Source ──
+  const externalBtn = typeSingular==='app'
+    ? `<button class="btn-sm btn-sm-ghost section-action" onclick="openAddAppPanel('external')">⊕ Add</button>` : '';
+  html += section('External Source', community, typeSingular, community.length, externalBtn);
 
   // ── Built by Me (always shown, at bottom) ──
   html += sectionPersonal(personal, typeSingular);
@@ -347,12 +434,13 @@ function renderSections(items){
   document.getElementById('content').innerHTML = html;
 }
 
-function section(title, items, typeSingular, count){
+function section(title, items, typeSingular, count, actionBtn=''){
   return `
     <div>
       <div class="section-header">
         <span class="section-title">${esc(title)}</span>
         <span class="section-count">${count}</span>
+        ${actionBtn}
       </div>
       ${items.length
         ? `<div class="grid">${items.map(i=>cardHtml(i,typeSingular)).join('')}</div>`
@@ -363,21 +451,30 @@ function section(title, items, typeSingular, count){
 function sectionPersonal(items, typeSingular){
   const actionBtn = typeSingular==='skill'
     ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleScanPanel()">⊕ Scan my skills</button>`
-    : `<button class="btn-sm btn-sm-accent section-action" onclick="toggleAddMcpPanel()">⊕ Add my MCP</button>`;
+    : typeSingular==='prompt'
+      ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleCreatePromptPanel()">⊕ Create prompt</button>`
+      : typeSingular==='app'
+        ? `<a class="btn-sm btn-sm-accent section-action" href="/apps" style="text-decoration:none">⊕ Register App</a>`
+        : `<button class="btn-sm btn-sm-accent section-action" onclick="toggleAddMcpPanel()">⊕ Add my MCP</button>`;
 
-  const panelHtml = typeSingular==='skill' ? scanPanelHtml() : addMcpPanelHtml();
+  const panelHtml = typeSingular==='skill' ? scanPanelHtml() : typeSingular==='prompt' ? createPromptPanelHtml() : typeSingular==='app' ? '' : addMcpPanelHtml();
+
+  const emptyMsg = typeSingular==='skill'?'Scan your skills folder to import personal skills.'
+    :typeSingular==='prompt'?'Paste in a prompt template to save it.'
+    :typeSingular==='app'?'Register an app to track it here.'
+    :'Add a custom HTTP or stdio MCP you built.';
 
   return `
     <div>
       <div class="section-header">
-        <span class="section-title">Built by Me</span>
+        <span class="section-title">My Apps</span>
         <span class="section-count">${items.length}</span>
         ${actionBtn}
       </div>
       ${panelHtml}
       ${items.length
         ? `<div class="grid">${items.map(i=>cardHtml(i,typeSingular)).join('')}</div>`
-        : `<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">None yet</div><div class="empty-sub">${typeSingular==='skill'?'Scan your skills folder to import personal skills.':'Add a custom HTTP or stdio MCP you built.'}</div></div>`}
+        : `<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">None yet</div><div class="empty-sub">${emptyMsg}</div></div>`}
     </div>`;
 }
 
@@ -454,6 +551,65 @@ async function doImport(allFiles){
     document.getElementById('scan-panel').classList.add('hidden');
     await loadItems();
   } catch(e){ toast(`Import failed: ${e.message}`,'error'); if(btn){btn.disabled=false;btn.textContent='Import selected';} }
+}
+
+// ─── Create prompt panel ──────────────────────────────────────────
+function createPromptPanelHtml(){
+  return `
+  <div class="panel hidden" id="create-prompt-panel">
+    <div class="form-grid" style="margin-bottom:10px">
+      <div>
+        <div class="panel-label">Name</div>
+        <input class="panel-input" id="prompt-name" placeholder="Code Review" style="width:100%" oninput="syncPromptId()">
+      </div>
+      <div>
+        <div class="panel-label">ID <span style="font-size:9px;color:var(--text-muted)">(auto)</span></div>
+        <input class="panel-input" id="prompt-id" placeholder="code-review" style="width:100%">
+      </div>
+      <div class="form-grid-full">
+        <div class="panel-label">Description</div>
+        <input class="panel-input" id="prompt-desc" placeholder="What this prompt does…" style="width:100%">
+      </div>
+      <div class="form-grid-full">
+        <div class="panel-label">Prompt content <span style="font-size:9px;color:var(--text-muted)">(paste it here)</span></div>
+        <textarea class="panel-input" id="prompt-content" placeholder="You are a… / Act as… / etc." style="width:100%;height:120px;resize:vertical;font-family:var(--font-mono);font-size:11px;line-height:1.5"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm btn-sm-green" onclick="doCreatePrompt()">Save prompt</button>
+      <button class="btn-sm btn-sm-ghost" onclick="toggleCreatePromptPanel()">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function toggleCreatePromptPanel(){
+  const p = document.getElementById('create-prompt-panel');
+  if(p) p.classList.toggle('hidden');
+}
+
+function syncPromptId(){
+  document.getElementById('prompt-id').value = slugify(document.getElementById('prompt-name').value);
+}
+
+async function doCreatePrompt(){
+  const id   = document.getElementById('prompt-id').value.trim();
+  const name = document.getElementById('prompt-name').value.trim();
+  const desc = document.getElementById('prompt-desc').value.trim();
+  const content = document.getElementById('prompt-content').value.trim();
+  if(!id||!name){ toast('Name and ID are required','error'); return; }
+  if(!content){ toast('Prompt content is required','error'); return; }
+  try{
+    const res = await fetch('/api/marketplace/create-prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name,description:desc,content})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Failed to create prompt');
+    toast(`"${name}" saved`,'success');
+    document.getElementById('create-prompt-panel').classList.add('hidden');
+    document.getElementById('prompt-name').value='';
+    document.getElementById('prompt-id').value='';
+    document.getElementById('prompt-desc').value='';
+    document.getElementById('prompt-content').value='';
+    await loadItems();
+  } catch(e){ toast(`Error: ${e.message}`,'error'); }
 }
 
 // ─── Add MCP panel ────────────────────────────────────────────────
@@ -550,16 +706,20 @@ async function doAddMcp(){
 
 // ─── Card ─────────────────────────────────────────────────────────
 function cardHtml(item, typeSingular){
+  if(typeSingular === 'app') return appCardHtml(item);
+
   const providerBadge = item.provider==='AgenticLedger'
     ? `<span class="badge badge-verified">✓ verified</span>`
     : item.provider==='me'
       ? `<span class="badge badge-personal">built by me</span>`
       : `<span class="badge badge-external">community</span>`;
   const installedBadge = item.installed ? `<span class="badge badge-installed">✓ installed</span>` : '';
+  const platformBadge = item.isPlatformDefault ? `<span class="badge badge-platform">★ default</span>` : '';
   const assignedLabel = (item.assignedTo?.length)
     ? `<span class="assigned-label">→ ${item.assignedTo.slice(0,3).join(', ')}${item.assignedTo.length>3?` +${item.assignedTo.length-3}`:''}</span>`
     : '';
   const tagsHtml = (item.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+
   let actionBtn;
   if(item.installed && typeSingular!=='agent'){
     actionBtn = `<button class="btn btn-manage" onclick='openAssignModal(${JSON.stringify(item)}, "${typeSingular}", false)'>Manage</button>`;
@@ -568,15 +728,73 @@ function cardHtml(item, typeSingular){
   } else {
     actionBtn = `<button class="btn btn-install" id="install-btn-${esc(item.id)}" onclick='installItem(${JSON.stringify(item)}, "${typeSingular}")'>+ Install</button>`;
   }
-  return `<div class="card${item.installed?' installed':''}" id="card-${esc(item.id)}">
+
+  // Platform default toggle (skills and MCPs only)
+  const defaultToggle = typeSingular !== 'agent'
+    ? `<button class="${item.isPlatformDefault ? 'btn-default-on' : 'btn-default-off'}" id="pd-btn-${esc(item.id)}" onclick='togglePlatformDefault(${JSON.stringify(item)}, "${typeSingular}")'>${item.isPlatformDefault ? '★ Default' : '☆ Set Default'}</button>`
+    : '';
+
+  return `<div class="card${item.installed?' installed':''}${item.isPlatformDefault?' card-platform-default':''}" id="card-${esc(item.id)}">
     <div class="card-top">
       <div><div class="card-name">${esc(item.name)}</div><div class="card-provider">${esc(item.provider||'')}</div></div>
-      <div class="card-badges">${providerBadge}${installedBadge}</div>
+      <div class="card-badges">${providerBadge}${installedBadge}${platformBadge}</div>
     </div>
     <div class="card-desc">${esc(item.description||'')}</div>
     <div class="card-meta">${tagsHtml}${assignedLabel}</div>
-    <div class="card-actions">${actionBtn}</div>
+    <div class="card-actions">${actionBtn}${defaultToggle}</div>
   </div>`;
+}
+
+// ─── App Card ─────────────────────────────────────────────────────
+function appCardHtml(item){
+  const providerBadge = item.provider==='AgenticLedger'
+    ? `<span class="badge badge-verified">✓ platform</span>`
+    : item.provider==='me'
+      ? `<span class="badge badge-personal">my app</span>`
+      : `<span class="badge badge-external">external source</span>`;
+
+  const statusColor = item.status==='live' ? 'var(--green)' : item.status==='maintenance' ? 'var(--amber)' : 'var(--text-muted)';
+  const statusDot = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${statusColor};margin-right:4px"></span>`;
+  const statusBadge = item.status ? `<span style="font-family:var(--font-mono);font-size:9px;color:${statusColor};display:flex;align-items:center">${statusDot}${esc(item.status)}</span>` : '';
+
+  const tagsHtml = (item.tags||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+  const devLabel = item.agentDeveloper
+    ? `<span class="assigned-label">dev: ${esc(item.agentAlias||item.agentDeveloper)}</span>`
+    : '';
+
+  const openBtn = item.url
+    ? `<a class="btn btn-install" href="${esc(item.url)}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px">Open ↗</a>`
+    : `<button class="btn btn-install" disabled style="opacity:.35">No URL</button>`;
+
+  const devBtn = item.agentDeveloper
+    ? `<a class="btn btn-manage" href="/ui#${esc(item.agentDeveloper)}" style="text-decoration:none;display:flex;align-items:center;justify-content:center">@ Dev</a>`
+    : `<a class="btn btn-manage" href="/apps" style="text-decoration:none;display:flex;align-items:center;justify-content:center">Edit</a>`;
+
+  const platform = item.deployPlatform ? `<span class="card-provider">${esc(item.deployPlatform)}</span>` : '';
+
+  return `<div class="card" id="card-${esc(item.id)}">
+    <div class="card-top">
+      <div><div class="card-name">${esc(item.name)}</div>${platform}</div>
+      <div class="card-badges">${providerBadge}${statusBadge}</div>
+    </div>
+    <div class="card-desc">${esc(item.shortDescription||item.description||'')}</div>
+    <div class="card-meta">${tagsHtml}${devLabel}</div>
+    <div class="card-actions">${openBtn}${devBtn}</div>
+  </div>`;
+}
+
+// ─── Platform default toggle ──────────────────────────────────────
+async function togglePlatformDefault(item, typeSingular){
+  const newEnabled = !item.isPlatformDefault;
+  const btn = document.getElementById(`pd-btn-${item.id}`);
+  if(btn){ btn.textContent = 'Saving…'; btn.disabled = true; }
+  try{
+    const res = await fetch('/api/marketplace/platform-default',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:typeSingular,id:item.id,enabled:newEnabled})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Failed');
+    toast(`${item.name} ${newEnabled ? 'set as platform default' : 'removed from platform defaults'}`, 'success');
+    await loadItems();
+  } catch(e){ toast(`Error: ${e.message}`,'error'); await loadItems(); }
 }
 
 function emptyHtml(msg){ return `<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">${esc(msg)}</div></div>`; }
@@ -633,8 +851,53 @@ async function doAssign(){
   } catch(e){ toast(`Assign failed: ${e.message}`,'error'); document.getElementById('modal-assign-btn').disabled=false; document.getElementById('modal-assign-btn').textContent='Assign selected'; }
 }
 
+// ─── Add App (External / Platform) ───────────────────────────────
+let addAppProvider = 'me';
+
+function openAddAppPanel(provider){
+  addAppProvider = provider;
+  const panel = document.getElementById('add-app-panel');
+  if(!panel) return;
+  const label = provider==='AgenticLedger' ? 'Platform' : provider==='me' ? 'My App' : 'External Source';
+  document.getElementById('add-app-provider-label').textContent = label;
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function toggleAddAppPanel(){
+  document.getElementById('add-app-panel')?.classList.toggle('hidden');
+}
+
+function syncAppId(){
+  const name = document.getElementById('app-name').value;
+  document.getElementById('app-id').value = slugify(name);
+}
+
+async function doAddApp(){
+  const id = document.getElementById('app-id').value.trim();
+  const name = document.getElementById('app-name').value.trim();
+  const url = document.getElementById('app-url').value.trim();
+  const desc = document.getElementById('app-desc').value.trim();
+  const category = document.getElementById('app-category').value.trim();
+  const repo = document.getElementById('app-repo').value.trim();
+  if(!id||!name){ toast('Name and ID are required','error'); return; }
+  const body = { id, name, url, shortDescription: desc, category,
+    githubRepo: repo, provider: addAppProvider,
+    status: 'live', tags: [], deployPlatform: 'other' };
+  try{
+    const res = await fetch('/api/apps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Failed to register app');
+    toast(`"${name}" registered`,'success');
+    document.getElementById('add-app-panel').classList.add('hidden');
+    ['app-name','app-id','app-url','app-desc','app-category','app-repo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    await loadItems();
+  } catch(e){ toast(`Error: ${e.message}`,'error'); }
+}
+
 // ─── Init ─────────────────────────────────────────────────────────
 loadAgents();
+loadTrigger();
 loadItems();
 </script>
 </body>

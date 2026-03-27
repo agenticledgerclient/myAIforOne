@@ -103,6 +103,7 @@ export async function executeGoal(
   driverMap: Map<string, ChannelDriver>,
   mcpRegistry?: Record<string, McpServerConfig>,
   claudeAccounts?: Record<string, string>,
+  globalDefaults?: { skills?: string[]; mcps?: string[]; prompts?: string[]; promptTrigger?: string },
 ): Promise<{ status: string; response: string }> {
   const agentHome = agent.agentHome || resolve(baseDir, agent.memoryDir, "..");
 
@@ -146,7 +147,7 @@ export async function executeGoal(
   };
 
   // Execute the agent
-  const response = await executeAgent(route, syntheticMsg, baseDir, mcpRegistry, claudeAccounts);
+  const response = await executeAgent(route, syntheticMsg, baseDir, mcpRegistry, claudeAccounts, globalDefaults);
 
   // Track cost
   let cost = 0;
@@ -218,7 +219,7 @@ export function startGoals(
       const task = cron.schedule(goal.heartbeat, async () => {
         log.info(`Goal heartbeat fired: ${agentId}/${goal.id}`);
         try {
-          await executeGoal(agentId, agent, goal, baseDir, driverMap, mcpRegistry, config.service.claudeAccounts);
+          await executeGoal(agentId, agent, goal, baseDir, driverMap, mcpRegistry, config.service.claudeAccounts, { skills: config.defaultSkills, mcps: config.defaultMcps, prompts: config.defaultPrompts, promptTrigger: config.promptTrigger });
         } catch (err) {
           log.error(`Goal execution failed for ${agentId}/${goal.id}: ${err}`);
           logGoalExecution(agentHome, goal.id, "error", { error: String(err) });

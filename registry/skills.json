@@ -193,6 +193,24 @@
       }
     },
     {
+      "id": "op_devbrowser",
+      "name": "Dev Browser",
+      "provider": "AgenticLedger",
+      "description": "Control a real Chromium browser — navigate pages, scrape content, fill forms, take screenshots, and automate web workflows using the dev-browser CLI.",
+      "category": "devtools",
+      "verified": true,
+      "source": "agenticledger/platform",
+      "tags": [
+        "devtools",
+        "browser",
+        "automation"
+      ],
+      "localPath": "registry/skills/platform/op_devbrowser.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
       "id": "ext-tdd",
       "name": "Test-Driven Development",
       "provider": "affaan-m",

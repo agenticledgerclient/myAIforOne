@@ -313,7 +313,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     <a class="nav-link active" href="/">Home</a>
     <a class="nav-link" href="/ui">Chat</a>
     <a class="nav-link" href="/org">Agents</a>
-    <a class="nav-link" href="/channels">Configure</a>
+    <a class="nav-link" href="/apps">Apps</a>
+    <a class="nav-link" href="/marketplace">Registry</a>
+    <button onclick="window.open('/mini','minibar','width=420,height=280,resizable=yes,scrollbars=no')" title="Open Mini Bar" class="nav-link" style="font-size:15px;padding:0 8px;background:none;border:none;cursor:pointer">⊡</button>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtn">🌙</button>
   </div>
 
@@ -341,7 +343,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
       <a class="nav-link active" href="/">Home</a>
       <a class="nav-link" href="/ui">Chat</a>
       <a class="nav-link" href="/org">Agents</a>
-      <a class="nav-link" href="/channels">Configure</a>
+      <a class="nav-link" href="/apps">Apps</a>
+      <a class="nav-link" href="/marketplace">Registry</a>
       <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtnChat">🌙</button>
     </div>
     <div class="chat-messages-home" id="chatMessages"></div>
@@ -363,6 +366,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
         <button class="input-action" onclick="document.getElementById('homeFileInput').click()" title="Attach file">📎</button>
         <input type="file" id="homeFileInput" multiple style="display:none" onchange="handleHomeFiles(event)">
         <button class="input-action" id="homeMicBtn" onclick="toggleHomeVoice()" title="Voice input">🎤</button>
+        <button class="input-action" id="voiceModeBtn" onclick="toggleVoiceMode()" title="Read responses aloud" style="font-size:14px">🔇</button>
         <textarea id="chatInput" placeholder="Ask anything... (type @ to mention an agent)" rows="1"
           onkeydown="handleChatKeydown(event)"
           oninput="autoResize(this);checkAutocomplete(this)"></textarea>
@@ -392,6 +396,33 @@ let messages = [];
 let hubAgentId = null;
 let isThinking = false;
 let streamingText = '';
+let voiceModeOn = false;
+
+function toggleVoiceMode() {
+  voiceModeOn = !voiceModeOn;
+  const btn = document.getElementById('voiceModeBtn');
+  if (btn) {
+    btn.textContent = voiceModeOn ? '🔊' : '🔇';
+    btn.style.color = voiceModeOn ? 'var(--accent)' : '';
+    btn.title = voiceModeOn ? 'Voice mode on — click to mute' : 'Read responses aloud';
+  }
+  if (!voiceModeOn) window.speechSynthesis?.cancel();
+}
+
+function speakText(text) {
+  if (!voiceModeOn || !window.speechSynthesis) return;
+  // Strip markdown symbols and [via:...] tags before speaking
+  const clean = text
+    .replace(/\[via:[^\]]+\]/g, '')
+    .replace(/[*_`#>~]/g, '')
+    .replace(/\n+/g, ' ')
+    .trim();
+  if (!clean) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(clean);
+  utterance.rate = 1.05;
+  window.speechSynthesis.speak(utterance);
+}
 
 // ─── Init ──────────────────────────────────────────────
 async function init() {
@@ -431,6 +462,16 @@ async function init() {
       } catch { /* ignore */ }
     }
   } catch { /* ignore */ }
+
+  // Check for ?agent= param (e.g. from Apps registry "@ Dev" button)
+  const agentParam = new URLSearchParams(window.location.search).get('agent');
+  if(agentParam) {
+    const found = agents.find(a => a.id === agentParam);
+    const alias = found?.aliases?.[0] || ('@' + agentParam);
+    // Clean URL without reloading
+    history.replaceState(null, '', '/');
+    mentionAgent(alias);
+  }
 }
 
 function renderTiles() {
@@ -441,8 +482,9 @@ function renderTiles() {
 
   const html = recent.map(a => {
     const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+    const alias = a.aliases?.[0] || ('@' + a.id);
     const time = formatRelativeTime(a.lastMessage);
-    return `<div class="agent-tile" onclick="window.location='/ui#${a.id}'">
+    return `<div class="agent-tile" onclick="mentionAgent('${alias}')">
       <div class="tile-avatar">${initials}</div>
       <span class="tile-name">${a.name}</span>
       <span class="tile-time">${time}</span>
@@ -451,6 +493,26 @@ function renderTiles() {
 
   document.getElementById('agentTiles').innerHTML = html;
   document.getElementById('chatTiles').innerHTML = html;
+}
+
+// ─── Mention agent from tile ───────────────────────────
+function mentionAgent(alias) {
+  if (!document.getElementById('chatView').classList.contains('active')) {
+    transitionToChat();
+  }
+  const input = document.getElementById('chatInput');
+  const val = input.value;
+  // If input already ends with the alias, just focus
+  if (val.trimEnd().endsWith(alias)) {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    return;
+  }
+  // Prepend alias (clear any existing @-start or append)
+  input.value = alias + ' ' + val.trimStart();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+  autoResize(input);
 }
 
 // ─── Transition ────────────────────────────────────────
@@ -741,6 +803,7 @@ async function executeHub(text) {
     // Finalize
     isThinking = false;
     if (streamingText) {
+      speakText(streamingText);
       addMessage('agent', streamingText);
       streamingText = '';
     } else if (retries >= MAX_RETRIES) {
@@ -901,12 +964,13 @@ function renderDrawer() {
 
   list.innerHTML = sorted.map(a => {
     const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+    const alias = a.aliases?.[0] || ('@' + a.id);
     const time = a.lastMessage && a.lastMessage !== 'never' ? formatRelativeTime(a.lastMessage) : '';
-    return `<div class="drawer-agent" onclick="window.location='/ui#${a.id}'">
+    return `<div class="drawer-agent" onclick="toggleDrawer();mentionAgent('${alias}')">
       <div class="drawer-agent-avatar">${initials}</div>
       <div class="drawer-agent-info">
         <div class="drawer-agent-name">${a.name}</div>
-        <div class="drawer-agent-alias">${a.aliases?.[0] || a.id}</div>
+        <div class="drawer-agent-alias">${alias}</div>
       </div>
       <span class="drawer-agent-time">${time}</span>
     </div>`;

@@ -134,7 +134,7 @@ async function main(): Promise<void> {
           // Streaming mode: send status updates to phone channel
           let lastStatus = "";
           let fullText = "";
-          for await (const event of executeAgentStreaming(match, msg, baseDir, config.mcps, config.service.claudeAccounts)) {
+          for await (const event of executeAgentStreaming(match, msg, baseDir, config.mcps, config.service.claudeAccounts, undefined, { skills: config.defaultSkills, mcps: config.defaultMcps, prompts: config.defaultPrompts, promptTrigger: config.promptTrigger })) {
             if (event.type === "status" && event.data !== lastStatus) {
               lastStatus = event.data;
               // Send status updates (throttle — only unique ones)
@@ -151,7 +151,7 @@ async function main(): Promise<void> {
           }
           response = response! || fullText || "No response from agent.";
         } else {
-          response = await executeAgent(match, msg, baseDir, config.mcps, config.service.claudeAccounts);
+          response = await executeAgent(match, msg, baseDir, config.mcps, config.service.claudeAccounts, { skills: config.defaultSkills, mcps: config.defaultMcps, prompts: config.defaultPrompts, promptTrigger: config.promptTrigger });
         }
       } finally {
         clearInterval(heartbeat);
@@ -209,7 +209,7 @@ async function main(): Promise<void> {
     };
 
     const route = { agentId, agentConfig: agent, route: agent.routes[0] };
-    const response = await executeAgent(route, syntheticMsg, baseDir, config.mcps, config.service.claudeAccounts);
+    const response = await executeAgent(route, syntheticMsg, baseDir, config.mcps, config.service.claudeAccounts, { skills: config.defaultSkills, mcps: config.defaultMcps, prompts: config.defaultPrompts, promptTrigger: config.promptTrigger });
 
     // Send response to the configured channel
     const driver = driverMap.get(channel);

@@ -845,7 +845,8 @@ html,body{
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn" href="/org" id="tabAgents">Agents</a>
-    <a class="tab-btn" href="/channels" id="tabConfigure">Configure</a>
+    <a class="tab-btn" href="/apps">Apps</a>
+    <a class="tab-btn" href="/marketplace" id="tabRegistry">Registry</a>
   </div>
   <div class="topbar-right">
     <input type="text" id="agentSearch" placeholder="Search agents..." oninput="handleSearch()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;width:160px;outline:none">
@@ -2828,15 +2829,17 @@ async function removeMonitoredId(chatId) {
 
 // Set active tab based on URL
 const isChannelsPage = location.pathname === '/channels';
-document.getElementById(isChannelsPage ? 'tabConfigure' : 'tabAgents')?.classList.add('active');
+document.getElementById('tabAgents')?.classList.add('active');
 
-// Render contextual sub-nav
+// Render contextual sub-nav (Agents section includes Channels)
 const subNav = document.getElementById('subNav');
-if (isChannelsPage) {
-  subNav.innerHTML = `<a class="sub-nav-link active" href="/channels">Channels</a><a class="sub-nav-link" href="/marketplace">Registry</a>`;
-} else {
-  subNav.innerHTML = `<a class="sub-nav-link active" href="/org">Org</a><a class="sub-nav-link" href="/activity">Activity</a><a class="sub-nav-link" href="/tasks">Tasks</a><a class="sub-nav-link" href="/automations">Automations</a>`;
-}
+const agentsSubNav = `
+  <a class="sub-nav-link${!isChannelsPage ? ' active' : ''}" href="/org">Org</a>
+  <a class="sub-nav-link${isChannelsPage ? ' active' : ''}" href="/channels">Channels</a>
+  <a class="sub-nav-link" href="/activity">Activity</a>
+  <a class="sub-nav-link" href="/tasks">Tasks</a>
+  <a class="sub-nav-link" href="/automations">Automations</a>`;
+subNav.innerHTML = agentsSubNav;
 if (isChannelsPage) {
   document.getElementById('orgSelect').style.display = 'none';
   document.getElementById('hideAllBtn').style.display = 'none';
