@@ -46,14 +46,15 @@ export function startWebUI(opts: WebUIOptions): void {
   app.use(express.json());
 
   // ─── Serve the Home page ─────────────────────────────────────────
-  app.get("/", (_req, res) => {
+  app.get("/", (_req, res) => res.redirect("/org"));
+
+  app.get("/home", (_req, res) => {
     const htmlPath = join(opts.baseDir, "public", "home.html");
     if (existsSync(htmlPath)) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(htmlPath);
     } else {
-      // Fallback to chat UI if home page doesn't exist
-      res.redirect("/ui");
+      res.redirect("/org");
     }
   });
 
