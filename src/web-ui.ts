@@ -7,7 +7,7 @@ import type { AppConfig } from "./config.js";
 import { getPersonalAgentsDir } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
-import { executeAgent, executeAgentStreaming } from "./executor.js";
+import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.js";
 import { executeGoal } from "./goals.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
@@ -138,6 +138,187 @@ export function startWebUI(opts: WebUIOptions): void {
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("Mini bar not found.");
+    }
+  });
+
+  app.get("/settings", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "settings.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Settings page not found.");
+    }
+  });
+
+  // ─── API: Claude Accounts ────────────────────────────────────────
+  const configFilePath = () => join(opts.baseDir, "config.json");
+
+  app.get("/api/config/accounts", (_req, res) => {
+    const accounts = opts.config.service.claudeAccounts || {};
+    res.json(accounts);
+  });
+
+  app.post("/api/config/accounts", (req, res) => {
+    const { name, path: cfgPath } = req.body as { name?: string; path?: string };
+    if (!name?.trim() || !cfgPath?.trim()) return res.status(400).json({ error: "name and path required" });
+    try {
+      const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+      if (!raw.service) raw.service = {};
+      if (!raw.service.claudeAccounts) raw.service.claudeAccounts = {};
+      raw.service.claudeAccounts[name.trim()] = cfgPath.trim();
+      writeFileSync(configFilePath(), JSON.stringify(raw, null, 2));
+      if (!opts.config.service.claudeAccounts) opts.config.service.claudeAccounts = {};
+      opts.config.service.claudeAccounts[name.trim()] = cfgPath.trim();
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/config/accounts/:name", (req, res) => {
+    const { name } = req.params;
+    try {
+      const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+      if (raw.service?.claudeAccounts) delete raw.service.claudeAccounts[name];
+      writeFileSync(configFilePath(), JSON.stringify(raw, null, 2));
+      if (opts.config.service.claudeAccounts) delete opts.config.service.claudeAccounts[name];
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Claude Account login flow ──────────────────────────────
+  // In-memory store of running `claude auth login` processes keyed by session id.
+  // The process stays alive waiting for the OAuth redirect so we don't kill it early.
+  const loginSessions = new Map<string, { proc: any; output: string; name: string; path: string }>();
+
+  // POST /api/config/accounts/login  { name, path }
+  // Spawns `claude auth login` with CLAUDE_CONFIG_DIR set, streams output until a
+  // URL appears, then returns { sessionId, url }.  Process keeps running.
+  app.post("/api/config/accounts/login", (req, res) => {
+    const { name, path: cfgPath } = req.body as { name?: string; path?: string };
+    if (!name?.trim() || !cfgPath?.trim()) return res.status(400).json({ error: "name and path required" });
+
+    const home = homedir();
+    const resolvedPath = cfgPath.trim().replace(/^~/, home);
+
+    // First check if already logged in
+    try {
+      const env: Record<string, string> = {};
+      for (const [k, v] of Object.entries(process.env)) { if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT") env[k] = v; }
+      env.CLAUDE_CONFIG_DIR = resolvedPath;
+      let status = "";
+      try { status = execSync("claude auth status 2>&1", { env, timeout: 8_000 }).toString().trim(); } catch { /* ignore */ }
+      if (status.toLowerCase().includes("logged in") || status.toLowerCase().includes("authenticated")) {
+        return res.json({ alreadyLoggedIn: true });
+      }
+    } catch { /* ignore */ }
+
+    // Spawn `claude auth login` — it will print an auth URL and keep running
+    const { spawn } = require("node:child_process");
+    const env: Record<string, string> = {};
+    for (const [k, v] of Object.entries(process.env)) { if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT") env[k] = v; }
+    env.CLAUDE_CONFIG_DIR = resolvedPath;
+
+    const proc = spawn("claude", ["auth", "login"], { env, stdio: ["pipe", "pipe", "pipe"] });
+    const sessionId = `login-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    let output = "";
+    loginSessions.set(sessionId, { proc, output, name: name.trim(), path: cfgPath.trim() });
+
+    let resolved = false;
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        res.status(408).json({ error: "Timed out waiting for login URL. Try again." });
+      }
+    }, 20_000);
+
+    const onData = (chunk: Buffer) => {
+      output += chunk.toString();
+      const session = loginSessions.get(sessionId);
+      if (session) session.output = output;
+
+      const urlMatch = output.match(/https?:\/\/[^\s\n]+/);
+      if (urlMatch && !resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        res.json({ sessionId, url: urlMatch[0].trim() });
+      }
+    };
+
+    proc.stdout.on("data", onData);
+    proc.stderr.on("data", onData);
+
+    proc.on("close", (code: number) => {
+      log.info(`[Auth] login process for "${name}" exited with code ${code}`);
+      loginSessions.delete(sessionId);
+    });
+  });
+
+  // POST /api/config/accounts/login/code  { sessionId, code }
+  // Sends the verification code to the waiting login process's stdin.
+  app.post("/api/config/accounts/login/code", (req, res) => {
+    const { sessionId, code } = req.body as { sessionId?: string; code?: string };
+    if (!sessionId || !code?.trim()) return res.status(400).json({ error: "sessionId and code required" });
+    const session = loginSessions.get(sessionId);
+    if (!session) return res.status(404).json({ error: "Login session not found or already completed" });
+    try {
+      session.proc.stdin.write(code.trim() + "\n");
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/config/accounts/:name/status
+  // Checks if a configured account is authenticated.
+  app.get("/api/config/accounts/:name/status", (req, res) => {
+    const { name } = req.params;
+    const home = homedir();
+    const cfgPath = opts.config.service.claudeAccounts?.[name];
+    if (!cfgPath) return res.status(404).json({ error: "Account not found" });
+    const resolvedPath = cfgPath.replace(/^~/, home);
+    try {
+      const { execSync: exec } = require("node:child_process");
+      const env: Record<string, string> = {};
+      for (const [k, v] of Object.entries(process.env)) { if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT") env[k] = v; }
+      env.CLAUDE_CONFIG_DIR = resolvedPath;
+      let status = "";
+      try { status = exec("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim(); } catch { /* not logged in */ }
+      const loggedIn = status.toLowerCase().includes("logged in") || status.toLowerCase().includes("authenticated");
+      res.json({ loggedIn, status });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Service settings (read/write top-level service fields) ──
+  app.get("/api/config/service", (_req, res) => {
+    const s = opts.config.service || {};
+    res.json({
+      personalAgentsDir: (s as any).personalAgentsDir || "~/Desktop/personalAgents",
+      webUIPort: (s as any).webUI?.port || 4888,
+      logLevel: (s as any).logLevel || "info",
+    });
+  });
+
+  app.put("/api/config/service", (req, res) => {
+    const { personalAgentsDir, webUIPort, logLevel } = req.body as any;
+    try {
+      const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+      if (!raw.service) raw.service = {};
+      if (personalAgentsDir !== undefined) raw.service.personalAgentsDir = personalAgentsDir;
+      if (logLevel !== undefined) raw.service.logLevel = logLevel;
+      if (webUIPort !== undefined) {
+        if (!raw.service.webUI) raw.service.webUI = {};
+        raw.service.webUI.port = Number(webUIPort);
+      }
+      writeFileSync(configFilePath(), JSON.stringify(raw, null, 2));
+      res.json({ ok: true, note: "Restart required for port/dir changes to take effect" });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 

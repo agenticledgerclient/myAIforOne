@@ -346,7 +346,7 @@ function clearModelOverride(memoryDir: string): void {
 
 // ─── Re-login handler ───────────────────────────────────────────────
 
-function handleRelogin(accountName: string, configDir?: string): string {
+export function handleRelogin(accountName: string, configDir?: string): string {
   try {
     const env = { ...process.env };
     delete env.CLAUDECODE;
