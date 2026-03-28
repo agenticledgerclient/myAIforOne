@@ -504,7 +504,7 @@ export function startWebUI(opts: WebUIOptions): void {
         advancedMemory: agent.advancedMemory ?? false,
         autonomousCapable: agent.autonomousCapable ?? true,
         autoCommit: agent.autoCommit ?? false,
-        timeout: agent.timeout ?? 600000,
+        timeout: agent.timeout ?? 14400000,
         tools: agent.allowedTools,
         org: agent.org || [],
         cron: agent.cron || [],
@@ -1744,7 +1744,7 @@ export function startWebUI(opts: WebUIOptions): void {
         mentionAliases: [normalAlias],
         autoCommit: autoCommit ?? false,
         allowedTools: tools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
-        timeout: timeout || 600000,
+        timeout: timeout || 14400000,
       };
 
       if (mcps && mcps.length > 0) agentConfig.mcps = mcps;

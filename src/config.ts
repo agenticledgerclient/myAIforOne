@@ -199,7 +199,7 @@ export function loadConfig(configPath: string): AppConfig {
     agent.autoCommit = agent.autoCommit ?? false;
     agent.autoCommitBranch = agent.autoCommitBranch ?? "main";
     agent.allowedTools = agent.allowedTools ?? ["Read", "Edit", "Write", "Glob", "Grep", "Bash"];
-    agent.timeout = agent.timeout ?? 600_000;
+    agent.timeout = agent.timeout ?? 14_400_000;
   }
 
   // Validate MCP definitions
