@@ -32,6 +32,8 @@ interface StreamJob {
   listeners: Set<(idx: number) => void>; // notify waiting SSE connections
 }
 const jobStore = new Map<string, StreamJob>();
+// Track last-used Claude account per agent (for web UI dropdown switching)
+const agentLastAccount = new Map<string, string>();
 
 // Cleanup stale jobs every 60s (keep for 10 min after done)
 setInterval(() => {
@@ -149,6 +151,16 @@ export function startWebUI(opts: WebUIOptions): void {
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("Settings page not found.");
+    }
+  });
+
+  app.get("/api-docs", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "api-docs.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("API docs not found.");
     }
   });
 
@@ -690,9 +702,13 @@ export function startWebUI(opts: WebUIOptions): void {
     if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
 
     // Apply account override from web UI dropdown.
-    // When the account changes, set forceNewSession so the executor doesn't
-    // try to --resume a session that belongs to a different account's history.
-    const accountChanged = accountOverride && accountOverride !== (agent.claudeAccount || "");
+    // Track last-used account per agent so we only force a new session on the
+    // actual transition, not on every subsequent message with the same override.
+    const effectiveAccount = accountOverride || agent.claudeAccount || "";
+    const lastAccount = agentLastAccount.get(agentId) || (agent.claudeAccount || "");
+    const accountChanged = effectiveAccount !== lastAccount;
+    if (effectiveAccount) agentLastAccount.set(agentId, effectiveAccount);
+
     const effectiveAgent = accountOverride
       ? { ...agent, claudeAccount: accountOverride, ...(accountChanged ? { forceNewSession: true } : {}) }
       : agent;
@@ -1769,10 +1785,14 @@ export function startWebUI(opts: WebUIOptions): void {
         },
       }));
 
-      // If no routes provided, skip (agent won't be routable until routes added)
+      // If no routes provided, add a default web route so agent is always reachable from Web UI
       if (agentConfig.routes.length === 0) {
-        // Add placeholder message
-        log.info(`Agent ${agentId} created without routes — add routes in config.json`);
+        agentConfig.routes.push({
+          channel: "web",
+          match: { type: "channel_id", value: "web-ui" },
+          permissions: { allowFrom: ["*"], requireMention: false },
+        });
+        log.info(`Agent ${agentId} created with default web route (no explicit routes provided)`);
       }
 
       // Update config.json
@@ -3188,6 +3208,450 @@ export function startWebUI(opts: WebUIOptions): void {
       res.status(501).json({ error: "Webhook handler not configured" });
     }
   });
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  NEW API ENDPOINTS — Sessions, Model, Cost, Pairing, Logs, Memory, Skills
+  // ═══════════════════════════════════════════════════════════════════
+
+  const home = homedir();
+  const tilde = (p: string) => p?.startsWith("~") ? p.replace("~", home) : p;
+
+  // Helper: resolve agent memoryDir
+  function agentMemDir(agentId: string): string | null {
+    const agent = opts.config.agents[agentId];
+    if (!agent) return null;
+    return tilde(agent.memoryDir || join(agent.agentHome || "", "memory"));
+  }
+
+  // ─── API: Sessions ──────────────────────────────────────────────────
+
+  // GET /api/agents/:agentId/sessions — list all sessions for an agent
+  app.get("/api/agents/:agentId/sessions", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    if (!existsSync(memDir)) return res.json({ sessions: [] });
+    try {
+      const files = readdirSync(memDir).filter(f => f.startsWith("session") && f.endsWith(".json"));
+      const sessions = files.map(f => {
+        try {
+          const data = JSON.parse(readFileSync(join(memDir, f), "utf-8"));
+          const senderMatch = f.match(/^session-(.+)\.json$/);
+          return {
+            senderId: senderMatch ? senderMatch[1] : "default",
+            sessionId: data.sessionId,
+            createdAt: data.createdAt,
+            messageCount: data.messageCount || 0,
+            file: f,
+          };
+        } catch { return null; }
+      }).filter(Boolean);
+      res.json({ sessions });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // POST /api/agents/:agentId/sessions/reset — reset session (optionally for a sender)
+  app.post("/api/agents/:agentId/sessions/reset", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const { senderId } = req.body as { senderId?: string };
+    const fileName = senderId ? `session-${senderId}.json` : "session.json";
+    const sessionPath = join(memDir, fileName);
+    if (!existsSync(sessionPath)) return res.json({ ok: true, message: "No session to reset" });
+    try {
+      const state = JSON.parse(readFileSync(sessionPath, "utf-8"));
+      unlinkSync(sessionPath);
+      res.json({ ok: true, previousMessages: state.messageCount || 0 });
+    } catch (e: any) {
+      try { unlinkSync(sessionPath); } catch { /* ignore */ }
+      res.json({ ok: true, message: "Session file removed" });
+    }
+  });
+
+  // DELETE /api/agents/:agentId/sessions/:senderId — delete a specific session
+  app.delete("/api/agents/:agentId/sessions/:senderId", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const fileName = req.params.senderId === "default" ? "session.json" : `session-${req.params.senderId}.json`;
+    const sessionPath = join(memDir, fileName);
+    if (!existsSync(sessionPath)) return res.status(404).json({ error: "Session not found" });
+    try { unlinkSync(sessionPath); res.json({ ok: true }); }
+    catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ─── API: Model Overrides ───────────────────────────────────────────
+
+  // GET /api/agents/:agentId/model — get current model override
+  app.get("/api/agents/:agentId/model", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const p = join(memDir, "model-override.json");
+    if (!existsSync(p)) return res.json({ model: null, isOverride: false });
+    try {
+      const data = JSON.parse(readFileSync(p, "utf-8"));
+      res.json({ model: data.model || null, isOverride: true });
+    } catch { res.json({ model: null, isOverride: false }); }
+  });
+
+  // PUT /api/agents/:agentId/model — set model override
+  app.put("/api/agents/:agentId/model", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const { model } = req.body as { model?: string };
+    if (!model?.trim()) return res.status(400).json({ error: "model required" });
+    const aliases: Record<string, string> = {
+      opus: "claude-opus-4-6", sonnet: "claude-sonnet-4-6",
+      haiku: "claude-haiku-4-5-20251001", "opus-4": "claude-opus-4-6", "sonnet-4": "claude-sonnet-4-6",
+    };
+    const resolved = aliases[model.trim().toLowerCase()] || model.trim();
+    writeFileSync(join(memDir, "model-override.json"), JSON.stringify({ model: resolved }));
+    res.json({ ok: true, model: resolved });
+  });
+
+  // DELETE /api/agents/:agentId/model — clear model override
+  app.delete("/api/agents/:agentId/model", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const p = join(memDir, "model-override.json");
+    if (existsSync(p)) try { unlinkSync(p); } catch { /* ignore */ }
+    res.json({ ok: true });
+  });
+
+  // ─── API: Cost Tracking ─────────────────────────────────────────────
+
+  // GET /api/agents/:agentId/cost?period=today|week|all — cost summary
+  app.get("/api/agents/:agentId/cost", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const logPath = join(memDir, "conversation_log.jsonl");
+    if (!existsSync(logPath)) return res.json({ today: 0, week: 0, allTime: 0, totalMessages: 0, entries: [] });
+    try {
+      const entries = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean)
+        .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      const sum = (arr: any[]) => arr.reduce((s: number, e: any) => s + (e.cost || 0), 0);
+      const today = new Date().toISOString().slice(0, 10);
+      const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+      const todayEntries = entries.filter((e: any) => e.ts?.startsWith(today));
+      const weekEntries = entries.filter((e: any) => e.ts >= weekAgo);
+
+      // Optional: return per-day breakdown
+      const byDay: Record<string, { cost: number; messages: number }> = {};
+      for (const e of entries) {
+        const day = e.ts?.slice(0, 10);
+        if (!day) continue;
+        if (!byDay[day]) byDay[day] = { cost: 0, messages: 0 };
+        byDay[day].cost += e.cost || 0;
+        byDay[day].messages += 1;
+      }
+
+      res.json({
+        today: sum(todayEntries),
+        week: sum(weekEntries),
+        allTime: sum(entries),
+        totalMessages: entries.length,
+        byDay,
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // GET /api/cost/all — cost summary across ALL agents
+  app.get("/api/cost/all", (_req, res) => {
+    const agents: Record<string, { today: number; week: number; allTime: number; messages: number }> = {};
+    const today = new Date().toISOString().slice(0, 10);
+    const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+    for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+      const memDir = tilde(agent.memoryDir || join(agent.agentHome || "", "memory"));
+      const logPath = join(memDir, "conversation_log.jsonl");
+      if (!existsSync(logPath)) continue;
+      try {
+        const entries = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean)
+          .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+        const sum = (arr: any[]) => arr.reduce((s: number, e: any) => s + (e.cost || 0), 0);
+        agents[agentId] = {
+          today: sum(entries.filter((e: any) => e.ts?.startsWith(today))),
+          week: sum(entries.filter((e: any) => e.ts >= weekAgo)),
+          allTime: sum(entries),
+          messages: entries.length,
+        };
+      } catch { /* skip */ }
+    }
+    res.json({ agents });
+  });
+
+  // ─── API: Pairing / Authorization ───────────────────────────────────
+
+  // GET /api/pairing — list paired senders
+  app.get("/api/pairing", (_req, res) => {
+    const storePath = join(opts.baseDir, "data", "paired-senders.json");
+    if (!existsSync(storePath)) return res.json({ paired: [], pairingEnabled: !!opts.config.service?.pairingCode });
+    try {
+      const data = JSON.parse(readFileSync(storePath, "utf-8")) as string[];
+      res.json({ paired: data, pairingEnabled: !!opts.config.service?.pairingCode });
+    } catch { res.json({ paired: [], pairingEnabled: !!opts.config.service?.pairingCode }); }
+  });
+
+  // POST /api/pairing — manually pair a sender
+  app.post("/api/pairing", (req, res) => {
+    const { senderKey } = req.body as { senderKey?: string };
+    if (!senderKey?.trim()) return res.status(400).json({ error: "senderKey required (format: channel:senderId)" });
+    const storePath = join(opts.baseDir, "data", "paired-senders.json");
+    let paired: string[] = [];
+    try { if (existsSync(storePath)) paired = JSON.parse(readFileSync(storePath, "utf-8")); } catch { /* fresh */ }
+    if (!paired.includes(senderKey.trim())) paired.push(senderKey.trim());
+    mkdirSync(join(opts.baseDir, "data"), { recursive: true });
+    writeFileSync(storePath, JSON.stringify(paired, null, 2));
+    res.json({ ok: true, paired });
+  });
+
+  // DELETE /api/pairing/:senderKey — unpair a sender
+  app.delete("/api/pairing/:senderKey", (req, res) => {
+    const storePath = join(opts.baseDir, "data", "paired-senders.json");
+    if (!existsSync(storePath)) return res.json({ ok: true });
+    try {
+      let paired = JSON.parse(readFileSync(storePath, "utf-8")) as string[];
+      paired = paired.filter(s => s !== req.params.senderKey);
+      writeFileSync(storePath, JSON.stringify(paired, null, 2));
+      res.json({ ok: true, paired });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ─── API: Conversation Logs ─────────────────────────────────────────
+
+  // GET /api/agents/:agentId/logs?limit=50&offset=0&search=keyword
+  app.get("/api/agents/:agentId/logs", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const logPath = join(memDir, "conversation_log.jsonl");
+    if (!existsSync(logPath)) return res.json({ entries: [], total: 0 });
+    try {
+      let entries = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean)
+        .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+
+      // Search filter
+      const search = req.query.search as string;
+      if (search) {
+        const q = search.toLowerCase();
+        entries = entries.filter((e: any) =>
+          (e.text || "").toLowerCase().includes(q) ||
+          (e.response || "").toLowerCase().includes(q)
+        );
+      }
+
+      const total = entries.length;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      // Return newest first
+      entries.reverse();
+      entries = entries.slice(offset, offset + limit);
+
+      res.json({ entries, total, limit, offset });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ─── API: Memory Management ─────────────────────────────────────────
+
+  // GET /api/agents/:agentId/memory?limit=20 — list memory entries (context.md + daily files)
+  app.get("/api/agents/:agentId/memory", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const entries: any[] = [];
+
+    // context.md
+    const ctxPath = join(memDir, "context.md");
+    if (existsSync(ctxPath)) {
+      try {
+        const content = readFileSync(ctxPath, "utf-8");
+        entries.push({ type: "context", file: "context.md", size: content.length, preview: content.slice(0, 500) });
+      } catch { /* skip */ }
+    }
+
+    // Daily memory files
+    const dailyDir = join(memDir, "daily");
+    if (existsSync(dailyDir)) {
+      try {
+        const files = readdirSync(dailyDir).filter(f => f.endsWith(".md")).sort().reverse();
+        const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+        for (const f of files.slice(0, limit)) {
+          try {
+            const content = readFileSync(join(dailyDir, f), "utf-8");
+            entries.push({ type: "daily", file: f, size: content.length, preview: content.slice(0, 500) });
+          } catch { /* skip */ }
+        }
+      } catch { /* skip */ }
+    }
+
+    // Memory index (if advanced memory is enabled)
+    const indexPath = join(memDir, "memory-index.json");
+    if (existsSync(indexPath)) {
+      try {
+        const idx = JSON.parse(readFileSync(indexPath, "utf-8"));
+        entries.push({ type: "index", file: "memory-index.json", chunks: Array.isArray(idx) ? idx.length : (idx.chunks?.length || 0) });
+      } catch { /* skip */ }
+    }
+
+    res.json({ entries });
+  });
+
+  // POST /api/agents/:agentId/memory/search — search memory (simple keyword)
+  app.post("/api/agents/:agentId/memory/search", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const { query } = req.body as { query?: string };
+    if (!query?.trim()) return res.status(400).json({ error: "query required" });
+    const q = query.toLowerCase();
+    const results: any[] = [];
+
+    // Search context.md
+    const ctxPath = join(memDir, "context.md");
+    if (existsSync(ctxPath)) {
+      const content = readFileSync(ctxPath, "utf-8");
+      if (content.toLowerCase().includes(q)) {
+        results.push({ file: "context.md", type: "context", snippet: extractSnippet(content, q) });
+      }
+    }
+
+    // Search daily files
+    const dailyDir = join(memDir, "daily");
+    if (existsSync(dailyDir)) {
+      for (const f of readdirSync(dailyDir).filter(f => f.endsWith(".md")).sort().reverse()) {
+        const content = readFileSync(join(dailyDir, f), "utf-8");
+        if (content.toLowerCase().includes(q)) {
+          results.push({ file: `daily/${f}`, type: "daily", snippet: extractSnippet(content, q) });
+        }
+        if (results.length >= 20) break;
+      }
+    }
+
+    res.json({ results, query });
+  });
+
+  // DELETE /api/agents/:agentId/memory/context — clear context.md
+  app.delete("/api/agents/:agentId/memory/context", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const ctxPath = join(memDir, "context.md");
+    if (existsSync(ctxPath)) writeFileSync(ctxPath, "");
+    res.json({ ok: true });
+  });
+
+  // ─── API: Skills ────────────────────────────────────────────────────
+
+  // GET /api/agents/:agentId/skills — list all skills available to an agent
+  app.get("/api/agents/:agentId/skills", (req, res) => {
+    const agent = opts.config.agents[req.params.agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    const memDir = tilde(agent.memoryDir || join(agent.agentHome || "", "memory"));
+    const claudeDir = join(home, ".claude", "commands");
+    const personalDir = join(tilde(getPersonalAgentsDir(opts.config)), "skills");
+    const agentSkillsDir = join(memDir, "..", "skills");
+    const orgNames = (agent.org || []).map((o: any) => o.organization).filter(Boolean);
+
+    const skills: any[] = [];
+
+    // Shared skills (explicitly configured)
+    for (const name of (agent.skills || [])) {
+      const personalPath = join(personalDir, `${name}.md`);
+      const claudePath = join(claudeDir, `${name}.md`);
+      const filePath = existsSync(personalPath) ? personalPath : existsSync(claudePath) ? claudePath : null;
+      if (filePath) {
+        try {
+          const content = readFileSync(filePath, "utf-8");
+          const descMatch = content.match(/description:\s*(.+)/);
+          const scriptsMatch = content.match(/scripts:\s*(.+)/);
+          skills.push({
+            name, level: "shared", path: filePath,
+            description: descMatch?.[1]?.trim() || "",
+            scripts: scriptsMatch?.[1]?.trim() || null,
+          });
+        } catch { skills.push({ name, level: "shared", path: filePath, description: "" }); }
+      }
+    }
+
+    // Org-scoped skills (auto-discovered)
+    for (const org of orgNames) {
+      const orgDir = join(tilde(getPersonalAgentsDir(opts.config)), org, "skills");
+      if (!existsSync(orgDir)) continue;
+      for (const f of readdirSync(orgDir).filter((f: string) => f.endsWith(".md"))) {
+        const name = f.replace(".md", "");
+        const filePath = join(orgDir, f);
+        try {
+          const content = readFileSync(filePath, "utf-8");
+          const descMatch = content.match(/description:\s*(.+)/);
+          const scriptsMatch = content.match(/scripts:\s*(.+)/);
+          skills.push({
+            name, level: "org", org, path: filePath,
+            description: descMatch?.[1]?.trim() || "",
+            scripts: scriptsMatch?.[1]?.trim() || null,
+          });
+        } catch { skills.push({ name, level: "org", org, path: filePath, description: "" }); }
+      }
+    }
+
+    // Agent-specific skills
+    for (const name of (agent.agentSkills || [])) {
+      const filePath = join(agentSkillsDir, `${name}.md`);
+      if (!existsSync(filePath)) continue;
+      try {
+        const content = readFileSync(filePath, "utf-8");
+        const descMatch = content.match(/description:\s*(.+)/);
+        const scriptsMatch = content.match(/scripts:\s*(.+)/);
+        skills.push({
+          name, level: "agent", path: filePath,
+          description: descMatch?.[1]?.trim() || "",
+          scripts: scriptsMatch?.[1]?.trim() || null,
+        });
+      } catch { skills.push({ name, level: "agent", path: filePath, description: "" }); }
+    }
+
+    res.json({ skills });
+  });
+
+  // GET /api/skills/org/:orgName — list all skills in an org
+  app.get("/api/skills/org/:orgName", (req, res) => {
+    const orgDir = join(tilde(getPersonalAgentsDir(opts.config)), req.params.orgName, "skills");
+    if (!existsSync(orgDir)) return res.json({ skills: [], org: req.params.orgName });
+    try {
+      const skills = readdirSync(orgDir).filter((f: string) => f.endsWith(".md")).map(f => {
+        const name = f.replace(".md", "");
+        const filePath = join(orgDir, f);
+        try {
+          const content = readFileSync(filePath, "utf-8");
+          const descMatch = content.match(/description:\s*(.+)/);
+          const scriptsMatch = content.match(/scripts:\s*(.+)/);
+          const hasScripts = scriptsMatch ? existsSync(join(orgDir, scriptsMatch[1].trim().replace(/\/$/, ""))) : false;
+          return { name, path: filePath, description: descMatch?.[1]?.trim() || "", scripts: scriptsMatch?.[1]?.trim() || null, hasScripts };
+        } catch { return { name, path: filePath, description: "" }; }
+      });
+      res.json({ skills, org: req.params.orgName });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ─── API: Sticky Routing ────────────────────────────────────────────
+
+  // GET /api/sticky-routing — show active sticky assignments
+  app.get("/api/sticky-routing", (_req, res) => {
+    // Sticky state is in-memory in router.ts — we can read the data dir for channel configs
+    const channelConfigs: any[] = [];
+    for (const [name, ch] of Object.entries(opts.config.channels)) {
+      const cfg = ch.config as Record<string, any>;
+      channelConfigs.push({
+        channel: name,
+        stickyRouting: cfg.stickyRouting || "prefix",
+        stickyPrefix: cfg.stickyPrefix || "!",
+        stickyTimeoutMs: cfg.stickyTimeoutMs || 300000,
+      });
+    }
+    res.json({ channels: channelConfigs });
+  });
+
+  // ─── Helper: extract snippet around keyword ─────────────────────────
+  function extractSnippet(text: string, keyword: string, radius: number = 100): string {
+    const idx = text.toLowerCase().indexOf(keyword.toLowerCase());
+    if (idx === -1) return text.slice(0, 200);
+    const start = Math.max(0, idx - radius);
+    const end = Math.min(text.length, idx + keyword.length + radius);
+    return (start > 0 ? "..." : "") + text.slice(start, end) + (end < text.length ? "..." : "");
+  }
 
   // ─── Health check ─────────────────────────────────────────────────
   app.get("/health", (_req, res) => {

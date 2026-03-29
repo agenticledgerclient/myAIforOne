@@ -149,10 +149,14 @@ export function loadConfig(configPath: string): AppConfig {
     throw new Error("At least one channel must be enabled");
   }
 
-  // Validate each agent has at least one route
-  for (const [id, agent] of Object.entries(config.agents)) {
+  // Validate each agent has at least one route — skip broken agents instead of crashing
+  const agentIds = Object.keys(config.agents);
+  for (const id of agentIds) {
+    const agent = config.agents[id];
     if (!agent.routes || agent.routes.length === 0) {
-      throw new Error(`Agent "${id}" must have at least one route`);
+      console.warn(`[config] Skipping agent "${id}" — no routes defined`);
+      delete config.agents[id];
+      continue;
     }
     if (!agent.workspace) {
       throw new Error(`Agent "${id}" must have a workspace path`);
