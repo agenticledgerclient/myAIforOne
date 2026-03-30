@@ -4051,6 +4051,47 @@ export function startWebUI(opts: WebUIOptions): void {
   }
 
   // ─── Health check ─────────────────────────────────────────────────
+  // ─── API: Changelog (parsed from git log) ────────────────────────
+  app.get("/api/changelog", (_req, res) => {
+    try {
+      const raw = execSync(
+        `git log --format='COMMIT_START%n%h%n%ci%n%s%n%b%nCOMMIT_END' -100`,
+        { cwd: opts.baseDir, timeout: 10_000 },
+      ).toString();
+
+      const commits = raw.split("COMMIT_START\n").filter(Boolean).map(block => {
+        const lines = block.replace(/\nCOMMIT_END\n?$/, "").split("\n");
+        const hash = lines[0];
+        const date = lines[1];
+        const subject = lines[2] || "";
+        const body = lines.slice(3).join("\n").trim();
+
+        // Parse conventional commit prefix
+        const prefixMatch = subject.match(/^(feat|fix|refactor|docs|chore|perf|test|style|ci|build)(\(.+?\))?:\s*/i);
+        const type = prefixMatch ? prefixMatch[1].toLowerCase() : "other";
+        const title = prefixMatch ? subject.slice(prefixMatch[0].length) : subject;
+
+        return { hash, date, type, title, body: body.replace(/Co-Authored-By:.*$/gm, "").trim() };
+      }).filter(c => ["feat", "fix", "refactor", "docs", "perf"].includes(c.type));
+
+      // Group by date
+      const grouped: Record<string, typeof commits> = {};
+      for (const c of commits) {
+        const day = c.date.split(" ")[0]; // YYYY-MM-DD
+        if (!grouped[day]) grouped[day] = [];
+        grouped[day].push(c);
+      }
+
+      res.json({ days: grouped });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/changelog", (_req, res) => {
+    res.sendFile(resolve(opts.baseDir, "public", "changelog.html"));
+  });
+
   app.get("/health", (_req, res) => {
     res.json({ ok: true, uptime: process.uptime() });
   });

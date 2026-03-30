@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — Changelog</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;--bg-surface:rgba(12,18,33,0.92);--bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);--border-dim:rgba(56,189,248,0.08);--border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);--text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);--text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;--accent-bg:rgba(6,182,212,0.15);
+  --purple:rgba(139,92,246,0.7);--purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);--radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;--font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);--border-dim:rgba(0,0,0,0.08);--border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);--text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);--text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
+  --purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);
+  --red:#dc2626;--red-bg:rgba(220,38,38,0.08);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+}
+html,body{width:100%;height:100%;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+/* Topbar */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:48px;z-index:100;
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+  background:var(--bg-surface);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border-dim);
+}
+.topbar-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--accent)}
+.logo-text{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent)}
+.tab-group{display:flex;gap:4px;margin-left:24px}
+.tab-btn{font-family:var(--font-sans);font-size:12px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:6px 12px;border-radius:6px;transition:all .2s}
+.tab-btn:hover{color:var(--text-secondary);background:var(--bg-input)}
+.tab-btn.active{color:var(--accent);background:var(--accent-bg)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.theme-toggle,.gear-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;text-decoration:none}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* Page */
+.page{padding:68px 24px 40px;max-width:720px;margin:0 auto;overflow-y:auto;height:100vh}
+.page-title{font-family:var(--font-display);font-size:24px;font-weight:800;margin-bottom:4px}
+.page-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:24px}
+
+/* Filters */
+.filter-bar{display:flex;gap:4px;margin-bottom:24px;flex-wrap:wrap}
+.filter-pill{padding:4px 12px;border-radius:16px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s}
+.filter-pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.filter-pill.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+/* Timeline */
+.day-group{margin-bottom:28px}
+.day-label{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;padding-left:20px;position:relative}
+.day-label::before{content:'';position:absolute;left:0;top:50%;width:12px;height:2px;background:var(--border-glow);border-radius:1px}
+
+.commit-card{
+  padding:12px 16px;margin-bottom:6px;border-radius:10px;
+  border:1px solid var(--border-dim);background:var(--bg-card);
+  cursor:pointer;transition:all .2s;
+}
+.commit-card:hover{border-color:var(--border-glow);transform:translateY(-1px);box-shadow:var(--shadow)}
+.commit-top{display:flex;align-items:center;gap:8px}
+.commit-type{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0}
+.commit-type.feat{background:var(--green-bg);color:var(--green)}
+.commit-type.fix{background:var(--accent-bg);color:var(--accent)}
+.commit-type.refactor{background:var(--purple-bg);color:var(--purple)}
+.commit-type.docs{background:var(--amber-bg);color:var(--amber)}
+.commit-type.perf{background:var(--red-bg);color:var(--red)}
+.commit-title{font-size:13px;font-weight:600;flex:1;line-height:1.4}
+.commit-hash{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);flex-shrink:0}
+.commit-body{
+  display:none;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--border-dim);
+  font-size:12px;color:var(--text-secondary);line-height:1.7;
+  white-space:pre-wrap;font-family:var(--font-sans);
+}
+.commit-card.open .commit-body{display:block}
+.commit-time{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:6px}
+
+.empty{padding:40px;text-align:center;color:var(--text-muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="topbar-logo" href="/home">
+    <div class="logo-mark">A</div>
+    <div class="logo-text">MyAIforOne</div>
+  </a>
+  <div class="tab-group">
+    <a class="tab-btn" href="/org">Agents</a>
+    <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn" href="/marketplace">Registry</a>
+    <a class="tab-btn" href="/lab">Lab</a>
+  </div>
+  <div class="topbar-right">
+    <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-title">Changelog</div>
+  <div class="page-subtitle">Product updates and improvements, auto-generated from commit history.</div>
+
+  <div class="filter-bar" id="filterBar">
+    <button class="filter-pill active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-pill" onclick="setFilter('feat',this)">Features</button>
+    <button class="filter-pill" onclick="setFilter('fix',this)">Fixes</button>
+    <button class="filter-pill" onclick="setFilter('refactor',this)">Refactors</button>
+    <button class="filter-pill" onclick="setFilter('docs',this)">Docs</button>
+  </div>
+
+  <div id="content"><div class="empty">Loading changelog...</div></div>
+</div>
+
+<script>
+// Theme
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('theme',t)}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')}
+applyTheme(localStorage.getItem('theme')||'dark');
+
+let allData = {};
+let currentFilter = 'all';
+
+async function loadChangelog() {
+  try {
+    const res = await fetch('/api/changelog');
+    const { days } = await res.json();
+    allData = days;
+    render();
+  } catch {
+    document.getElementById('content').innerHTML = '<div class="empty">Failed to load changelog.</div>';
+  }
+}
+
+function setFilter(type, btn) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function formatTime(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function render() {
+  const el = document.getElementById('content');
+  const sortedDays = Object.keys(allData).sort().reverse();
+
+  let html = '';
+  let total = 0;
+
+  for (const day of sortedDays) {
+    let commits = allData[day];
+    if (currentFilter !== 'all') commits = commits.filter(c => c.type === currentFilter);
+    if (!commits.length) continue;
+
+    html += `<div class="day-group">`;
+    html += `<div class="day-label">${formatDate(day)}</div>`;
+
+    for (const c of commits) {
+      total++;
+      const bodyHtml = c.body ? `<div class="commit-body">${esc(c.body)}</div>` : '';
+      html += `<div class="commit-card${c.body ? '' : ' no-expand'}" onclick="${c.body ? "this.classList.toggle('open')" : ''}">
+        <div class="commit-top">
+          <span class="commit-type ${c.type}">${c.type}</span>
+          <span class="commit-title">${esc(c.title)}</span>
+          <a class="commit-hash" href="https://github.com/agenticledgerclient/myAIforOne/commit/${c.hash}" target="_blank" onclick="event.stopPropagation()">${c.hash}</a>
+        </div>
+        ${bodyHtml}
+      </div>`;
+    }
+
+    html += '</div>';
+  }
+
+  if (!total) {
+    html = '<div class="empty">No changes found' + (currentFilter !== 'all' ? ' for this filter' : '') + '.</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+loadChangelog();
+</script>
+</body>
+</html>

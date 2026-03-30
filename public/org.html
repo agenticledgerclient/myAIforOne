@@ -880,6 +880,7 @@ text-decoration:none;}
     <button class="add-agent-btn-top" id="newAgentBtn" onclick="openModal(null)">
       <span style="font-size:16px">+</span> New Agent
     </button>
+    <a href="/changelog" class="gear-btn" title="Changelog">&#x29C9;</a>
     <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
   </div>
@@ -1423,7 +1424,7 @@ function renderOrg() {
   const selBtnClass = selHidden ? ' active' : '';
   const selBtnIcon = selHidden ? '&#x1f6ab;' : '&#x1f441;';
   const selBtnLabel = selHidden ? 'Hidden' : 'Hide Names';
-  let html = `<div class="org-title-banner" style="display:flex;align-items:center">${escapeHtml(selected)}<button class="hide-names-btn${selBtnClass}" onclick="toggleHideOrg('${escapeHtml(selected).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${selBtnIcon} ${selBtnLabel}</button></div>`;
+  let html = `<div class="org-title-banner" style="display:flex;align-items:center"><span class="${selHidden ? 'name-blurred' : ''}">${escapeHtml(selected)}</span><button class="hide-names-btn${selBtnClass}" onclick="toggleHideOrg('${escapeHtml(selected).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${selBtnIcon} ${selBtnLabel}</button></div>`;
   html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:0 20px 20px">';
   for (let i = 0; i < levels.length; i++) {
     if (i > 0) html += '<div class="level-connector"></div>';
@@ -1468,7 +1469,7 @@ function renderFlatGrid(canvas) {
     const oBtnClass = oHidden ? ' active' : '';
     const oBtnIcon = oHidden ? '&#x1f6ab;' : '&#x1f441;';
     const oBtnLabel = oHidden ? 'Hidden' : 'Hide Names';
-    html += `<div class="org-title-banner" style="display:flex;align-items:center">${escapeHtml(orgName)}<button class="hide-names-btn${oBtnClass}" onclick="toggleHideOrg('${escapeHtml(orgName).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${oBtnIcon} ${oBtnLabel}</button></div>`;
+    html += `<div class="org-title-banner" style="display:flex;align-items:center"><span class="${oHidden ? 'name-blurred' : ''}">${escapeHtml(orgName)}</span><button class="hide-names-btn${oBtnClass}" onclick="toggleHideOrg('${escapeHtml(orgName).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${oBtnIcon} ${oBtnLabel}</button></div>`;
     html += '<div class="flat-grid">';
     for (const a of [...orgGroups[orgName]].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
       html += renderNode(a, false, false, oHidden);
