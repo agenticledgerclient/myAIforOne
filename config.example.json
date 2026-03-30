@@ -267,5 +267,13 @@
 
   "agents": {},
 
-  "defaultAgent": null
+  "defaultAgent": null,
+  "defaultSkills": [],
+  "defaultMcps": [],
+  "deployment": {
+    "provider": "railway",
+    "deployToken": "",
+    "githubOrg": "",
+    "githubToken": ""
+  }
 }

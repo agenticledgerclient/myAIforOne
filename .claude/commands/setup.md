@@ -145,7 +145,11 @@ Read `config.example.json` as the template. Fill in the user's credentials:
 // 3. Fill in tokens for enabled channels
 // 4. Set webUI.enabled = true, port = 4888
 // 5. Set a random webhookSecret
-// 6. Write to config.json
+// 6. Add defaultSkills: ["op_devbrowser"] (if the skill file exists)
+// 7. Add defaultMcps: []
+// 8. Add the "myaiforone" MCP entry pointing to the local MCP server:
+//    "myaiforone": { "type": "stdio", "command": "node", "args": ["<PROJECT_PATH>/server/mcp-server/dist/index.js"], "env": { "MYAGENT_API_URL": "http://localhost:4888" } }
+// 9. Write to config.json
 ```
 
 Generate a random webhook secret: use `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`.
@@ -274,7 +278,7 @@ You have access to 39 pre-hosted HTTP MCP servers via `mcp-catalog.json` in the 
 - After creating an agent, give a short summary: name, alias, channels, and how to reach it
 ```
 
-**Config:** `skills: ["opAgents_AddNew"]`, `mcps: [all 39 from mcp-catalog.json]`, `timeout: 600000`, all tools, `autonomousCapable: false`, `workspace: GATEWAY_PROJECT_PATH`
+**Config:** `skills: ["opAgents_AddNew"]`, `mcps: ["myaiforone"]`, `timeout: 14400000`, all tools, `autonomousCapable: false`, `agentClass: "platform"`, `workspace: GATEWAY_PROJECT_PATH`
 
 ### Agent 2: Daily Digest (@digest)
 
@@ -434,8 +438,9 @@ When asked about markets, use WebSearch to find current data and WebFetch to hit
 
 ### All PlatformOrg agents share:
 - `persistent: true`, `streaming: true`
+- `agentClass: "platform"` (hidden from /org default view, accessible via Lab and filter)
 - `org: [{ "organization": "PlatformOrg", "function": "Platform", "title": "<varies>", "reportsTo": "" }]`
-- `timeout: 120000` (except agentcreator: 600000)
+- `timeout: 14400000`
 - `autoCommit: false`
 
 Replace `USE_FIRST_ENABLED_CHANNEL` and `USE_FIRST_ENABLED_CHAT_ID` with the actual first enabled channel and its chat ID from the user's setup.
