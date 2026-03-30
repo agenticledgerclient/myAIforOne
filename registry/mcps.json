@@ -1056,6 +1056,189 @@
         "type": "http",
         "url": "https://youtubemcp.agenticledger.ai/mcp"
       }
+    },
+    {
+      "id": "myaiforone",
+      "name": "MyAIforOne Gateway",
+      "provider": "AgenticLedger",
+      "description": "Control the MyAgent gateway programmatically — manage agents, send messages, check costs, reset sessions, assign tasks, configure channels, and more. 81 MCP tools wrapping all platform APIs.",
+      "category": "Platform",
+      "verified": true,
+      "source": "local",
+      "tags": [
+        "platform",
+        "agents",
+        "gateway",
+        "management"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "stdio",
+        "command": "node",
+        "args": [
+          "server/mcp-server/dist/index.js"
+        ]
+      }
+    },
+    {
+      "id": "asana",
+      "name": "asana",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "stdio",
+        "args": []
+      }
+    },
+    {
+      "id": "context7",
+      "name": "context7",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@upstash/context7-mcp"
+        ]
+      }
+    },
+    {
+      "id": "firebase",
+      "name": "firebase",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "firebase-tools@latest",
+          "mcp"
+        ]
+      }
+    },
+    {
+      "id": "playwright",
+      "name": "playwright",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "@playwright/mcp@latest"
+        ]
+      }
+    },
+    {
+      "id": "serena",
+      "name": "serena",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "stdio",
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/oraios/serena",
+          "serena",
+          "start-mcp-server"
+        ]
+      }
+    },
+    {
+      "id": "slack",
+      "name": "slack",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "http",
+        "url": "https://mcp.slack.com/mcp"
+      }
+    },
+    {
+      "id": "financeiscooked",
+      "name": "financeiscooked",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "stdio",
+        "command": "node",
+        "args": [
+          "~/Desktop/APPs/financeiscookedplatform/mcp-server/dist/index.js"
+        ]
+      }
+    },
+    {
+      "id": "mcp-test-registry-entry",
+      "name": "MCP Test Registry Entry",
+      "provider": "me",
+      "description": "Test entry from MCP test suite",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "requiredKeys": [],
+      "fetch": {
+        "type": "local",
+        "command": "node",
+        "args": [
+          "/tmp/test-mcp.js"
+        ]
+      }
     }
   ]
 }

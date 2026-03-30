@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — MCP Tools Documentation</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060a13;--surface:rgba(12,18,33,0.95);--card:rgba(16,22,40,0.85);
+  --input:rgba(0,0,0,0.35);--border:rgba(56,189,248,0.08);--border-glow:rgba(56,189,248,0.18);
+  --text:#e2e8f0;--text-dim:#94a3b8;--text-muted:rgba(148,163,184,0.5);
+  --accent:#22d3ee;--accent-bg:rgba(6,182,212,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --font:'DM Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace;--display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg:#f4f6f9;--surface:rgba(255,255,255,0.95);--card:rgba(255,255,255,0.9);
+  --input:rgba(0,0,0,0.04);--border:rgba(0,0,0,0.08);--border-glow:rgba(14,116,144,0.18);
+  --text:#0f172a;--text-dim:#475569;--text-muted:rgba(100,116,139,0.5);
+  --accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);
+  --purple:#7c3aed;--purple-bg:rgba(124,58,237,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--font);color:var(--text)}
+.layout{display:flex;height:100vh}
+.sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.main{flex:1;overflow-y:auto;padding:24px 32px}
+.sidebar-header{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+.sidebar-title{font-family:var(--display);font-size:14px;font-weight:800;color:var(--purple);margin-bottom:2px}
+.sidebar-sub{font-size:10px;color:var(--text-muted)}
+.sidebar-search{width:100%;padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--input);color:var(--text);font-family:var(--font);font-size:12px;outline:none;margin-top:8px}
+.sidebar-search:focus{border-color:var(--border-glow)}
+.sidebar-search::placeholder{color:var(--text-muted)}
+.sidebar-body{flex:1;overflow-y:auto;padding:8px 0}
+.sidebar-body::-webkit-scrollbar{width:3px}
+.sidebar-body::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:2px}
+.cat-header{display:flex;align-items:center;gap:6px;padding:6px 16px;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.cat-header:hover{color:var(--purple)}
+.cat-header .count{margin-left:auto;font-size:9px;color:var(--text-muted)}
+.cat-header .arrow{font-size:8px;transition:transform .2s}
+.cat-header.open .arrow{transform:rotate(90deg)}
+.cat-items{display:none;padding:0 8px 4px}
+.cat-header.open + .cat-items{display:block}
+.tool-item{padding:5px 8px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--mono);color:var(--text-dim);transition:background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tool-item:hover{background:var(--purple-bg);color:var(--text)}
+.tool-item.active{background:var(--purple-bg);color:var(--purple);border-left:2px solid var(--purple)}
+.sidebar-nav{padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0}
+.sidebar-nav a{font-size:10px;color:var(--text-muted);text-decoration:none;padding:3px 8px;border-radius:5px;border:1px solid var(--border);transition:all .2s}
+.sidebar-nav a:hover{border-color:var(--border-glow);color:var(--text-dim)}
+.sidebar-nav a.active{border-color:var(--purple);color:var(--purple);background:var(--purple-bg)}
+
+/* Main */
+.overview h1{font-family:var(--display);font-size:26px;font-weight:800;margin-bottom:4px}
+.overview .sub{color:var(--text-dim);font-size:13px;margin-bottom:20px}
+.stat-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.stat{padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);min-width:100px}
+.stat-val{font-family:var(--display);font-size:20px;font-weight:800;color:var(--purple)}
+.stat-label{font-size:10px;color:var(--text-muted)}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.cat-card{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);cursor:pointer;transition:all .2s}
+.cat-card:hover{border-color:var(--border-glow)}
+.cat-card-name{font-family:var(--display);font-size:12px;font-weight:700;color:var(--purple)}
+.cat-card-count{font-size:10px;color:var(--text-muted)}
+
+/* Tool detail */
+.tool-detail{max-width:800px}
+.tool-name{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--purple);margin-bottom:4px}
+.tool-desc{color:var(--text-dim);font-size:13px;margin-bottom:16px}
+.tool-cat-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--purple-bg);color:var(--purple);margin-bottom:12px;display:inline-block}
+.section{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.section-title{padding:10px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border)}
+.section-body{padding:14px}
+.param-row{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.param-row:last-child{border-bottom:none}
+.param-name{font-family:var(--mono);font-weight:600;color:var(--accent);min-width:120px}
+.param-type{font-family:var(--mono);font-size:10px;color:var(--text-muted);min-width:60px}
+.param-req{font-size:9px;font-weight:700;color:var(--amber);min-width:55px}
+.param-desc{color:var(--text-dim);flex:1}
+.example-box{background:#0d1117;border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.6;color:#e6edf3;position:relative;white-space:pre-wrap;border:1px solid rgba(255,255,255,0.05)}
+.copy-btn{position:absolute;top:6px;right:6px;padding:2px 7px;border-radius:4px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text-dim);font-size:9px;cursor:pointer}
+.copy-btn:hover{background:rgba(255,255,255,0.1);color:var(--text)}
+.connect-box{padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--card);margin-top:16px}
+.connect-title{font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:6px}
+.theme-btn{position:fixed;top:12px;right:12px;z-index:10;width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px}
+</style>
+</head>
+<body>
+<button class="theme-btn" onclick="toggleTheme()">&#9728;</button>
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">MCP Tools</div>
+      <div class="sidebar-sub">MyAIforOne Agent Gateway</div>
+      <input class="sidebar-search" id="search" placeholder="Search tools..." oninput="filterTools()">
+    </div>
+    <div class="sidebar-body" id="sidebarBody"></div>
+    <div class="sidebar-nav">
+      <a href="#" class="active" id="navOverview" onclick="showOverview();return false">Overview</a>
+      <a href="/api-docs" target="_blank">REST API</a>
+      <a href="/" target="_blank">Home</a>
+    </div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+// ═══ TOOL CATALOG ════════════════════════════════════════════════════
+const TOOLS = [
+  // Dashboard
+  {cat:"Dashboard",name:"health_check",desc:"Check if the MyAgent gateway is running",params:[]},
+  {cat:"Dashboard",name:"get_dashboard",desc:"Get full dashboard: all agents, channels, accounts, uptime",params:[]},
+
+  // Agents
+  {cat:"Agents",name:"list_agents",desc:"List all agents, optionally filtered by organization",params:[{n:"org",t:"string",r:false,d:"Filter by organization name"}]},
+  {cat:"Agents",name:"get_agent",desc:"Get detailed info about a specific agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Agents",name:"get_agent_instructions",desc:"Get an agent's CLAUDE.md system prompt",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Agents",name:"create_agent",desc:"Create a new agent with full configuration",params:[{n:"agentId",t:"string",r:true,d:"Unique ID (lowercase, hyphens)"},{n:"name",t:"string",r:true},{n:"alias",t:"string",r:true,d:"e.g. @myagent"},{n:"description",t:"string",r:false},{n:"workspace",t:"string",r:false},{n:"organization",t:"string",r:false},{n:"function",t:"string",r:false},{n:"title",t:"string",r:false},{n:"persistent",t:"boolean",r:false},{n:"streaming",t:"boolean",r:false},{n:"advancedMemory",t:"boolean",r:false},{n:"autonomousCapable",t:"boolean",r:false},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"prompts",t:"string[]",r:false},{n:"subAgents",t:"string[]|'*'",r:false,d:"Sub-agents for group agent"},{n:"claudeAccount",t:"string",r:false},{n:"timeout",t:"number",r:false,d:"Timeout in ms"}]},
+  {cat:"Agents",name:"update_agent",desc:"Update an existing agent's configuration",params:[{n:"agentId",t:"string",r:true},{n:"name",t:"string",r:false},{n:"alias",t:"string",r:false},{n:"instructions",t:"string",r:false,d:"Update CLAUDE.md content"},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"timeout",t:"number",r:false}]},
+  {cat:"Agents",name:"delete_agent",desc:"Delete an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Agents",name:"recover_agent",desc:"Recover agent from session corruption",params:[{n:"agentId",t:"string",r:true}]},
+
+  // Chat
+  {cat:"Chat",name:"send_message",desc:"Send a message to an agent and get the response",params:[{n:"agentId",t:"string",r:true},{n:"text",t:"string",r:true},{n:"accountOverride",t:"string",r:false,d:"Use a different Claude account"}]},
+  {cat:"Chat",name:"delegate_message",desc:"Send a message between agents (inter-agent delegation)",params:[{n:"agentId",t:"string",r:true,d:"Target agent ID"},{n:"text",t:"string",r:true}]},
+
+  // Sessions
+  {cat:"Sessions",name:"list_sessions",desc:"List active conversation sessions for an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Sessions",name:"reset_session",desc:"Reset an agent's conversation session",params:[{n:"agentId",t:"string",r:true},{n:"senderId",t:"string",r:false,d:"Specific sender to reset"}]},
+  {cat:"Sessions",name:"delete_session",desc:"Delete a specific sender's session",params:[{n:"agentId",t:"string",r:true},{n:"senderId",t:"string",r:true}]},
+
+  // Model
+  {cat:"Model",name:"get_model",desc:"Get the current model override for an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Model",name:"set_model",desc:"Set a model override (opus, sonnet, haiku, or full ID)",params:[{n:"agentId",t:"string",r:true},{n:"model",t:"string",r:true,d:"opus | sonnet | haiku | full model ID"}]},
+  {cat:"Model",name:"clear_model",desc:"Clear model override, use agent default",params:[{n:"agentId",t:"string",r:true}]},
+
+  // Cost
+  {cat:"Cost",name:"get_agent_cost",desc:"Cost breakdown: today, week, all-time, by-day",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Cost",name:"get_all_costs",desc:"Cost summary across ALL agents",params:[]},
+
+  // Skills
+  {cat:"Skills",name:"get_agent_skills",desc:"List all skills available to an agent (shared + org + agent)",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Skills",name:"get_org_skills",desc:"List all skills in an organization",params:[{n:"orgName",t:"string",r:true}]},
+  {cat:"Skills",name:"create_skill",desc:"Create a skill file and register it in skills.json",params:[{n:"id",t:"string",r:true},{n:"name",t:"string",r:true},{n:"description",t:"string",r:true},{n:"content",t:"string",r:true},{n:"scope",t:"enum",r:true,d:"global | personal | org | agent"},{n:"orgName",t:"string",r:false,d:"Required if scope is org"},{n:"agentId",t:"string",r:false,d:"Required if scope is agent"}]},
+
+  // Tasks
+  {cat:"Tasks",name:"list_tasks",desc:"List tasks assigned to an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Tasks",name:"get_task_stats",desc:"Task statistics (counts by status)",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Tasks",name:"create_task",desc:"Create a task for an agent",params:[{n:"agentId",t:"string",r:true},{n:"title",t:"string",r:true},{n:"description",t:"string",r:false},{n:"priority",t:"enum",r:false,d:"low | medium | high | critical"},{n:"project",t:"string",r:false}]},
+  {cat:"Tasks",name:"update_task",desc:"Update a task status or details",params:[{n:"agentId",t:"string",r:true},{n:"taskId",t:"string",r:true},{n:"status",t:"string",r:false},{n:"title",t:"string",r:false}]},
+  {cat:"Tasks",name:"delete_task",desc:"Delete a task",params:[{n:"agentId",t:"string",r:true},{n:"taskId",t:"string",r:true}]},
+  {cat:"Tasks",name:"get_all_tasks",desc:"Get all tasks across all agents",params:[]},
+  {cat:"Tasks",name:"create_project",desc:"Create a project for organizing tasks",params:[{n:"agentId",t:"string",r:true},{n:"name",t:"string",r:true}]},
+
+  // Automations
+  {cat:"Automations",name:"list_automations",desc:"List all goals and crons across all agents",params:[]},
+  {cat:"Automations",name:"create_goal",desc:"Create an autonomous goal for an agent",params:[{n:"agentId",t:"string",r:true},{n:"id",t:"string",r:true},{n:"description",t:"string",r:true},{n:"heartbeat",t:"string",r:true,d:"Cron expression"},{n:"successCriteria",t:"string",r:false},{n:"instructions",t:"string",r:false}]},
+  {cat:"Automations",name:"toggle_goal",desc:"Enable or disable a goal",params:[{n:"agentId",t:"string",r:true},{n:"goalId",t:"string",r:true}]},
+  {cat:"Automations",name:"trigger_goal",desc:"Manually trigger a goal run",params:[{n:"agentId",t:"string",r:true},{n:"goalId",t:"string",r:true}]},
+  {cat:"Automations",name:"get_goal_history",desc:"Get run history for a goal",params:[{n:"agentId",t:"string",r:true},{n:"goalId",t:"string",r:true}]},
+  {cat:"Automations",name:"delete_goal",desc:"Delete a goal",params:[{n:"agentId",t:"string",r:true},{n:"goalId",t:"string",r:true}]},
+  {cat:"Automations",name:"create_cron",desc:"Create a scheduled cron job",params:[{n:"agentId",t:"string",r:true},{n:"schedule",t:"string",r:true,d:"Cron expression"},{n:"message",t:"string",r:true},{n:"channel",t:"string",r:true},{n:"chatId",t:"string",r:true},{n:"enabled",t:"boolean",r:false}]},
+  {cat:"Automations",name:"toggle_cron",desc:"Enable or disable a cron job",params:[{n:"agentId",t:"string",r:true},{n:"index",t:"number",r:true}]},
+  {cat:"Automations",name:"trigger_cron",desc:"Manually trigger a cron run",params:[{n:"agentId",t:"string",r:true},{n:"index",t:"number",r:true}]},
+  {cat:"Automations",name:"get_cron_history",desc:"Get run history for a cron",params:[{n:"agentId",t:"string",r:true},{n:"index",t:"number",r:true}]},
+  {cat:"Automations",name:"delete_cron",desc:"Delete a cron job",params:[{n:"agentId",t:"string",r:true},{n:"index",t:"number",r:true}]},
+
+  // MCPs
+  {cat:"MCPs",name:"list_mcps",desc:"List registered MCP servers",params:[]},
+  {cat:"MCPs",name:"get_mcp_catalog",desc:"Get the pre-hosted MCP catalog",params:[]},
+  {cat:"MCPs",name:"list_mcp_keys",desc:"List MCP API keys for an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"MCPs",name:"save_mcp_key",desc:"Save an MCP API key",params:[{n:"agentId",t:"string",r:true},{n:"mcpName",t:"string",r:true},{n:"keyName",t:"string",r:true},{n:"keyValue",t:"string",r:true}]},
+  {cat:"MCPs",name:"delete_mcp_key",desc:"Delete an MCP API key",params:[{n:"agentId",t:"string",r:true},{n:"mcpName",t:"string",r:true}]},
+  {cat:"MCPs",name:"list_mcp_connections",desc:"List MCP connections for an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"MCPs",name:"create_mcp_connection",desc:"Create an MCP connection instance",params:[{n:"agentId",t:"string",r:true},{n:"instanceName",t:"string",r:true},{n:"label",t:"string",r:true},{n:"baseMcp",t:"string",r:true}]},
+  {cat:"MCPs",name:"delete_mcp_connection",desc:"Delete an MCP connection",params:[{n:"agentId",t:"string",r:true},{n:"instanceName",t:"string",r:true}]},
+
+  // Channels
+  {cat:"Channels",name:"list_channels",desc:"List all messaging channels with config and routes",params:[]},
+  {cat:"Channels",name:"update_channel",desc:"Update channel settings (sticky routing, enabled)",params:[{n:"channelName",t:"string",r:true},{n:"enabled",t:"boolean",r:false},{n:"stickyRouting",t:"enum",r:false,d:"none | sticky | prefix"},{n:"stickyPrefix",t:"string",r:false},{n:"stickyTimeoutMs",t:"number",r:false}]},
+  {cat:"Channels",name:"add_agent_route",desc:"Add an agent route to a channel",params:[{n:"channelName",t:"string",r:true},{n:"agentId",t:"string",r:true},{n:"chatId",t:"string",r:true},{n:"requireMention",t:"boolean",r:false},{n:"allowFrom",t:"string[]",r:false}]},
+  {cat:"Channels",name:"remove_agent_route",desc:"Remove an agent's route from a channel",params:[{n:"channelName",t:"string",r:true},{n:"agentId",t:"string",r:true}]},
+  {cat:"Channels",name:"add_monitored_chat",desc:"Add a monitored chat ID",params:[{n:"channelName",t:"string",r:true},{n:"chatId",t:"string",r:true}]},
+  {cat:"Channels",name:"remove_monitored_chat",desc:"Remove a monitored chat",params:[{n:"channelName",t:"string",r:true},{n:"chatId",t:"string",r:true}]},
+  {cat:"Channels",name:"get_sticky_routing",desc:"Get sticky routing config for all channels",params:[]},
+
+  // Activity & Logs
+  {cat:"Activity",name:"get_activity",desc:"Get recent activity feed across all agents",params:[{n:"limit",t:"number",r:false}]},
+  {cat:"Activity",name:"get_agent_logs",desc:"Paginated conversation logs with search",params:[{n:"agentId",t:"string",r:true},{n:"limit",t:"number",r:false},{n:"offset",t:"number",r:false},{n:"search",t:"string",r:false,d:"Keyword filter"}]},
+
+  // Memory
+  {cat:"Memory",name:"get_agent_memory",desc:"List memory entries (context.md + daily files)",params:[{n:"agentId",t:"string",r:true},{n:"limit",t:"number",r:false}]},
+  {cat:"Memory",name:"search_memory",desc:"Search an agent's memory by keyword",params:[{n:"agentId",t:"string",r:true},{n:"query",t:"string",r:true}]},
+  {cat:"Memory",name:"clear_memory_context",desc:"Clear an agent's context.md",params:[{n:"agentId",t:"string",r:true}]},
+
+  // Pairing
+  {cat:"Pairing",name:"list_paired_senders",desc:"List paired/authorized senders",params:[]},
+  {cat:"Pairing",name:"pair_sender",desc:"Manually authorize a sender",params:[{n:"senderKey",t:"string",r:true,d:"Format: channel:senderId"}]},
+  {cat:"Pairing",name:"unpair_sender",desc:"Remove an authorized sender",params:[{n:"senderKey",t:"string",r:true}]},
+
+  // Config
+  {cat:"Config",name:"list_accounts",desc:"List Claude accounts (name -> config dir)",params:[]},
+  {cat:"Config",name:"add_account",desc:"Add a Claude account",params:[{n:"name",t:"string",r:true},{n:"path",t:"string",r:true,d:"Config dir (e.g. ~/.claude)"}]},
+  {cat:"Config",name:"delete_account",desc:"Remove a Claude account",params:[{n:"name",t:"string",r:true}]},
+  {cat:"Config",name:"check_account_status",desc:"Check if account is authenticated",params:[{n:"name",t:"string",r:true}]},
+  {cat:"Config",name:"start_account_login",desc:"Start OAuth login — returns URL",params:[{n:"name",t:"string",r:true},{n:"path",t:"string",r:true}]},
+  {cat:"Config",name:"get_service_config",desc:"Get service settings",params:[]},
+  {cat:"Config",name:"update_service_config",desc:"Update service settings (restart required)",params:[{n:"personalAgentsDir",t:"string",r:false},{n:"webUIPort",t:"number",r:false},{n:"logLevel",t:"string",r:false},{n:"logFile",t:"string",r:false},{n:"pairingCode",t:"string",r:false},{n:"webhookSecret",t:"string",r:false}]},
+
+  // Apps
+  {cat:"Apps",name:"list_apps",desc:"List all registered apps",params:[]},
+  {cat:"Apps",name:"create_app",desc:"Register a new app",params:[{n:"name",t:"string",r:true},{n:"url",t:"string",r:false},{n:"provider",t:"string",r:false},{n:"category",t:"string",r:false},{n:"githubRepo",t:"string",r:false}]},
+  {cat:"Apps",name:"update_app",desc:"Update an existing app",params:[{n:"id",t:"string",r:true},{n:"name",t:"string",r:false},{n:"url",t:"string",r:false}]},
+  {cat:"Apps",name:"delete_app",desc:"Delete an app",params:[{n:"id",t:"string",r:true}]},
+  {cat:"Apps",name:"check_app_health",desc:"Check app health/status",params:[{n:"id",t:"string",r:true}]},
+
+  // Files
+  {cat:"Files",name:"list_agent_files",desc:"List files in an agent's FileStorage",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Files",name:"download_agent_file",desc:"Download a file from an agent's file storage",params:[{n:"agentId",t:"string",r:true},{n:"path",t:"string",r:true,d:"File path within agent storage"}]},
+
+  // Registry
+  {cat:"Registry",name:"browse_registry",desc:"Browse marketplace by type",params:[{n:"type",t:"enum",r:true,d:"skills | agents | mcps | prompts | apps"}]},
+  {cat:"Registry",name:"install_registry_item",desc:"Install a skill/MCP/agent from registry",params:[{n:"id",t:"string",r:true},{n:"type",t:"string",r:true}]},
+  {cat:"Registry",name:"assign_to_agent",desc:"Assign a skill or MCP to an agent",params:[{n:"agentId",t:"string",r:true},{n:"itemId",t:"string",r:true},{n:"type",t:"string",r:true,d:"skill or mcp"}]},
+  {cat:"Registry",name:"scan_skills",desc:"Scan directory for unregistered skills",params:[{n:"dir",t:"string",r:false}]},
+  {cat:"Registry",name:"create_prompt",desc:"Create a prompt template",params:[{n:"id",t:"string",r:true},{n:"name",t:"string",r:true},{n:"content",t:"string",r:true}]},
+  {cat:"Registry",name:"add_mcp_to_registry",desc:"Add MCP server to registry",params:[{n:"id",t:"string",r:true},{n:"name",t:"string",r:true},{n:"type",t:"string",r:true},{n:"url",t:"string",r:false}]},
+
+  // Registry (continued)
+  {cat:"Registry",name:"set_platform_default",desc:"Set a marketplace item as the platform default",params:[{n:"type",t:"string",r:true,d:"Item type (skill, mcp, prompt)"},{n:"id",t:"string",r:true,d:"Item ID"}]},
+  {cat:"Registry",name:"import_skills",desc:"Import scanned skills into an agent",params:[{n:"agentId",t:"string",r:true},{n:"skills",t:"string[]",r:true,d:"Skill names to import"}]},
+  {cat:"Registry",name:"get_prompt_trigger",desc:"Get the current prompt trigger character",params:[]},
+  {cat:"Registry",name:"set_prompt_trigger",desc:"Set the prompt trigger character",params:[{n:"trigger",t:"string",r:true,d:"Trigger character (e.g. / or !)"}]},
+
+  // Config (continued)
+  {cat:"Config",name:"submit_login_code",desc:"Submit authentication code for account login",params:[{n:"accountName",t:"string",r:true},{n:"code",t:"string",r:true,d:"Auth code from OAuth flow"}]},
+
+  // Chat (continued)
+  {cat:"Chat",name:"get_chat_job_raw",desc:"Get raw output lines from a streaming chat job",params:[{n:"jobId",t:"string",r:true,d:"Job ID from startStream"},{n:"after",t:"number",r:false,d:"Line index to start from"}]},
+
+  // Dashboard (continued)
+  {cat:"Dashboard",name:"get_agent_registry",desc:"Get the agent registry with delegation keywords",params:[]},
+
+  // Lab
+  {cat:"Lab",name:"get_platform_agents",desc:"List platform-managed creator agents (used by Lab)",params:[]},
+];
+
+// ═══ STATE ═══════════════════════════════════════════════════════════
+let selected = null;
+
+// ═══ THEME ═══════════════════════════════════════════════════════════
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('mcp-docs-theme',t)}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')}
+applyTheme(localStorage.getItem('mcp-docs-theme')||'dark');
+
+// ═══ SIDEBAR ═════════════════════════════════════════════════════════
+function getCats(){const c={};TOOLS.forEach(t=>{if(!c[t.cat])c[t.cat]=[];c[t.cat].push(t)});return c}
+function renderSidebar(q=''){
+  const cats=getCats();const s=q.toLowerCase();let h='';
+  for(const[cat,tools]of Object.entries(cats)){
+    const f=s?tools.filter(t=>t.name.includes(s)||t.desc.toLowerCase().includes(s)):tools;
+    if(!f.length)continue;
+    const open=s||(selected&&selected.cat===cat);
+    h+=`<div class="cat-header${open?' open':''}" onclick="this.classList.toggle('open')"><span class="arrow">&#9656;</span>${esc(cat)}<span class="count">${f.length}</span></div><div class="cat-items">${f.map(t=>`<div class="tool-item${selected===t?' active':''}" onclick="selectTool('${t.name}')">${t.name}</div>`).join('')}</div>`;
+  }
+  document.getElementById('sidebarBody').innerHTML=h;
+}
+function filterTools(){renderSidebar(document.getElementById('search').value)}
+
+// ═══ OVERVIEW ════════════════════════════════════════════════════════
+function showOverview(){
+  selected=null;renderSidebar();
+  const cats=getCats();const cn=Object.keys(cats);
+  document.getElementById('main').innerHTML=`<div class="overview"><h1>MCP Tools</h1><div class="sub">MyAIforOne Agent Gateway — ${TOOLS.length} tools across ${cn.length} categories</div>
+  <div class="stat-row"><div class="stat"><div class="stat-val">${TOOLS.length}</div><div class="stat-label">Tools</div></div><div class="stat"><div class="stat-val">${cn.length}</div><div class="stat-label">Categories</div></div><div class="stat"><div class="stat-val">stdio</div><div class="stat-label">Transport</div></div></div>
+  <div style="font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:8px">CATEGORIES</div>
+  <div class="cat-grid">${cn.map(c=>`<div class="cat-card" onclick="jumpCat('${c}')"><div class="cat-card-name">${c}</div><div class="cat-card-count">${cats[c].length} tools</div></div>`).join('')}</div>
+  <div class="connect-box"><div class="connect-title">Connect to this MCP</div><div class="example-box"><button class="copy-btn" onclick="copyText(this.nextElementSibling.textContent)">Copy</button><code>// Claude Code: add to .mcp.json
+{
+  "mcpServers": {
+    "myaiforone": {
+      "command": "node",
+      "args": ["server/mcp-server/dist/index.js"],
+      "cwd": "/path/to/channelToAgentToClaude"
+    }
+  }
+}</code></div></div></div>`;
+}
+
+function jumpCat(c){const t=TOOLS.find(t=>t.cat===c);if(t)selectTool(t.name)}
+
+// ═══ TOOL DETAIL ═════════════════════════════════════════════════════
+function selectTool(name){
+  selected=TOOLS.find(t=>t.name===name);if(!selected)return;
+  renderSidebar(document.getElementById('search').value);
+  const t=selected;const hasParams=t.params.length>0;
+  const example={};t.params.forEach(p=>{if(p.r)example[p.n]=p.t==='number'?0:p.t==='boolean'?true:`<${p.n}>`});
+
+  let h=`<div class="tool-detail"><div class="tool-cat-badge">${esc(t.cat)}</div><div class="tool-name">${t.name}</div><div class="tool-desc">${esc(t.desc)}</div>`;
+  if(hasParams){
+    h+=`<div class="section"><div class="section-title">Parameters</div><div class="section-body">${t.params.map(p=>`<div class="param-row"><span class="param-name">${p.n}</span><span class="param-type">${esc(p.t)}</span><span class="param-req">${p.r?'required':''}</span><span class="param-desc">${esc(p.d||'')}</span></div>`).join('')}</div></div>`;
+  }
+  h+=`<div class="section"><div class="section-title">Example Call</div><div class="section-body"><div class="example-box"><button class="copy-btn" onclick="copyText(this.nextElementSibling.textContent)">Copy</button><code>${esc(JSON.stringify({tool:t.name,arguments:hasParams?example:undefined},null,2))}</code></div></div></div>`;
+  h+=`</div>`;
+  document.getElementById('main').innerHTML=h;
+}
+
+// ═══ UTILS ═══════════════════════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function copyText(t){navigator.clipboard.writeText(t).catch(()=>{})}
+
+showOverview();
+</script>
+</body>
+</html>

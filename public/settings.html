@@ -134,8 +134,8 @@ html,body{width:100%;min-height:100%;background:var(--bg-deep);font-family:var(-
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn active" href="/org">Agents</a>
-    <a class="tab-btn" href="/apps">Apps</a>
     <a class="tab-btn" href="/marketplace">Registry</a>
+    <a class="tab-btn" href="/lab">Lab</a>
   </div>
   <div class="topbar-right">
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
@@ -221,6 +221,35 @@ html,body{width:100%;min-height:100%;background:var(--bg-deep);font-family:var(-
         </div>
       </div>
       <button class="btn-save" onclick="saveService()">Save</button>
+    </div>
+  </div>
+
+  <!-- ── Deployment ─────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--green-bg);border-color:var(--green);color:var(--green)">&#9652;</div>
+      <div><div class="section-title" style="color:var(--green)">Deployment</div></div>
+    </div>
+    <div class="section-body">
+      <div class="service-grid">
+        <div class="field">
+          <label>Provider</label>
+          <input id="depProvider" placeholder="railway" />
+        </div>
+        <div class="field">
+          <label>Deploy Token <span id="depTokenReveal" onclick="toggleReveal('depToken','depTokenReveal')" style="cursor:pointer;font-size:10px;color:var(--accent);margin-left:4px">show</span></label>
+          <input id="depToken" type="password" placeholder="••••••••" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>GitHub Org / User</label>
+          <input id="depGithubOrg" placeholder="myorg" />
+        </div>
+        <div class="field">
+          <label>GitHub Token <span id="depGithubTokenReveal" onclick="toggleReveal('depGithubToken','depGithubTokenReveal')" style="cursor:pointer;font-size:10px;color:var(--accent);margin-left:4px">show</span></label>
+          <input id="depGithubToken" type="password" placeholder="••••••••" autocomplete="off" />
+        </div>
+      </div>
+      <button class="btn-save" onclick="saveDeployment()">Save</button>
     </div>
   </div>
 </div>
@@ -463,6 +492,12 @@ async function loadService() {
   document.getElementById('svcAgentsDir').value = s.personalAgentsDir || '';
   document.getElementById('svcPort').value = s.webUIPort || '';
   document.getElementById('svcLogLevel').value = s.logLevel || '';
+  // Deployment
+  const d = s.deployment || {};
+  document.getElementById('depProvider').value = d.provider || '';
+  document.getElementById('depToken').value = d.deployToken || '';
+  document.getElementById('depGithubOrg').value = d.githubOrg || '';
+  document.getElementById('depGithubToken').value = d.githubToken || '';
 }
 
 async function saveService() {
@@ -476,6 +511,30 @@ async function saveService() {
   const data = await res.json();
   if (!res.ok) { showToast(data.error, 'err'); return; }
   showToast(data.note || 'Saved');
+}
+
+// ── Deployment settings ────────────────────────────────────────────
+async function saveDeployment() {
+  const deployment = {
+    provider: document.getElementById('depProvider').value.trim(),
+    deployToken: document.getElementById('depToken').value,
+    githubOrg: document.getElementById('depGithubOrg').value.trim(),
+    githubToken: document.getElementById('depGithubToken').value,
+  };
+  const res = await fetch('/api/config/service', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ deployment })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast('Deployment settings saved');
+}
+
+function toggleReveal(inputId, labelId) {
+  const inp = document.getElementById(inputId);
+  const lbl = document.getElementById(labelId);
+  if (inp.type === 'password') { inp.type = 'text'; lbl.textContent = 'hide'; }
+  else { inp.type = 'password'; lbl.textContent = 'show'; }
 }
 
 // ── Utils ──────────────────────────────────────────────────────────

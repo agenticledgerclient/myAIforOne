@@ -44,6 +44,15 @@ export class TelegramDriver implements ChannelDriver {
       onStart: () => {
         log.info("Telegram driver started — listening for messages (long polling)");
       },
+    }).catch((err) => {
+      // 409 Conflict means another instance is already polling — log and swallow.
+      // Any other error is also caught here to prevent crashing the Node process.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("409")) {
+        log.warn(`Telegram polling conflict (409): another instance may be running. Telegram disabled.`);
+      } else {
+        log.error(`Telegram bot.start() error: ${msg}`);
+      }
     });
   }
 

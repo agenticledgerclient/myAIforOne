@@ -1,7 +1,7 @@
 import express from "express";
 import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve, basename, extname, relative, isAbsolute } from "node:path";
+import { join, resolve, basename, dirname, extname, relative, isAbsolute } from "node:path";
 import { execSync } from "node:child_process";
 import type { AppConfig } from "./config.js";
 import { getPersonalAgentsDir } from "./config.js";
@@ -9,6 +9,7 @@ import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.js";
 import { executeGoal } from "./goals.js";
+import { executeHeartbeat, loadHeartbeatHistory } from "./heartbeat.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
 
@@ -123,14 +124,27 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
-  // ─── Serve the Apps page ─────────────────────────────────────────
-  app.get("/apps", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "apps.html");
+  // ─── Serve the Lab page ──────────────────────────────────────────
+  app.get("/lab", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "lab.html");
     if (existsSync(htmlPath)) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(htmlPath);
     } else {
-      res.status(404).send("Apps page not found.");
+      res.status(404).send("Lab page not found.");
+    }
+  });
+
+  // /apps route removed — Apps are now managed in the Registry (marketplace) Apps tab
+
+  // ─── Serve the Agent Dashboard page ────────────────────────────
+  app.get("/agent-dashboard", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "agent-dashboard.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.redirect("/org");
     }
   });
 
@@ -151,6 +165,16 @@ export function startWebUI(opts: WebUIOptions): void {
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("Settings page not found.");
+    }
+  });
+
+  app.get("/mcp-docs", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "mcp-docs.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("MCP docs not found.");
     }
   });
 
@@ -294,14 +318,50 @@ export function startWebUI(opts: WebUIOptions): void {
     if (!cfgPath) return res.status(404).json({ error: "Account not found" });
     const resolvedPath = cfgPath.replace(/^~/, home);
     try {
-      const { execSync: exec } = require("node:child_process");
       const env: Record<string, string> = {};
       for (const [k, v] of Object.entries(process.env)) { if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT") env[k] = v; }
       env.CLAUDE_CONFIG_DIR = resolvedPath;
       let status = "";
-      try { status = exec("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim(); } catch { /* not logged in */ }
+      try { status = execSync("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim(); } catch { /* not logged in */ }
       const loggedIn = status.toLowerCase().includes("logged in") || status.toLowerCase().includes("authenticated");
       res.json({ loggedIn, status });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/whoami/:agentId — which Claude account is this agent using right now?
+  app.get("/api/whoami/:agentId", (req, res) => {
+    const { agentId } = req.params;
+    const agent = opts.config.agents[agentId];
+    const home = homedir();
+    const accountName = agent?.claudeAccount || "default";
+    let resolvedPath = "";
+    if (agent?.claudeAccount && opts.config.service.claudeAccounts?.[agent.claudeAccount]) {
+      resolvedPath = opts.config.service.claudeAccounts[agent.claudeAccount].replace(/^~/, home);
+    } else {
+      // Default account — try "main" first, then ~/.claude
+      const mainPath = opts.config.service.claudeAccounts?.["main"];
+      resolvedPath = mainPath ? mainPath.replace(/^~/, home) : join(home, ".claude");
+    }
+    try {
+      const env: Record<string, string> = {};
+      for (const [k, v] of Object.entries(process.env)) {
+        if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT" && k !== "CLAUDE_CONFIG_DIR") env[k] = v;
+      }
+      // Only set CLAUDE_CONFIG_DIR for non-default accounts — setting it to ~/.claude breaks auth status
+      if (agent?.claudeAccount && opts.config.service.claudeAccounts?.[agent.claudeAccount]) {
+        env.CLAUDE_CONFIG_DIR = resolvedPath;
+      }
+      let raw = "";
+      try { raw = execSync("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim(); } catch (e: any) {
+        // execSync throws on non-zero exit — but claude auth status outputs JSON to stderr on failure
+        raw = e.stdout?.toString().trim() || e.stderr?.toString().trim() || "";
+      }
+      let parsed: any = {};
+      try { parsed = JSON.parse(raw); } catch { parsed = { raw }; }
+      log.info(`[whoami] ${agentId} → account=${accountName} email=${parsed.email || "unknown"} plan=${parsed.subscriptionType || "unknown"}`);
+      res.json({ accountName, configDir: resolvedPath, checkedAt: new Date().toISOString(), ...parsed });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -310,23 +370,48 @@ export function startWebUI(opts: WebUIOptions): void {
   // ─── API: Service settings (read/write top-level service fields) ──
   app.get("/api/config/service", (_req, res) => {
     const s = opts.config.service || {};
+    const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+    const deploy = raw.deployment || {};
     res.json({
       personalAgentsDir: (s as any).personalAgentsDir || "~/Desktop/personalAgents",
       webUIPort: (s as any).webUI?.port || 4888,
+      webUIEnabled: (s as any).webUI?.enabled ?? true,
+      webhookSecret: (s as any).webUI?.webhookSecret ? "(set)" : null,
       logLevel: (s as any).logLevel || "info",
+      logFile: (s as any).logFile || null,
+      pairingCode: (s as any).pairingCode ? "(set)" : null,
+      deployment: {
+        provider: deploy.provider || "railway",
+        deployToken: deploy.deployToken ? "••••••••" : "",
+        githubOrg: deploy.githubOrg || "",
+        githubToken: deploy.githubToken ? "••••••••" : "",
+      },
     });
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, webUIPort, logLevel } = req.body as any;
+    const { personalAgentsDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
       if (personalAgentsDir !== undefined) raw.service.personalAgentsDir = personalAgentsDir;
       if (logLevel !== undefined) raw.service.logLevel = logLevel;
-      if (webUIPort !== undefined) {
+      if (logFile !== undefined) raw.service.logFile = logFile;
+      if (pairingCode !== undefined) raw.service.pairingCode = pairingCode || undefined;
+      if (webUIPort !== undefined || webhookSecret !== undefined || webUIEnabled !== undefined) {
         if (!raw.service.webUI) raw.service.webUI = {};
-        raw.service.webUI.port = Number(webUIPort);
+        if (webUIPort !== undefined) raw.service.webUI.port = Number(webUIPort);
+        if (webhookSecret !== undefined) raw.service.webUI.webhookSecret = webhookSecret;
+        if (webUIEnabled !== undefined) raw.service.webUI.enabled = webUIEnabled;
+      }
+      // Deployment settings — only update non-masked values
+      if (deployment) {
+        if (!raw.deployment) raw.deployment = {};
+        if (deployment.provider !== undefined) raw.deployment.provider = deployment.provider;
+        if (deployment.githubOrg !== undefined) raw.deployment.githubOrg = deployment.githubOrg;
+        // Only update tokens if they're not the masked placeholder
+        if (deployment.deployToken && deployment.deployToken !== "••••••••") raw.deployment.deployToken = deployment.deployToken;
+        if (deployment.githubToken && deployment.githubToken !== "••••••••") raw.deployment.githubToken = deployment.githubToken;
       }
       writeFileSync(configFilePath(), JSON.stringify(raw, null, 2));
       res.json({ ok: true, note: "Restart required for port/dir changes to take effect" });
@@ -334,6 +419,36 @@ export function startWebUI(opts: WebUIOptions): void {
       res.status(500).json({ error: e.message });
     }
   });
+
+  // ─── MCP registry sync helper ───────────────────────────────────
+  // Ensures an MCP entry in config.json is also in registry/mcps.json.
+  // Call this whenever an MCP is added to config.json from any code path.
+  function syncMcpToRegistry(id: string, mcpEntry: any, meta?: { name?: string; description?: string; category?: string; provider?: string }) {
+    const registryPath = join(opts.baseDir, "registry", "mcps.json");
+    let registryData: any = { mcps: [] };
+    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
+    if (!Array.isArray(registryData.mcps)) registryData.mcps = [];
+
+    // Skip if already in registry
+    if (registryData.mcps.some((m: any) => m.id === id)) return;
+
+    registryData.mcps.push({
+      id,
+      name: meta?.name || id,
+      provider: meta?.provider || "me",
+      description: meta?.description || "",
+      category: meta?.category || "personal",
+      verified: false,
+      source: "local",
+      tags: [meta?.category?.toLowerCase() || "personal"],
+      requiredKeys: [],
+      fetch: mcpEntry.type === "http"
+        ? { type: "http", url: mcpEntry.url }
+        : { type: "stdio", command: mcpEntry.command, args: mcpEntry.args || [] },
+    });
+    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
+    log.info(`[Registry Sync] Auto-added MCP "${id}" to registry`);
+  }
 
   // ─── Apps helpers ────────────────────────────────────────────────
   const appsRegistryPath = () => join(opts.baseDir, "registry", "apps.json");
@@ -455,7 +570,8 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Dashboard ───────────────────────────────────────────────
   app.get("/api/dashboard", (_req, res) => {
-    const agents = Object.entries(opts.config.agents).map(([id, agent]) => {
+    const agents = Object.entries(opts.config.agents)
+      .map(([id, agent]) => {
       const memoryDir = resolve(opts.baseDir, agent.memoryDir);
       const logPath = join(memoryDir, "conversation_log.jsonl");
 
@@ -526,6 +642,7 @@ export function startWebUI(opts: WebUIOptions): void {
         activeCron: (agent.cron || []).filter((c: any) => c.enabled !== false).length,
         agentHome,
         claudeAccount: agent.claudeAccount || null,
+        agentClass: agent.agentClass || (agent.platformAgent ? "platform" : "standard"),
         taskCounts,
         subAgents: agent.subAgents || null,
       };
@@ -558,11 +675,26 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Agent list (for marketplace assign modal) ───────────────
   app.get("/api/agents", (req, res) => {
-    const agents = Object.entries(opts.config.agents).map(([id, agent]) => ({
-      id,
-      name: agent.name || id,
-      skills: agent.skills || [],
-    }));
+    const agents = Object.entries(opts.config.agents)
+      .map(([id, agent]) => ({
+        id,
+        name: agent.name || id,
+        skills: agent.skills || [],
+        agentClass: agent.agentClass || (agent.platformAgent ? "platform" : "standard"),
+      }));
+    res.json({ agents });
+  });
+
+  // ─── API: Platform agents (creator agents for Lab) ────────────────
+  app.get("/api/platform-agents", (_req, res) => {
+    const agents = Object.entries(opts.config.agents)
+      .filter(([, agent]) => (agent.agentClass || (agent.platformAgent ? "platform" : "standard")) === "platform")
+      .map(([id, agent]) => ({
+        id,
+        name: agent.name || id,
+        description: agent.description || "",
+        streaming: agent.streaming ?? false,
+      }));
     res.json({ agents });
   });
 
@@ -627,7 +759,19 @@ export function startWebUI(opts: WebUIOptions): void {
       } catch { /* ignore */ }
     }
 
-    res.json({ instructions, path: claudeMdPath });
+    // Also read heartbeat.md if present
+    const agentHome2 = agent.agentHome
+      ? resolveTilde(agent.agentHome)
+      : resolve(opts.baseDir, agent.memoryDir, "..");
+    const heartbeatMdPath = join(agentHome2, "heartbeat.md");
+    let heartbeatInstructions = "";
+    if (existsSync(heartbeatMdPath)) {
+      try {
+        heartbeatInstructions = readFileSync(heartbeatMdPath, "utf-8");
+      } catch { /* ignore */ }
+    }
+
+    res.json({ instructions, heartbeatInstructions, path: claudeMdPath });
   });
 
   // ─── API: Chat with agent ─────────────────────────────────────────
@@ -923,6 +1067,52 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   // ─── API: Marketplace ──────────────────────────────────────────────
+
+  // scan-skills must be BEFORE the :type catch-all to avoid being matched as type="scan-skills"
+  app.get("/api/marketplace/scan-skills", (req, res) => {
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const scanDir = req.query.dir
+      ? resolveTilde(req.query.dir as string)
+      : join(home, ".claude", "commands");
+
+    if (!existsSync(scanDir)) {
+      return res.status(404).json({ error: `Directory not found: ${scanDir}` });
+    }
+
+    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    const existingIds = new Set<string>();
+    try {
+      const data = JSON.parse(readFileSync(registryPath, "utf-8"));
+      for (const s of (data.skills || [])) existingIds.add(s.id);
+    } catch { /* registry may not exist yet */ }
+
+    let files: any[] = [];
+    try {
+      const mdFiles = readdirSync(scanDir).filter((f: string) => f.endsWith(".md"));
+      for (const file of mdFiles) {
+        const id = file.replace(".md", "");
+        if (existingIds.has(id)) continue;
+        const filePath = join(scanDir, file);
+        const content = readFileSync(filePath, "utf-8");
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        let name = id.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        let description = "";
+        if (fmMatch) {
+          for (const line of fmMatch[1].split("\n")) {
+            const [k, ...rest] = line.split(":");
+            if (k?.trim() === "name") name = rest.join(":").trim();
+            if (k?.trim() === "description") description = rest.join(":").trim();
+          }
+        }
+        files.push({ id, filename: file, path: filePath, name, description });
+      }
+    } catch (err) {
+      return res.status(500).json({ error: `Failed to scan directory: ${err}` });
+    }
+
+    res.json({ dir: scanDir, files });
+  });
 
   app.get("/api/marketplace/:type", (req, res) => {
     const { type } = req.params;
@@ -1233,51 +1423,7 @@ export function startWebUI(opts: WebUIOptions): void {
     res.json({ ok: true, assigned: agentIds, missingKeys });
   });
 
-  // ─── API: Marketplace — scan local skills dir ────────────────────
-  app.get("/api/marketplace/scan-skills", (req, res) => {
-    const home = homedir();
-    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
-    const scanDir = req.query.dir
-      ? resolveTilde(req.query.dir as string)
-      : join(home, ".claude", "commands");
-
-    if (!existsSync(scanDir)) {
-      return res.status(404).json({ error: `Directory not found: ${scanDir}` });
-    }
-
-    const registryPath = join(opts.baseDir, "registry", "skills.json");
-    const existingIds = new Set<string>();
-    try {
-      const data = JSON.parse(readFileSync(registryPath, "utf-8"));
-      for (const s of (data.skills || [])) existingIds.add(s.id);
-    } catch { /* registry may not exist yet */ }
-
-    let files: any[] = [];
-    try {
-      const mdFiles = readdirSync(scanDir).filter((f: string) => f.endsWith(".md"));
-      for (const file of mdFiles) {
-        const id = file.replace(".md", "");
-        if (existingIds.has(id)) continue;
-        const filePath = join(scanDir, file);
-        const content = readFileSync(filePath, "utf-8");
-        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-        let name = id.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-        let description = "";
-        if (fmMatch) {
-          for (const line of fmMatch[1].split("\n")) {
-            const [k, ...rest] = line.split(":");
-            if (k?.trim() === "name") name = rest.join(":").trim();
-            if (k?.trim() === "description") description = rest.join(":").trim();
-          }
-        }
-        files.push({ id, filename: file, path: filePath, name, description });
-      }
-    } catch (err) {
-      return res.status(500).json({ error: `Failed to scan directory: ${err}` });
-    }
-
-    res.json({ dir: scanDir, files });
-  });
+  // (scan-skills route moved above :type catch-all — see line ~1000)
 
   // ─── API: Marketplace — import personal skills ───────────────────
   app.post("/api/marketplace/import-skills", (req, res) => {
@@ -1352,6 +1498,77 @@ export function startWebUI(opts: WebUIOptions): void {
     writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
     log.info(`[Marketplace] Created personal prompt: ${id}`);
     res.json({ ok: true, id });
+  });
+
+  // ─── API: Skills — create skill ──────────────────────────────────
+  app.post("/api/skills/create", (req, res) => {
+    const { id, name, description, content, scope, orgName, agentId } = req.body as {
+      id?: string; name?: string; description?: string; content?: string;
+      scope?: string; orgName?: string; agentId?: string;
+    };
+    if (!id || !name || !description || !content || !scope) {
+      return res.status(400).json({ error: "id, name, description, content, and scope are required" });
+    }
+    if (scope === "org" && !orgName) return res.status(400).json({ error: "orgName is required when scope is 'org'" });
+    if (scope === "agent" && !agentId) return res.status(400).json({ error: "agentId is required when scope is 'agent'" });
+    if (!["global", "personal", "org", "agent"].includes(scope)) {
+      return res.status(400).json({ error: "scope must be one of: global, personal, org, agent" });
+    }
+
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    let filePath: string;
+    let localPath: string;
+    let source: string;
+
+    switch (scope) {
+      case "global":
+        filePath = join(home, ".claude", "commands", `${id}.md`);
+        localPath = `~/.claude/commands/${id}.md`;
+        source = "global";
+        break;
+      case "personal":
+        filePath = join(home, "Desktop", "personalAgents", "skills", `${id}.md`);
+        localPath = `~/Desktop/personalAgents/skills/${id}.md`;
+        source = "personal";
+        break;
+      case "org":
+        filePath = join(home, "Desktop", "personalAgents", orgName!, "skills", `${id}.md`);
+        localPath = `~/Desktop/personalAgents/${orgName}/skills/${id}.md`;
+        source = `org:${orgName}`;
+        break;
+      case "agent": {
+        const agent = opts.config.agents[agentId!];
+        if (!agent) return res.status(400).json({ error: `Agent '${agentId}' not found` });
+        const agentHome = agent.agentHome
+          ? resolveTilde(agent.agentHome)
+          : resolve(opts.baseDir, agent.memoryDir, "..");
+        filePath = join(agentHome, "skills", `${id}.md`);
+        localPath = `${agent.agentHome || join(opts.baseDir, agent.memoryDir, "..")}/skills/${id}.md`;
+        source = `agent:${agentId}`;
+        break;
+      }
+      default:
+        return res.status(400).json({ error: "Invalid scope" });
+    }
+
+    mkdirSync(dirname(filePath), { recursive: true });
+    const fileContent = `---\nname: ${name}\ndescription: ${description}\n---\n\n${content}\n`;
+    writeFileSync(filePath, fileContent);
+
+    // Update registry/skills.json
+    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    let registryData: any = { skills: [] };
+    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
+    registryData.skills = registryData.skills.filter((s: any) => s.id !== id);
+    registryData.skills.push({
+      id, name, provider: "me", description,
+      category: "custom", source, tags: [],
+      localPath, fetch: { type: "file" },
+    });
+    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
+    log.info(`[Skills] Created ${scope} skill: ${id} at ${filePath}`);
+    res.json({ ok: true, id, path: filePath, scope });
   });
 
   // ─── API: Get/set prompt trigger character ───────────────────────
@@ -1682,18 +1899,23 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, skills, agentSkills, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
-      autonomousCapable?: boolean; autoCommit?: boolean; timeout?: number;
-      skills?: string[]; agentSkills?: string[];
+      autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
+      skills?: string[]; agentSkills?: string[]; prompts?: string[];
       tools?: string[]; mcps?: string[];
-      routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
+      routes?: Array<{ channel: string; chatId: string; requireMention?: boolean; allowFrom?: string[] }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
-      cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
+      cron?: Array<{ schedule: string; message: string; channel: string; chatId: string; enabled?: boolean }>;
       goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
       instructions?: string;
       claudeAccount?: string;
+      subAgents?: string[] | "*";
+      heartbeatInstructions?: string;
+      heartbeatCron?: string;
+      heartbeatEnabled?: boolean;
+      agentClass?: "standard" | "platform" | "builder";
     };
 
     if (!agentId || !name || !alias) {
@@ -1741,6 +1963,11 @@ export function startWebUI(opts: WebUIOptions): void {
         : `# ${name}\n\n${description || "General-purpose agent."}\n\n## Identity\n- Mention alias: ${normalAlias}\n- Respond when mentioned with ${normalAlias}\n\n## Guidelines\n- Keep responses concise — you're replying to phone messages\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n`;
       writeFileSync(join(agentHome, "CLAUDE.md"), claudeMd);
 
+      // Write heartbeat.md if provided
+      if (heartbeatInstructions) {
+        writeFileSync(join(agentHome, "heartbeat.md"), heartbeatInstructions);
+      }
+
       // Write context.md
       writeFileSync(join(memoryDir, "context.md"), `# ${name} Context\n\nCreated ${new Date().toISOString().split("T")[0]}.\n`);
 
@@ -1762,12 +1989,16 @@ export function startWebUI(opts: WebUIOptions): void {
         autoCommit: autoCommit ?? false,
         allowedTools: tools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
         timeout: timeout || 14400000,
+        agentClass: agentClass || "standard",
       };
 
       if (mcps && mcps.length > 0) agentConfig.mcps = mcps;
       if (skills && skills.length > 0) agentConfig.skills = skills;
       if (agentSkills && agentSkills.length > 0) agentConfig.agentSkills = agentSkills;
+      if (prompts && prompts.length > 0) agentConfig.prompts = prompts;
       if (claudeAccount) agentConfig.claudeAccount = claudeAccount;
+      if (autoCommitBranch) agentConfig.autoCommitBranch = autoCommitBranch;
+      if (subAgents) agentConfig.subAgents = subAgents;
       if (org && org.length > 0) agentConfig.org = org;
       if (cron && cron.length > 0) agentConfig.cron = cron;
       if (goals && goals.length > 0) agentConfig.goals = goals;
@@ -1780,7 +2011,7 @@ export function startWebUI(opts: WebUIOptions): void {
           value: r.chatId,
         },
         permissions: {
-          allowFrom: ["*"],
+          allowFrom: r.allowFrom || ["*"],
           requireMention: r.requireMention ?? true,
         },
       }));
@@ -1831,18 +2062,23 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, skills, agentSkills, tools, mcps, routes, org, cron, goals, instructions, claudeAccount } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
-      autonomousCapable?: boolean; autoCommit?: boolean; timeout?: number;
-      skills?: string[]; agentSkills?: string[];
+      autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
+      skills?: string[]; agentSkills?: string[]; prompts?: string[];
       tools?: string[]; mcps?: string[];
-      routes?: Array<{ channel: string; chatId: string; requireMention: boolean }>;
+      routes?: Array<{ channel: string; chatId: string; requireMention?: boolean; allowFrom?: string[] }>;
       org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
-      cron?: Array<{ schedule: string; message: string; channel: string; chatId: string }>;
+      cron?: Array<{ schedule: string; message: string; channel: string; chatId: string; enabled?: boolean }>;
       goals?: Array<{ id: string; enabled: boolean; description: string; successCriteria?: string; instructions?: string; heartbeat: string; budget?: { maxDailyUsd: number }; reportTo?: string }>;
       instructions?: string;
       claudeAccount?: string;
+      subAgents?: string[] | "*";
+      heartbeatInstructions?: string;
+      heartbeatCron?: string;
+      heartbeatEnabled?: boolean;
+      agentClass?: "standard" | "platform" | "builder";
     };
 
     if (!name || !alias) {
@@ -1879,6 +2115,10 @@ export function startWebUI(opts: WebUIOptions): void {
       if (tools) existing.allowedTools = tools;
       if (mcps !== undefined) existing.mcps = mcps.length > 0 ? mcps : undefined;
       if (claudeAccount !== undefined) existing.claudeAccount = claudeAccount || undefined;
+      if (autoCommitBranch !== undefined) existing.autoCommitBranch = autoCommitBranch || undefined;
+      if (prompts !== undefined) existing.prompts = prompts.length > 0 ? prompts : undefined;
+      if (subAgents !== undefined) existing.subAgents = subAgents;
+      if (agentClass !== undefined) existing.agentClass = agentClass;
       if (org !== undefined) existing.org = org;
       if (cron !== undefined) existing.cron = cron;
       if (goals !== undefined) existing.goals = goals;
@@ -1892,10 +2132,38 @@ export function startWebUI(opts: WebUIOptions): void {
             value: r.chatId,
           },
           permissions: {
-            allowFrom: ["*"],
+            allowFrom: r.allowFrom || ["*"],
             requireMention: r.requireMention ?? true,
           },
         }));
+      }
+
+      // Detect agentHome change — update path references in agent files
+      const home0 = homedir();
+      const rt0 = (p: string) => p.startsWith("~") ? p.replace("~", home0) : p;
+      const oldHome = opts.config.agents[agentId]?.agentHome
+        ? rt0(opts.config.agents[agentId].agentHome)
+        : null;
+      const newHome = existing.agentHome ? rt0(existing.agentHome) : null;
+      if (oldHome && newHome && oldHome !== newHome) {
+        // Update path references in CLAUDE.md and context.md
+        for (const relFile of ["CLAUDE.md", "memory/context.md"]) {
+          const filePath = join(newHome, relFile);
+          if (existsSync(filePath)) {
+            try {
+              let content = readFileSync(filePath, "utf-8");
+              // Replace both tilde and expanded forms of the old path
+              const oldHomeTilde = oldHome.replace(home0, "~");
+              if (content.includes(oldHome) || content.includes(oldHomeTilde)) {
+                const newHomeTilde = newHome.replace(home0, "~");
+                content = content.split(oldHome).join(newHome);
+                content = content.split(oldHomeTilde).join(newHomeTilde);
+                writeFileSync(filePath, content);
+                log.info(`Updated path references in ${relFile} for ${agentId}: ${oldHomeTilde} → ${newHomeTilde}`);
+              }
+            } catch { /* ignore read/write errors */ }
+          }
+        }
       }
 
       rawConfig.agents[agentId] = existing;
@@ -1920,6 +2188,32 @@ export function startWebUI(opts: WebUIOptions): void {
           log.info(`Updated CLAUDE.md for ${agentId} at ${claudeMdPath}`);
         } catch (writeErr) {
           log.warn(`Failed to write CLAUDE.md for ${agentId}: ${writeErr}`);
+        }
+      }
+
+      // Write heartbeat.md if provided
+      if (heartbeatInstructions !== undefined) {
+        const home3 = homedir();
+        const resolveTilde3 = (p: string) => p.startsWith("~") ? p.replace("~", home3) : p;
+        const agentHome3 = existing.agentHome
+          ? resolveTilde3(existing.agentHome)
+          : existing.memoryDir
+            ? resolve(resolveTilde3(existing.memoryDir), "..")
+            : join(getPersonalAgentsDir(), agentId);
+        const hbPath = join(agentHome3, "heartbeat.md");
+        try {
+          if (heartbeatInstructions) {
+            writeFileSync(hbPath, heartbeatInstructions);
+            log.info(`Updated heartbeat.md for ${agentId}`);
+          } else {
+            // Empty string = remove heartbeat.md
+            if (existsSync(hbPath)) {
+              unlinkSync(hbPath);
+              log.info(`Removed heartbeat.md for ${agentId}`);
+            }
+          }
+        } catch (writeErr) {
+          log.warn(`Failed to write heartbeat.md for ${agentId}: ${writeErr}`);
         }
       }
 
@@ -1955,7 +2249,7 @@ export function startWebUI(opts: WebUIOptions): void {
     if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
 
     // Require confirmation alias in the request body
-    const { confirmAlias } = req.body as { confirmAlias?: string };
+    const { confirmAlias } = (req.body || {}) as { confirmAlias?: string };
     const agentAlias = agent.mentionAliases?.[0] || agentId;
     if (!confirmAlias || confirmAlias !== agentAlias) {
       return res.status(400).json({
@@ -2551,6 +2845,44 @@ export function startWebUI(opts: WebUIOptions): void {
     res.json({ history: entries.slice(0, 20) });
   });
 
+  // ─── API: Heartbeat — trigger ──────────────────────────────────────
+  app.post("/api/agents/:id/heartbeat", async (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const triggeredBy = (req.body as any)?.triggeredBy || "manual";
+    log.info(`[Heartbeat] Triggered for ${agentId} (${triggeredBy})`);
+
+    // Respond immediately — execution happens async
+    res.json({ ok: true, message: `Heartbeat triggered for ${agentId}. Running in background...` });
+
+    // Execute in background
+    try {
+      const result = await executeHeartbeat(
+        agentId, agent, opts.baseDir,
+        opts.config.mcps, opts.config.service.claudeAccounts,
+        { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger },
+        triggeredBy,
+      );
+      log.info(`[Heartbeat] Completed: ${agentId} — ${result.status} (${result.durationMs}ms)`);
+    } catch (err) {
+      log.error(`[Heartbeat] Failed: ${agentId} — ${err}`);
+    }
+  });
+
+  // ─── API: Heartbeat — history ─────────────────────────────────────
+  app.get("/api/agents/:id/heartbeat-history", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const agentHome = agent.agentHome || resolve(opts.baseDir, agent.memoryDir, "..");
+    const limit = parseInt(req.query.limit as string) || 20;
+    const history = loadHeartbeatHistory(agentHome, limit);
+    res.json({ history });
+  });
+
   // ─── API: Delete goal ─────────────────────────────────────────────
   app.delete("/api/agents/:id/goals/:goalId", (req, res) => {
     const agentId = req.params.id;
@@ -2950,10 +3282,11 @@ export function startWebUI(opts: WebUIOptions): void {
     const channelCfg = opts.config.channels[channelName];
     if (!channelCfg) return res.status(404).json({ error: `Channel "${channelName}" not found` });
 
-    const { stickyRouting, stickyPrefix, stickyTimeoutMs } = req.body as {
+    const { stickyRouting, stickyPrefix, stickyTimeoutMs, enabled } = req.body as {
       stickyRouting?: string;
       stickyPrefix?: string;
       stickyTimeoutMs?: number;
+      enabled?: boolean;
     };
 
     try {
@@ -2962,6 +3295,12 @@ export function startWebUI(opts: WebUIOptions): void {
 
       if (!rawConfig.channels[channelName]) {
         return res.status(404).json({ error: `Channel "${channelName}" not in config.json` });
+      }
+
+      // Enable/disable channel
+      if (enabled !== undefined) {
+        rawConfig.channels[channelName].enabled = enabled;
+        opts.config.channels[channelName].enabled = enabled;
       }
 
       const cfg = rawConfig.channels[channelName].config;
@@ -2994,10 +3333,11 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Channel "${channelName}" not found` });
     }
 
-    const { agentId, chatId, requireMention } = req.body as {
+    const { agentId, chatId, requireMention, allowFrom } = req.body as {
       agentId?: string;
       chatId?: string;
       requireMention?: boolean;
+      allowFrom?: string[];
     };
 
     if (!agentId || !chatId) {
@@ -3023,7 +3363,7 @@ export function startWebUI(opts: WebUIOptions): void {
           value: channelName === "imessage" ? (isNaN(Number(chatId)) ? chatId : Number(chatId)) : chatId,
         },
         permissions: {
-          allowFrom: ["*"],
+          allowFrom: allowFrom || ["*"],
           requireMention: requireMention ?? true,
         },
       };
@@ -3626,6 +3966,63 @@ export function startWebUI(opts: WebUIOptions): void {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // ─── API: Skills — create skill ─────────────────────────────────────
+  app.post("/api/skills/create", (req, res) => {
+    const { id, name, description, content, scope, orgName, agentId } = req.body as {
+      id?: string; name?: string; description?: string; content?: string;
+      scope?: string; orgName?: string; agentId?: string;
+    };
+    if (!id || !name || !content || !scope) return res.status(400).json({ error: "id, name, content, and scope are required" });
+    if (scope === "org" && !orgName) return res.status(400).json({ error: "orgName is required for org scope" });
+    if (scope === "agent" && !agentId) return res.status(400).json({ error: "agentId is required for agent scope" });
+
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+
+    let targetDir: string;
+    let localPath: string;
+    if (scope === "global") {
+      targetDir = join(home, ".claude", "commands");
+      localPath = `~/.claude/commands/${id}.md`;
+    } else if (scope === "personal") {
+      targetDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "skills");
+      localPath = `registry/skills/personal/${id}.md`;
+    } else if (scope === "org") {
+      targetDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), orgName!, "skills");
+      localPath = `registry/skills/org/${orgName}/${id}.md`;
+    } else if (scope === "agent") {
+      const agent = opts.config.agents[agentId!];
+      if (!agent) return res.status(404).json({ error: `Agent ${agentId} not found` });
+      const agentHome = agent.agentHome
+        ? resolveTilde(agent.agentHome)
+        : resolve(opts.baseDir, agent.memoryDir, "..");
+      targetDir = join(agentHome, "skills");
+      localPath = `agents/${agentId}/skills/${id}.md`;
+    } else {
+      return res.status(400).json({ error: "scope must be global, personal, org, or agent" });
+    }
+
+    mkdirSync(targetDir, { recursive: true });
+    const filePath = join(targetDir, `${id}.md`);
+    const fileContent = `---\nname: ${id}\ndescription: ${description || ""}\n---\n\n${content}\n`;
+    writeFileSync(filePath, fileContent);
+
+    // Update registry/skills.json
+    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    let registryData: any = { skills: [] };
+    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
+    registryData.skills = registryData.skills.filter((s: any) => s.id !== id);
+    registryData.skills.push({
+      id, name, provider: "me", description: description || "",
+      category: scope, verified: false, source: "local",
+      tags: [scope], localPath, fetch: { type: "file" },
+    });
+    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
+
+    log.info(`[Skills] Created ${scope} skill: ${id} at ${filePath}`);
+    res.json({ ok: true, id, path: filePath, scope });
+  });
+
   // ─── API: Sticky Routing ────────────────────────────────────────────
 
   // GET /api/sticky-routing — show active sticky assignments
@@ -3657,6 +4054,68 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/health", (_req, res) => {
     res.json({ ok: true, uptime: process.uptime() });
   });
+
+  // ─── Startup: sync config.json MCPs → registry ───────────────────
+  try {
+    const cfgMcps = (opts.config as any).mcps || {};
+    for (const [id, entry] of Object.entries(cfgMcps)) {
+      syncMcpToRegistry(id, entry as any, { name: id, category: "personal" });
+    }
+  } catch (err) {
+    log.warn(`[Registry Sync] MCP startup sync failed: ${err}`);
+  }
+
+  // ─── Startup: sync disk skills → registry ───────────────────────
+  try {
+    const skillRegistryPath = join(opts.baseDir, "registry", "skills.json");
+    let skillRegistry: any = { skills: [] };
+    try { skillRegistry = JSON.parse(readFileSync(skillRegistryPath, "utf-8")); } catch { /* fresh */ }
+    if (!Array.isArray(skillRegistry.skills)) skillRegistry.skills = [];
+    const existingSkillIds = new Set(skillRegistry.skills.map((s: any) => s.id));
+    let added = 0;
+
+    // Scan: ~/.claude/commands, personalAgents/skills, org skills dirs
+    const skillDirs: Array<{ dir: string; source: string; provider: string }> = [
+      { dir: join(homedir(), ".claude", "commands"), source: "global", provider: "AgenticLedger" },
+      { dir: join(tilde(getPersonalAgentsDir(opts.config)), "skills"), source: "personal", provider: "me" },
+    ];
+    // Add org skill dirs
+    const orgNames = new Set<string>();
+    for (const agent of Object.values(opts.config.agents)) {
+      for (const o of (agent.org || [])) {
+        if (o.organization) orgNames.add(o.organization);
+      }
+    }
+    for (const org of orgNames) {
+      skillDirs.push({ dir: join(tilde(getPersonalAgentsDir(opts.config)), org, "skills"), source: "org", provider: "me" });
+    }
+
+    for (const { dir, source, provider } of skillDirs) {
+      if (!existsSync(dir)) continue;
+      for (const file of readdirSync(dir).filter((f: string) => f.endsWith(".md"))) {
+        const id = file.replace(".md", "");
+        if (existingSkillIds.has(id)) continue;
+        try {
+          const content = readFileSync(join(dir, file), "utf-8");
+          const descMatch = content.match(/description:\s*(.+)/);
+          skillRegistry.skills.push({
+            id, name: id.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            provider, description: descMatch?.[1]?.trim() || "",
+            category: source, verified: false, source: "local",
+            tags: [source], localPath: join(dir, file),
+          });
+          existingSkillIds.add(id);
+          added++;
+        } catch { /* skip unreadable */ }
+      }
+    }
+    if (added > 0) {
+      writeFileSync(skillRegistryPath, JSON.stringify(skillRegistry, null, 2));
+      log.info(`[Registry Sync] Auto-added ${added} skills to registry`);
+    }
+  } catch (err) {
+    log.warn(`[Registry Sync] Skill startup sync failed: ${err}`);
+  }
 
   app.listen(opts.port, () => {
     log.info(`Web UI running on http://localhost:${opts.port}/ui`);

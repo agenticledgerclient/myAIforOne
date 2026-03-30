@@ -18,11 +18,12 @@
   --border-glow:rgba(14,116,144,0.3);--accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
   --text:rgba(15,23,42,0.92);--text-muted:rgba(100,116,139,0.7);
 }
-html,body{width:100%;background:transparent;font-family:var(--font);overflow:auto}
+html,body{width:100%;height:100%;background:var(--bg);font-family:var(--font);overflow:hidden}
 
 .bar{
   background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
   padding:10px 10px;display:flex;flex-direction:column;gap:7px;
+  height:calc(100vh - 12px);
   box-shadow:0 8px 32px rgba(0,0,0,0.4);
   width:100%;
 }
@@ -57,7 +58,7 @@ html,body{width:100%;background:transparent;font-family:var(--font);overflow:aut
 .response{
   font-size:12px;line-height:1.6;color:rgba(255,255,255,0.75);
   font-style:italic;letter-spacing:.01em;
-  max-height:120px;overflow-y:auto;padding:10px 12px;
+  flex:1;min-height:0;overflow-y:auto;padding:10px 12px;
   border-radius:12px;
   background:linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(34,211,238,0.06) 100%);
   border:1px solid rgba(139,92,246,0.18);
@@ -92,6 +93,7 @@ html,body{width:100%;background:transparent;font-family:var(--font);overflow:aut
   flex:1;min-width:0;background:rgba(255,255,255,0.04);border:1px solid var(--border);
   border-radius:7px;padding:5px 8px;font-family:var(--font);font-size:12px;
   color:var(--text);outline:none;transition:border-color .2s;
+  resize:none;overflow-y:auto;max-height:80px;line-height:1.4;
 }
 .text-input::placeholder{color:var(--text-muted)}
 .text-input:focus{border-color:var(--border-glow)}
@@ -131,7 +133,7 @@ html,body{width:100%;background:transparent;font-family:var(--font);overflow:aut
 
   <!-- Input row -->
   <div class="input-row">
-    <input class="text-input" id="textInput" placeholder="Type a message…" onkeydown="handleKey(event)">
+    <textarea class="text-input" id="textInput" rows="1" placeholder="Type a message…" onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
     <button class="send-btn" id="sendBtn" onclick="send()" title="Send">→</button>
   </div>
 
@@ -223,9 +225,11 @@ function startListen(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ alert('Speech recognition not supported in this browser. Try Chrome.'); return; }
   recognition = new SR();
-  recognition.continuous = false;
+  recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
+
+  let silenceTimer = null;
 
   recognition.onstart = () => {
     isListening = true;
@@ -236,13 +240,19 @@ function startListen(){
   recognition.onresult = (e) => {
     const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
     document.getElementById('textInput').value = transcript;
-    if(e.results[e.results.length-1].isFinal){
-      stopListen();
-      send();
+    // No auto-send — just populate the text box, user clicks send
+  };
+  recognition.onerror = (e) => {
+    // 'no-speech' is normal — just restart if still in listen mode
+    if(e.error === 'no-speech' || e.error === 'aborted') return;
+    stopListen();
+  };
+  recognition.onend = () => {
+    // Auto-restart if listen mode is still on (keeps mic hot)
+    if(isListening && !isThinking){
+      try { recognition.start(); } catch{ /* ignore */ }
     }
   };
-  recognition.onerror = () => stopListen();
-  recognition.onend = () => { if(isListening) stopListen(); };
   recognition.start();
 }
 function stopListen(){
@@ -259,11 +269,12 @@ async function send(){
   const input = document.getElementById('textInput');
   const text = input.value.trim();
   if(!text || !selectedAgentId || isThinking) return;
+  const listenWasOn = isListening;
   input.value = '';
   isThinking = true;
   setDot('thinking');
   document.getElementById('sendBtn').disabled = true;
-  showResponse('…');
+  showResponse('Starting...');
   updateStatus();
 
   try{
@@ -329,9 +340,11 @@ async function send(){
     setDot('idle');
     document.getElementById('sendBtn').disabled = false;
     updateStatus();
-    // Re-arm listen mode if it was on before
-    if(voiceOn && !isListening) {
-      // small delay then listen again
+    // Re-arm listen mode if mic was on before this send
+    if(isListening && recognition) {
+      // recognition.onend auto-restarts, just make sure it's going
+      try { recognition.start(); } catch{ /* already running */ }
+    } else if(listenWasOn) {
       setTimeout(startListen, 600);
     }
   }
@@ -362,6 +375,10 @@ function scheduleResponseFade(delayMs = 15000){
 
 function handleKey(e){
   if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+}
+function autoGrow(el){
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
 }
 
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }

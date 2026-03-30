@@ -105,13 +105,23 @@ html,body{
 .sub-nav-link:hover{color:var(--text-secondary)}
 .sub-nav-link.active{color:var(--accent)}
 
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-.org-select{
-  font-family:var(--font-mono);font-size:11px;
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.topbar-control{
+  font-family:var(--font-sans);font-size:11px;font-weight:500;
   padding:6px 12px;border-radius:8px;
-  border:1px solid var(--border-glow);background:var(--bg-input);
+  border:1px solid var(--border-dim);background:var(--bg-input);
   color:var(--text-primary);outline:none;cursor:pointer;
+  transition:border-color .2s;height:32px;box-sizing:border-box;
 }
+.topbar-control:hover,.topbar-control:focus{border-color:var(--border-glow)}
+.org-select{
+  font-family:var(--font-sans);font-size:11px;font-weight:500;
+  padding:6px 12px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  color:var(--text-primary);outline:none;cursor:pointer;
+  height:32px;box-sizing:border-box;transition:border-color .2s;
+}
+.org-select:hover,.org-select:focus{border-color:var(--border-glow)}
 .add-agent-btn-top{
   font-family:var(--font-sans);font-size:12px;font-weight:600;
   padding:7px 16px;border-radius:8px;cursor:pointer;
@@ -120,13 +130,13 @@ html,body{
   display:flex;align-items:center;gap:6px;
 }
 .add-agent-btn-top:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.theme-toggle{
+.theme-toggle,.gear-btn{
   width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);
   background:transparent;color:var(--text-muted);cursor:pointer;
   display:flex;align-items:center;justify-content:center;font-size:16px;
   transition:all .2s;
-}
-.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+text-decoration:none;}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
 /* ─── Canvas ──────────────────────────────────────────────────── */
 .canvas{
@@ -328,6 +338,14 @@ html,body{
 
 /* ─── Hide Names (presentation mode) ────────────────────────── */
 .name-blurred{filter:blur(8px);-webkit-filter:blur(8px);transition:filter .2s}
+.class-dropdown{position:relative;display:inline-block}
+.class-dropdown-btn{padding:6px 12px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;height:32px;box-sizing:border-box;transition:border-color .2s}
+.class-dropdown-btn:hover{border-color:var(--border-glow)}
+.class-dropdown-menu{display:none;position:absolute;top:100%;left:0;margin-top:4px;padding:6px 0;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:8px;box-shadow:var(--shadow);z-index:100;min-width:150px}
+.class-dropdown-menu.open{display:block}
+.class-dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:11px;cursor:pointer;color:var(--text-muted);transition:all .15s}
+.class-dropdown-item:hover{background:var(--bg-surface);color:var(--text-primary)}
+.class-dropdown-item .check{width:14px;font-size:12px;color:var(--accent)}
 .hide-names-btn{
   margin-left:auto;font-family:var(--font-mono);font-size:11px;font-weight:500;
   padding:4px 10px;border-radius:6px;cursor:pointer;
@@ -844,16 +862,25 @@ html,body{
   <div class="tab-group">
     <a class="tab-btn" href="/org" id="tabAgents">Agents</a>
     <a class="tab-btn" href="/ui">Chat</a>
-    <a class="tab-btn" href="/apps">Apps</a>
     <a class="tab-btn" href="/marketplace" id="tabRegistry">Registry</a>
+    <a class="tab-btn" href="/lab">Lab</a>
   </div>
   <div class="topbar-right">
-    <input type="text" id="agentSearch" placeholder="Search agents..." oninput="handleSearch()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;width:160px;outline:none">
+    <input type="text" id="agentSearch" class="topbar-control" placeholder="Search agents..." oninput="handleSearch()" style="width:160px">
+    <div class="class-dropdown" id="classDropdown">
+      <button class="class-dropdown-btn" onclick="toggleClassDropdown()" id="classDropdownBtn">Standard ▾</button>
+      <div class="class-dropdown-menu" id="classDropdownMenu">
+        <div class="class-dropdown-item" onclick="toggleClassFilter('standard')"><span class="check" id="chk-standard">✓</span> Standard</div>
+        <div class="class-dropdown-item" onclick="toggleClassFilter('builder')"><span class="check" id="chk-builder">&nbsp;</span> Builder</div>
+        <div class="class-dropdown-item" onclick="toggleClassFilter('platform')"><span class="check" id="chk-platform">&nbsp;</span> Platform</div>
+      </div>
+    </div>
     <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
     <button class="hide-names-btn" id="hideAllBtn" onclick="toggleHideAll()" title="Hide/show all agent names for presentations" style="font-size:11px;padding:4px 10px">&#128065; Hide All</button>
     <button class="add-agent-btn-top" id="newAgentBtn" onclick="openModal(null)">
       <span style="font-size:16px">+</span> New Agent
     </button>
+    <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
   </div>
 </div>
@@ -870,11 +897,16 @@ html,body{
       <button class="modal-close" onclick="closeModal()">&#10005;</button>
     </div>
     <div class="modal-tabs">
-      <button class="modal-tab active" onclick="switchModalTab('settings',this)">Settings</button>
+      <button class="modal-tab active" onclick="switchModalTab('overview',this)">Overview</button>
+      <button class="modal-tab" onclick="switchModalTab('skills',this)">Skills</button>
+      <button class="modal-tab" onclick="switchModalTab('mcps',this)">MCPs</button>
       <button class="modal-tab" onclick="switchModalTab('schedules',this)">Schedules</button>
       <button class="modal-tab" onclick="switchModalTab('goals',this)">Goals</button>
+      <button class="modal-tab" onclick="switchModalTab('config',this)">Config</button>
     </div>
-    <div class="modal-tab-content active" id="tab-settings">
+
+    <!-- Overview Tab -->
+    <div class="modal-tab-content active" id="tab-overview">
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group">
@@ -900,10 +932,142 @@ html,body{
 
       <div class="form-group">
         <label class="form-label">Instructions (CLAUDE.md)</label>
-        <textarea class="form-input" id="f-instructions" rows="6" placeholder="System prompt / instructions for this agent..." style="font-family:var(--font-mono);font-size:12px;resize:vertical;min-height:120px"></textarea>
+        <textarea class="form-input" id="f-instructions" rows="6" placeholder="System prompt / instructions for this agent..." style="font-family:var(--font-mono);font-size:12px;resize:vertical;min-height:200px"></textarea>
         <div class="form-hint">Agent system prompt. Written to the agent's CLAUDE.md file.</div>
       </div>
 
+      <div class="form-group">
+        <label class="form-label">Agent Class</label>
+        <select class="form-input" id="f-agentClass">
+          <option value="standard">Standard</option>
+          <option value="builder">Builder</option>
+          <option value="platform">Platform</option>
+        </select>
+        <div class="form-hint">Standard (default), Builder (app developer agents), Platform (Lab creators).</div>
+      </div>
+
+      <div class="form-section">Organization</div>
+      <div id="orgEntries"></div>
+      <button class="add-entry-btn" onclick="addOrgEntry()">+ Add Org Entry</button>
+    </div>
+    </div>
+
+    <!-- Skills Tab -->
+    <div class="modal-tab-content" id="tab-skills">
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Shared Skills</label>
+        <input class="form-input" id="f-skills" placeholder="opcodereview, sop_pdf, opAgents_AddNew" style="font-family:var(--font-mono);font-size:11px">
+        <div class="form-hint">Comma-separated skill names from ~/.claude/commands/ or personalAgents/skills/</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Agent Skills</label>
+        <input class="form-input" id="f-agentSkills" placeholder="custom-skill-1, custom-skill-2" style="font-family:var(--font-mono);font-size:11px">
+        <div class="form-hint">Comma-separated skill names from agent's own skills/ folder</div>
+      </div>
+
+      <div class="form-section">Tools</div>
+      <div class="form-group">
+        <div class="checkbox-group" id="f-tools">
+          <div class="checkbox-pill checked" data-val="Read" onclick="togglePill(this)">Read</div>
+          <div class="checkbox-pill checked" data-val="Edit" onclick="togglePill(this)">Edit</div>
+          <div class="checkbox-pill checked" data-val="Write" onclick="togglePill(this)">Write</div>
+          <div class="checkbox-pill checked" data-val="Glob" onclick="togglePill(this)">Glob</div>
+          <div class="checkbox-pill checked" data-val="Grep" onclick="togglePill(this)">Grep</div>
+          <div class="checkbox-pill checked" data-val="Bash" onclick="togglePill(this)">Bash</div>
+          <div class="checkbox-pill checked" data-val="WebFetch" onclick="togglePill(this)">WebFetch</div>
+          <div class="checkbox-pill checked" data-val="WebSearch" onclick="togglePill(this)">WebSearch</div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- MCPs Tab -->
+    <div class="modal-tab-content" id="tab-mcps">
+    <div class="modal-body">
+      <div class="form-section">Available MCPs</div>
+      <div class="form-group">
+        <div class="checkbox-group" id="f-mcps"></div>
+        <div class="form-hint" id="f-mcps-hint">Loading available MCPs...</div>
+      </div>
+
+      <div class="form-section" id="mcpKeysSection" style="display:none">MCP Connections</div>
+      <div id="mcpKeysArea" style="display:none">
+        <div class="form-hint">Connect API keys or authorize services for the selected MCPs.</div>
+        <div id="mcpKeysList"></div>
+      </div>
+    </div>
+    </div>
+    <div class="modal-tab-content" id="tab-schedules">
+    <div class="modal-body">
+      <div class="form-section">Heartbeat</div>
+      <div class="form-group">
+        <label class="form-label">Heartbeat Instructions</label>
+        <textarea class="form-input" id="f-heartbeatInstructions" rows="5" placeholder="Custom instructions for when this agent is activated via heartbeat. Leave blank for default behavior (check tasks, work on highest priority)." style="font-family:var(--font-mono);font-size:12px;resize:vertical;min-height:100px"></textarea>
+        <div class="form-hint">Saved to heartbeat.md — defines what the agent does during a heartbeat check. If blank, the agent defaults to reviewing and working on its highest priority task.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Heartbeat Schedule (optional)</label>
+        <div id="heartbeatScheduleWrap" class="schedule-entry" style="border:none;padding:0;margin:0;background:none">
+          <div class="schedule-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="schedule-label">Every</span>
+            <select class="schedule-select" id="hb-frequency" onchange="updateHeartbeatFields()">
+              <option value="">Off (manual only)</option>
+              <option value="15min">15 Minutes</option>
+              <option value="30min">30 Minutes</option>
+              <option value="hour">Hour</option>
+              <option value="day">Day</option>
+              <option value="weekdays">Weekday (Mon-Fri)</option>
+              <option value="week">Week</option>
+            </select>
+            <span class="schedule-label" id="hb-day-label" style="display:none">on</span>
+            <select class="schedule-select" id="hb-days" style="display:none" onchange="updateHeartbeatFields()">
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+              <option value="0">Sunday</option>
+            </select>
+            <span class="schedule-label" id="hb-time-label" style="display:none">at</span>
+            <select class="schedule-select" id="hb-hour" style="display:none">
+              <option value="12">12</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+              <option value="8">8</option><option value="9" selected>9</option><option value="10">10</option><option value="11">11</option>
+            </select>
+            <span class="schedule-label" id="hb-colon" style="display:none">:</span>
+            <select class="schedule-select" id="hb-min" style="display:none">
+              <option value="0">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+            </select>
+            <select class="schedule-select" id="hb-ampm" style="display:none">
+              <option value="AM">AM</option><option value="PM">PM</option>
+            </select>
+            <div class="checkbox-pill" id="f-heartbeatEnabled" onclick="togglePill(this)">Enabled</div>
+          </div>
+        </div>
+        <div class="form-hint">How often should this agent automatically check its tasks? Leave "Off" for manual-only heartbeats via the Dashboard.</div>
+      </div>
+
+      <div class="form-section" style="margin-top:24px">Scheduled Messages</div>
+      <div id="scheduleEntries">
+        <div class="no-schedules" id="noSchedules">No scheduled messages yet</div>
+      </div>
+      <button class="add-entry-btn" onclick="addScheduleEntry()">+ Add Schedule</button>
+    </div>
+    </div>
+    <div class="modal-tab-content" id="tab-goals">
+    <div class="modal-body">
+      <div id="goalEntries">
+        <div class="no-goals" id="noGoals">No goals yet</div>
+      </div>
+      <button class="add-entry-btn" onclick="addGoalEntry()">+ Add Goal</button>
+    </div>
+    </div>
+
+    <!-- Config Tab -->
+    <div class="modal-tab-content" id="tab-config">
+    <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Workspace</label>
         <input class="form-input" id="f-workspace" placeholder="~" value="~">
@@ -930,7 +1094,7 @@ html,body{
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Timeout (seconds)</label>
-          <input class="form-input" id="f-timeout" type="number" min="30" step="30" placeholder="120" value="120" style="font-family:var(--font-mono);font-size:12px">
+          <input class="form-input" id="f-timeout" type="number" min="30" step="30" placeholder="14400" value="14400" style="font-family:var(--font-mono);font-size:12px">
         </div>
         <div class="form-group">
           <label class="form-label">Claude Account</label>
@@ -941,67 +1105,9 @@ html,body{
         </div>
       </div>
 
-      <div class="form-section">Skills</div>
-      <div class="form-group">
-        <label class="form-label">Shared Skills</label>
-        <input class="form-input" id="f-skills" placeholder="opcodereview, sop_pdf, opAgents_AddNew" style="font-family:var(--font-mono);font-size:11px">
-        <div class="form-hint">Comma-separated skill names from ~/.claude/commands/</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Agent Skills</label>
-        <input class="form-input" id="f-agentSkills" placeholder="custom-skill-1, custom-skill-2" style="font-family:var(--font-mono);font-size:11px">
-        <div class="form-hint">Comma-separated skill names from agent's own skills/ folder</div>
-      </div>
-
-      <div class="form-section">Tools</div>
-      <div class="form-group">
-        <div class="checkbox-group" id="f-tools">
-          <div class="checkbox-pill checked" data-val="Read" onclick="togglePill(this)">Read</div>
-          <div class="checkbox-pill checked" data-val="Edit" onclick="togglePill(this)">Edit</div>
-          <div class="checkbox-pill checked" data-val="Write" onclick="togglePill(this)">Write</div>
-          <div class="checkbox-pill checked" data-val="Glob" onclick="togglePill(this)">Glob</div>
-          <div class="checkbox-pill checked" data-val="Grep" onclick="togglePill(this)">Grep</div>
-          <div class="checkbox-pill checked" data-val="Bash" onclick="togglePill(this)">Bash</div>
-          <div class="checkbox-pill checked" data-val="WebFetch" onclick="togglePill(this)">WebFetch</div>
-          <div class="checkbox-pill checked" data-val="WebSearch" onclick="togglePill(this)">WebSearch</div>
-        </div>
-      </div>
-
-      <div class="form-section">MCPs</div>
-      <div class="form-group">
-        <div class="checkbox-group" id="f-mcps"></div>
-        <div class="form-hint" id="f-mcps-hint">Loading available MCPs...</div>
-      </div>
-
-      <div class="form-section" id="mcpKeysSection" style="display:none">MCP Connections</div>
-      <div id="mcpKeysArea" style="display:none">
-        <div class="form-hint">Connect API keys or authorize services for the selected MCPs.</div>
-        <div id="mcpKeysList"></div>
-      </div>
-
-      <div class="form-section">Organization</div>
-      <div id="orgEntries"></div>
-      <button class="add-entry-btn" onclick="addOrgEntry()">+ Add Org Entry</button>
-
       <div class="form-section">Routes</div>
       <div id="routeEntries"></div>
       <button class="add-entry-btn" onclick="addRouteEntry()">+ Add Route</button>
-    </div>
-    </div>
-    <div class="modal-tab-content" id="tab-schedules">
-    <div class="modal-body">
-      <div id="scheduleEntries">
-        <div class="no-schedules" id="noSchedules">No scheduled messages yet</div>
-      </div>
-      <button class="add-entry-btn" onclick="addScheduleEntry()">+ Add Schedule</button>
-    </div>
-    </div>
-    <div class="modal-tab-content" id="tab-goals">
-    <div class="modal-body">
-      <div id="goalEntries">
-        <div class="no-goals" id="noGoals">No goals yet</div>
-      </div>
-      <button class="add-entry-btn" onclick="addGoalEntry()">+ Add Goal</button>
     </div>
     </div>
     <div class="modal-footer">
@@ -1060,6 +1166,7 @@ html,body{
 
 <script>
 let agents = [];
+let visibleClasses = new Set(['standard']);
 let orgs = [];
 let availableMcps = [];
 let availableAccounts = [];
@@ -1097,6 +1204,23 @@ function toggleHideOrg(orgName) {
   setHiddenOrgs(hidden);
   renderOrg();
 }
+
+// Auto-open agent modal from URL params (e.g. /org?edit=agentId&tab=goals)
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const editId = params.get('edit');
+  const tab = params.get('tab');
+  if (editId) {
+    setTimeout(() => {
+      openModal(editId).then(() => {
+        if (tab) {
+          const tabBtn = [...document.querySelectorAll('.modal-tab')].find(t => t.textContent.toLowerCase() === tab);
+          if (tabBtn) switchModalTab(tab, tabBtn);
+        }
+      });
+    }, 500);
+  }
+})();
 function isOrgHidden(orgName) {
   return getHiddenOrgs().includes(orgName);
 }
@@ -1132,6 +1256,7 @@ async function fetchData() {
   ]);
   const data = await dashRes.json();
   agents = data.agents;
+  agents.sort((a, b) => (a.name || a.id || '').localeCompare(b.name || b.id || ''));
   availableAccounts = data.claudeAccounts || [];
 
   try { channelsData = (await chRes.json()).channels || []; } catch { channelsData = []; }
@@ -1179,6 +1304,37 @@ function buildDataLists() {
 
 // ─── Render ────────────────────────────────────────────────────
 let searchQuery = '';
+
+function toggleClassDropdown() {
+  document.getElementById('classDropdownMenu').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  const dd = document.getElementById('classDropdown');
+  if (dd && !dd.contains(e.target)) {
+    const menu = document.getElementById('classDropdownMenu');
+    if (menu) menu.classList.remove('open');
+  }
+});
+
+function toggleClassFilter(cls) {
+  if (visibleClasses.has(cls)) visibleClasses.delete(cls);
+  else visibleClasses.add(cls);
+  updateClassDropdownLabel();
+  renderOrg();
+}
+
+function updateClassDropdownLabel() {
+  ['standard','builder','platform'].forEach(cls => {
+    const chk = document.getElementById('chk-' + cls);
+    if (chk) chk.textContent = visibleClasses.has(cls) ? '✓' : '';
+  });
+  const btn = document.getElementById('classDropdownBtn');
+  const labels = [];
+  if (visibleClasses.has('standard')) labels.push('Standard');
+  if (visibleClasses.has('builder')) labels.push('Builder');
+  if (visibleClasses.has('platform')) labels.push('Platform');
+  btn.textContent = (labels.length ? labels.join(', ') : 'None') + ' ▾';
+}
 
 function handleSearch() {
   searchQuery = (document.getElementById('agentSearch')?.value || '').trim().toLowerCase();
@@ -1287,6 +1443,8 @@ function renderFlatGrid(canvas) {
   const orgGroups = {};
   const noOrg = [];
   for (const a of agents) {
+    const ac = a.agentClass || 'standard';
+    if (!visibleClasses.has(ac)) continue;
     if (!matchesSearch(a)) continue;
     if (!a.org || a.org.length === 0) {
       noOrg.push(a);
@@ -1305,19 +1463,20 @@ function renderFlatGrid(canvas) {
   }
 
   let html = '';
-  for (const orgName of Object.keys(orgGroups)) {
+  for (const orgName of Object.keys(orgGroups).sort()) {
     const oHidden = isOrgHidden(orgName);
     const oBtnClass = oHidden ? ' active' : '';
     const oBtnIcon = oHidden ? '&#x1f6ab;' : '&#x1f441;';
     const oBtnLabel = oHidden ? 'Hidden' : 'Hide Names';
     html += `<div class="org-title-banner" style="display:flex;align-items:center">${escapeHtml(orgName)}<button class="hide-names-btn${oBtnClass}" onclick="toggleHideOrg('${escapeHtml(orgName).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${oBtnIcon} ${oBtnLabel}</button></div>`;
     html += '<div class="flat-grid">';
-    for (const a of orgGroups[orgName]) {
+    for (const a of [...orgGroups[orgName]].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
       html += renderNode(a, false, false, oHidden);
     }
     html += '</div>';
   }
 
+  noOrg.sort((a, b) => (a.name || a.id || '').localeCompare(b.name || b.id || ''));
   if (noOrg.length > 0) {
     html += '<div class="org-title-banner" style="opacity:.5">Unassigned</div>';
     html += '<div class="flat-grid">';
@@ -1356,6 +1515,7 @@ function renderNode(a, dimmed, isLead, blurNames) {
     </div>
     <div class="node-actions">
       <button class="node-btn" onclick="event.stopPropagation();window.location='/ui#${a.id}'">Chat</button>
+      <button class="node-btn" onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">Dashboard</button>
       <button class="node-btn" onclick="event.stopPropagation();openModal('${a.id}')">Config</button>
     </div>
   </div>`;
@@ -1442,7 +1602,15 @@ async function openModal(agentId) {
       const instrRes = await fetch(`/api/agents/${agentId}/instructions`);
       const instrData = await instrRes.json();
       instrField.value = instrData.instructions || '';
+      // Load heartbeat.md if present
+      document.getElementById('f-heartbeatInstructions').value = instrData.heartbeatInstructions || '';
     } catch { instrField.value = ''; }
+
+    // Load heartbeat cron schedule if present
+    const hbCron = (a.cron || []).find(c => c.message === '[HEARTBEAT]');
+    loadHeartbeatSchedule(hbCron?.schedule || '');
+    const hbEnabledPill = document.getElementById('f-heartbeatEnabled');
+    if (hbCron?.enabled !== false) hbEnabledPill.classList.add('checked'); else hbEnabledPill.classList.remove('checked');
 
     const memPill = document.getElementById('f-advancedMemory');
     const autoPill = document.getElementById('f-autonomousCapable');
@@ -1453,6 +1621,9 @@ async function openModal(agentId) {
 
     // Claude Account
     accountSelect.value = a.claudeAccount || '';
+
+    // Agent Class
+    document.getElementById('f-agentClass').value = a.agentClass || 'standard';
 
     // Auto Commit
     const commitPill = document.getElementById('f-autoCommit');
@@ -1537,9 +1708,12 @@ async function openModal(agentId) {
     document.getElementById('f-advancedMemory').classList.add('checked');
     document.getElementById('f-autonomousCapable').classList.add('checked');
     document.getElementById('f-autoCommit').classList.remove('checked');
-    document.getElementById('f-timeout').value = '120';
+    document.getElementById('f-timeout').value = '14400';
     document.getElementById('f-skills').value = '';
     document.getElementById('f-agentSkills').value = '';
+    document.getElementById('f-heartbeatInstructions').value = '';
+    loadHeartbeatSchedule('');
+    document.getElementById('f-heartbeatEnabled').classList.remove('checked');
 
     // Reset tools
     document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
@@ -1560,7 +1734,7 @@ async function openModal(agentId) {
     addRouteEntry();
   }
 
-  // Reset to Settings tab
+  // Reset to Overview tab
   document.querySelectorAll('.modal-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
   document.querySelectorAll('.modal-tab-content').forEach((t, i) => t.classList.toggle('active', i === 0));
 
@@ -2020,6 +2194,65 @@ function addScheduleEntry(frequency, days, time, message, channel, chatId, minut
   updateSchedulePreview(div);
 }
 
+// ─── Heartbeat schedule helpers ──────────────────────────────
+function updateHeartbeatFields() {
+  const freq = document.getElementById('hb-frequency').value;
+  const showDay = freq === 'week';
+  const showTime = freq && !['hour','30min','15min'].includes(freq);
+
+  document.getElementById('hb-day-label').style.display = showDay ? '' : 'none';
+  document.getElementById('hb-days').style.display = showDay ? '' : 'none';
+  document.getElementById('hb-time-label').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-hour').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-colon').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-min').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-ampm').style.display = showTime ? '' : 'none';
+}
+
+function buildHeartbeatCron() {
+  const freq = document.getElementById('hb-frequency').value;
+  if (!freq) return '';
+  const day = document.getElementById('hb-days').value || '1';
+  let hr = parseInt(document.getElementById('hb-hour').value || '9');
+  const min = document.getElementById('hb-min').value || '0';
+  const ampm = document.getElementById('hb-ampm').value || 'AM';
+  if (ampm === 'PM' && hr !== 12) hr += 12;
+  if (ampm === 'AM' && hr === 12) hr = 0;
+
+  switch(freq) {
+    case 'day': return `${min} ${hr} * * *`;
+    case 'weekdays': return `${min} ${hr} * * 1-5`;
+    case 'week': return `${min} ${hr} * * ${day}`;
+    case 'hour': return '0 * * * *';
+    case '30min': return '*/30 * * * *';
+    case '15min': return '*/15 * * * *';
+    default: return '';
+  }
+}
+
+function loadHeartbeatSchedule(cronStr) {
+  if (!cronStr) {
+    document.getElementById('hb-frequency').value = '';
+    updateHeartbeatFields();
+    return;
+  }
+  const parsed = cronToHuman(cronStr);
+  document.getElementById('hb-frequency').value = parsed.frequency;
+
+  if (parsed.frequency === 'week') {
+    document.getElementById('hb-days').value = parsed.days || '1';
+  }
+  if (!['hour','30min','15min'].includes(parsed.frequency)) {
+    const h24 = parseInt(parsed.time || '9');
+    const isPM = h24 >= 12;
+    const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+    document.getElementById('hb-hour').value = String(h12);
+    document.getElementById('hb-min').value = parsed.min || '0';
+    document.getElementById('hb-ampm').value = isPM ? 'PM' : 'AM';
+  }
+  updateHeartbeatFields();
+}
+
 function toggleScheduleFields(entry) {
   const freq = entry.querySelector('[data-field="frequency"]').value;
   const showDay = freq === 'week';
@@ -2065,6 +2298,58 @@ function removeSchedule(btn) {
   if (!container.querySelector('.schedule-entry')) {
     document.getElementById('noSchedules').style.display = '';
   }
+}
+
+// ─── Heartbeat schedule picker ──────────────────────────────────
+function updateHeartbeatFields() {
+  const freq = document.getElementById('hb-frequency').value;
+  const showDay = freq === 'week';
+  const showTime = !['', 'hour', '30min', '15min'].includes(freq);
+  document.getElementById('hb-day-label').style.display = showDay ? '' : 'none';
+  document.getElementById('hb-days').style.display = showDay ? '' : 'none';
+  document.getElementById('hb-time-label').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-hour').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-colon').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-min').style.display = showTime ? '' : 'none';
+  document.getElementById('hb-ampm').style.display = showTime ? '' : 'none';
+}
+
+function buildHeartbeatCron() {
+  const freq = document.getElementById('hb-frequency').value;
+  if (!freq) return '';
+  const day = document.getElementById('hb-days').value || '1';
+  let hr = parseInt(document.getElementById('hb-hour').value || '9');
+  const min = document.getElementById('hb-min').value || '0';
+  const ampm = document.getElementById('hb-ampm').value || 'AM';
+  if (ampm === 'PM' && hr !== 12) hr += 12;
+  if (ampm === 'AM' && hr === 12) hr = 0;
+  switch (freq) {
+    case 'day': return `${min} ${hr} * * *`;
+    case 'weekdays': return `${min} ${hr} * * 1-5`;
+    case 'week': return `${min} ${hr} * * ${day}`;
+    case 'hour': return '0 * * * *';
+    case '30min': return '*/30 * * * *';
+    case '15min': return '*/15 * * * *';
+    default: return '';
+  }
+}
+
+function setHeartbeatFromCron(cron) {
+  if (!cron) {
+    document.getElementById('hb-frequency').value = '';
+    updateHeartbeatFields();
+    return;
+  }
+  const parsed = cronToHuman(cron);
+  document.getElementById('hb-frequency').value = parsed.frequency;
+  document.getElementById('hb-days').value = parsed.days || '1';
+  const h24 = parseInt(parsed.time || '9');
+  const isPM = h24 >= 12;
+  const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+  document.getElementById('hb-hour').value = String(h12);
+  document.getElementById('hb-min').value = parsed.min || '0';
+  document.getElementById('hb-ampm').value = isPM ? 'PM' : 'AM';
+  updateHeartbeatFields();
 }
 
 function cronToHuman(cron) {
@@ -2430,11 +2715,15 @@ async function saveAgent() {
   const advancedMemory = document.getElementById('f-advancedMemory').classList.contains('checked');
   const autonomousCapable = document.getElementById('f-autonomousCapable').classList.contains('checked');
   const autoCommit = document.getElementById('f-autoCommit').classList.contains('checked');
-  const timeoutSec = parseInt(document.getElementById('f-timeout').value) || 120;
+  const timeoutSec = parseInt(document.getElementById('f-timeout').value) || 14400;
   const timeout = timeoutSec * 1000;
   const claudeAccount = document.getElementById('f-claudeAccount').value || undefined;
+  const agentClass = document.getElementById('f-agentClass').value || 'standard';
   const skills = document.getElementById('f-skills').value.split(',').map(s => s.trim()).filter(Boolean);
   const agentSkills = document.getElementById('f-agentSkills').value.split(',').map(s => s.trim()).filter(Boolean);
+  const heartbeatInstructions = document.getElementById('f-heartbeatInstructions').value.trim() || undefined;
+  const heartbeatCron = buildHeartbeatCron() || undefined;
+  const heartbeatEnabled = document.getElementById('f-heartbeatEnabled').classList.contains('checked');
 
   const tools = [...document.querySelectorAll('#f-tools .checkbox-pill.checked')]
     .map(el => el.dataset.val).filter(Boolean);
@@ -2488,7 +2777,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, heartbeatInstructions, heartbeatCron, heartbeatEnabled }),
     });
     const data = await res.json();
 

@@ -136,13 +136,22 @@ html,body{
   font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent);
 }
 .logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
-.theme-toggle{
+/* Docs dropdown */
+.docs-dropdown{position:relative;display:inline-block}
+.docs-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:14px;transition:all .2s}
+.docs-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.docs-menu{display:none;position:absolute;top:40px;right:0;min-width:140px;background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;padding:4px;backdrop-filter:blur(20px)}
+.docs-menu.open{display:block}
+.docs-menu a{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:6px;transition:all .15s}
+.docs-menu a:hover{background:var(--accent-bg);color:var(--accent)}
+.docs-menu a .dm-icon{font-size:14px;width:18px;text-align:center}
+.theme-toggle,.gear-btn{
   width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);
   background:transparent;color:var(--text-muted);cursor:pointer;
   display:flex;align-items:center;justify-content:center;font-size:16px;
   transition:all .2s;
-}
-.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+text-decoration:none;}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
 /* ─── Status Bar ──────────────────────────────────────────────── */
 .status-bar{
@@ -881,11 +890,19 @@ html,body{
   <nav class="tab-group">
     <a class="tab-btn" href="/org">Agents</a>
     <a class="tab-btn active" href="/ui">Chat</a>
-    <a class="tab-btn" href="/apps">Apps</a>
     <a class="tab-btn" href="/marketplace">Registry</a>
+    <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
-    <button onclick="window.open('/mini','minibar','width=420,height=280,resizable=yes,scrollbars=no')" title="Open Mini Bar" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">⊡</button>
+    <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">⊡</button>
+    <div class="docs-dropdown" id="docsDropdown">
+      <button class="docs-btn" onclick="document.getElementById('docsMenu').classList.toggle('open')" title="Documentation">&#9776;</button>
+      <div class="docs-menu" id="docsMenu">
+        <a href="/api-docs#api" target="_blank"><span class="dm-icon">&#9881;</span> API Docs</a>
+        <a href="/api-docs#mcp" target="_blank"><span class="dm-icon">&#9830;</span> MCP Tools</a>
+      </div>
+    </div>
+    <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
   </div>
 </div>
@@ -1806,6 +1823,42 @@ async function doSend() {
 
   input.value = '';
   autoResize(input);
+
+  // Handle /whoami command locally
+  if (text.trim().toLowerCase() === '/whoami') {
+    if (!chatHistory[selectedAgent]) chatHistory[selectedAgent] = [];
+    chatHistory[selectedAgent].push({ role: 'user', text, time: new Date().toISOString() });
+    updateMessages(); scrollChat();
+    try {
+      const r = await fetch('/api/whoami/' + encodeURIComponent(selectedAgent));
+      const d = await r.json();
+      const now = new Date().toLocaleTimeString();
+      let info = '`claude auth status` ran at ' + now + '\n\n';
+      if (d.email) {
+        info += '| Field | Value |\n|-------|-------|\n'
+             + '| **Logged In** | ' + (d.loggedIn ? 'Yes ✓' : 'No ✗') + ' |\n'
+             + '| **Email** | ' + d.email + ' |\n'
+             + '| **Org** | ' + (d.orgName || 'N/A') + ' |\n'
+             + '| **Plan** | ' + (d.subscriptionType || 'N/A') + ' |\n'
+             + '| **Auth Method** | ' + (d.authMethod || 'N/A') + ' |\n'
+             + '| **Account Key** | ' + (d.accountName || 'default') + ' |\n'
+             + '| **Config Dir** | `' + (d.configDir || 'N/A') + '` |\n'
+             + '| **Agent** | ' + selectedAgent + ' |';
+      } else if (d.loggedIn === false) {
+        info += '**Not logged in.** This agent\'s configured account is not authenticated.\n\n'
+             + '- Account key: ' + (d.accountName || 'default') + '\n'
+             + '- Config dir: `' + (d.configDir || 'N/A') + '`\n'
+             + '- Go to `/settings` to re-authorize.';
+      } else {
+        info += 'Unexpected response: ```\n' + JSON.stringify(d, null, 2) + '\n```';
+      }
+      chatHistory[selectedAgent].push({ role: 'agent', text: info, time: new Date().toISOString() });
+    } catch (e) {
+      chatHistory[selectedAgent].push({ role: 'agent', text: 'Error: ' + e.message, time: new Date().toISOString() });
+    }
+    updateMessages(); scrollChat();
+    return;
+  }
 
   // If streaming is active, queue the message instead of sending
   const ss = getStream(selectedAgent);
@@ -2928,6 +2981,14 @@ function formatCanvasMarkdown(text) {
   return html;
 }
 
+// ─── Close docs dropdown on outside click ──────────────────────
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('docsDropdown');
+  if (dd && !dd.contains(e.target)) {
+    document.getElementById('docsMenu')?.classList.remove('open');
+  }
+});
+
 // ─── Init ──────────────────────────────────────────────────────
 fetchDashboard().then(() => {
   // Check URL hash for deep-link to agent (from org page "Chat" or activity page)
@@ -2935,6 +2996,7 @@ fetchDashboard().then(() => {
   const rawHash = window.location.hash.slice(1);
   const [hashId, hashParams] = rawHash.split('?');
   const tsParam = hashParams ? new URLSearchParams(hashParams).get('ts') : null;
+  const msgParam = hashParams ? new URLSearchParams(hashParams).get('msg') : null;
 
   if (hashId && agents.find(a => a.id === hashId)) {
     // Auto-filter to this agent's org/dept
@@ -2950,6 +3012,13 @@ fetchDashboard().then(() => {
       // Scroll to specific message if ts param provided
       if (tsParam) {
         setTimeout(() => scrollToMessage(decodeURIComponent(tsParam)), 300);
+      }
+      // Pre-fill and auto-send message if msg param provided
+      if (msgParam) {
+        setTimeout(() => {
+          const inp = document.getElementById('chatInput');
+          if (inp) { inp.value = decodeURIComponent(msgParam); doSend(); }
+        }, 300);
       }
     });
     window.location.hash = ''; // clean up URL

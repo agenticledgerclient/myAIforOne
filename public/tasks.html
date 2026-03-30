@@ -118,13 +118,13 @@ html,body{
   display:flex;align-items:center;gap:6px;
 }
 .add-task-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.theme-toggle{
+.theme-toggle,.gear-btn{
   width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);
   background:transparent;color:var(--text-muted);cursor:pointer;
   display:flex;align-items:center;justify-content:center;font-size:16px;
   transition:all .2s;
-}
-.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+text-decoration:none;}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
 /* ─── Filter Bar ──────────────────────────────────────────────── */
 .filter-bar{
@@ -340,11 +340,12 @@ html,body{
   <div class="tab-group">
     <a class="tab-btn active" href="/org">Agents</a>
     <a class="tab-btn" href="/ui">Chat</a>
-    <a class="tab-btn" href="/apps">Apps</a>
     <a class="tab-btn" href="/marketplace">Registry</a>
+    <a class="tab-btn" href="/lab">Lab</a>
   </div>
   <div class="topbar-right">
     <button class="add-task-btn" onclick="openNewTaskModal()">+ New Task</button>
+    <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
     <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme"></button>
   </div>
 </div>

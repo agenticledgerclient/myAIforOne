@@ -66,6 +66,15 @@ const COST_PATTERN = /^\s*\/cost\b/i;
 
 // ─── Task helpers ─────────────────────────────────────────────────
 
+interface TaskHistoryEntry {
+  ts: string;
+  action: string;
+  by: string;
+  from?: string;
+  to?: string;
+  note?: string;
+}
+
 interface TaskData {
   agentId: string;
   projects: Array<{ id: string; name: string; color: string }>;
@@ -74,6 +83,9 @@ interface TaskData {
     priority: string; status: string; owner: string; assignedBy: string;
     assignmentType: string; dueDate: string | null; context: string;
     result: string; createdAt: string; updatedAt: string;
+    source?: string;
+    assignedTo?: string;
+    history?: TaskHistoryEntry[];
   }>;
 }
 
@@ -93,13 +105,15 @@ function saveTasksToAgent(agentHome: string, data: TaskData): void {
 
 function buildTaskContextBlock(agentHome: string, agentId: string): string {
   const data = loadTasksFromAgent(agentHome, agentId);
-  const active = data.tasks.filter(t => t.status === "approved" || t.status === "in_progress");
+  const active = (data.tasks || []).filter(t => ["proposed", "approved", "in_progress", "review"].includes(t.status));
   if (active.length === 0) return "";
 
   const lines = ["\n[Active Tasks]"];
   for (const t of active) {
     let line = `- ${t.id}: ${t.title} (${t.status}, ${t.priority} priority`;
     if (t.dueDate) line += `, due ${t.dueDate}`;
+    if (t.source) line += `, source: ${t.source}`;
+    if (t.assignedTo && t.assignedTo !== agentId) line += `, assigned to: ${t.assignedTo}`;
     line += ")";
     lines.push(line);
   }
@@ -484,15 +498,42 @@ async function executeParallel(
 
 // ─── Skill index builder ─────────────────────────────────────────────
 
+function findRegistrySkill(name: string, baseDir: string): string | null {
+  const registryRoot = join(baseDir, "registry", "skills");
+  if (!existsSync(registryRoot)) return null;
+  // Check root first, then each subdirectory
+  const direct = join(registryRoot, `${name}.md`);
+  if (existsSync(direct)) return direct;
+  try {
+    for (const entry of readdirSync(registryRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const candidate = join(registryRoot, entry.name, `${name}.md`);
+      if (existsSync(candidate)) return candidate;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 function buildSkillIndex(
   sharedSkillNames: string[],
   agentSkillNames: string[],
   agentMemoryDir: string,
+  orgNames?: string[],
+  baseDir?: string,
 ): string {
   const home = homedir();
   const claudeDir = join(home, ".claude", "commands");
   const personalDir = join(getPersonalAgentsDir(), "skills");
   const agentSkillsDir = join(agentMemoryDir, "..", "skills");
+
+  // Helper: extract scripts dir from frontmatter if present
+  const getScriptsDir = (content: string, mdPath: string): string => {
+    const m = content.match(/scripts:\s*(.+)/);
+    if (!m) return "";
+    const rel = m[1].trim().replace(/\/$/, "");
+    const dir = join(mdPath, "..", rel);
+    return existsSync(dir) ? ` · scripts: \`${dir}\`` : "";
+  };
 
   const lines: string[] = [
     "\n## Available Skills",
@@ -501,16 +542,17 @@ function buildSkillIndex(
     "|-------|-------------|------|",
   ];
 
-  // Shared skills — check 3 locations in order: agent > personalAgents/skills > ~/.claude/commands
+  // Shared skills — check 4 locations in order: personalAgents/skills > ~/.claude/commands > registry/skills
   for (const name of sharedSkillNames) {
     let filePath = "";
-    // Try personalAgents/skills/ first (shared custom)
     const personalPath = join(personalDir, `${name}.md`);
     const claudePath = join(claudeDir, `${name}.md`);
     if (existsSync(personalPath)) {
       filePath = personalPath;
     } else if (existsSync(claudePath)) {
       filePath = claudePath;
+    } else if (baseDir) {
+      filePath = findRegistrySkill(name, baseDir) || "";
     }
 
     if (!filePath) {
@@ -521,9 +563,35 @@ function buildSkillIndex(
       const content = readFileSync(filePath, "utf-8");
       const descMatch = content.match(/description:\s*(.+)/);
       const desc = descMatch ? descMatch[1].trim() : "No description";
-      lines.push(`| ${name} | ${desc} | \`${filePath}\` |`);
+      lines.push(`| ${name} | ${desc} | \`${filePath}\`${getScriptsDir(content, filePath)} |`);
     } catch {
       lines.push(`| ${name} | (could not read) | \`${filePath}\` |`);
+    }
+  }
+
+  // Org-scoped skills — auto-discovered from personalAgents/[OrgName]/skills/
+  if (orgNames?.length) {
+    const seen = new Set<string>();
+    for (const orgName of orgNames) {
+      const orgSkillsDir = join(getPersonalAgentsDir(), orgName, "skills");
+      if (!existsSync(orgSkillsDir)) continue;
+      try {
+        const mdFiles = readdirSync(orgSkillsDir).filter((f: string) => f.endsWith(".md"));
+        for (const file of mdFiles) {
+          const name = file.replace(".md", "");
+          if (seen.has(name)) continue;
+          seen.add(name);
+          const filePath = join(orgSkillsDir, file);
+          try {
+            const content = readFileSync(filePath, "utf-8");
+            const descMatch = content.match(/description:\s*(.+)/);
+            const desc = descMatch ? descMatch[1].trim() : "No description";
+            lines.push(`| ${name} ◆ | ${desc} | \`${filePath}\`${getScriptsDir(content, filePath)} |`);
+          } catch {
+            lines.push(`| ${name} ◆ | (could not read) | \`${filePath}\` |`);
+          }
+        }
+      } catch { /* org skills dir not readable */ }
     }
   }
 
@@ -538,7 +606,7 @@ function buildSkillIndex(
       const content = readFileSync(filePath, "utf-8");
       const descMatch = content.match(/description:\s*(.+)/);
       const desc = descMatch ? descMatch[1].trim() : "No description";
-      lines.push(`| ${name} ★ | ${desc} | \`${filePath}\` |`);
+      lines.push(`| ${name} ★ | ${desc} | \`${filePath}\`${getScriptsDir(content, filePath)} |`);
     } catch {
       lines.push(`| ${name} ★ | (could not read) | \`${filePath}\` |`);
     }
@@ -547,7 +615,7 @@ function buildSkillIndex(
   if (lines.length <= 4) return "";
 
   lines.push("");
-  lines.push("Skills marked with ★ are specific to this agent. To use a skill: Read the file at the path shown, then follow its instructions.");
+  lines.push("Skills marked with ★ are specific to this agent. Skills marked with ◆ are shared across your org. To use a skill: Read the file at the path shown, then follow its instructions.");
   return lines.join("\n");
 }
 
@@ -773,9 +841,11 @@ export async function executeAgent(
   const effectiveSkills = [...new Set([...(agentConfig.skills || []), ...(globalDefaults?.skills || [])])];
   const effectiveMcps = [...new Set([...(agentConfig.mcps || []), ...(globalDefaults?.mcps || [])])];
   const effectivePrompts = [...new Set([...(agentConfig.prompts || []), ...(globalDefaults?.prompts || [])])];
+  const _home = homedir();
+  const expandTilde = (p: string) => p.startsWith("~") ? p.replace("~", _home) : p;
   const workspace = resolve(agentConfig.workspace);
-  const claudeMdPath = resolve(baseDir, agentConfig.claudeMd);
-  const memoryDir = resolve(baseDir, agentConfig.memoryDir);
+  const claudeMdPath = resolve(baseDir, expandTilde(agentConfig.claudeMd));
+  const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
   const logPath = join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
@@ -811,7 +881,7 @@ export async function executeAgent(
     // Load system prompt for workers
     let workerPrompt: string;
     try {
-      workerPrompt = readFileSync(resolve(baseDir, agentConfig.claudeMd), "utf-8");
+      workerPrompt = readFileSync(resolve(baseDir, expandTilde(agentConfig.claudeMd)), "utf-8");
     } catch {
       workerPrompt = `You are ${agentConfig.name}. ${agentConfig.description}`;
     }
@@ -915,9 +985,11 @@ export async function executeAgent(
   }
 
   // ── Append skill index if configured ──
-  const hasSkills = effectiveSkills.length > 0 || (agentConfig.agentSkills?.length || 0) > 0;
+  const agentOrgNames = (agentConfig.org || []).map((o: any) => o.organization).filter(Boolean);
+  const hasOrgSkills = agentOrgNames.some((org: string) => existsSync(join(getPersonalAgentsDir(), org, "skills")));
+  const hasSkills = effectiveSkills.length > 0 || (agentConfig.agentSkills?.length || 0) > 0 || hasOrgSkills;
   if (hasSkills) {
-    systemPrompt += buildSkillIndex(effectiveSkills, agentConfig.agentSkills || [], memoryDir);
+    systemPrompt += buildSkillIndex(effectiveSkills, agentConfig.agentSkills || [], memoryDir, agentOrgNames, baseDir);
   }
 
   // ── Append prompt template index if configured ──
@@ -1105,6 +1177,11 @@ export async function executeAgent(
     if (existsSync(agentSkillsDir) && agentConfig.agentSkills?.length) {
       args.push("--add-dir", agentSkillsDir);
     }
+    // Org-scoped skills dirs
+    for (const orgName of agentOrgNames) {
+      const orgSkillsDir = join(getPersonalAgentsDir(), orgName, "skills");
+      if (existsSync(orgSkillsDir)) args.push("--add-dir", orgSkillsDir);
+    }
   }
 
   // Allowed tools — include MCP tool patterns
@@ -1250,7 +1327,15 @@ function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: s
       clearTimeout(timer);
       if (code !== 0) {
         log.warn(`claude -p exited with code ${code} stderr: ${stderr.slice(0, 500)} stdout: ${stdout.slice(0, 500)}`);
-        reject(new Error(`claude -p exited with code ${code}`));
+        const errLower = stderr.toLowerCase();
+        const isAuth = errLower.includes("not authenticated") || errLower.includes("please log in") ||
+          errLower.includes("unauthorized") || errLower.includes("expired") ||
+          errLower.includes("auth") || errLower.includes("login required");
+        if (isAuth) {
+          reject(new Error(`Claude account session has expired. Go to /settings to re-authorize.`));
+        } else {
+          reject(new Error(`claude -p exited with code ${code}`));
+        }
       } else {
         resolve(stdout.trim());
       }
@@ -1288,9 +1373,11 @@ export async function* executeAgentStreaming(
   const effectiveSkills = [...new Set([...(agentConfig.skills || []), ...(globalDefaults?.skills || [])])];
   const effectiveMcps = [...new Set([...(agentConfig.mcps || []), ...(globalDefaults?.mcps || [])])];
   const effectivePrompts = [...new Set([...(agentConfig.prompts || []), ...(globalDefaults?.prompts || [])])];
+  const _home = homedir();
+  const expandTilde = (p: string) => p.startsWith("~") ? p.replace("~", _home) : p;
   const workspace = resolve(agentConfig.workspace);
-  const claudeMdPath = resolve(baseDir, agentConfig.claudeMd);
-  const memoryDir = resolve(baseDir, agentConfig.memoryDir);
+  const claudeMdPath = resolve(baseDir, expandTilde(agentConfig.claudeMd));
+  const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
   const logPath = join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
@@ -1334,7 +1421,7 @@ export async function* executeAgentStreaming(
 
     let workerPrompt: string;
     try {
-      workerPrompt = readFileSync(resolve(baseDir, agentConfig.claudeMd), "utf-8");
+      workerPrompt = readFileSync(resolve(baseDir, expandTilde(agentConfig.claudeMd)), "utf-8");
     } catch {
       workerPrompt = `You are ${agentConfig.name}. ${agentConfig.description}`;
     }
@@ -1428,9 +1515,11 @@ export async function* executeAgentStreaming(
     } catch { /* ignore */ }
   }
 
-  const hasSkills = effectiveSkills.length > 0 || (agentConfig.agentSkills?.length || 0) > 0;
+  const streamOrgNames = (agentConfig.org || []).map((o: any) => o.organization).filter(Boolean);
+  const streamHasOrgSkills = streamOrgNames.some((org: string) => existsSync(join(getPersonalAgentsDir(), org, "skills")));
+  const hasSkills = effectiveSkills.length > 0 || (agentConfig.agentSkills?.length || 0) > 0 || streamHasOrgSkills;
   if (hasSkills) {
-    systemPrompt += buildSkillIndex(effectiveSkills, agentConfig.agentSkills || [], memoryDir);
+    systemPrompt += buildSkillIndex(effectiveSkills, agentConfig.agentSkills || [], memoryDir, streamOrgNames, baseDir);
   }
 
   // ── Append prompt template index if configured ──
@@ -1561,9 +1650,14 @@ export async function* executeAgentStreaming(
   args.push("--output-format", "stream-json", "--verbose", "--include-partial-messages");
   args.push("--add-dir", workspace);
 
-  if (effectiveSkills.length > 0) {
+  if (effectiveSkills.length > 0 || streamHasOrgSkills) {
     const skillsDir = join(homedir(), ".claude", "commands");
-    if (existsSync(skillsDir)) args.push("--add-dir", skillsDir);
+    if (existsSync(skillsDir) && effectiveSkills.length) args.push("--add-dir", skillsDir);
+    // Org-scoped skills dirs
+    for (const orgName of streamOrgNames) {
+      const orgSkillsDir = join(getPersonalAgentsDir(), orgName, "skills");
+      if (existsSync(orgSkillsDir)) args.push("--add-dir", orgSkillsDir);
+    }
   }
 
   const allowedTools = [...agentConfig.allowedTools];
@@ -1706,8 +1800,10 @@ export async function* executeAgentStreaming(
   });
 
   // Also capture stderr as raw lines
+  let stderrBuf = "";
   proc.stderr.on("data", (data: Buffer) => {
     const text = data.toString();
+    stderrBuf += text;
     for (const line of text.split("\n")) {
       if (line.trim() && onRawLine) onRawLine(`[stderr] ${line}`);
     }
@@ -1751,7 +1847,20 @@ export async function* executeAgentStreaming(
   }
 
   if (exitCode !== 0 && !fullResponse) {
-    yield { type: "error", data: "Agent execution failed." };
+    const accountName = agentConfig.claudeAccount || "default";
+    const combinedErr = stderrBuf.toLowerCase();
+    const isAuthError = combinedErr.includes("not authenticated") ||
+      combinedErr.includes("please log in") ||
+      combinedErr.includes("unauthorized") ||
+      combinedErr.includes("invalid api key") ||
+      combinedErr.includes("expired") ||
+      combinedErr.includes("auth") ||
+      combinedErr.includes("login required");
+    if (isAuthError) {
+      yield { type: "error", data: `Account "${accountName}" session has expired. Go to /settings to re-authorize this account.` };
+    } else {
+      yield { type: "error", data: "Agent execution failed." };
+    }
     return;
   }
 

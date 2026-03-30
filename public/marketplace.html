@@ -46,8 +46,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .sub-nav-link:hover{color:var(--text-secondary)}
 .sub-nav-link.active{color:var(--accent)}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-.theme-toggle{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
-.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.theme-toggle,.gear-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2stext-decoration:none;}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
 /* ── Canvas ── */
 .canvas{position:fixed;top:56px;left:0;right:0;bottom:0;overflow:auto;padding:32px 40px}
@@ -80,6 +80,37 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 
 /* ── Card ── */
 .card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:10px;transition:all .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);height:200px}
+
+/* ── App Card (rich tile from /apps) ── */
+.app-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:12px;transition:all .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.app-card:hover{border-color:var(--border-glow);box-shadow:var(--shadow),var(--shadow-glow);transform:translateY(-1px)}
+.app-card-top{display:flex;align-items:flex-start;gap:12px}
+.app-icon{width:44px;height:44px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--border-active);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--accent);flex-shrink:0}
+.app-name{font-family:var(--font-display);font-size:15px;font-weight:700;line-height:1.2}
+.app-url{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.app-badges{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:auto;flex-shrink:0}
+.status-badge{font-family:var(--font-mono);font-size:9px;font-weight:600;padding:3px 8px;border-radius:5px;white-space:nowrap;letter-spacing:.03em}
+.status-live{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.3)}
+.status-draft{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim)}
+.status-maintenance{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.3)}
+.status-down{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.3)}
+.deploy-badge{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,0.2)}
+.app-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.app-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.app-tag{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,0.2)}
+.agent-dev-badge{display:flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.2);cursor:pointer;transition:all .2s;text-decoration:none}
+.agent-dev-badge:hover{background:var(--accent);color:#000}
+.app-actions{display:flex;gap:8px;margin-top:2px;align-items:center}
+.btn-launch{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:6px 14px;border-radius:7px;border:none;background:var(--accent-bg);color:var(--accent);border:1px solid var(--border-active);cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.btn-launch:hover{background:var(--accent);color:#000}
+.btn-icon{width:28px;height:28px;border-radius:7px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s}
+.btn-icon:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.btn-icon.danger:hover{border-color:rgba(248,113,113,0.4);color:var(--red)}
+.health-chip{margin-left:auto;font-family:var(--font-mono);font-size:9px;display:flex;align-items:center;gap:4px;color:var(--text-muted);cursor:pointer;border:1px solid var(--border-dim);padding:2px 8px;border-radius:5px;background:transparent;transition:all .2s}
+.health-chip:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.health-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted)}
+.health-dot.healthy{background:var(--green)}
+.health-dot.down{background:var(--red)}
 .card:hover{border-color:var(--border-glow);box-shadow:var(--shadow),var(--shadow-glow);transform:translateY(-1px)}
 .card.installed{border-color:rgba(74,222,128,0.2)}
 .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
@@ -191,10 +222,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   <nav class="tab-group">
     <a class="tab-btn" href="/org">Agents</a>
     <a class="tab-btn" href="/ui">Chat</a>
-    <a class="tab-btn" href="/apps">Apps</a>
     <a class="tab-btn active" href="/marketplace">Registry</a>
+    <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
+    <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
   </div>
 </div>
@@ -202,11 +234,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 <div class="canvas" id="canvas">
   <div class="toolbar">
     <div class="type-tabs">
-      <button class="type-tab active" data-type="mcps" onclick="switchType('mcps')">MCPs</button>
+      <button class="type-tab active" data-type="apps" onclick="switchType('apps')">Apps</button>
       <button class="type-tab" data-type="skills" onclick="switchType('skills')">Skills</button>
-      <button class="type-tab" data-type="prompts" onclick="switchType('prompts')">Prompts</button>
       <button class="type-tab" data-type="agents" onclick="switchType('agents')">Agents</button>
-      <button class="type-tab" data-type="apps" onclick="switchType('apps')">Apps</button>
+      <button class="type-tab" data-type="mcps" onclick="switchType('mcps')">MCPs</button>
+      <button class="type-tab" data-type="prompts" onclick="switchType('prompts')">Prompts</button>
     </div>
     <div id="trigger-config" style="display:none;align-items:center;gap:6px;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:5px 10px">
       <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">trigger:</span>
@@ -278,7 +310,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 
 <script>
 // ─── State ────────────────────────────────────────────────────────
-let currentType = 'mcps';
+let currentType = 'apps';
 let allItems = [];
 let activeCategory = 'all';
 let showPlatformDefaultsOnly = false;
@@ -393,6 +425,7 @@ function render(){
   if(activeCategory!=='all') items = items.filter(i=>i.category===activeCategory);
   if(q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q)||(i.tags||[]).some(t=>t.toLowerCase().includes(q)));
   if(showPlatformDefaultsOnly) items = items.filter(i=>i.isPlatformDefault);
+  items = [...items].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   if(currentType==='agents'){
     renderFlat(items);
@@ -410,9 +443,9 @@ function renderFlat(items){
 
 function renderSections(items){
   const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':'skill';
-  const platform = items.filter(i=>i.provider==='AgenticLedger');
+  const platform = items.filter(i=>i.provider==='AgenticLedger' || i.provider==='platform');
   const personal  = items.filter(i=>i.provider==='me');
-  const community = items.filter(i=>i.provider!=='AgenticLedger' && i.provider!=='me');
+  const community = items.filter(i=>i.provider!=='AgenticLedger' && i.provider!=='platform' && i.provider!=='me');
 
   let html = '<div class="sections">';
 
@@ -453,10 +486,10 @@ function sectionPersonal(items, typeSingular){
     : typeSingular==='prompt'
       ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleCreatePromptPanel()">⊕ Create prompt</button>`
       : typeSingular==='app'
-        ? `<a class="btn-sm btn-sm-accent section-action" href="/apps" style="text-decoration:none">⊕ Register App</a>`
+        ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleRegisterAppPanel()">⊕ Register App</button>`
         : `<button class="btn-sm btn-sm-accent section-action" onclick="toggleAddMcpPanel()">⊕ Add my MCP</button>`;
 
-  const panelHtml = typeSingular==='skill' ? scanPanelHtml() : typeSingular==='prompt' ? createPromptPanelHtml() : typeSingular==='app' ? '' : addMcpPanelHtml();
+  const panelHtml = typeSingular==='skill' ? scanPanelHtml() : typeSingular==='prompt' ? createPromptPanelHtml() : typeSingular==='app' ? registerAppPanelHtml() : addMcpPanelHtml();
 
   const emptyMsg = typeSingular==='skill'?'Scan your skills folder to import personal skills.'
     :typeSingular==='prompt'?'Paste in a prompt template to save it.'
@@ -466,7 +499,7 @@ function sectionPersonal(items, typeSingular){
   return `
     <div>
       <div class="section-header">
-        <span class="section-title">My Apps</span>
+        <span class="section-title">My ${typeSingular.charAt(0).toUpperCase()+typeSingular.slice(1)}s</span>
         <span class="section-count">${items.length}</span>
         ${actionBtn}
       </div>
@@ -707,7 +740,7 @@ async function doAddMcp(){
 function cardHtml(item, typeSingular){
   if(typeSingular === 'app') return appCardHtml(item);
 
-  const providerBadge = item.provider==='AgenticLedger'
+  const providerBadge = (item.provider==='AgenticLedger' || item.provider==='platform')
     ? `<span class="badge badge-verified">✓ verified</span>`
     : item.provider==='me'
       ? `<span class="badge badge-personal">built by me</span>`
@@ -744,42 +777,191 @@ function cardHtml(item, typeSingular){
   </div>`;
 }
 
-// ─── App Card ─────────────────────────────────────────────────────
+// ─── App Card (rich tile design) ──────────────────────────────────
 function appCardHtml(item){
-  const providerBadge = item.provider==='AgenticLedger'
-    ? `<span class="badge badge-verified">✓ platform</span>`
-    : item.provider==='me'
-      ? `<span class="badge badge-personal">my app</span>`
-      : `<span class="badge badge-external">external source</span>`;
+  const initials = (item.name||'?').slice(0,2).toUpperCase();
+  const statusClass = 'status-'+(item.status||'draft');
+  const statusLabel = (item.status||'draft').charAt(0).toUpperCase()+(item.status||'draft').slice(1);
 
-  const statusColor = item.status==='live' ? 'var(--green)' : item.status==='maintenance' ? 'var(--amber)' : 'var(--text-muted)';
-  const statusDot = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${statusColor};margin-right:4px"></span>`;
-  const statusBadge = item.status ? `<span style="font-family:var(--font-mono);font-size:9px;color:${statusColor};display:flex;align-items:center">${statusDot}${esc(item.status)}</span>` : '';
+  const tags = (item.tags||[]).slice(0,3).map(t=>`<span class="app-tag">${esc(t)}</span>`).join('');
 
-  const tagsHtml = (item.tags||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-  const devLabel = item.agentDeveloper
-    ? `<span class="assigned-label">dev: ${esc(item.agentAlias||item.agentDeveloper)}</span>`
+  const agentDev = item.agentDeveloper
+    ? `<a class="agent-dev-badge" href="/ui#${esc(item.agentDeveloper)}" title="Open in Chat">\uD83E\uDD16 ${esc(item.agentAlias||item.agentDeveloper)}</a>`
     : '';
 
-  const openBtn = item.url
-    ? `<a class="btn btn-install" href="${esc(item.url)}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px">Open ↗</a>`
-    : `<button class="btn btn-install" disabled style="opacity:.35">No URL</button>`;
+  const deployBadge = item.deployPlatform
+    ? `<span class="deploy-badge">${esc(deployLabel(item.deployPlatform))}</span>`
+    : '';
 
-  const devBtn = item.agentDeveloper
-    ? `<a class="btn btn-manage" href="/ui#${esc(item.agentDeveloper)}" style="text-decoration:none;display:flex;align-items:center;justify-content:center">@ Dev</a>`
-    : `<a class="btn btn-manage" href="/apps" style="text-decoration:none;display:flex;align-items:center;justify-content:center">Edit</a>`;
+  const categoryTag = item.category
+    ? `<span class="app-tag">${esc(item.category)}</span>`
+    : '';
 
-  const platform = item.deployPlatform ? `<span class="card-provider">${esc(item.deployPlatform)}</span>` : '';
+  const githubBtn = item.githubRepo
+    ? `<a class="btn-icon" href="${esc(item.githubRepo.startsWith('http')?item.githubRepo:'https://github.com/'+item.githubRepo)}" target="_blank" rel="noopener" title="GitHub">⌂</a>`
+    : '';
 
-  return `<div class="card" id="card-${esc(item.id)}">
-    <div class="card-top">
-      <div><div class="card-name">${esc(item.name)}</div>${platform}</div>
-      <div class="card-badges">${providerBadge}${statusBadge}</div>
+  const healthDot = item.healthStatus==='healthy' ? 'healthy' : item.healthStatus==='down' ? 'down' : '';
+  const healthLabel = item.lastHealthCheck
+    ? (item.healthStatus==='healthy' ? 'Healthy' : item.healthStatus==='down' ? 'Down' : 'Check')
+    : 'Check';
+
+  return `<div class="app-card" id="card-${esc(item.id)}">
+    <div class="app-card-top">
+      <div class="app-icon">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="app-name">${esc(item.name)}</div>
+        <div class="app-url">${esc(item.url||'')}</div>
+      </div>
+      <div class="app-badges">
+        <span class="status-badge ${statusClass}">${statusLabel}</span>
+        ${deployBadge}
+      </div>
     </div>
-    <div class="card-desc">${esc(item.shortDescription||item.description||'')}</div>
-    <div class="card-meta">${tagsHtml}${devLabel}</div>
-    <div class="card-actions">${openBtn}${devBtn}</div>
+    ${item.shortDescription||item.description ? `<div class="app-desc">${esc(item.shortDescription||item.description)}</div>` : ''}
+    <div class="app-meta">
+      ${categoryTag}${tags}${agentDev}
+    </div>
+    <div class="app-actions">
+      ${item.url ? `<a class="btn-launch" href="${esc(item.url)}" target="_blank" rel="noopener">↗ Launch</a>` : ''}
+      ${githubBtn}
+      <button class="btn-icon danger" onclick="deleteAppFromRegistry('${esc(item.id)}')" title="Delete">✕</button>
+      <button class="health-chip" onclick="checkAppHealth('${esc(item.id)}','${esc(item.url||'')}')" title="Ping app URL">
+        <span class="health-dot ${healthDot}" id="hdot-${esc(item.id)}"></span>
+        <span id="hlabel-${esc(item.id)}">${healthLabel}</span>
+      </button>
+    </div>
   </div>`;
+}
+
+function deployLabel(p){
+  return {railway:'Railway',vercel:'Vercel',netlify:'Netlify',render:'Render',local:'Local',other:'Other'}[p]||p;
+}
+
+// ─── Register App panel (inline in My Apps section) ───────────────
+function registerAppPanelHtml(){
+  return `
+  <div class="panel hidden" id="register-app-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span class="panel-label" style="margin:0">Register App</span>
+      <button class="btn-sm btn-sm-ghost" style="padding:3px 8px;font-size:10px" onclick="toggleRegisterAppPanel()">✕</button>
+    </div>
+    <div class="form-grid" style="margin-bottom:10px">
+      <div>
+        <div class="panel-label">Name *</div>
+        <input class="panel-input" id="reg-app-name" placeholder="My App" style="width:100%" oninput="syncRegAppId()">
+      </div>
+      <div>
+        <div class="panel-label">URL *</div>
+        <input class="panel-input" id="reg-app-url" placeholder="https://myapp.example.com" style="width:100%">
+      </div>
+      <div class="form-grid-full">
+        <div class="panel-label">Short description</div>
+        <input class="panel-input" id="reg-app-desc" placeholder="One-liner about this app" style="width:100%">
+      </div>
+      <div>
+        <div class="panel-label">Category</div>
+        <select class="panel-input" id="reg-app-category" style="width:100%;cursor:pointer">
+          <option value="">— none —</option>
+          <option value="productivity">Productivity</option>
+          <option value="development">Development</option>
+          <option value="finance">Finance</option>
+          <option value="analytics">Analytics</option>
+          <option value="communication">Communication</option>
+          <option value="ai">AI / Agents</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <div class="panel-label">Status</div>
+        <select class="panel-input" id="reg-app-status" style="width:100%;cursor:pointer">
+          <option value="draft">Draft</option>
+          <option value="live">Live</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+      </div>
+      <div>
+        <div class="panel-label">GitHub Repo (optional)</div>
+        <input class="panel-input" id="reg-app-repo" placeholder="https://github.com/you/repo" style="width:100%">
+      </div>
+      <div>
+        <div class="panel-label">Deploy Platform</div>
+        <select class="panel-input" id="reg-app-deploy" style="width:100%;cursor:pointer">
+          <option value="">— unknown —</option>
+          <option value="railway">Railway</option>
+          <option value="vercel">Vercel</option>
+          <option value="netlify">Netlify</option>
+          <option value="render">Render</option>
+          <option value="local">Local</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm btn-sm-green" onclick="doRegisterApp()">Register App</button>
+      <button class="btn-sm btn-sm-ghost" onclick="toggleRegisterAppPanel()">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function toggleRegisterAppPanel(){
+  const p = document.getElementById('register-app-panel');
+  if(p) p.classList.toggle('hidden');
+}
+
+function syncRegAppId(){
+  // ID auto-generated server-side from name
+}
+
+async function doRegisterApp(){
+  const name = document.getElementById('reg-app-name').value.trim();
+  const url = document.getElementById('reg-app-url').value.trim();
+  const desc = document.getElementById('reg-app-desc').value.trim();
+  const category = document.getElementById('reg-app-category').value;
+  const status = document.getElementById('reg-app-status').value;
+  const repo = document.getElementById('reg-app-repo').value.trim();
+  const deploy = document.getElementById('reg-app-deploy').value;
+  if(!name){ toast('App name is required','error'); return; }
+  if(!url){ toast('App URL is required','error'); return; }
+  const body = { name, url, shortDescription: desc, category, status: status||'draft',
+    githubRepo: repo, deployPlatform: deploy||null, provider: 'me', tags: [] };
+  try{
+    const res = await fetch('/api/apps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Failed to register app');
+    toast(`"${name}" registered`,'success');
+    document.getElementById('register-app-panel').classList.add('hidden');
+    ['reg-app-name','reg-app-url','reg-app-desc','reg-app-repo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('reg-app-category').value='';
+    document.getElementById('reg-app-status').value='draft';
+    document.getElementById('reg-app-deploy').value='';
+    await loadItems();
+  } catch(e){ toast(`Error: ${e.message}`,'error'); }
+}
+
+async function deleteAppFromRegistry(id){
+  if(!confirm('Delete this app? This cannot be undone.')) return;
+  try{
+    const res = await fetch(`/api/apps/${encodeURIComponent(id)}`,{method:'DELETE'});
+    if(!res.ok){ const d = await res.json(); throw new Error(d.error||'Delete failed'); }
+    toast('App deleted','success');
+    await loadItems();
+  } catch(e){ toast(`Error: ${e.message}`,'error'); }
+}
+
+async function checkAppHealth(id, url){
+  if(!url) return;
+  const dot = document.getElementById('hdot-'+id);
+  const label = document.getElementById('hlabel-'+id);
+  if(!dot||!label) return;
+  label.textContent = '…';
+  dot.className = 'health-dot';
+  try{
+    const res = await fetch(`/api/apps/${encodeURIComponent(id)}/health`,{method:'POST'});
+    const data = await res.json();
+    if(data.healthy){ dot.className='health-dot healthy'; label.textContent='Healthy'; }
+    else { dot.className='health-dot down'; label.textContent='Down'; }
+  } catch{ dot.className='health-dot down'; label.textContent='Error'; }
 }
 
 // ─── Platform default toggle ──────────────────────────────────────
@@ -857,7 +1039,7 @@ function openAddAppPanel(provider){
   addAppProvider = provider;
   const panel = document.getElementById('add-app-panel');
   if(!panel) return;
-  const label = provider==='AgenticLedger' ? 'Platform' : provider==='me' ? 'My App' : 'External Source';
+  const label = (provider==='AgenticLedger' || provider==='platform') ? 'Platform' : provider==='me' ? 'My App' : 'External Source';
   document.getElementById('add-app-provider-label').textContent = label;
   panel.classList.remove('hidden');
   panel.scrollIntoView({behavior:'smooth', block:'nearest'});

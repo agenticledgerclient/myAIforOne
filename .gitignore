@@ -10,3 +10,14 @@ tmp/
 agents/*/memory/conversation_log.jsonl
 agents/*/tasks.json
 agents/*/FileStorage/
+docs/appcreator_plan.md
+
+# OS files
+.DS_Store
+
+# Test scratch files
+test-mcp-*.mjs
+mcp-test-report.md
+
+# Symlink artifacts
+~/

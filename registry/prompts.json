@@ -8,9 +8,15 @@
       "category": "engineering",
       "verified": true,
       "source": "agenticledger/platform",
-      "tags": ["code", "review", "engineering"],
+      "tags": [
+        "code",
+        "review",
+        "engineering"
+      ],
       "localPath": "registry/prompts/platform/code-review.md",
-      "fetch": { "type": "file" }
+      "fetch": {
+        "type": "file"
+      }
     },
     {
       "id": "brainstorm",
@@ -20,9 +26,15 @@
       "category": "strategy",
       "verified": true,
       "source": "agenticledger/platform",
-      "tags": ["ideas", "strategy", "creativity"],
+      "tags": [
+        "ideas",
+        "strategy",
+        "creativity"
+      ],
       "localPath": "registry/prompts/platform/brainstorm.md",
-      "fetch": { "type": "file" }
+      "fetch": {
+        "type": "file"
+      }
     },
     {
       "id": "explain",
@@ -32,9 +44,45 @@
       "category": "learning",
       "verified": true,
       "source": "agenticledger/platform",
-      "tags": ["explain", "learning", "simplify"],
+      "tags": [
+        "explain",
+        "learning",
+        "simplify"
+      ],
       "localPath": "registry/prompts/platform/explain.md",
-      "fetch": { "type": "file" }
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "memory-recall",
+      "name": "Memory Recall",
+      "provider": "me",
+      "description": "Ask the agent to share the most important items from its memory.",
+      "category": "personal",
+      "source": "personal",
+      "tags": [
+        "memory",
+        "recall",
+        "status"
+      ],
+      "localPath": "registry/prompts/personal/memory-recall.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "mcp-test-prompt",
+      "name": "MCP Test Prompt",
+      "provider": "me",
+      "description": "",
+      "category": "personal",
+      "source": "personal",
+      "tags": [],
+      "localPath": "registry/prompts/personal/mcp-test-prompt.md",
+      "fetch": {
+        "type": "file"
+      }
     }
   ]
 }

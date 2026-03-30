@@ -1,0 +1,92 @@
+<h2>After installing — how do you assign to an agent?</h2>
+<p class="subtitle">The card changes state after install. How should the assign step work?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Inline on the card — dropdown appears after install</h3>
+      <p>Card shows an "Assign to agent" dropdown right on the card. Fast, no modal. Optional — you can skip it and assign later from the agent config.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Card after install</div>
+        <div class="mockup-body" style="padding:12px">
+          <div style="background:#16162a;border:1px solid #2a2a4a;border-radius:8px;padding:14px;max-width:260px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div>
+                <div style="font-weight:600;color:#e0e0f0;font-size:13px">Stripe MCP</div>
+                <div style="color:#6366f1;font-size:11px;margin-top:2px">AgenticLedger ✓</div>
+              </div>
+              <div style="background:#14532d;color:#22c55e;font-size:10px;padding:3px 7px;border-radius:4px">✓ Installed</div>
+            </div>
+            <div style="color:#888;font-size:11px;margin-top:6px">Payment processing — customers, invoices, subscriptions</div>
+            <div style="margin-top:10px;border-top:1px solid #2a2a4a;padding-top:10px">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Assign to agent (optional)</div>
+              <select style="width:100%;background:#0f0f1a;border:1px solid #3a3a5a;color:#e0e0f0;border-radius:4px;padding:5px 8px;font-size:11px">
+                <option>— choose agent —</option>
+                <option>myagent-dev</option>
+                <option>mailcal</option>
+                <option>buildinpublic</option>
+              </select>
+              <button style="margin-top:6px;width:100%;background:#6366f1;border:none;color:white;border-radius:4px;padding:5px;font-size:11px;cursor:pointer">Assign</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Modal — pops up after clicking Install</h3>
+      <p>Clicking Install opens a modal: "Installed! Want to assign to an agent now?" Shows a checklist of agents. Dismiss to skip. Clean separation of actions.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Modal after install</div>
+        <div class="mockup-body" style="padding:12px;position:relative">
+          <div style="opacity:0.3;filter:blur(1px);display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:10px">
+            <div style="background:#16162a;border-radius:6px;padding:8px;color:#888">Stripe MCP...</div>
+            <div style="background:#16162a;border-radius:6px;padding:8px;color:#888">GitHub...</div>
+            <div style="background:#16162a;border-radius:6px;padding:8px;color:#888">Linear...</div>
+          </div>
+          <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid #3a3a5a;border-radius:10px;padding:16px;width:240px;box-shadow:0 8px 30px rgba(0,0,0,0.5)">
+            <div style="font-weight:600;color:#e0e0f0;font-size:13px">✓ Stripe MCP installed</div>
+            <div style="color:#888;font-size:11px;margin-top:4px">Assign to agents now?</div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c0c0d0;cursor:pointer"><input type="checkbox" style="accent-color:#6366f1"> myagent-dev</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c0c0d0;cursor:pointer"><input type="checkbox" style="accent-color:#6366f1"> mailcal</label>
+              <label style="display:flex;align-items:center;gap=6px;font-size:11px;color:#c0c0d0;cursor:pointer"><input type="checkbox" style="accent-color:#6366f1"> buildinpublic</label>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:12px">
+              <button style="flex:1;background:#6366f1;border:none;color:white;border-radius:4px;padding:6px;font-size:11px;cursor:pointer">Assign selected</button>
+              <button style="flex:1;background:#1e1e2e;border:1px solid #3a3a5a;color:#888;border-radius:4px;padding:6px;font-size:11px;cursor:pointer">Skip</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Install only — assign from agent config separately</h3>
+      <p>Marketplace just handles install. Card flips to "Installed" state. To assign, go to the agent in Org → edit → pick from available MCPs/skills list. Clean separation, two completely separate flows.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Card after install</div>
+        <div class="mockup-body" style="padding:12px">
+          <div style="background:#16162a;border:1px solid #14532d;border-radius:8px;padding:14px;max-width:260px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div>
+                <div style="font-weight:600;color:#e0e0f0;font-size:13px">Stripe MCP</div>
+                <div style="color:#6366f1;font-size:11px;margin-top:2px">AgenticLedger ✓</div>
+              </div>
+              <div style="background:#14532d;color:#22c55e;font-size:10px;padding:3px 7px;border-radius:4px">✓ Installed</div>
+            </div>
+            <div style="color:#888;font-size:11px;margin-top:6px">Payment processing — customers, invoices, subscriptions</div>
+            <div style="margin-top:10px;color:#555;font-size:10px;font-style:italic">Assign from agent config → Edit → Tools & MCPs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

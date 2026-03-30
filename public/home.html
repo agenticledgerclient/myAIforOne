@@ -135,11 +135,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .nav-link:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .nav-link.active{color:var(--accent);border-color:var(--accent)}
 .header-spacer{flex:1}
-.theme-toggle{
+.docs-dropdown{position:relative;display:inline-block}
+.docs-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:13px;transition:all .2s}
+.docs-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.docs-menu{display:none;position:absolute;top:34px;right:0;min-width:130px;background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;padding:4px;backdrop-filter:blur(20px)}
+.docs-menu.open{display:block}
+.docs-menu a{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:11px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:6px;transition:all .15s}
+.docs-menu a:hover{background:var(--accent-bg);color:var(--accent)}
+.docs-menu a .dm-icon{font-size:13px;width:16px;text-align:center}
+.theme-toggle,.gear-btn{
   background:none;border:1px solid var(--border-dim);border-radius:6px;
   padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text-muted);transition:all .2s;
-}
-.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+text-decoration:none;}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
 /* Landing header */
 .landing-header{
@@ -319,9 +327,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     <a class="nav-link active" href="/">Home</a>
     <a class="nav-link" href="/ui">Chat</a>
     <a class="nav-link" href="/org">Agents</a>
-    <a class="nav-link" href="/apps">Apps</a>
     <a class="nav-link" href="/marketplace">Registry</a>
-    <button onclick="window.open('/mini','minibar','width=420,height=280,resizable=yes,scrollbars=no')" title="Open Mini Bar" class="nav-link" style="font-size:15px;padding:0 8px;background:none;border:none;cursor:pointer">⊡</button>
+    <a class="nav-link" href="/lab">Lab</a>
+    <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" class="nav-link" style="font-size:15px;padding:0 8px;background:none;border:none;cursor:pointer">⊡</button>
+    <div class="docs-dropdown" id="docsDropdown1">
+      <button class="docs-btn" onclick="document.getElementById('docsMenu1').classList.toggle('open')" title="Documentation">&#9776;</button>
+      <div class="docs-menu" id="docsMenu1">
+        <a href="/api-docs#api" target="_blank"><span class="dm-icon">&#9881;</span> API Docs</a>
+        <a href="/api-docs#mcp" target="_blank"><span class="dm-icon">&#9830;</span> MCP Tools</a>
+      </div>
+    </div>
+    <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtn">🌙</button>
   </div>
 
@@ -352,8 +368,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
       <a class="nav-link active" href="/">Home</a>
       <a class="nav-link" href="/ui">Chat</a>
       <a class="nav-link" href="/org">Agents</a>
-      <a class="nav-link" href="/apps">Apps</a>
       <a class="nav-link" href="/marketplace">Registry</a>
+    <a class="nav-link" href="/lab">Lab</a>
       <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtnChat">🌙</button>
     </div>
     <div class="chat-messages-home" id="chatMessages"></div>
@@ -958,6 +974,13 @@ function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
+
+// ─── Close docs dropdown on outside click ──────────────
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.docs-dropdown').forEach(dd => {
+    if (!dd.contains(e.target)) dd.querySelector('.docs-menu')?.classList.remove('open');
+  });
+});
 
 // ─── Init ──────────────────────────────────────────────
 // ─── Theme Toggle ──────────────────────────────────────

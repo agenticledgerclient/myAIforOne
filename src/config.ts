@@ -93,6 +93,8 @@ export interface AgentConfig {
   cron?: CronJobConfig[];
   goals?: GoalConfig[];
   subAgents?: string[] | "*";  // Group agent: list of agent IDs to delegate to, or "*" for all
+  platformAgent?: boolean;     // DEPRECATED — use agentClass instead
+  agentClass?: "standard" | "platform" | "builder";  // standard (default), platform (Lab creators), builder (app developer agents)
 }
 
 export interface ChannelConfig {
