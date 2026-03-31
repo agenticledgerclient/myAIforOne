@@ -50,8 +50,8 @@
     "name": "Process & Controls",
     "shortDescription": "Compliance and process controls management application.",
     "description": "React + TypeScript application for managing process controls and compliance workflows.",
-    "url": "",
-    "status": "draft",
+    "url": "https://backend-production-f8f2.up.railway.app",
+    "status": "live",
     "category": "analytics",
     "tags": [
       "compliance",
@@ -65,7 +65,8 @@
     "otherDetails": "Workspace: ~/Desktop/APPs/Process & Controls. Backend: https://backend-production-f8f2.up.railway.app",
     "healthStatus": "unknown",
     "lastHealthCheck": null,
-    "createdAt": "2026-03-26T16:36:00.000Z"
+    "createdAt": "2026-03-26T16:36:00.000Z",
+    "updatedAt": "2026-03-31T03:49:03.065Z"
   },
   {
     "id": "multi-tenant-foundation",

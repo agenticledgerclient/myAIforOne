@@ -146,15 +146,17 @@ text-decoration:none;}
 .artifacts-section{width:100%;max-width:860px}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .section-title{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
-.artifact-tabs{display:flex;gap:4px}
-.artifact-tab{
-  font-family:var(--font-mono);font-size:10px;font-weight:500;
-  padding:4px 12px;border-radius:6px;border:1px solid var(--border-dim);
-  background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;
-}
-.artifact-tab:hover{color:var(--text-secondary);border-color:var(--border-glow)}
-.artifact-tab.active{color:var(--accent);background:var(--accent-bg);border-color:var(--border-active)}
-.artifact-list{display:flex;flex-direction:column;gap:8px}
+.accordion{border:1px solid var(--border-dim);border-radius:10px;overflow:hidden;background:var(--bg-card)}
+.accordion-header{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:all .2s;user-select:none}
+.accordion-header:hover{background:var(--bg-input)}
+.accordion-arrow{font-size:10px;color:var(--text-muted);transition:transform .2s;width:14px}
+.accordion.open .accordion-arrow{transform:rotate(90deg)}
+.accordion-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.accordion-label{font-size:13px;font-weight:600;flex:1}
+.accordion-count{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);background:var(--bg-input);padding:1px 8px;border-radius:10px}
+.accordion:not(.open) .accordion-body{display:none}
+.accordion.open .accordion-body{display:flex;flex-direction:column;gap:4px;padding:0 10px 10px}
+.artifact-list{display:flex;flex-direction:column;gap:6px}
 .artifact-card{
   display:flex;align-items:center;gap:14px;
   padding:14px 16px;border-radius:var(--radius);
@@ -563,27 +565,13 @@ text-decoration:none;}
     <div class="artifacts-section">
       <div class="section-header">
         <span class="section-title">Your Work</span>
-        <div class="artifact-tabs">
-          <button class="artifact-tab active" onclick="setTab('all',this)">All</button>
-          <button class="artifact-tab" onclick="setTab('agent',this)">Agents</button>
-          <button class="artifact-tab" onclick="setTab('skill',this)">Skills</button>
-          <button class="artifact-tab" onclick="setTab('app',this)">Apps</button>
-          <button class="artifact-tab" onclick="setTab('prompt',this)">Prompts</button>
-        </div>
       </div>
-      <div class="search-row">
+      <div class="search-row" style="margin-bottom:8px">
         <div class="search-wrap">
           <span class="search-icon">&#x1F50D;</span>
-          <input class="search-input" id="searchInput" type="text" placeholder="Search by name, ID, or category..." oninput="renderArtifacts()">
-          <button class="search-clear" id="searchClear" onclick="clearSearch()">&#x2715;</button>
+          <input class="search-input" id="searchInput" type="text" placeholder="Search..." oninput="renderArtifacts()">
+          <button class="search-clear" id="searchClear" onclick="document.getElementById('searchInput').value='';renderArtifacts()">&#x2715;</button>
         </div>
-        <select class="filter-select" id="filterStatus" onchange="renderArtifacts()">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="live">Live</option>
-          <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
-        </select>
       </div>
       <div class="artifact-list" id="artifactList">
         <div class="artifact-empty">Loading your work...</div>
@@ -713,7 +701,6 @@ let isStreaming=false;
 let streamController=null;
 let lastEventId=0;
 let allArtifacts=[];
-let currentTab='all';
 let canvasBlocks=[];
 let rawLogsOpen=false;
 let rawMode=false;
@@ -754,48 +741,45 @@ async function loadArtifacts(){
   }
 }
 
-function setTab(tab,btn){
-  currentTab=tab;
-  document.querySelectorAll('.artifact-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderArtifacts();
-}
-
-function clearSearch(){
-  document.getElementById('searchInput').value='';
-  renderArtifacts();
-}
-
 function renderArtifacts(){
   const list=document.getElementById('artifactList');
   const query=(document.getElementById('searchInput')?.value||'').toLowerCase().trim();
-  const statusFilter=document.getElementById('filterStatus')?.value||'';
-
-  // Update clear button visibility
   const clearBtn=document.getElementById('searchClear');
-  if(clearBtn)clearBtn.classList.toggle('visible',query.length>0);
+  if(clearBtn) clearBtn.classList.toggle('visible',query.length>0);
 
-  let filtered=currentTab==='all'?allArtifacts:allArtifacts.filter(a=>a.type===currentTab);
-  if(query)filtered=filtered.filter(a=>
-    (a.name||'').toLowerCase().includes(query)||
-    (a.id||'').toLowerCase().includes(query)||
-    (a.meta||'').toLowerCase().includes(query)
-  );
-  if(statusFilter)filtered=filtered.filter(a=>a.status===statusFilter);
-  if(!filtered.length){
-    const reason=query?`matching "${esc(query)}"`:currentTab==='all'?'':'of type '+currentTab;
-    list.innerHTML=`<div class="artifact-empty">No artifacts ${reason}. ${query?'Try a different search.':'Create one above.'}</div>`;
+  if(!allArtifacts.length){
+    list.innerHTML='<div class="artifact-empty">No artifacts yet. Create one above.</div>';
     return;
   }
-  list.innerHTML=filtered.map(a=>`
+
+  const groups=[
+    {type:'app',label:'Apps',dot:TYPE_COLORS.app||'#fbbf24'},
+    {type:'agent',label:'Agents',dot:TYPE_COLORS.agent||'#22d3ee'},
+    {type:'skill',label:'Skills',dot:TYPE_COLORS.skill||'#4ade80'},
+    {type:'prompt',label:'Prompts',dot:TYPE_COLORS.prompt||'rgba(139,92,246,0.7)'},
+  ];
+
+  let html='';
+  for(const g of groups){
+    let items=allArtifacts.filter(a=>a.type===g.type).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    if(query) items=items.filter(a=>(a.name||'').toLowerCase().includes(query)||(a.id||'').toLowerCase().includes(query)||(a.meta||'').toLowerCase().includes(query));
+    const autoOpen=query&&items.length>0?' open':'';
+    html+=`<div class="accordion${autoOpen}" id="acc-${g.type}">
+      <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="accordion-arrow">&#x25B6;</span>
+        <div class="accordion-dot" style="background:${g.dot}"></div>
+        <span class="accordion-label">${g.label}</span>
+        <span class="accordion-count">${items.length}</span>
+      </div>
+      <div class="accordion-body">`;
+    const filtered=items;
+    html+=filtered.map(a=>`
     <div class="artifact-card" onclick="editArtifact('${a.type}','${a.id}')">
-      <div class="artifact-type-dot" style="background:${TYPE_COLORS[a.type]||'#888'}"></div>
       <div style="flex:1;min-width:0">
         <div class="artifact-name">${esc(a.name)}</div>
         ${a.meta?`<div class="artifact-meta">${esc(a.meta)}</div>`:''}
       </div>
       <span class="artifact-status ${a.status}">${a.status}</span>
-      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-left:8px">${TYPE_LABELS[a.type]}</span>
       ${a.type==='app'?`<div class="artifact-actions" onclick="event.stopPropagation()">
         <a class="act-btn launch ${a.url?'':'disabled'}" ${a.url?'href="'+esc(a.url)+'" target="_blank"':''} title="${a.url?'Open app':'No URL yet'}">&#x2197; Launch</a>
         <button class="act-btn" onclick="appAction('modify','${esc(a.id)}','${esc(a.name)}','${esc(a.agentDeveloper)}')" title="Chat with developer agent">&#x270E; Modify</button>
@@ -803,6 +787,9 @@ function renderArtifacts(){
       </div>`:''}
     </div>
   `).join('');
+    html+='</div></div>';
+  }
+  list.innerHTML=html;
 }
 
 function appAction(action, appId, appName, devAgent) {
