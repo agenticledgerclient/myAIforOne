@@ -1624,7 +1624,8 @@ async function openModal(agentId) {
     accountSelect.value = a.claudeAccount || '';
 
     // Agent Class
-    document.getElementById('f-agentClass').value = a.agentClass || 'standard';
+    const agentClassEl = document.getElementById('f-agentClass');
+    if (agentClassEl) agentClassEl.value = a.agentClass || 'standard';
 
     // Auto Commit
     const commitPill = document.getElementById('f-autoCommit');
@@ -2719,7 +2720,7 @@ async function saveAgent() {
   const timeoutSec = parseInt(document.getElementById('f-timeout').value) || 14400;
   const timeout = timeoutSec * 1000;
   const claudeAccount = document.getElementById('f-claudeAccount').value || undefined;
-  const agentClass = document.getElementById('f-agentClass').value || 'standard';
+  const agentClass = document.getElementById('f-agentClass')?.value || 'standard';
   const skills = document.getElementById('f-skills').value.split(',').map(s => s.trim()).filter(Boolean);
   const agentSkills = document.getElementById('f-agentSkills').value.split(',').map(s => s.trim()).filter(Boolean);
   const heartbeatInstructions = document.getElementById('f-heartbeatInstructions').value.trim() || undefined;
