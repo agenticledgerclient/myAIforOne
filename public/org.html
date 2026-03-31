@@ -1541,7 +1541,7 @@ function togglePill(el) {
 
 function autoAlias() {
   if (editingAgentId) return; // don't auto-alias in edit mode
-  const id = document.getElementById('f-agentId').value.trim();
+  const id = document.getElementById('f-agentId')?.value || ''.trim();
   const aliasEl = document.getElementById('f-alias');
   if (!aliasEl.value || aliasEl.value === '@' + aliasEl.dataset.auto) {
     const clean = id.replace(/-/g, '');
@@ -1632,7 +1632,8 @@ async function openModal(agentId) {
     if (a.autoCommit) commitPill.classList.add('checked'); else commitPill.classList.remove('checked');
 
     // Timeout
-    document.getElementById('f-timeout').value = Math.round((a.timeout || 120000) / 1000);
+    const timeoutEl = document.getElementById('f-timeout');
+    if (timeoutEl) timeoutEl.value = Math.round((a.timeout || 120000) / 1000);
 
     // Skills
     document.getElementById('f-skills').value = (a.skills || []).join(', ');
@@ -1707,9 +1708,9 @@ async function openModal(agentId) {
     homeField.value = '~/Desktop/personalAgents/(agent-id)';
     persistPill.classList.add('checked');
     streamPill.classList.remove('checked');
-    document.getElementById('f-advancedMemory').classList.add('checked');
-    document.getElementById('f-autonomousCapable').classList.add('checked');
-    document.getElementById('f-autoCommit').classList.remove('checked');
+    document.getElementById('f-advancedMemory')?.classList.add('checked');
+    document.getElementById('f-autonomousCapable')?.classList.add('checked');
+    document.getElementById('f-autoCommit')?.classList.remove('checked');
     document.getElementById('f-timeout').value = '14400';
     document.getElementById('f-skills').value = '';
     document.getElementById('f-agentSkills').value = '';
@@ -2211,26 +2212,6 @@ function updateHeartbeatFields() {
   document.getElementById('hb-ampm').style.display = showTime ? '' : 'none';
 }
 
-function buildHeartbeatCron() {
-  const freq = document.getElementById('hb-frequency').value;
-  if (!freq) return '';
-  const day = document.getElementById('hb-days').value || '1';
-  let hr = parseInt(document.getElementById('hb-hour').value || '9');
-  const min = document.getElementById('hb-min').value || '0';
-  const ampm = document.getElementById('hb-ampm').value || 'AM';
-  if (ampm === 'PM' && hr !== 12) hr += 12;
-  if (ampm === 'AM' && hr === 12) hr = 0;
-
-  switch(freq) {
-    case 'day': return `${min} ${hr} * * *`;
-    case 'weekdays': return `${min} ${hr} * * 1-5`;
-    case 'week': return `${min} ${hr} * * ${day}`;
-    case 'hour': return '0 * * * *';
-    case '30min': return '*/30 * * * *';
-    case '15min': return '*/15 * * * *';
-    default: return '';
-  }
-}
 
 function loadHeartbeatSchedule(cronStr) {
   if (!cronStr) {
@@ -2256,7 +2237,7 @@ function loadHeartbeatSchedule(cronStr) {
 }
 
 function toggleScheduleFields(entry) {
-  const freq = entry.querySelector('[data-field="frequency"]').value;
+  const freq = entry.querySelector('[data-field="frequency"]')?.value || 'day';
   const showDay = freq === 'week';
   const showTime = !['hour', '30min', '15min'].includes(freq);
 
@@ -2273,7 +2254,7 @@ function updateSchedulePreview(entry) {
 }
 
 function buildCronFromEntry(entry) {
-  const freq = entry.querySelector('[data-field="frequency"]').value;
+  const freq = entry.querySelector('[data-field="frequency"]')?.value || 'day';
   const day = entry.querySelector('[data-field="days"]')?.value || '1';
   let hr = parseInt(entry.querySelector('[data-field="timeHour"]')?.value || '9');
   const min = entry.querySelector('[data-field="timeMin"]')?.value || '0';
@@ -2374,9 +2355,13 @@ function getSchedulesFromForm() {
   const entries = document.querySelectorAll('.schedule-entry');
   return [...entries].map(entry => {
     const cron = buildCronFromEntry(entry);
-    const message = entry.querySelector('.schedule-msg').value.trim();
-    const channel = entry.querySelector('[data-field="channel"]').value;
-    const chatId = entry.querySelector('[data-field="chatId"]').value.trim();
+    const msgEl = entry.querySelector('.schedule-msg');
+    const chEl = entry.querySelector('[data-field="channel"]');
+    const cidEl = entry.querySelector('[data-field="chatId"]');
+    if (!msgEl || !chEl || !cidEl) return null;
+    const message = msgEl.value.trim();
+    const channel = chEl.value;
+    const chatId = cidEl.value.trim();
     return (message && chatId) ? { schedule: cron, message, channel, chatId } : null;
   }).filter(Boolean);
 }
@@ -2524,7 +2509,7 @@ function addGoalEntry(goal) {
 }
 
 function toggleGoalHeartbeatFields(entry) {
-  const freq = entry.querySelector('[data-field="goalFreq"]').value;
+  const freq = entry.querySelector('[data-field="goalFreq"]')?.value || '';
   const showDay = freq === 'week';
   const showTime = freq !== 'hour';
   entry.querySelector('.goal-day-label').style.display = showDay ? '' : 'none';
@@ -2655,7 +2640,7 @@ function removeGoal(btn) {
 }
 
 function buildGoalCron(entry) {
-  const freq = entry.querySelector('[data-field="goalFreq"]').value;
+  const freq = entry.querySelector('[data-field="goalFreq"]')?.value || 'day';
   const day = entry.querySelector('[data-field="goalDays"]')?.value || '1';
   let hr = parseInt(entry.querySelector('[data-field="goalTimeHour"]')?.value || '9');
   const min = entry.querySelector('[data-field="goalTimeMin"]')?.value || '0';
@@ -2674,11 +2659,15 @@ function buildGoalCron(entry) {
 function getGoalsFromForm() {
   const entries = document.querySelectorAll('.goal-entry');
   return [...entries].map(entry => {
-    const id = entry.querySelector('[data-field="goalId"]').value.trim();
-    const enabled = entry.querySelector('[data-field="goalEnabled"]').checked;
-    const description = entry.querySelector('[data-field="goalDesc"]').value.trim();
-    const successCriteria = entry.querySelector('[data-field="goalCriteria"]').value.trim();
-    const instructions = entry.querySelector('[data-field="goalInstructions"]').value.trim();
+    const idEl = entry.querySelector('[data-field="goalId"]');
+    const enabledEl = entry.querySelector('[data-field="goalEnabled"]');
+    const descEl = entry.querySelector('[data-field="goalDesc"]');
+    if (!idEl || !descEl) return null;
+    const id = idEl.value.trim();
+    const enabled = enabledEl?.checked ?? true;
+    const description = descEl.value.trim();
+    const successCriteria = entry.querySelector('[data-field="goalCriteria"]')?.value?.trim() || '';
+    const instructions = entry.querySelector('[data-field="goalInstructions"]')?.value?.trim() || '';
     const heartbeat = buildGoalCron(entry);
     const budgetVal = entry.querySelector('[data-field="goalBudget"]').value.trim();
     // Collect all report targets
@@ -2706,26 +2695,26 @@ async function saveAgent() {
   const originalText = btn.textContent;
   btn.textContent = 'Saving...';
 
-  const agentId = document.getElementById('f-agentId').value.trim();
-  const alias = document.getElementById('f-alias').value.trim();
-  const name = document.getElementById('f-name').value.trim();
-  const description = document.getElementById('f-desc').value.trim();
-  const instructions = document.getElementById('f-instructions').value;
-  const workspace = document.getElementById('f-workspace').value.trim() || '~';
-  const persistent = document.getElementById('f-persistent').classList.contains('checked');
-  const streaming = document.getElementById('f-streaming').classList.contains('checked');
-  const advancedMemory = document.getElementById('f-advancedMemory').classList.contains('checked');
-  const autonomousCapable = document.getElementById('f-autonomousCapable').classList.contains('checked');
-  const autoCommit = document.getElementById('f-autoCommit').classList.contains('checked');
-  const timeoutSec = parseInt(document.getElementById('f-timeout').value) || 14400;
+  const agentId = (document.getElementById('f-agentId')?.value || '').trim();
+  const alias = document.getElementById('f-alias')?.value || ''.trim();
+  const name = document.getElementById('f-name')?.value || ''.trim();
+  const description = document.getElementById('f-desc')?.value || ''.trim();
+  const instructions = document.getElementById('f-instructions')?.value || '';
+  const workspace = document.getElementById('f-workspace')?.value || ''.trim() || '~';
+  const persistent = document.getElementById('f-persistent')?.classList.contains('checked');
+  const streaming = document.getElementById('f-streaming')?.classList.contains('checked');
+  const advancedMemory = document.getElementById('f-advancedMemory')?.classList?.contains('checked') ?? true;
+  const autonomousCapable = document.getElementById('f-autonomousCapable')?.classList?.contains('checked') ?? true;
+  const autoCommit = document.getElementById('f-autoCommit')?.classList?.contains('checked') ?? false;
+  const timeoutSec = parseInt(document.getElementById('f-timeout')?.value || '14400') || 14400;
   const timeout = timeoutSec * 1000;
-  const claudeAccount = document.getElementById('f-claudeAccount').value || undefined;
+  const claudeAccount = document.getElementById('f-claudeAccount')?.value || undefined;
   const agentClass = document.getElementById('f-agentClass')?.value || 'standard';
-  const skills = document.getElementById('f-skills').value.split(',').map(s => s.trim()).filter(Boolean);
-  const agentSkills = document.getElementById('f-agentSkills').value.split(',').map(s => s.trim()).filter(Boolean);
-  const heartbeatInstructions = document.getElementById('f-heartbeatInstructions').value.trim() || undefined;
+  const skills = (document.getElementById('f-skills')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const agentSkills = (document.getElementById('f-agentSkills')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const heartbeatInstructions = document.getElementById('f-heartbeatInstructions')?.value?.trim() || undefined;
   const heartbeatCron = buildHeartbeatCron() || undefined;
-  const heartbeatEnabled = document.getElementById('f-heartbeatEnabled').classList.contains('checked');
+  const heartbeatEnabled = document.getElementById('f-heartbeatEnabled')?.classList?.contains('checked') ?? false;
 
   const tools = [...document.querySelectorAll('#f-tools .checkbox-pill.checked')]
     .map(el => el.dataset.val).filter(Boolean);
@@ -2737,12 +2726,13 @@ async function saveAgent() {
   const orgEls = document.querySelectorAll('.org-entry');
   const org = [...orgEls].map(el => {
     const inputs = el.querySelectorAll('input');
+    if (!inputs[0]) return null;
     const entry = {
-      organization: inputs[0].value.trim(),
-      function: inputs[1].value.trim(),
-      title: inputs[2].value.trim(),
+      organization: inputs[0]?.value?.trim() || '',
+      function: inputs[1]?.value?.trim() || '',
+      title: inputs[2]?.value?.trim() || '',
     };
-    const rt = inputs[3].value.trim();
+    const rt = inputs[3]?.value?.trim() || '';
     if (rt) entry.reportsTo = rt;
     return entry;
   }).filter(o => o.organization);
@@ -2750,8 +2740,11 @@ async function saveAgent() {
   // Routes
   const routeEls = document.querySelectorAll('.route-entry');
   const routes = [...routeEls].map(el => {
-    const channel = el.querySelector('select').value;
-    const chatId = el.querySelector('input[placeholder="Chat/Channel ID"]').value.trim();
+    const selEl = el.querySelector('select');
+    const idEl = el.querySelector('input[placeholder="Chat/Channel ID"]');
+    if (!selEl || !idEl) return null;
+    const channel = selEl.value;
+    const chatId = idEl.value.trim();
     const requireMention = el.querySelector('.mention-cb input')?.checked ?? true;
     return chatId ? { channel, chatId, requireMention } : null;
   }).filter(Boolean);
