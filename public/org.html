@@ -460,6 +460,33 @@ text-decoration:none;}
   transition:all .2s;align-self:flex-start;
 }
 .btn-delete:hover{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.5)}
+/* Bulk action bar */
+.bulk-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:1500;
+  background:var(--bg-card);border-top:2px solid var(--accent);
+  padding:12px 24px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.4);
+}
+.bulk-bar.hidden{display:none}
+.bulk-bar #bulkCount{font-weight:600;color:var(--accent);min-width:100px}
+.bulk-btn{padding:6px 16px;border-radius:6px;cursor:pointer;font-size:12px;border:1px solid var(--border-dim);background:var(--bg-surface);color:var(--text)}
+.bulk-btn:hover{border-color:var(--accent)}
+.bulk-delete{background:#dc2626;color:#fff;border-color:#dc2626}
+.bulk-delete:hover{background:#b91c1c}
+.bulk-cancel{background:transparent;color:var(--text-dim)}
+/* Select mode checkbox on cards */
+.select-check{
+  position:absolute;top:8px;left:8px;width:20px;height:20px;
+  border-radius:4px;border:2px solid var(--border-dim);background:var(--bg-surface);
+  cursor:pointer;display:none;z-index:10;
+  appearance:none;-webkit-appearance:none;outline:none;
+}
+.select-check:checked{background:var(--accent);border-color:var(--accent)}
+.select-check:checked::after{content:'✓';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;height:100%}
+.select-mode .select-check{display:block}
+.select-mode .agent-node{user-select:none}
+.select-mode .agent-node.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.select-mode-btn.active{background:var(--accent)!important;color:#000!important;border-color:var(--accent)!important}
 .delete-overlay{
   position:fixed;top:0;left:0;right:0;bottom:0;
   background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
@@ -877,6 +904,7 @@ text-decoration:none;}
     </div>
     <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
     <button class="hide-names-btn" id="hideAllBtn" onclick="toggleHideAll()" title="Hide/show all agent names for presentations" style="font-size:11px;padding:4px 10px">&#128065; Hide All</button>
+    <button class="select-mode-btn" id="selectModeBtn" onclick="toggleSelectMode()" title="Multi-select agents" style="font-size:11px;padding:4px 10px;background:transparent;color:var(--text-dim);border:1px solid var(--border-dim);border-radius:6px;cursor:pointer">&#9745; Select</button>
     <button class="add-agent-btn-top" id="newAgentBtn" onclick="openModal(null)">
       <span style="font-size:16px">+</span> New Agent
     </button>
@@ -1119,6 +1147,15 @@ text-decoration:none;}
       <button class="btn-save" id="saveBtn" onclick="saveAgent()">Create Agent</button>
     </div>
   </div>
+</div>
+
+<!-- Bulk Action Bar (floating bottom) -->
+<div class="bulk-bar hidden" id="bulkBar">
+  <span id="bulkCount">0 selected</span>
+  <button class="bulk-btn bulk-select-all" onclick="bulkSelectAll()">Select All</button>
+  <button class="bulk-btn bulk-deselect" onclick="bulkDeselectAll()">Deselect All</button>
+  <button class="bulk-btn bulk-delete" onclick="bulkDelete()">Delete Selected</button>
+  <button class="bulk-btn bulk-cancel" onclick="toggleSelectMode()">Cancel</button>
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -1502,7 +1539,8 @@ function renderNode(a, dimmed, isLead, blurNames) {
   const leadClass = isLead ? ' is-lead' : '';
   const blurClass = blurNames ? ' name-blurred' : '';
 
-  return `<div class="agent-node${leadClass}" style="${opacity};width:300px">
+  return `<div class="agent-node${leadClass}" style="${opacity};width:300px" data-agent-id="${a.id}" data-agent-alias="${a.aliases?.[0] || a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}">
+    <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
     <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}${hasAutomation ? ' automated' : ''}">${initials}</div>
     <div class="node-info">
       ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
@@ -2830,6 +2868,94 @@ function hideDeleteConfirm() {
   document.getElementById('deleteOverlay').classList.add('hidden');
   deleteTargetId = null;
   deleteTargetAlias = null;
+}
+
+// ─── Multi-select & Bulk Delete ─────────────────────────────────
+let selectMode = false;
+const selectedAgents = new Set();
+
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  const btn = document.getElementById('selectModeBtn');
+  const canvas = document.getElementById('canvas');
+  const bar = document.getElementById('bulkBar');
+  btn.classList.toggle('active', selectMode);
+  canvas.classList.toggle('select-mode', selectMode);
+  bar.classList.toggle('hidden', !selectMode);
+  if (!selectMode) { selectedAgents.clear(); updateBulkCount(); }
+  // Update checkboxes
+  document.querySelectorAll('.select-check').forEach(cb => { cb.checked = selectedAgents.has(cb.dataset.id); });
+}
+
+function toggleAgentSelect(id) {
+  if (selectedAgents.has(id)) selectedAgents.delete(id); else selectedAgents.add(id);
+  const cb = document.querySelector(`.select-check[data-id="${id}"]`);
+  if (cb) cb.checked = selectedAgents.has(id);
+  const node = document.querySelector(`.agent-node[data-agent-id="${id}"]`);
+  if (node) node.classList.toggle('selected', selectedAgents.has(id));
+  updateBulkCount();
+}
+
+function bulkSelectAll() {
+  document.querySelectorAll('.agent-node[data-agent-id]').forEach(n => {
+    const id = n.dataset.agentId;
+    selectedAgents.add(id);
+    n.classList.add('selected');
+    const cb = n.querySelector('.select-check');
+    if (cb) cb.checked = true;
+  });
+  updateBulkCount();
+}
+
+function bulkDeselectAll() {
+  selectedAgents.clear();
+  document.querySelectorAll('.agent-node.selected').forEach(n => n.classList.remove('selected'));
+  document.querySelectorAll('.select-check').forEach(cb => { cb.checked = false; });
+  updateBulkCount();
+}
+
+function updateBulkCount() {
+  document.getElementById('bulkCount').textContent = `${selectedAgents.size} selected`;
+}
+
+async function bulkDelete() {
+  if (selectedAgents.size === 0) return;
+  const ids = [...selectedAgents];
+  const names = ids.map(id => {
+    const node = document.querySelector(`.agent-node[data-agent-id="${id}"]`);
+    return node?.dataset.agentAlias || id;
+  });
+  const confirmed = confirm(`Permanently delete ${ids.length} agent(s)?\n\n${names.join('\n')}\n\nThis cannot be undone.`);
+  if (!confirmed) return;
+
+  // Disable buttons, show progress
+  const bar = document.getElementById('bulkBar');
+  const countEl = document.getElementById('bulkCount');
+  bar.querySelectorAll('.bulk-btn').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+  countEl.style.minWidth = '200px';
+
+  let deleted = 0, failed = 0;
+  const total = ids.length;
+  for (const id of ids) {
+    const alias = document.querySelector(`.agent-node[data-agent-id="${id}"]`)?.dataset.agentAlias || id;
+    countEl.textContent = `Deleting ${deleted + failed + 1}/${total}...`;
+    // Fade out the card being deleted
+    const card = document.querySelector(`.agent-node[data-agent-id="${id}"]`);
+    if (card) { card.style.transition = 'opacity 0.3s'; card.style.opacity = '0.2'; }
+    try {
+      const res = await fetch(`/api/agents/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmAlias: alias }),
+      });
+      const data = await res.json();
+      if (data.ok) { deleted++; if (card) card.remove(); } else failed++;
+    } catch { failed++; }
+  }
+  countEl.textContent = `Done — ${deleted} deleted${failed ? `, ${failed} failed` : ''}`;
+  selectedAgents.clear();
+  await fetchData();
+  setTimeout(() => toggleSelectMode(), 1500);
 }
 
 function checkDeleteInput() {
