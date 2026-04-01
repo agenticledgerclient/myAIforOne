@@ -25,9 +25,9 @@ $timer.Start()
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $menu.Items.Add("Open Web UI", $null, { Start-Process "http://localhost:4888/ui" })
-$menu.Items.Add("Open Org Chart", $null, { Start-Process "http://localhost:4888/org" })
-$menu.Items.Add("Open Tasks", $null, { Start-Process "http://localhost:4888/tasks" })
 $menu.Items.Add("---")
+$menu.Items.Add("Start Service", $null, { schtasks /Run /TN MyAgentGateway })
+$menu.Items.Add("Stop Service", $null, { schtasks /End /TN MyAgentGateway })
 $menu.Items.Add("Restart Service", $null, { schtasks /End /TN MyAgentGateway; Start-Sleep 2; schtasks /Run /TN MyAgentGateway })
 $menu.Items.Add("Exit", $null, { $notify.Visible = $false; [System.Windows.Forms.Application]::Exit() })
 $notify.ContextMenuStrip = $menu

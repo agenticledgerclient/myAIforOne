@@ -950,6 +950,14 @@ export function startWebUI(opts: WebUIOptions): void {
     };
 
     (async () => {
+      // Heartbeat every 30s so frontend knows the agent is still alive
+      const heartbeat = setInterval(() => {
+        if (!job.done && !job.stopped) {
+          pushEvent(JSON.stringify({ type: "heartbeat" }));
+        } else {
+          clearInterval(heartbeat);
+        }
+      }, 30_000);
       try {
         for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, pushRawLine, { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger })) {
           if (job.stopped) break;
@@ -958,6 +966,7 @@ export function startWebUI(opts: WebUIOptions): void {
       } catch (err) {
         if (!job.stopped) pushEvent(JSON.stringify({ type: "error", data: String(err) }));
       } finally {
+        clearInterval(heartbeat);
         if (!job.done) {
           pushEvent("[DONE]");
           job.done = true;

@@ -1391,6 +1391,18 @@ async function sendMessage(agentId, text) {
       const MAX_RETRIES = 10;
       console.log(`[Stream] Starting job ${jobId} for ${agentId}`);
 
+      // Inactivity timeout: if no events for 60s, assume connection dead
+      let lastEventTime = Date.now();
+      const INACTIVITY_TIMEOUT_MS = 60_000;
+      const inactivityCheck = setInterval(() => {
+        if (isDone) { clearInterval(inactivityCheck); return; }
+        if (Date.now() - lastEventTime > INACTIVITY_TIMEOUT_MS) {
+          console.warn(`[Stream] No events for ${INACTIVITY_TIMEOUT_MS/1000}s — assuming connection dead`);
+          isDone = true;
+          clearInterval(inactivityCheck);
+        }
+      }, 10_000);
+
       while (!isDone && retries < MAX_RETRIES) {
         try {
           console.log(`[Stream] Connecting to job ${jobId} after=${lastEventId} retry=${retries}`);
@@ -1445,6 +1457,7 @@ async function sendMessage(agentId, text) {
               if (!line.startsWith('data: ')) continue;
               const data = line.slice(6);
               if (data === '[DONE]') { isDone = true; console.log(`[Stream] Received [DONE] for job ${jobId}`); continue; }
+              lastEventTime = Date.now(); // reset inactivity timer on any event
               eventsThisConnection++;
 
               try {
@@ -1497,6 +1510,11 @@ async function sendMessage(agentId, text) {
                     }
                     scrollChat();
                   }
+                } else if (event.type === 'heartbeat') {
+                  // Backend heartbeat — connection alive, timer already reset above
+                } else if (event.type === 'done') {
+                  // Agent finished — executor's final event
+                  isDone = true;
                 } else if (event.type === 'stopped') {
                   // User stopped the stream — finalize partial response
                   isDone = true;
@@ -1538,6 +1556,7 @@ async function sendMessage(agentId, text) {
       }
 
       // Finalize
+      clearInterval(inactivityCheck);
       ss.isThinking = false;
       ss.jobId = null;
       if (ss.text) {
@@ -1750,7 +1769,7 @@ function renderChat() {
           <button class="raw-logs-btn${rawLogsOpen ? ' active' : ''}" id="rawLogsBtn" onclick="toggleRawLogs()" title="Raw logs (live feed)">&#x2318;</button>
           <textarea class="chat-textarea" id="chatInput" placeholder="Message ${agent.aliases[0] || agent.name}..." rows="1"
             onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-          ${ss.jobId ? `<button class="stop-btn" onclick="stopStreaming()" title="Stop (Esc)">&#x25A0;</button>` : ''}
+          ${(ss.jobId || ss.isThinking) ? `<button class="stop-btn" onclick="stopStreaming()" title="Stop (Esc)">&#x25A0;</button>` : ''}
           <button class="send-btn${ss.jobId ? ' queue-mode' : ''}" id="sendBtn" onclick="doSend()">${ss.jobId ? 'Queue' : '→'}</button>
         </div>
         <div id="queueContainer"></div>
@@ -1910,14 +1929,15 @@ function updateInputButtons(ss) {
   const sendBtn = document.getElementById('sendBtn');
   // Add or remove stop button
   const existingStop = box.querySelector('.stop-btn');
-  if (ss.jobId && !existingStop) {
+  const showStop = ss.jobId || ss.isThinking;
+  if (showStop && !existingStop) {
     const stopBtn = document.createElement('button');
     stopBtn.className = 'stop-btn';
     stopBtn.onclick = stopStreaming;
     stopBtn.title = 'Stop (Esc)';
     stopBtn.innerHTML = '\u25A0';
     if (sendBtn) box.insertBefore(stopBtn, sendBtn);
-  } else if (!ss.jobId && existingStop) {
+  } else if (!showStop && existingStop) {
     existingStop.remove();
   }
   // Update send button
@@ -1980,12 +2000,24 @@ function deleteQueueItem(idx) {
 async function stopStreaming() {
   if (!selectedAgent) return;
   const ss = getStream(selectedAgent);
-  if (!ss.jobId) return;
-  try {
-    await fetch(`/api/chat/jobs/${ss.jobId}/stop`, { method: 'POST' });
-  } catch (e) {
-    // If the request fails, the stream will finish on its own
-    console.warn('Stop request failed:', e);
+  if (ss.jobId) {
+    try {
+      await fetch(`/api/chat/jobs/${ss.jobId}/stop`, { method: 'POST' });
+    } catch (e) {
+      console.warn('Stop request failed:', e);
+    }
+  }
+  // Force-clear UI state even if jobId is already null (desynced state)
+  if (ss.isThinking) {
+    ss.isThinking = false;
+    ss.jobId = null;
+    if (ss.text) {
+      chatHistory[selectedAgent].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+    }
+    ss.text = '';
+    ss.status = '';
+    ss.tools = [];
+    if (isViewing()) { renderChat(); scrollChat(); }
   }
 }
 

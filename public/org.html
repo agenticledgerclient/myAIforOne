@@ -342,6 +342,85 @@ text-decoration:none;}
   width:300px;
 }
 
+/* ─── View Toggle ─────────────────────────────────────────────── */
+.view-toggle{display:flex;gap:2px;background:var(--bg-input);border-radius:6px;padding:2px;border:1px solid var(--border-dim)}
+.view-toggle-btn{
+  width:26px;height:22px;border:none;background:transparent;color:var(--text-muted);
+  cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;transition:all .15s;padding:0;
+}
+.view-toggle-btn:hover{color:var(--text-secondary)}
+.view-toggle-btn.active{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.2)}
+
+/* ─── Compact Grid ────────────────────────────────────────────── */
+.compact-grid{
+  display:flex;flex-wrap:wrap;gap:8px;padding:20px;
+}
+.compact-node{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  border-radius:8px;cursor:pointer;transition:all .2s;
+  width:240px;position:relative;
+}
+.compact-node:hover{border-color:var(--border-active);box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+.compact-node .node-avatar{width:28px;height:28px;border-radius:8px;font-size:10px;flex-shrink:0}
+.compact-node .compact-info{flex:1;min-width:0}
+.compact-node .compact-name{font-family:var(--font-sans);font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compact-node .compact-alias{font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}
+.compact-node .compact-status{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.compact-node .compact-status.active{background:var(--green)}
+.compact-node .compact-status.inactive{background:var(--text-muted);opacity:.4}
+.compact-node .compact-menu{
+  opacity:0;transition:opacity .15s;font-size:14px;color:var(--text-muted);
+  cursor:pointer;padding:2px 4px;border:none;background:none;
+}
+.compact-node:hover .compact-menu{opacity:1}
+.compact-node .select-check{top:4px;left:4px;width:16px;height:16px;border-radius:3px}
+.compact-node .select-check:checked::after{font-size:11px}
+
+/* Compact context menu */
+.compact-ctx{position:absolute;top:100%;right:0;z-index:200;min-width:120px;background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);padding:4px;display:none}
+.compact-ctx.open{display:block}
+.compact-ctx a{display:block;padding:6px 10px;font-size:11px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:5px;cursor:pointer}
+.compact-ctx a:hover{background:var(--accent-bg);color:var(--accent)}
+
+/* ─── List/Table View ─────────────────────────────────────────── */
+.list-view{padding:20px}
+.list-table{width:100%;border-collapse:separate;border-spacing:0}
+.list-table th{
+  position:sticky;top:0;z-index:10;
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);
+  padding:8px 12px;text-align:left;cursor:pointer;user-select:none;
+  background:var(--bg-deep);border-bottom:1px solid var(--border-glow);
+  white-space:nowrap;transition:color .15s;
+}
+.list-table th:hover{color:var(--accent)}
+.list-table th .sort-arrow{font-size:9px;margin-left:4px;opacity:.4}
+.list-table th.sorted .sort-arrow{opacity:1;color:var(--accent)}
+.list-table td{
+  font-size:12px;padding:8px 12px;
+  border-bottom:1px solid var(--border-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;
+}
+.list-table tr{cursor:pointer;transition:background .15s}
+.list-table tr:hover td{background:var(--accent-bg)}
+.list-table tr .row-avatar{
+  width:24px;height:24px;border-radius:6px;font-size:9px;
+  background:var(--accent-bg);border:1px solid var(--accent);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-weight:600;color:var(--accent);
+  vertical-align:middle;margin-right:8px;
+}
+.list-table tr .row-status{
+  display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;
+}
+.list-table tr .row-status.active{background:var(--green)}
+.list-table tr .row-status.inactive{background:var(--text-muted);opacity:.3}
+.list-table tr .select-check{position:static;display:none;width:16px;height:16px;vertical-align:middle;border-radius:3px}
+.list-table tr .select-check:checked::after{font-size:11px}
+.select-mode .list-table tr .select-check{display:inline-block}
+
 /* ─── Bench ──────────────────────────────────────────────────── */
 .bench{
   margin-top:48px;padding-top:24px;
@@ -1225,6 +1304,7 @@ text-decoration:none;}
 <script>
 let agents = [];
 let visibleClasses = new Set(['standard', 'platform']);
+let viewMode = localStorage.getItem('orgViewMode') || 'grid'; // 'grid' | 'compact' | 'list'
 let orgs = [];
 let availableMcps = [];
 let availableAccounts = [];
@@ -1430,6 +1510,9 @@ function renderOrg() {
   // Find agents in this org
   const nodesInOrg = [];
   for (const a of agents) {
+    const ac = a.agentClass || 'standard';
+    if (!visibleClasses.has(ac)) continue;
+    if (!matchesSearch(a)) continue;
     const orgEntry = (a.org || []).find(o => o.organization === selected);
     if (orgEntry) {
       nodesInOrg.push({ ...a, orgData: orgEntry });
@@ -1441,13 +1524,35 @@ function renderOrg() {
     return;
   }
 
-  // Build tree by reportsTo hierarchy
-  const aliasesInOrg = new Set(nodesInOrg.flatMap(n => n.aliases || []));
+  const selHidden = isOrgHidden(selected);
 
-  // Roots: no reportsTo, or reportsTo someone not in this org
+  // Compact view for single org
+  if (viewMode === 'compact') {
+    let html = renderOrgBanner(selected, selHidden);
+    html += '<div class="compact-grid">';
+    for (const a of nodesInOrg.sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+      html += renderCompactNode(a, selHidden);
+    }
+    html += '</div>';
+    canvas.innerHTML = html;
+    return;
+  }
+
+  // List view for single org
+  if (viewMode === 'list') {
+    // Temporarily override getFilteredAgents result to just this org
+    const fakeGroups = {}; fakeGroups[selected] = nodesInOrg;
+    const origFn = window.getFilteredAgents;
+    window.getFilteredAgents = () => ({ orgGroups: fakeGroups, noOrg: [] });
+    renderListView(canvas);
+    window.getFilteredAgents = origFn;
+    return;
+  }
+
+  // Grid view: tree hierarchy
+  const aliasesInOrg = new Set(nodesInOrg.flatMap(n => n.aliases || []));
   const roots = nodesInOrg.filter(n => !n.orgData.reportsTo || !aliasesInOrg.has(n.orgData.reportsTo));
 
-  // Build child map: alias -> children
   const childMap = {};
   for (const n of nodesInOrg) {
     if (n.orgData.reportsTo && aliasesInOrg.has(n.orgData.reportsTo)) {
@@ -1456,7 +1561,6 @@ function renderOrg() {
     }
   }
 
-  // BFS to build levels
   const levels = [];
   let currentLevel = roots;
   const visited = new Set();
@@ -1476,12 +1580,7 @@ function renderOrg() {
     currentLevel = nextLevel;
   }
 
-  // Render tree levels with org title
-  const selHidden = isOrgHidden(selected);
-  const selBtnClass = selHidden ? ' active' : '';
-  const selBtnIcon = selHidden ? '&#x1f6ab;' : '&#x1f441;';
-  const selBtnLabel = selHidden ? 'Hidden' : 'Hide Names';
-  let html = `<div class="org-title-banner" style="display:flex;align-items:center"><span class="${selHidden ? 'name-blurred' : ''}">${escapeHtml(selected)}</span><button class="hide-names-btn${selBtnClass}" onclick="toggleHideOrg('${escapeHtml(selected).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${selBtnIcon} ${selBtnLabel}</button></div>`;
+  let html = renderOrgBanner(selected, selHidden);
   html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:0 20px 20px">';
   for (let i = 0; i < levels.length; i++) {
     if (i > 0) html += '<div class="level-connector"></div>';
@@ -1497,36 +1596,16 @@ function renderOrg() {
 }
 
 function renderFlatGrid(canvas) {
-  // Group agents by their orgs, applying search filter
-  const orgGroups = {};
-  const noOrg = [];
-  for (const a of agents) {
-    const ac = a.agentClass || 'standard';
-    if (!visibleClasses.has(ac)) continue;
-    if (!matchesSearch(a)) continue;
-    if (!a.org || a.org.length === 0) {
-      noOrg.push(a);
-    } else {
-      const orgsAdded = new Set();
-      for (const o of a.org) {
-        if (!orgsAdded.has(o.organization)) {
-          const merged = { ...a, orgData: o };
-          if (!matchesSearch(merged)) continue;
-          if (!orgGroups[o.organization]) orgGroups[o.organization] = [];
-          orgGroups[o.organization].push(merged);
-          orgsAdded.add(o.organization);
-        }
-      }
-    }
-  }
+  // Delegate to compact or list view if active
+  if (viewMode === 'compact') return renderCompactGrid(canvas);
+  if (viewMode === 'list') return renderListView(canvas);
+
+  const { orgGroups, noOrg } = getFilteredAgents();
 
   let html = '';
   for (const orgName of Object.keys(orgGroups).sort()) {
     const oHidden = isOrgHidden(orgName);
-    const oBtnClass = oHidden ? ' active' : '';
-    const oBtnIcon = oHidden ? '&#x1f6ab;' : '&#x1f441;';
-    const oBtnLabel = oHidden ? 'Hidden' : 'Hide Names';
-    html += `<div class="org-title-banner" style="display:flex;align-items:center"><span class="${oHidden ? 'name-blurred' : ''}">${escapeHtml(orgName)}</span><button class="hide-names-btn${oBtnClass}" onclick="toggleHideOrg('${escapeHtml(orgName).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${oBtnIcon} ${oBtnLabel}</button></div>`;
+    html += renderOrgBanner(orgName, oHidden);
     html += '<div class="flat-grid">';
     for (const a of [...orgGroups[orgName]].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
       html += renderNode(a, false, false, oHidden);
@@ -1578,6 +1657,196 @@ function renderNode(a, dimmed, isLead, blurNames) {
       <button class="node-btn" onclick="event.stopPropagation();openModal('${a.id}')">Config</button>
     </div>
   </div>`;
+}
+
+// ─── View Mode ──────────────────────────────────────────────────
+function setViewMode(mode) {
+  viewMode = mode;
+  localStorage.setItem('orgViewMode', mode);
+  document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+  renderOrg();
+}
+
+// ─── Compact Node ───────────────────────────────────────────────
+function renderCompactNode(a, blurNames) {
+  const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+  const isActive = a.sessionActive || (a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000);
+  const blurClass = blurNames ? ' name-blurred' : '';
+  return `<div class="compact-node" data-agent-id="${a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}openModal('${a.id}')">
+    <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
+    <div class="node-avatar ${isActive ? 'active' : ''}" style="width:28px;height:28px;border-radius:8px;font-size:10px">${initials}</div>
+    <div class="compact-info">
+      <div class="compact-name${blurClass}">${escapeHtml(a.name)}</div>
+      <div class="compact-alias${blurClass}">${a.aliases?.[0] || a.id}</div>
+    </div>
+    <span class="compact-status ${isActive ? 'active' : 'inactive'}"></span>
+    <button class="compact-menu" onclick="event.stopPropagation();toggleCompactMenu(this)" title="Actions">&#8943;</button>
+    <div class="compact-ctx">
+      <a onclick="event.stopPropagation();window.location='/ui#${a.id}'">Chat</a>
+      <a onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">Dashboard</a>
+      <a onclick="event.stopPropagation();openModal('${a.id}')">Config</a>
+    </div>
+  </div>`;
+}
+function toggleCompactMenu(btn) {
+  const ctx = btn.nextElementSibling;
+  document.querySelectorAll('.compact-ctx.open').forEach(m => { if (m !== ctx) m.classList.remove('open'); });
+  ctx.classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.compact-menu') && !e.target.closest('.compact-ctx')) {
+    document.querySelectorAll('.compact-ctx.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+// ─── Compact Grid Render ────────────────────────────────────────
+function renderCompactGrid(canvas) {
+  const { orgGroups, noOrg } = getFilteredAgents();
+  let html = '';
+  for (const orgName of Object.keys(orgGroups).sort()) {
+    const oHidden = isOrgHidden(orgName);
+    html += renderOrgBanner(orgName, oHidden);
+    html += '<div class="compact-grid">';
+    for (const a of orgGroups[orgName].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+      html += renderCompactNode(a, oHidden);
+    }
+    html += '</div>';
+  }
+  if (noOrg.length > 0) {
+    html += '<div class="org-title-banner" style="opacity:.5">Unassigned</div>';
+    html += '<div class="compact-grid">';
+    for (const a of noOrg.sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+      html += renderCompactNode(a, false);
+    }
+    html += '</div>';
+  }
+  canvas.innerHTML = html;
+}
+
+// ─── Relative Time Helper ───────────────────────────────────────
+function formatRelativeTime(ts) {
+  if (!ts || ts === 'never') return 'never';
+  const diff = Date.now() - new Date(ts).getTime();
+  if (diff < 0) return 'just now';
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return days + 'd ago';
+  return Math.floor(days / 30) + 'mo ago';
+}
+
+// ─── List/Table Render ──────────────────────────────────────────
+let listSortCol = 'lastActive';
+let listSortAsc = false;
+
+function sortList(col) {
+  if (listSortCol === col) listSortAsc = !listSortAsc;
+  else { listSortCol = col; listSortAsc = true; }
+  renderOrg();
+}
+
+function renderListView(canvas) {
+  const { orgGroups, noOrg } = getFilteredAgents();
+  // Flatten all agents into one list
+  const all = [];
+  for (const orgName of Object.keys(orgGroups)) {
+    for (const a of orgGroups[orgName]) {
+      all.push({ ...a, _org: orgName });
+    }
+  }
+  for (const a of noOrg) all.push({ ...a, _org: '' });
+
+  // Sort
+  all.sort((a, b) => {
+    let va, vb;
+    switch (listSortCol) {
+      case 'name': va = (a.name||a.id||'').toLowerCase(); vb = (b.name||b.id||'').toLowerCase(); break;
+      case 'alias': va = (a.aliases?.[0]||a.id||'').toLowerCase(); vb = (b.aliases?.[0]||b.id||'').toLowerCase(); break;
+      case 'org': va = (a._org||'').toLowerCase(); vb = (b._org||'').toLowerCase(); break;
+      case 'dept': va = (a.orgData?.function||a.org?.[0]?.function||'').toLowerCase(); vb = (b.orgData?.function||b.org?.[0]?.function||'').toLowerCase(); break;
+      case 'title': va = (a.orgData?.title||a.org?.[0]?.title||'').toLowerCase(); vb = (b.orgData?.title||b.org?.[0]?.title||'').toLowerCase(); break;
+      case 'class': va = (a.agentClass||'standard').toLowerCase(); vb = (b.agentClass||'standard').toLowerCase(); break;
+      case 'status': va = a.sessionActive ? 0 : 1; vb = b.sessionActive ? 0 : 1; break;
+      case 'msgs': va = a.messageCount||0; vb = b.messageCount||0; break;
+      case 'lastActive': va = a.lastMessage === 'never' ? 0 : new Date(a.lastMessage).getTime(); vb = b.lastMessage === 'never' ? 0 : new Date(b.lastMessage).getTime(); break;
+      default: va = ''; vb = '';
+    }
+    if (va < vb) return listSortAsc ? -1 : 1;
+    if (va > vb) return listSortAsc ? 1 : -1;
+    return 0;
+  });
+
+  const arrow = col => `<span class="sort-arrow">${listSortCol === col ? (listSortAsc ? '▲' : '▼') : '⇅'}</span>`;
+  const sorted = col => listSortCol === col ? ' sorted' : '';
+
+  let html = '<div class="list-view"><table class="list-table"><thead><tr>';
+  html += `<th class="${sorted('name')}" onclick="sortList('name')">Name ${arrow('name')}</th>`;
+  html += `<th class="${sorted('alias')}" onclick="sortList('alias')">Alias ${arrow('alias')}</th>`;
+  html += `<th class="${sorted('org')}" onclick="sortList('org')">Org ${arrow('org')}</th>`;
+  html += `<th class="${sorted('dept')}" onclick="sortList('dept')">Dept ${arrow('dept')}</th>`;
+  html += `<th class="${sorted('title')}" onclick="sortList('title')">Title ${arrow('title')}</th>`;
+  html += `<th class="${sorted('class')}" onclick="sortList('class')">Class ${arrow('class')}</th>`;
+  html += `<th class="${sorted('status')}" onclick="sortList('status')">Status ${arrow('status')}</th>`;
+  html += `<th class="${sorted('lastActive')}" onclick="sortList('lastActive')">Last Active ${arrow('lastActive')}</th>`;
+  html += `<th class="${sorted('msgs')}" onclick="sortList('msgs')">Msgs ${arrow('msgs')}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (const a of all) {
+    const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+    const isActive = a.sessionActive || (a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000);
+    const dept = a.orgData?.function || a.org?.[0]?.function || '';
+    const title = a.orgData?.title || a.org?.[0]?.title || '';
+    const cls = a.agentClass || 'standard';
+    html += `<tr data-agent-id="${a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}openModal('${a.id}')">`;
+    html += `<td><input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}><span class="row-avatar">${initials}</span>${escapeHtml(a.name)}</td>`;
+    html += `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${a.aliases?.[0] || a.id}</td>`;
+    html += `<td>${escapeHtml(a._org)}</td>`;
+    html += `<td>${escapeHtml(dept)}</td>`;
+    html += `<td>${escapeHtml(title)}</td>`;
+    html += `<td><span style="font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:4px;background:var(--accent-bg);color:var(--accent)">${cls}</span></td>`;
+    html += `<td><span class="row-status ${isActive ? 'active' : 'inactive'}"></span> ${isActive ? 'Active' : 'Idle'}</td>`;
+    html += `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${formatRelativeTime(a.lastMessage)}</td>`;
+    html += `<td style="font-family:var(--font-mono);font-size:11px">${a.messageCount||0}</td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  canvas.innerHTML = html;
+}
+
+// ─── Shared: get filtered agents grouped by org ─────────────────
+function getFilteredAgents() {
+  const orgGroups = {};
+  const noOrg = [];
+  for (const a of agents) {
+    const ac = a.agentClass || 'standard';
+    if (!visibleClasses.has(ac)) continue;
+    if (!matchesSearch(a)) continue;
+    if (!a.org || a.org.length === 0) {
+      noOrg.push(a);
+    } else {
+      const orgsAdded = new Set();
+      for (const o of a.org) {
+        if (!orgsAdded.has(o.organization)) {
+          const merged = { ...a, orgData: o };
+          if (!matchesSearch(merged)) continue;
+          if (!orgGroups[o.organization]) orgGroups[o.organization] = [];
+          orgGroups[o.organization].push(merged);
+          orgsAdded.add(o.organization);
+        }
+      }
+    }
+  }
+  return { orgGroups, noOrg };
+}
+
+function renderOrgBanner(orgName, oHidden) {
+  const oBtnClass = oHidden ? ' active' : '';
+  const oBtnIcon = oHidden ? '&#x1f6ab;' : '&#x1f441;';
+  const oBtnLabel = oHidden ? 'Hidden' : 'Hide Names';
+  return `<div class="org-title-banner" style="display:flex;align-items:center"><span class="${oHidden ? 'name-blurred' : ''}">${escapeHtml(orgName)}</span><button class="hide-names-btn${oBtnClass}" onclick="toggleHideOrg('${escapeHtml(orgName).replace(/'/g,"\\'")}')" title="Toggle name blur for presentations">${oBtnIcon} ${oBtnLabel}</button></div>`;
 }
 
 function escapeHtml(s) {
@@ -3267,6 +3536,11 @@ const agentsSubNav = `
   <a class="sub-nav-link" href="/tasks">Tasks</a>
   <a class="sub-nav-link" href="/automations">Automations</a>
   <div class="agent-controls">
+    <div class="view-toggle" id="viewToggle">
+      <button class="view-toggle-btn${viewMode==='grid'?' active':''}" data-view="grid" onclick="setViewMode('grid')" title="Grid view">&#9638;</button>
+      <button class="view-toggle-btn${viewMode==='compact'?' active':''}" data-view="compact" onclick="setViewMode('compact')" title="Compact view">&#9642;&#9642;</button>
+      <button class="view-toggle-btn${viewMode==='list'?' active':''}" data-view="list" onclick="setViewMode('list')" title="List view">&#9776;</button>
+    </div>
     <input type="text" id="agentSearch" class="topbar-control" placeholder="Search..." oninput="handleSearch()" style="width:120px">
     <div class="class-dropdown" id="classDropdown">
       <button class="class-dropdown-btn" onclick="toggleClassDropdown()" id="classDropdownBtn">Standard + Platform ▾</button>
