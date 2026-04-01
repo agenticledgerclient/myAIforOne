@@ -83,6 +83,17 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── Serve the My Library page ──────────────────────────────────
+  app.get("/library", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "library.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.redirect("/marketplace");
+    }
+  });
+
   // ─── Serve the Marketplace page ────────────────────────────────
   app.get("/marketplace", (_req, res) => {
     const htmlPath = join(opts.baseDir, "public", "marketplace.html");
