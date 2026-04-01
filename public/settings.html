@@ -43,6 +43,14 @@ html,body{width:100%;min-height:100%;max-width:100vw;background:var(--bg-deep);f
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .theme-toggle{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
 .theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.gear-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;text-decoration:none}
+.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.docs-dropdown{position:relative;display:inline-block}
+.docs-menu{display:none;position:absolute;top:40px;right:0;min-width:160px;background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;padding:4px;backdrop-filter:blur(20px)}
+.docs-menu.open{display:block}
+.docs-menu a{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:6px;transition:all .15s}
+.docs-menu a:hover{background:var(--accent-bg);color:var(--accent)}
+.docs-menu a .dm-icon{font-size:14px;width:18px;text-align:center}
 
 .sub-nav{position:fixed;top:56px;left:0;right:0;z-index:99;height:36px;display:flex;align-items:center;gap:2px;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px)}
 .sub-nav-link{font-family:var(--font-sans);font-size:12px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:4px 10px;border-radius:5px;transition:color .2s}
@@ -134,12 +142,19 @@ html,body{width:100%;min-height:100%;max-width:100vw;background:var(--bg-deep);f
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn active" href="/org">Agents</a>
-    <a class="tab-btn" href="/library">My Library</a>
+    <a class="tab-btn" href="/library">Library</a>
     <a class="tab-btn" href="/marketplace">Marketplace</a>
     <a class="tab-btn" href="/lab">Lab</a>
   </div>
   <div class="topbar-right">
-    <a href="/changelog" class="theme-toggle" title="Changelog" style="text-decoration:none">&#x29C9;</a>
+    <div class="docs-dropdown" id="docsDropdown">
+  <button class="gear-btn" onclick="document.getElementById('docsMenu').classList.toggle('open')" title="Documentation">&#9776;</button>
+  <div class="docs-menu" id="docsMenu">
+    <a href="/api-docs#api" target="_blank"><span class="dm-icon">&#9881;</span> API Docs</a>
+    <a href="/api-docs#mcp" target="_blank"><span class="dm-icon">&#9830;</span> MCP Tools</a>
+    <a href="/changelog"><span class="dm-icon">&#x29C9;</span> Changelog</a>
+  </div>
+</div>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
   </div>
 </div>
@@ -618,6 +633,10 @@ async function installXbar() {
     btn.textContent = 'Install xbar Plugin'; btn.disabled = false;
   }
 }
+document.addEventListener('click', function(e){
+  const dd = document.getElementById('docsDropdown');
+  if(dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
+});
 </script>
 </body>
 </html>

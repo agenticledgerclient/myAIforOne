@@ -86,6 +86,12 @@ html,body{
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .theme-toggle,.gear-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2stext-decoration:none;}
 .theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.docs-dropdown{position:relative;display:inline-block}
+.docs-menu{display:none;position:absolute;top:40px;right:0;min-width:160px;background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;padding:4px;backdrop-filter:blur(20px)}
+.docs-menu.open{display:block}
+.docs-menu a{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:6px;transition:all .15s}
+.docs-menu a:hover{background:var(--accent-bg);color:var(--accent)}
+.docs-menu a .dm-icon{font-size:14px;width:18px;text-align:center}
 
 /* ── Page ── */
 .page{padding-top:48px;min-height:100vh}
@@ -223,12 +229,19 @@ html,body{
   <nav class="tab-group">
     <a class="tab-btn" href="/org">Agents</a>
     <a class="tab-btn" href="/ui">Chat</a>
-    <a class="tab-btn" href="/library">My Library</a>
+    <a class="tab-btn" href="/library">Library</a>
     <a class="tab-btn" href="/marketplace">Marketplace</a>
     <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
-    <a href="/changelog" class="gear-btn" title="Changelog">&#x29C9;</a>
+    <div class="docs-dropdown" id="docsDropdown">
+  <button class="gear-btn" onclick="document.getElementById('docsMenu').classList.toggle('open')" title="Documentation">&#9776;</button>
+  <div class="docs-menu" id="docsMenu">
+    <a href="/api-docs#api" target="_blank"><span class="dm-icon">&#9881;</span> API Docs</a>
+    <a href="/api-docs#mcp" target="_blank"><span class="dm-icon">&#9830;</span> MCP Tools</a>
+    <a href="/changelog"><span class="dm-icon">&#x29C9;</span> Changelog</a>
+  </div>
+</div>
     <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
   </div>
@@ -496,6 +509,10 @@ async function triggerHeartbeat(){
 
 // ── Init ──
 loadDashboard();
+document.addEventListener('click', function(e){
+  const dd = document.getElementById('docsDropdown');
+  if(dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
+});
 </script>
 </body>
 </html>
