@@ -366,6 +366,15 @@ const CATALOG = [
   { cat: "Config", method: "GET", path: "/api/config/accounts/:name/status", summary: "Check if account is authenticated", params: [{ name: "name", in: "path", type: "string", required: true }] },
   { cat: "Config", method: "GET", path: "/api/config/service", summary: "Get service settings (personalAgentsDir, personalRegistryDir, port, logLevel)" },
   { cat: "Config", method: "PUT", path: "/api/config/service", summary: "Update service settings", body: { personalAgentsDir: { type: "string" }, personalRegistryDir: { type: "string" }, webUIPort: { type: "number" }, logLevel: { type: "string" } } },
+
+  // -- Changelog --
+  { cat: "Dashboard", method: "GET", path: "/api/changelog", summary: "Get recent changelog parsed from git history (grouped by date)" },
+
+  // -- xbar --
+  { cat: "Config", method: "POST", path: "/api/install-xbar", summary: "Install xbar status bar plugin (macOS only)" },
+
+  // -- Webhook --
+  { cat: "Chat", method: "POST", path: "/webhook/:agentId", summary: "Send a message via webhook (external trigger)", params: [{ name: "agentId", in: "path", type: "string", required: true }], body: { text: { type: "string", required: true }, channel: { type: "string", desc: "Override reply channel" }, chatId: { type: "string", desc: "Override reply chat ID" } } },
 ];
 
 // ═══ MCP TOOL CATALOG ═══════════════════════════════════════════════
@@ -507,6 +516,26 @@ const TOOLS = [
   // Lab
   {cat:"Lab",name:"get_platform_agents",desc:"List platform-managed creator agents (used by Lab)",params:[]},
   {cat:"Lab",name:"browse_dirs",desc:"Browse subdirectories of a given path (for Lab directory picker)",params:[{n:"path",t:"string",r:false,d:"Directory path (defaults to home dir, supports ~ prefix)"}]},
+
+  // Heartbeat
+  {cat:"Agents",name:"trigger_heartbeat",desc:"Trigger a heartbeat check for an agent (runs async, returns immediately)",params:[{n:"agentId",t:"string",r:true},{n:"triggeredBy",t:"string",r:false,d:"Label for trigger source (default: manual)"}]},
+  {cat:"Agents",name:"get_heartbeat_history",desc:"Get recent heartbeat run history for an agent",params:[{n:"agentId",t:"string",r:true},{n:"limit",t:"number",r:false,d:"Max entries (default 20)"}]},
+
+  // Whoami
+  {cat:"Agents",name:"whoami",desc:"Get Claude auth status for the account an agent uses",params:[{n:"agentId",t:"string",r:true}]},
+
+  // Changelog
+  {cat:"Dashboard",name:"get_changelog",desc:"Get recent changelog parsed from git history (grouped by date)",params:[]},
+
+  // xbar
+  {cat:"Config",name:"install_xbar",desc:"Install xbar status bar plugin (macOS only)",params:[]},
+
+  // Chat Streaming
+  {cat:"Chat",name:"start_stream",desc:"Start a streaming chat — returns jobId to poll with get_chat_job_raw",params:[{n:"agentId",t:"string",r:true},{n:"text",t:"string",r:true},{n:"accountOverride",t:"string",r:false,d:"Use a different Claude account"}]},
+  {cat:"Chat",name:"stop_chat_job",desc:"Stop a running chat job",params:[{n:"jobId",t:"string",r:true,d:"Job ID from start_stream"}]},
+
+  // Webhook
+  {cat:"Chat",name:"send_webhook",desc:"Send a message to an agent via webhook (external trigger)",params:[{n:"agentId",t:"string",r:true},{n:"text",t:"string",r:true},{n:"secret",t:"string",r:false,d:"Webhook secret (x-webhook-secret header)"},{n:"channel",t:"string",r:false,d:"Override reply channel"},{n:"chatId",t:"string",r:false,d:"Override reply chat ID"}]},
 ];
 
 // ═══ STATE ═══════════════════════════════════════════════════════════

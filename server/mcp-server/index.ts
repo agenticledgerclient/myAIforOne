@@ -876,6 +876,90 @@ server.tool("get_agent_registry", "Get the agent registry with delegation keywor
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  HEARTBEAT
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("trigger_heartbeat", "Trigger a heartbeat check for an agent (runs async, returns immediately)", {
+  agentId: z.string().describe("Agent ID"),
+  triggeredBy: z.string().optional().describe("Label for trigger source (default: manual)"),
+}, async ({ agentId, triggeredBy }) => {
+  const r = await api.triggerHeartbeat(agentId, triggeredBy);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_heartbeat_history", "Get recent heartbeat run history for an agent", {
+  agentId: z.string().describe("Agent ID"),
+  limit: z.number().optional().describe("Max entries (default 20)"),
+}, async ({ agentId, limit }) => {
+  const r = await api.heartbeatHistory(agentId, limit);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  WHOAMI
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("whoami", "Get Claude auth status for the account an agent uses", {
+  agentId: z.string().describe("Agent ID"),
+}, async ({ agentId }) => {
+  const r = await api.whoami(agentId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  CHANGELOG
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("get_changelog", "Get recent changelog (parsed from git log)", {}, async () => {
+  const r = await api.changelog();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  INSTALL XBAR (macOS only)
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("install_xbar", "Install xbar status bar plugin (macOS only)", {}, async () => {
+  const r = await api.installXbar();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  CHAT STREAMING
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("start_stream", "Start a streaming chat with an agent — returns a jobId to poll with get_chat_job_raw", {
+  agentId: z.string().describe("Agent ID"),
+  text: z.string().describe("Message text"),
+  accountOverride: z.string().optional().describe("Use a different Claude account"),
+}, async ({ agentId, text, accountOverride }) => {
+  const r = await api.startStream(agentId, text, accountOverride);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("stop_chat_job", "Stop a running chat job", {
+  jobId: z.string().describe("Job ID from start_stream"),
+}, async ({ jobId }) => {
+  const r = await api.stopJob(jobId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  WEBHOOK
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("send_webhook", "Send a message to an agent via webhook (external trigger)", {
+  agentId: z.string().describe("Agent ID"),
+  text: z.string().describe("Message text"),
+  secret: z.string().optional().describe("Webhook secret (x-webhook-secret header)"),
+  channel: z.string().optional().describe("Override reply channel"),
+  chatId: z.string().optional().describe("Override reply chat ID"),
+}, async ({ agentId, text, secret, channel, chatId }) => {
+  const r = await api.sendWebhook(agentId, text, secret, channel, chatId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  START SERVER
 // ═══════════════════════════════════════════════════════════════════
 

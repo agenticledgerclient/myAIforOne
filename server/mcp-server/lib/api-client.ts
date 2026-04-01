@@ -227,6 +227,28 @@ export const setPromptTrigger = (trigger: string) =>
 export const getChatJobRaw = (jobId: string, after?: number) =>
   api(`/api/chat/jobs/${jobId}/raw`, { query: { after } });
 
+// ─── Heartbeat ──────────────────────────────────────────────────
+export const triggerHeartbeat = (agentId: string, triggeredBy?: string) =>
+  api(`/api/agents/${agentId}/heartbeat`, { method: "POST", body: { triggeredBy } });
+export const heartbeatHistory = (agentId: string, limit?: number) =>
+  api(`/api/agents/${agentId}/heartbeat-history`, { query: { limit } });
+
+// ─── Whoami ─────────────────────────────────────────────────────
+export const whoami = (agentId: string) => api(`/api/whoami/${agentId}`);
+
+// ─── Changelog ──────────────────────────────────────────────────
+export const changelog = () => api("/api/changelog");
+
+// ─── Webhook ────────────────────────────────────────────────────
+export const sendWebhook = (agentId: string, text: string, secret?: string, channel?: string, chatId?: string) => {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (secret) headers["x-webhook-secret"] = secret;
+  return api(`/webhook/${agentId}`, { method: "POST", body: { text, channel, chatId } });
+};
+
+// ─── Install xbar ───────────────────────────────────────────────
+export const installXbar = () => api("/api/install-xbar", { method: "POST" });
+
 // ─── Lab / Platform Agents ───────────────────────────────────────
 export const getPlatformAgents = () => api("/api/platform-agents");
 export const browseDirs = (path?: string) => api("/api/browse-dirs", { query: { path } });
