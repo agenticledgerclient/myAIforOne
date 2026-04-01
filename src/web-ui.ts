@@ -3196,11 +3196,36 @@ export function startWebUI(opts: WebUIOptions): void {
     res.json(counts);
   });
 
-  // GET /api/agents/:id/tasks — return full tasks.json
+  // GET /api/agents/:id/tasks — return full tasks.json + cross-agent tasks
   app.get("/api/agents/:id/tasks", (req, res) => {
-    const agent = opts.config.agents[req.params.id];
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
     if (!agent) return res.status(404).json({ error: "Agent not found" });
-    res.json(loadTasksFile(agent, req.params.id));
+    const own = loadTasksFile(agent, agentId);
+
+    // Collect cross-agent tasks: tasks in OTHER agents' files where owner or assignedBy matches this agent
+    const myAliases = new Set<string>([
+      agentId,
+      `@${agentId}`,
+      ...(agent.mentionAliases || []),
+      ...(agent.mentionAliases || []).map(a => a.startsWith("@") ? a : `@${a}`),
+    ]);
+    const crossAgentTasks: any[] = [];
+    for (const [otherId, otherAgent] of Object.entries(opts.config.agents)) {
+      if (otherId === agentId) continue;
+      try {
+        const otherData = loadTasksFile(otherAgent as any, otherId);
+        for (const t of otherData.tasks || []) {
+          const ownerMatch = t.owner && myAliases.has(t.owner);
+          const assignerMatch = t.assignedBy && myAliases.has(t.assignedBy);
+          if (ownerMatch || assignerMatch) {
+            crossAgentTasks.push({ ...t, _sourceAgent: otherId });
+          }
+        }
+      } catch { /* skip agents with no/broken tasks */ }
+    }
+
+    res.json({ ...own, crossAgentTasks });
   });
 
   // POST /api/agents/:id/tasks — create new task

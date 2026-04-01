@@ -158,6 +158,8 @@ html,body{
   margin-bottom:8px;transition:all .15s;
 }
 .task-card:hover{border-color:var(--border-glow)}
+.task-card.cross-agent{border-left:2px solid var(--accent);opacity:.85}
+.cross-agent-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin:12px 0 6px;padding-left:2px}
 .task-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .task-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .task-dot.proposed{background:var(--text-muted)}
@@ -345,9 +347,12 @@ async function loadDashboard(){
   // Agent info
   if(agentRes?.ok){
     const data=await agentRes.json();
-    const a=data.agent||data;
+    const raw=data.agent||data;
+    const a=raw.config?{...raw,...raw.config}:raw;
+    const aliases=a.aliases||a.mentionAliases||[];
     document.getElementById('agentName').textContent=a.name||agentId;
-    document.getElementById('agentAlias').textContent=a.mentionAliases?.[0]||`@${agentId}`;
+    const displayAlias=aliases[0]||(a.mentionAlias)||`@${agentId}`;
+    document.getElementById('agentAlias').textContent=displayAlias.startsWith('@')?displayAlias:`@${displayAlias}`;
     document.getElementById('agentDesc').textContent=a.description||'';
     document.getElementById('agentAvatar').textContent=(a.name||agentId).slice(0,2).toUpperCase();
     document.title=`${a.name||agentId} — Dashboard`;
@@ -359,7 +364,7 @@ async function loadDashboard(){
   // Tasks
   if(tasksRes?.ok){
     const data=await tasksRes.json();
-    renderTasks(data.tasks||[]);
+    renderTasks(data.tasks||[],data.crossAgentTasks||[]);
   }else{
     document.getElementById('taskList').innerHTML='<div class="section-empty">No tasks</div>';
   }
@@ -380,34 +385,50 @@ async function loadDashboard(){
 }
 
 // ── Render Tasks ──
-function renderTasks(tasks){
+function renderTaskCard(t,isCross){
+  const priorityCls=t.priority||'medium';
+  return `<div class="task-card${isCross?' cross-agent':''}">
+    <div class="task-top">
+      <div class="task-dot ${t.status}"></div>
+      <div class="task-title">${esc(t.title)}</div>
+      <span class="priority-badge ${priorityCls}">${priorityCls}</span>
+    </div>
+    <div class="task-meta">
+      <span>${t.status}</span>
+      <span>${timeAgo(t.createdAt)}</span>
+      ${t.assignedBy?`<span>by ${esc(t.assignedBy)}</span>`:''}
+      ${isCross&&t._sourceAgent?`<span>on @${esc(t._sourceAgent)}</span>`:''}
+    </div>
+    ${!isCross&&t.status!=='done'&&t.status!=='closed'?`<div class="task-actions">
+      ${t.status==='proposed'||t.status==='approved'?`<button class="task-action-btn" onclick="updateTask('${t.id}','in_progress')">Start</button>`:''}
+      <button class="task-action-btn" onclick="updateTask('${t.id}','done')">Done</button>
+    </div>`:''}
+  </div>`;
+}
+
+function renderTasks(tasks,crossTasks){
   const el=document.getElementById('taskList');
   const active=tasks.filter(t=>t.status!=='done'&&t.status!=='closed');
   const done=tasks.filter(t=>t.status==='done'||t.status==='closed');
-  document.getElementById('taskCount').textContent=active.length;
+  const crossActive=crossTasks.filter(t=>t.status!=='done'&&t.status!=='closed');
+  const crossDone=crossTasks.filter(t=>t.status==='done'||t.status==='closed');
+  const totalCount=tasks.length+crossTasks.length;
+  const activeCount=active.length+crossActive.length;
+  document.getElementById('taskCount').textContent=totalCount;
 
-  if(!tasks.length){el.innerHTML='<div class="section-empty">No tasks assigned</div>';return}
+  if(!tasks.length&&!crossTasks.length){el.innerHTML='<div class="section-empty">No tasks assigned</div>';return}
 
-  const sorted=[...active,...done.slice(0,5)];
-  el.innerHTML=sorted.map(t=>{
-    const priorityCls=t.priority||'medium';
-    return `<div class="task-card">
-      <div class="task-top">
-        <div class="task-dot ${t.status}"></div>
-        <div class="task-title">${esc(t.title)}</div>
-        <span class="priority-badge ${priorityCls}">${priorityCls}</span>
-      </div>
-      <div class="task-meta">
-        <span>${t.status}</span>
-        <span>${timeAgo(t.createdAt)}</span>
-        ${t.assignedBy?`<span>by ${esc(t.assignedBy)}</span>`:''}
-      </div>
-      ${t.status!=='done'&&t.status!=='closed'?`<div class="task-actions">
-        ${t.status==='proposed'||t.status==='approved'?`<button class="task-action-btn" onclick="updateTask('${t.id}','in_progress')">Start</button>`:''}
-        <button class="task-action-btn" onclick="updateTask('${t.id}','done')">Done</button>
-      </div>`:''}
-    </div>`;
-  }).join('');
+  let html='';
+  const ownSorted=[...active,...done.slice(0,5)];
+  if(ownSorted.length){
+    html+=ownSorted.map(t=>renderTaskCard(t,false)).join('');
+  }
+  const crossSorted=[...crossActive,...crossDone.slice(0,5)];
+  if(crossSorted.length){
+    html+=`<div class="cross-agent-label">On other agents</div>`;
+    html+=crossSorted.map(t=>renderTaskCard(t,true)).join('');
+  }
+  el.innerHTML=html;
 }
 
 async function updateTask(taskId,status){
