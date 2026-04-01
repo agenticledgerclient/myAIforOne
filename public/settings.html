@@ -174,13 +174,9 @@ html,body{width:100%;min-height:100%;max-width:100vw;background:var(--bg-deep);f
       <!-- Add + Login flow -->
       <div class="form-label">Add Account</div>
       <div class="field-row">
-        <div class="field" style="max-width:150px">
-          <label>Name</label>
-          <input id="newAccName" placeholder="main, work…" />
-        </div>
-        <div class="field">
-          <label>Config Directory</label>
-          <input id="newAccPath" placeholder="~/.claude  or  ~/.claude-work" />
+        <div class="field" style="max-width:200px">
+          <label>Account Name</label>
+          <input id="newAccName" placeholder="main, work, personal…" />
         </div>
         <button class="btn-primary" id="startLoginBtn" onclick="startLogin()">&#x2192; Login &amp; Add</button>
       </div>
@@ -192,9 +188,7 @@ html,body{width:100%;min-height:100%;max-width:100vw;background:var(--bg-deep);f
       </div>
 
       <div class="hint">
-        Each account needs its own config directory. The default is <code>~/.claude</code>.<br>
-        For additional accounts create a new dir like <code>~/.claude-work</code> — clicking <strong>Login &amp; Add</strong> will open the Claude authorization page for that directory.
-        Once you've authorized, click <strong>Verify &amp; Save</strong> to confirm and store it.
+        The config directory is derived automatically from the account name — <code>main</code> uses <code>~/.claude</code>, any other name uses <code>~/.claude-{name}</code>.
       </div>
     </div>
   </div>
@@ -347,8 +341,8 @@ let pendingLogin = null; // { name, path, sessionId }
 
 async function startLogin() {
   const name = document.getElementById('newAccName').value.trim();
-  const path = document.getElementById('newAccPath').value.trim();
-  if (!name || !path) { showToast('Name and directory required', 'err'); return; }
+  if (!name) { showToast('Account name required', 'err'); return; }
+  const path = (name === 'main' || name === 'default') ? '~/.claude' : `~/.claude-${name}`;
 
   const btn = document.getElementById('startLoginBtn');
   btn.disabled = true; btn.textContent = 'Connecting…';
@@ -470,7 +464,6 @@ async function verifyLogin() {
 
 function clearAddForm() {
   document.getElementById('newAccName').value = '';
-  document.getElementById('newAccPath').value = '';
 }
 
 async function reloginAccount(name) {
