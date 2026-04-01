@@ -405,7 +405,7 @@ async function loadItems(){
   document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)">Loading…</div>';
   try{
     const d = await (await fetch(`/api/marketplace/${currentType}`)).json();
-    allItems = d.items||[];
+    allItems = (d.items||[]).filter(i=>i.provider==='me');
     buildPills();
     render();
   } catch{
@@ -466,18 +466,7 @@ function renderFlat(items){
 
 function renderSections(items){
   const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':'skill';
-  const personal = items.filter(i=>i.provider==='me');
-  const others = items.filter(i=>i.provider!=='me');
-
-  let html = '<div class="sections">';
-
-  // ── Built by Me ──
-  html += sectionPersonal(personal, typeSingular);
-
-  // ── Built by Others (platform + external combined) ──
-  html += section('Built by Others', others, typeSingular, others.length);
-
-  html += '</div>';
+  const html = '<div class="sections">' + sectionPersonal(items, typeSingular) + '</div>';
   document.getElementById('content').innerHTML = html;
 }
 
