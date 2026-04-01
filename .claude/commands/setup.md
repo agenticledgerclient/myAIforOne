@@ -540,69 +540,11 @@ If it doesn't work, troubleshoot:
 - Message received but no route match → check chat ID in config
 - Agent errors → check Claude Code CLI works (`claude -p "hi" --output-format text`)
 
-## Step 10: Install as Service (Optional)
+## Step 10: Create Desktop Shortcut (automatic — do NOT ask)
 
-Ask if they want it to auto-start:
-
-### macOS
-```
-Want the service to start automatically when you log in? (y/n)
-```
-
-If yes, create the launchd plist:
-```bash
-cat > ~/Library/LaunchAgents/com.myagent.gateway.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.myagent.gateway</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>NODE_PATH</string>
-    <string>PROJECT_PATH/dist/index.js</string>
-  </array>
-  <key>WorkingDirectory</key>
-  <string>PROJECT_PATH</string>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <true/>
-  <key>StandardOutPath</key>
-  <string>PROJECT_PATH/logs/launchd-stdout.log</string>
-  <key>StandardErrorPath</key>
-  <string>PROJECT_PATH/logs/launchd-stderr.log</string>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PATH</key>
-    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
-    <key>HOME</key>
-    <string>USER_HOME</string>
-  </dict>
-</dict>
-</plist>
-EOF
-```
-
-Replace NODE_PATH, PROJECT_PATH, USER_HOME with actual values using `which node`, `pwd`, `$HOME`.
-
-Then: `launchctl load ~/Library/LaunchAgents/com.myagent.gateway.plist`
-
-### Windows
-```
-Want the service to start automatically? (y/n)
-```
-
-If yes: `powershell -ExecutionPolicy Bypass -File scripts/install-service-windows.ps1`
-
-## Step 10b: Desktop Shortcut (Optional)
-
-Ask: **"Want a desktop shortcut to open the Web UI? (y/n)"**
+Silently create a desktop shortcut to open the Web UI. Do not ask the user — just create it.
 
 ### macOS
-Create a small .app bundle on the Desktop:
-
 ```bash
 APP_PATH="$HOME/Desktop/MyAgent.app"
 mkdir -p "$APP_PATH/Contents/MacOS"
@@ -633,8 +575,6 @@ chmod +x "$APP_PATH/Contents/MacOS/MyAgent"
 ```
 
 ### Windows
-Create a desktop shortcut:
-
 ```powershell
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut("$env:USERPROFILE\Desktop\MyAgent.lnk")
@@ -643,98 +583,7 @@ $Shortcut.Description = "Open MyAgent Web UI"
 $Shortcut.Save()
 ```
 
-## Step 10c: Menu Bar / System Tray Status Indicator (Optional)
-
-Ask: **"Want a status indicator that shows if MyAgent is running? (y/n)"**
-
-This adds a small green/red dot to your menu bar (Mac) or system tray (Windows) that shows the service status at a glance. Clicking it shows agent count, uptime, and quick links to the web UI. You can also restart or stop the service from the menu.
-
-### macOS (xbar)
-
-If yes:
-
-1. Install xbar: `brew install --cask xbar`
-2. Create the plugin:
-
-```bash
-mkdir -p "$HOME/Library/Application Support/xbar/plugins"
-
-cat > "$HOME/Library/Application Support/xbar/plugins/myagent.5s.sh" << 'XBAR_EOF'
-#!/bin/bash
-PID=$(launchctl list 2>/dev/null | grep agenticledger | awk '{print $1}')
-if [ -n "$PID" ] && [ "$PID" != "-" ]; then
-  DATA=$(curl -s --max-time 2 http://localhost:4888/api/dashboard 2>/dev/null)
-  AGENTS=$(echo "$DATA" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('agents',[])))" 2>/dev/null)
-  UPTIME=$(echo "$DATA" | python3 -c "import sys,json; u=int(json.load(sys.stdin).get('uptime',0)); h=u//3600; m=(u%3600)//60; print(f'{h}h {m}m' if h else f'{m}m')" 2>/dev/null)
-  echo "🟢 ${AGENTS:-?} | size=13"
-else
-  echo "🔴 Down | size=13"
-fi
-echo "---"
-echo "MyAgent Gateway | size=14 color=white"
-echo "---"
-if [ -n "$PID" ] && [ "$PID" != "-" ]; then
-  echo "Status: Running (PID $PID) | color=green"
-  echo "Agents: ${AGENTS:-?} | color=white"
-  echo "Uptime: ${UPTIME:-?} | color=#888888"
-  echo "---"
-  echo "Open Web UI | href=http://localhost:4888/ui"
-  echo "Open Org Chart | href=http://localhost:4888/org"
-  echo "Open Tasks | href=http://localhost:4888/tasks"
-  echo "Open Channels | href=http://localhost:4888/channels"
-  echo "---"
-  echo "Restart Service | bash=/bin/bash param1=-c param2='launchctl unload ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist 2>/dev/null; launchctl load ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist' terminal=false refresh=true"
-  echo "Stop Service | bash=/bin/bash param1=-c param2='launchctl unload ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist' terminal=false refresh=true"
-else
-  echo "Status: Stopped | color=red"
-  echo "---"
-  echo "Start Service | bash=/bin/bash param1=-c param2='launchctl load ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist' terminal=false refresh=true"
-fi
-XBAR_EOF
-
-chmod +x "$HOME/Library/Application Support/xbar/plugins/myagent.5s.sh"
-open /Applications/xbar.app
-```
-
-3. xbar launches and shows a green dot with agent count in the menu bar. It updates every 5 seconds.
-
-### Windows (PowerShell system tray)
-
-On Windows, create a simple system tray script at `scripts/tray-indicator.ps1` in the project:
-
-```powershell
-# Run: powershell -WindowStyle Hidden -File scripts/tray-indicator.ps1
-Add-Type -AssemblyName System.Windows.Forms
-$notify = New-Object System.Windows.Forms.NotifyIcon
-$notify.Icon = [System.Drawing.SystemIcons]::Information
-$notify.Visible = $true
-$notify.Text = "MyAgent Gateway"
-
-$timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 5000
-$timer.Add_Tick({
-    try {
-        $data = Invoke-RestMethod -Uri "http://localhost:4888/api/dashboard" -TimeoutSec 2
-        $count = $data.agents.Count
-        $notify.Text = "MyAgent: $count agents running"
-        $notify.Icon = [System.Drawing.SystemIcons]::Application
-    } catch {
-        $notify.Text = "MyAgent: Down"
-        $notify.Icon = [System.Drawing.SystemIcons]::Warning
-    }
-})
-$timer.Start()
-
-$menu = New-Object System.Windows.Forms.ContextMenuStrip
-$menu.Items.Add("Open Web UI", $null, { Start-Process "http://localhost:4888/ui" })
-$menu.Items.Add("Restart", $null, { Restart-Service MyAgentGateway -Force })
-$menu.Items.Add("Exit", $null, { $notify.Visible = $false; [System.Windows.Forms.Application]::Exit() })
-$notify.ContextMenuStrip = $menu
-
-[System.Windows.Forms.Application]::Run()
-```
-
-To auto-start the tray indicator, add it to Windows Startup folder or Task Scheduler.
+**Do not ask.** Just create the shortcut and mention it in the summary. Auto-start service and status indicator scripts are available from the Settings page if the user wants them later.
 
 ## Step 11: Summary
 
@@ -748,7 +597,7 @@ Channels: [Telegram, Slack, ...]
 Agent: <name> (<alias>)
 Web UI: http://localhost:4888/ui
 Org Chart: http://localhost:4888/org
-Service: [running / installed as auto-start]
+Desktop shortcut: Created (MyAgent.app / MyAgent.lnk)
 
 Quick commands:
   npm start              — start manually
