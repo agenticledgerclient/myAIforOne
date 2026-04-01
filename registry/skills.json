@@ -1038,19 +1038,6 @@
       "fetch": {
         "type": "file"
       }
-    },
-    {
-      "id": "weekly_wallet_update",
-      "name": "Weekly Wallet Update",
-      "provider": "me",
-      "description": "Weekly update of Total Quantity and Value (USD) in the MWI w Balance tab of the Master Wallet Inventory, using TRESDATA and Fireblocks source files.",
-      "category": "personal",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "personal"
-      ],
-      "localPath": "~/Desktop/MyAIforOne Drive/PersonalAgents/skills/weekly_wallet_update.md"
     }
   ]
 }
