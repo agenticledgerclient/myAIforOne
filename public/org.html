@@ -1132,15 +1132,15 @@ text-decoration:none;}
     <!-- Skills Tab -->
     <div class="modal-tab-content" id="tab-skills">
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Shared Skills</label>
-        <input class="form-input" id="f-skills" placeholder="opcodereview, sop_pdf, opAgents_AddNew" style="font-family:var(--font-mono);font-size:11px">
-        <div class="form-hint">Comma-separated skill names from ~/.claude/commands/ or MyAIforOne Drive/PersonalAgents/skills/</div>
+      <div class="form-group" id="defaultSkillsSection" style="display:none">
+        <label class="form-label" style="color:var(--text-muted);font-size:11px">Global Default Skills <span style="font-weight:400;opacity:.7">(all agents inherit these)</span></label>
+        <div id="defaultSkillsList" style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0"></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Agent Skills</label>
-        <input class="form-input" id="f-agentSkills" placeholder="custom-skill-1, custom-skill-2" style="font-family:var(--font-mono);font-size:11px">
-        <div class="form-hint">Comma-separated skill names from agent's own skills/ folder</div>
+        <label class="form-label">Skills</label>
+        <div class="checkbox-group" id="f-skills"></div>
+        <div class="form-hint" id="f-skills-hint">Loading installed skills...</div>
+        <button type="button" class="btn btn-sm" onclick="promptCreateSkill()" style="margin-top:8px;font-size:11px;padding:4px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--text)">+ Add New Skill</button>
       </div>
 
       <div class="form-section">Tools</div>
@@ -1307,6 +1307,7 @@ let visibleClasses = new Set(['standard', 'platform']);
 let viewMode = localStorage.getItem('orgViewMode') || 'grid'; // 'grid' | 'compact' | 'list'
 let orgs = [];
 let availableMcps = [];
+let availableSkills = []; // { id, name, installed, isPlatformDefault }
 let availableAccounts = [];
 let channelsData = [];
 let editingAgentId = null; // null = create mode, string = edit mode
@@ -1890,6 +1891,13 @@ async function openModal(agentId) {
     availableMcps = data.mcps || [];
   } catch { availableMcps = []; }
 
+  // Fetch installed skills from marketplace
+  try {
+    const res = await fetch('/api/marketplace/skills');
+    const data = await res.json();
+    availableSkills = (data.items || []).filter(s => s.installed);
+  } catch { availableSkills = []; }
+
   // Populate Claude Account dropdown
   const accountSelect = document.getElementById('f-claudeAccount');
   accountSelect.innerHTML = '<option value="">Default</option>' +
@@ -1963,8 +1971,7 @@ async function openModal(agentId) {
     if (timeoutEl) timeoutEl.value = Math.round((a.timeout || 120000) / 1000);
 
     // Skills
-    document.getElementById('f-skills').value = (a.skills || []).join(', ');
-    document.getElementById('f-agentSkills').value = (a.agentSkills || []).join(', ');
+    renderSkillPills(a.skills || []);
 
     // Tools
     const agentTools = a.tools || [];
@@ -2039,8 +2046,7 @@ async function openModal(agentId) {
     document.getElementById('f-autonomousCapable')?.classList.add('checked');
     document.getElementById('f-autoCommit')?.classList.remove('checked');
     document.getElementById('f-timeout').value = '14400';
-    document.getElementById('f-skills').value = '';
-    document.getElementById('f-agentSkills').value = '';
+    renderSkillPills([]);
     document.getElementById('f-heartbeatInstructions').value = 'Check my tasks and work on the highest priority item. If no tasks are pending, report status.';
     loadHeartbeatSchedule('');
     document.getElementById('f-heartbeatEnabled').classList.remove('checked');
@@ -2116,6 +2122,55 @@ function showCreateModeConnections(selectedMcps) {
   section.style.display = '';
   area.style.display = '';
   list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Save the agent first, then connect credentials from the Config modal.</div>';
+}
+
+// ─── Skills Pills ─────────────────────────────────────────────
+function renderSkillPills(selectedSkills) {
+  const group = document.getElementById('f-skills');
+  const hint = document.getElementById('f-skills-hint');
+  const defaultsSection = document.getElementById('defaultSkillsSection');
+  const defaultsList = document.getElementById('defaultSkillsList');
+
+  // Show global default skills as read-only pills
+  const defaults = availableSkills.filter(s => s.isPlatformDefault);
+  if (defaults.length > 0) {
+    defaultsSection.style.display = '';
+    defaultsList.innerHTML = defaults.map(s =>
+      `<span style="display:inline-block;padding:2px 8px;font-size:11px;font-family:var(--font-mono);background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;color:var(--text-muted)">${s.name || s.id}</span>`
+    ).join('');
+  } else {
+    defaultsSection.style.display = 'none';
+  }
+
+  // Show non-default installed skills as selectable pills
+  const assignable = availableSkills.filter(s => !s.isPlatformDefault);
+  if (assignable.length > 0) {
+    group.innerHTML = assignable.map(s => {
+      const checked = selectedSkills.includes(s.id) ? ' checked' : '';
+      const label = s.name || s.id;
+      return `<div class="checkbox-pill${checked}" data-val="${s.id}" onclick="togglePill(this)" title="${s.description || ''}">${label}</div>`;
+    }).join('');
+    hint.textContent = 'Select which skills this agent can use (beyond global defaults).';
+  } else {
+    group.innerHTML = '';
+    hint.textContent = 'No additional skills available. Install skills from the Marketplace.';
+  }
+}
+
+function getSelectedSkills() {
+  return [...document.querySelectorAll('#f-skills .checkbox-pill.checked')].map(p => p.dataset.val);
+}
+
+function promptCreateSkill() {
+  const confirmed = confirm(
+    'This will close the agent editor and take you to the Skill Lab to create a new skill.\n\n' +
+    'Any unsaved changes to this agent will be lost.\n\n' +
+    'Continue?'
+  );
+  if (confirmed) {
+    document.getElementById('editModal').style.display = 'none';
+    window.location.href = '/marketplace?tab=skills&action=create';
+  }
 }
 
 // ─── MCP Keys / Connections ─────────────────────────────────
@@ -3038,8 +3093,8 @@ async function saveAgent() {
   const timeout = timeoutSec * 1000;
   const claudeAccount = document.getElementById('f-claudeAccount')?.value || undefined;
   const agentClass = document.getElementById('f-agentClass')?.value || 'standard';
-  const skills = (document.getElementById('f-skills')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-  const agentSkills = (document.getElementById('f-agentSkills')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const skills = getSelectedSkills();
+  const agentSkills = [];
   const heartbeatInstructions = document.getElementById('f-heartbeatInstructions')?.value?.trim() || undefined;
   const heartbeatCron = buildHeartbeatCron() || undefined;
   const heartbeatEnabled = document.getElementById('f-heartbeatEnabled')?.classList?.contains('checked') ?? false;
