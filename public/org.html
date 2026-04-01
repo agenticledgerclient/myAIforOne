@@ -934,7 +934,7 @@ text-decoration:none;}
     <a href="/changelog"><span class="dm-icon">&#x29C9;</span> Changelog</a>
   </div>
 </div>
-    <a href="/settings" class="gear-btn" title="Settings">&#9881;</a>
+    <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
   </div>
 </div>
@@ -3264,21 +3264,14 @@ async function removeMonitoredId(chatId) {
 const isChannelsPage = location.pathname === '/channels';
 document.getElementById('tabAgents')?.classList.add('active');
 
-// Render contextual sub-nav (Agents section includes Channels)
+// Render contextual sub-nav (Agents section)
 const subNav = document.getElementById('subNav');
 const agentsSubNav = `
-  <a class="sub-nav-link${!isChannelsPage ? ' active' : ''}" href="/org">Org</a>
-  <a class="sub-nav-link${isChannelsPage ? ' active' : ''}" href="/channels">Channels</a>
-  <a class="sub-nav-link" href="/activity">Activity</a>
+  <a class="sub-nav-link active" href="/org">Org</a>
   <a class="sub-nav-link" href="/tasks">Tasks</a>
   <a class="sub-nav-link" href="/automations">Automations</a>
 `;
 subNav.innerHTML = agentsSubNav;
-if (isChannelsPage) {
-  document.getElementById('orgSelect').style.display = 'none';
-  document.getElementById('hideAllBtn').style.display = 'none';
-  document.getElementById('newAgentBtn').style.display = 'none';
-}
 
 fetchData().then(() => {
   if (isChannelsPage) {
