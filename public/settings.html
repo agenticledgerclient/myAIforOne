@@ -257,6 +257,23 @@ html,body{width:100%;min-height:100%;background:var(--bg-deep);font-family:var(-
       <button class="btn-save" onclick="saveDeployment()">Save</button>
     </div>
   </div>
+
+  <!-- ── Status Indicator ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(168,85,247,0.15);border-color:#a855f7;color:#a855f7">&#9679;</div>
+      <div>
+        <div class="section-title">Status Indicator</div>
+        <div class="section-sub">Show a live status dot in your menu bar (Mac) or system tray (Windows)</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--text-dim);margin:0 0 16px;line-height:1.5">
+        Adds a small green/red indicator that shows if MyAgent is running. Click it to see agent count, uptime, and quick links. You can restart or stop the service from the menu.
+      </p>
+      <div id="indicatorInstallArea"></div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -550,6 +567,61 @@ function escId(s){ return s.replace(/[^a-z0-9]/gi,'_') }
 
 loadAccounts();
 loadService();
+
+// ── Status indicator install ───────────────────────────────────────
+(function(){
+  const area = document.getElementById('indicatorInstallArea');
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  const isWin = navigator.platform.toUpperCase().includes('WIN');
+  if (isMac) {
+    area.innerHTML = `
+      <div style="font-size:13px;line-height:1.6">
+        <strong>macOS — xbar menu bar plugin</strong>
+        <ol style="margin:8px 0;padding-left:20px;color:var(--text-dim)">
+          <li>Install xbar: <code style="background:var(--bg-card);padding:2px 6px;border-radius:4px">brew install --cask xbar</code></li>
+          <li>Click the button below to copy the plugin into place</li>
+          <li>Open xbar — a green dot with agent count appears in your menu bar</li>
+        </ol>
+        <button class="btn-save" onclick="installXbar()" id="xbarInstallBtn" style="margin-top:4px">Install xbar Plugin</button>
+        <span id="xbarStatus" style="margin-left:12px;font-size:12px;color:var(--text-dim)"></span>
+      </div>`;
+  } else if (isWin) {
+    area.innerHTML = `
+      <div style="font-size:13px;line-height:1.6">
+        <strong>Windows — System Tray indicator</strong>
+        <ol style="margin:8px 0;padding-left:20px;color:var(--text-dim)">
+          <li>The tray indicator script is at <code style="background:var(--bg-card);padding:2px 6px;border-radius:4px">scripts/tray-indicator.ps1</code></li>
+          <li>Run it: <code style="background:var(--bg-card);padding:2px 6px;border-radius:4px">powershell -WindowStyle Hidden -File scripts\\tray-indicator.ps1</code></li>
+          <li>A tray icon appears — right-click for Web UI, Restart, and Exit</li>
+        </ol>
+        <p style="color:var(--text-dim);font-size:11px;margin-top:8px">To auto-start: add the script to your Windows Startup folder or Task Scheduler.</p>
+      </div>`;
+  } else {
+    area.innerHTML = '<p style="font-size:12px;color:var(--text-dim)">Status indicator is available for macOS (xbar) and Windows (system tray).</p>';
+  }
+})();
+
+async function installXbar() {
+  const btn = document.getElementById('xbarInstallBtn');
+  const status = document.getElementById('xbarStatus');
+  btn.disabled = true; btn.textContent = 'Installing...';
+  try {
+    const res = await fetch('/api/install-xbar', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      status.textContent = 'Installed! Open xbar to see the status dot.';
+      status.style.color = '#22c55e';
+      btn.textContent = 'Installed';
+    } else {
+      status.textContent = data.error || 'Install failed';
+      status.style.color = '#f87171';
+      btn.textContent = 'Install xbar Plugin'; btn.disabled = false;
+    }
+  } catch(e) {
+    status.textContent = e.message; status.style.color = '#f87171';
+    btn.textContent = 'Install xbar Plugin'; btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>

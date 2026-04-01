@@ -588,6 +588,24 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── API: Install xbar plugin (macOS only) ──────────────────────
+  app.post("/api/install-xbar", (_req, res) => {
+    if (process.platform !== "darwin") return res.status(400).json({ error: "macOS only" });
+    try {
+      const src = join(opts.baseDir, "scripts", "xbar-myagent.5s.sh");
+      const destDir = join(homedir(), "Library", "Application Support", "xbar", "plugins");
+      mkdirSync(destDir, { recursive: true });
+      const dest = join(destDir, "myagent.5s.sh");
+      copyFileSync(src, dest);
+      // Make executable
+      const { chmodSync } = require("node:fs");
+      chmodSync(dest, 0o755);
+      res.json({ ok: true, path: dest });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // ─── API: Dashboard ───────────────────────────────────────────────
   app.get("/api/dashboard", (_req, res) => {
     const agents = Object.entries(opts.config.agents)

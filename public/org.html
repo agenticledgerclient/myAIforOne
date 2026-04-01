@@ -137,6 +137,16 @@ html,body{
   transition:all .2s;
 text-decoration:none;}
 .theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+/* Tooltip for icon buttons */
+.gear-btn,.theme-toggle,.select-mode-btn,.hide-names-btn{position:relative}
+.gear-btn::after,.theme-toggle::after{
+  content:attr(title);position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--bg-card);color:var(--text);border:1px solid var(--border-dim);
+  padding:4px 10px;border-radius:6px;font-size:11px;white-space:nowrap;
+  pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;
+  font-family:var(--font-mono);
+}
+.gear-btn:hover::after,.theme-toggle:hover::after{opacity:1}
 
 /* ─── Canvas ──────────────────────────────────────────────────── */
 .canvas{
