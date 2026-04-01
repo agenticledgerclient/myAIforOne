@@ -1,8 +1,8 @@
 # MyAgent — Windows Task Scheduler Installer
 # Registers the gateway to run at login via Windows Task Scheduler.
-# Run: powershell -ExecutionPolicy Bypass -File scripts/install-service-windows.ps1
+# Run: powershell -ExecutionPolicy Bypass -File scripts\install-service-windows.ps1
 #
-# To uninstall: powershell -ExecutionPolicy Bypass -File scripts/uninstall-service-windows.ps1
+# To uninstall: powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1
 
 $ErrorActionPreference = "Stop"
 $TaskName = "MyAgentGateway"
@@ -19,36 +19,36 @@ Write-Host ""
 try {
     $nodePath = (Get-Command node -ErrorAction Stop).Source
     $nodeVersion = & node --version
-    Write-Host "[OK] Node.js found: $nodeVersion ($nodePath)" -ForegroundColor Green
+    Write-Host "`[OK`] Node.js found: $nodeVersion ($nodePath)" -ForegroundColor Green
 } catch {
-    Write-Host "[ERROR] Node.js is not installed or not in PATH." -ForegroundColor Red
-    Write-Host "        Install from https://nodejs.org/ and try again." -ForegroundColor Yellow
+    Write-Host '[ERROR] Node.js is not installed or not in PATH.' -ForegroundColor Red
+    Write-Host '        Install from https://nodejs.org/ and try again.' -ForegroundColor Yellow
     exit 1
 }
 
 # 2. Check if dist/index.js exists, build if not
 if (-not (Test-Path $scriptPath)) {
-    Write-Host "[INFO] dist/index.js not found — building project..." -ForegroundColor Yellow
+    Write-Host '[INFO] dist/index.js not found — building project...' -ForegroundColor Yellow
     Set-Location $projectDir
     npm run build
     if (-not (Test-Path $scriptPath)) {
-        Write-Host "[ERROR] Build failed — dist/index.js still missing." -ForegroundColor Red
+        Write-Host '[ERROR] Build failed — dist/index.js still missing.' -ForegroundColor Red
         exit 1
     }
-    Write-Host "[OK] Build complete." -ForegroundColor Green
+    Write-Host '[OK] Build complete.' -ForegroundColor Green
 } else {
-    Write-Host "[OK] dist/index.js found." -ForegroundColor Green
+    Write-Host '[OK] dist/index.js found.' -ForegroundColor Green
 }
 
 # 3. Remove existing task if present
 $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($existing) {
-    Write-Host "[INFO] Removing existing '$TaskName' task..." -ForegroundColor Yellow
+    Write-Host "`[INFO`] Removing existing '$TaskName' task..." -ForegroundColor Yellow
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
 }
 
 # 4. Create the scheduled task
-Write-Host "[INFO] Creating Task Scheduler entry '$TaskName'..." -ForegroundColor Green
+Write-Host "`[INFO`] Creating Task Scheduler entry '$TaskName'..." -ForegroundColor Green
 
 $action = New-ScheduledTaskAction `
     -Execute $nodePath `
@@ -70,8 +70,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "MyAgent — Phone-accessible Claude Code agent gateway" `
-    -RunLevel Highest | Out-Null
+    -Description "MyAgent — Phone-accessible Claude Code agent gateway" | Out-Null
 
 Write-Host ""
 Write-Host "===== SUCCESS =====" -ForegroundColor Green
