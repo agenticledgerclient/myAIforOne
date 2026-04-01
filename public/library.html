@@ -74,6 +74,15 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 .section-title{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
 .section-count{font-family:var(--font-mono);font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim)}
 .section-action{margin-left:auto}
+/* ── Add split-reveal ── */
+.add-split{margin-left:auto;display:flex;align-items:center;gap:6px}
+.add-choices{display:flex;align-items:center;gap:4px;animation:choicesIn .15s ease-out}
+.add-choices.hidden{display:none}
+@keyframes choicesIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.btn-choice{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border-dim);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-choice:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.btn-choice-build{border-color:var(--purple);color:var(--purple);background:var(--purple-bg)}
+.btn-choice-build:hover{opacity:.85}
 
 /* ── Grid ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
@@ -473,14 +482,40 @@ function section(title, items, typeSingular, count, actionBtn=''){
     </div>`;
 }
 
+function addSplitBtn(type, label, choices){
+  const id = `add-choices-${type}`;
+  const choiceHtml = choices.map(([txt, action, isBuild])=>
+    `<button class="btn-choice${isBuild?' btn-choice-build':''}" onclick="${action};closeAddChoices('${id}')">${txt}</button>`
+  ).join('');
+  return `<div class="add-split" id="${id}">
+    <button class="btn-sm btn-sm-accent" onclick="toggleAddChoices('${id}')">⊕ Add ${label}</button>
+    <div class="add-choices hidden">${choiceHtml}</div>
+  </div>`;
+}
+function toggleAddChoices(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.querySelector('.add-choices').classList.toggle('hidden');
+}
+function closeAddChoices(id){
+  const el = document.getElementById(id);
+  if(el) el.querySelector('.add-choices').classList.add('hidden');
+}
+
 function sectionPersonal(items, typeSingular){
-  const actionBtn = typeSingular==='skill'
-    ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleScanPanel()">⊕ Scan my skills</button>`
+  const actionBtn = typeSingular==='app'
+    ? addSplitBtn('app','App',[
+        ['Register', "toggleRegisterAppPanel()"],
+        ['Build', "window.location='/lab'", true]])
+    : typeSingular==='skill'
+    ? addSplitBtn('skill','Skill',[
+        ['Scan', "toggleScanPanel()"],
+        ['Build', "window.location='/lab'", true]])
     : typeSingular==='prompt'
-      ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleCreatePromptPanel()">⊕ Create prompt</button>`
-      : typeSingular==='app'
-        ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleRegisterAppPanel()">⊕ Register App</button>`
-        : `<button class="btn-sm btn-sm-accent section-action" onclick="toggleAddMcpPanel()">⊕ Add my MCP</button>`;
+    ? addSplitBtn('prompt','Prompt',[
+        ['Paste', "toggleCreatePromptPanel()"],
+        ['Build', "window.location='/lab'", true]])
+    : `<button class="btn-sm btn-sm-accent section-action" onclick="toggleAddMcpPanel()">⊕ Add MCP</button>`;
 
   const panelHtml = typeSingular==='skill' ? scanPanelHtml() : typeSingular==='prompt' ? createPromptPanelHtml() : typeSingular==='app' ? registerAppPanelHtml() : addMcpPanelHtml();
 
