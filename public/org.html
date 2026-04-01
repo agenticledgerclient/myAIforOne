@@ -2150,7 +2150,7 @@ function addRouteEntry(channel, chatId) {
   const container = document.getElementById('routeEntries');
   const channels = agents.length > 0
     ? [...new Set(agents.flatMap(a => (a.routes||[]).map(r => r.split(':')[0])))]
-    : ['telegram', 'slack', 'imessage', 'discord'];
+    : ['telegram', 'slack', 'imessage'];
 
   const div = document.createElement('div');
   div.className = 'route-entry';
@@ -2173,7 +2173,7 @@ function addScheduleEntry(frequency, days, time, message, channel, chatId, minut
 
   const channels = agents.length > 0
     ? [...new Set(agents.flatMap(a => (a.routes||[]).map(r => r.split(':')[0])))]
-    : ['telegram', 'slack', 'imessage', 'discord'];
+    : ['telegram', 'slack', 'imessage'];
 
   const div = document.createElement('div');
   div.className = 'schedule-entry';
@@ -2424,7 +2424,7 @@ function addGoalEntry(goal) {
 
   const channels = agents.length > 0
     ? [...new Set(agents.flatMap(a => (a.routes||[]).map(r => r.split(':')[0])))]
-    : ['telegram', 'slack', 'imessage', 'discord'];
+    : ['telegram', 'slack', 'imessage'];
 
   const g = goal || {};
   const enabled = g.enabled !== false;
@@ -2666,7 +2666,7 @@ function addReportTarget(btn) {
   const targetsDiv = btn.previousElementSibling;
   const channels = agents.length > 0
     ? [...new Set(agents.flatMap(a => (a.routes||[]).map(r => r.split(':')[0])))]
-    : ['telegram', 'slack', 'imessage', 'discord'];
+    : ['telegram', 'slack', 'imessage'];
   const row = document.createElement('div');
   row.className = 'report-target-row';
   row.style.cssText = 'display:flex;gap:6px;margin-bottom:4px';
@@ -3010,7 +3010,6 @@ const channelIcons = {
   telegram: '\u{1F4AC}',
   slack: '\u{1F4E2}',
   imessage: '\u{1F4F1}',
-  discord: '\u{1F3AE}',
   whatsapp: '\u{1F4F2}',
 };
 

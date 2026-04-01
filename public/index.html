@@ -2080,7 +2080,7 @@ function addRouteEntry() {
   const container = document.getElementById('routeEntries');
   const channels = agents.length > 0
     ? [...new Set(agents.flatMap(a => a.routes.map(r => r.split(':')[0])))]
-    : ['telegram', 'slack', 'imessage', 'discord'];
+    : ['telegram', 'slack', 'imessage'];
 
   const div = document.createElement('div');
   div.className = 'route-entry';
