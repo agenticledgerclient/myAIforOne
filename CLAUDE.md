@@ -72,3 +72,7 @@ powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1  
 3. ALL tests must pass before committing
 4. Run `/opappbuild_agentready_trueup` — updates API docs, MCP tools, and MCP docs to match new endpoints
 5. Run `/opappbuild_testsuite_trueup` — adds test coverage for new endpoints
+
+## Related Projects
+
+- **SaaS version** (`myAI41_saas`) — multi-tenant fork at `~/Desktop/APPs/myAI41_saas`, managed by `@ma41saas`. After significant architectural or API changes here, flag whether the SaaS version may need the same update.
