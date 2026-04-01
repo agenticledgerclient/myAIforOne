@@ -433,13 +433,14 @@ server.tool("list_accounts", "List Claude accounts (name → config directory)",
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
-server.tool("get_service_config", "Get service settings (personalAgentsDir, port, logLevel)", {}, async () => {
+server.tool("get_service_config", "Get service settings (personalAgentsDir, personalRegistryDir, port, logLevel)", {}, async () => {
   const r = await api.getServiceConfig();
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
 server.tool("update_service_config", "Update service settings (restart required)", {
   personalAgentsDir: z.string().optional(),
+  personalRegistryDir: z.string().optional(),
   webUIPort: z.number().optional(),
   logLevel: z.string().optional(),
   logFile: z.string().optional(),
@@ -694,7 +695,7 @@ server.tool("create_skill", "Create a skill file and register it. Writes the .md
   name: z.string().describe("Human-readable skill name"),
   description: z.string().describe("One-line description of what the skill does and when to use it"),
   content: z.string().describe("The skill body (markdown instructions, everything below the frontmatter)"),
-  scope: z.enum(["global", "personal", "org", "agent"]).describe("Where to place the skill: global (~/.claude/commands), personal (personalAgents/skills), org (personalAgents/{orgName}/skills), agent ({agentHome}/skills)"),
+  scope: z.enum(["global", "personal", "org", "agent"]).describe("Where to place the skill: global (~/.claude/commands), personal (MyAIforOne Drive/PersonalAgents/skills), org (MyAIforOne Drive/PersonalAgents/{orgName}/skills), agent ({agentHome}/skills)"),
   orgName: z.string().optional().describe("Required when scope is 'org' — the organization name"),
   agentId: z.string().optional().describe("Required when scope is 'agent' — the agent ID"),
 }, async ({ id, name, description, content, scope, orgName, agentId }) => {

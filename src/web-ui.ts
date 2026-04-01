@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { join, resolve, basename, dirname, extname, relative, isAbsolute } from "node:path";
 import { execSync } from "node:child_process";
 import type { AppConfig } from "./config.js";
-import { getPersonalAgentsDir } from "./config.js";
+import { getPersonalAgentsDir, getPersonalRegistryDir } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.js";
@@ -373,7 +373,8 @@ export function startWebUI(opts: WebUIOptions): void {
     const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
     const deploy = raw.deployment || {};
     res.json({
-      personalAgentsDir: (s as any).personalAgentsDir || "~/Desktop/personalAgents",
+      personalAgentsDir: (s as any).personalAgentsDir || "~/Desktop/MyAIforOne Drive/PersonalAgents",
+      personalRegistryDir: (s as any).personalRegistryDir || "~/Desktop/MyAIforOne Drive/PersonalRegistry",
       webUIPort: (s as any).webUI?.port || 4888,
       webUIEnabled: (s as any).webUI?.enabled ?? true,
       webhookSecret: (s as any).webUI?.webhookSecret ? "(set)" : null,
@@ -390,11 +391,12 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
       if (personalAgentsDir !== undefined) raw.service.personalAgentsDir = personalAgentsDir;
+      if (personalRegistryDir !== undefined) raw.service.personalRegistryDir = personalRegistryDir;
       if (logLevel !== undefined) raw.service.logLevel = logLevel;
       if (logFile !== undefined) raw.service.logFile = logFile;
       if (pairingCode !== undefined) raw.service.pairingCode = pairingCode || undefined;
@@ -421,15 +423,15 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   // ─── MCP registry sync helper ───────────────────────────────────
-  // Ensures an MCP entry in config.json is also in registry/mcps.json.
+  // Ensures an MCP entry in config.json is also in PersonalRegistry/mcps.json.
   // Call this whenever an MCP is added to config.json from any code path.
   function syncMcpToRegistry(id: string, mcpEntry: any, meta?: { name?: string; description?: string; category?: string; provider?: string }) {
-    const registryPath = join(opts.baseDir, "registry", "mcps.json");
+    const registryPath = join(getPersonalRegistryDir(opts.config), "mcps.json");
     let registryData: any = { mcps: [] };
     try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
     if (!Array.isArray(registryData.mcps)) registryData.mcps = [];
 
-    // Skip if already in registry
+    // Skip if already in personal registry (platform mcps.json is read-only)
     if (registryData.mcps.some((m: any) => m.id === id)) return;
 
     registryData.mcps.push({
@@ -451,7 +453,7 @@ export function startWebUI(opts: WebUIOptions): void {
   }
 
   // ─── Apps helpers ────────────────────────────────────────────────
-  const appsRegistryPath = () => join(opts.baseDir, "registry", "apps.json");
+  const appsRegistryPath = () => join(getPersonalRegistryDir(opts.config), "apps.json");
   function readApps(): any[] {
     const p = appsRegistryPath();
     if (!existsSync(p)) return [];
@@ -572,7 +574,7 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/api/dashboard", (_req, res) => {
     const agents = Object.entries(opts.config.agents)
       .map(([id, agent]) => {
-      const memoryDir = resolve(opts.baseDir, agent.memoryDir);
+      const memoryDir = agent.memoryDir ? resolve(opts.baseDir, agent.memoryDir) : join(getPersonalAgentsDir(), id, "memory");
       const logPath = join(memoryDir, "conversation_log.jsonl");
 
       let messageCount = 0;
@@ -600,7 +602,7 @@ export function startWebUI(opts: WebUIOptions): void {
       const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
       const agentHome = agent.agentHome
         ? resolveTilde(agent.agentHome)
-        : resolve(opts.baseDir, agent.memoryDir, "..");
+        : agent.memoryDir ? resolve(opts.baseDir, agent.memoryDir, "..") : join(getPersonalAgentsDir(), id);
 
       // Task counts
       let taskCounts: Record<string, number> = { proposed: 0, approved: 0, in_progress: 0, review: 0, done: 0 };
@@ -624,7 +626,7 @@ export function startWebUI(opts: WebUIOptions): void {
         skills: agent.skills || [],
         agentSkills: agent.agentSkills || [],
         aliases: agent.mentionAliases || [],
-        routes: agent.routes.map(r => `${r.channel}:${r.match.value}`),
+        routes: (agent.routes || []).map(r => `${r.channel}:${r.match.value}`),
         messageCount,
         lastMessage,
         sessionActive,
@@ -1120,13 +1122,19 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(400).json({ error: "type must be mcps, skills, agents, prompts, or apps" });
     }
 
-    // Apps: flat array in registry/apps.json
+    // Apps: PersonalRegistry/apps.json (user's own) + registry/platform-apps.json (committed platform apps)
     if (type === "apps") {
-      const appsPath = join(opts.baseDir, "registry", "apps.json");
-      if (!existsSync(appsPath)) return res.json({ items: [] });
+      const personalAppsPath = join(getPersonalRegistryDir(opts.config), "apps.json");
+      const platformAppsPath = join(opts.baseDir, "registry", "platform-apps.json");
       try {
-        const apps = JSON.parse(readFileSync(appsPath, "utf-8")) as any[];
-        const items = apps.map((app: any) => {
+        const personalApps: any[] = existsSync(personalAppsPath)
+          ? JSON.parse(readFileSync(personalAppsPath, "utf-8")) as any[]
+          : [];
+        const platformApps: any[] = existsSync(platformAppsPath)
+          ? JSON.parse(readFileSync(platformAppsPath, "utf-8")) as any[]
+          : [];
+        const allApps = [...platformApps, ...personalApps];
+        const items = allApps.map((app: any) => {
           const agentId = app.agentDeveloper || null;
           const agentAlias = agentId && opts.config.agents[agentId]
             ? (opts.config.agents[agentId] as any).mentionAliases?.[0] || `@${agentId}`
@@ -1145,17 +1153,31 @@ export function startWebUI(opts: WebUIOptions): void {
       }
     }
 
+    // Platform items from registry/{type}.json (committed), personal from PersonalRegistry/{type}.json (outside repo)
     const registryPath = join(opts.baseDir, "registry", `${type}.json`);
-    if (!existsSync(registryPath)) {
-      return res.json({ items: [] });
-    }
+    const personalRegistryPath = join(getPersonalRegistryDir(opts.config), `${type}.json`);
 
     let entries: any[] = [];
     try {
-      const data = JSON.parse(readFileSync(registryPath, "utf-8"));
-      entries = data[type] || [];
+      if (existsSync(registryPath)) {
+        const data = JSON.parse(readFileSync(registryPath, "utf-8"));
+        entries = data[type] || [];
+      }
     } catch {
       return res.status(500).json({ error: "Failed to read registry" });
+    }
+    // Merge personal items (personal overrides platform for same id)
+    try {
+      if (existsSync(personalRegistryPath)) {
+        const personalData = JSON.parse(readFileSync(personalRegistryPath, "utf-8"));
+        const personalEntries: any[] = personalData[type] || [];
+        const personalIds = new Set(personalEntries.map((e: any) => e.id));
+        entries = [...entries.filter((e: any) => !personalIds.has(e.id)), ...personalEntries];
+      }
+    } catch { /* ignore missing personal file */ }
+
+    if (entries.length === 0 && !existsSync(registryPath) && !existsSync(personalRegistryPath)) {
+      return res.json({ items: [] });
     }
 
     const home = homedir();
@@ -1435,7 +1457,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const personalDir = join(opts.baseDir, "registry", "skills", "personal");
     mkdirSync(personalDir, { recursive: true });
 
-    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    const registryPath = join(getPersonalRegistryDir(opts.config), "skills.json");
     let registryData: any = { skills: [] };
     try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
 
@@ -1486,7 +1508,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const fileContent = `---\nname: ${name}\ndescription: ${description || ""}\n---\n\n${content}\n`;
     writeFileSync(filePath, fileContent);
 
-    const registryPath = join(opts.baseDir, "registry", "prompts.json");
+    const registryPath = join(getPersonalRegistryDir(opts.config), "prompts.json");
     let registryData: any = { prompts: [] };
     try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
     registryData.prompts = registryData.prompts.filter((p: any) => p.id !== id);
@@ -1528,13 +1550,13 @@ export function startWebUI(opts: WebUIOptions): void {
         source = "global";
         break;
       case "personal":
-        filePath = join(home, "Desktop", "personalAgents", "skills", `${id}.md`);
-        localPath = `~/Desktop/personalAgents/skills/${id}.md`;
+        filePath = join(getPersonalAgentsDir(opts.config), "skills", `${id}.md`);
+        localPath = `${getPersonalAgentsDir(opts.config)}/skills/${id}.md`;
         source = "personal";
         break;
       case "org":
-        filePath = join(home, "Desktop", "personalAgents", orgName!, "skills", `${id}.md`);
-        localPath = `~/Desktop/personalAgents/${orgName}/skills/${id}.md`;
+        filePath = join(getPersonalAgentsDir(opts.config), orgName!, "skills", `${id}.md`);
+        localPath = `${getPersonalAgentsDir(opts.config)}/${orgName}/skills/${id}.md`;
         source = `org:${orgName}`;
         break;
       case "agent": {
@@ -1556,8 +1578,8 @@ export function startWebUI(opts: WebUIOptions): void {
     const fileContent = `---\nname: ${name}\ndescription: ${description}\n---\n\n${content}\n`;
     writeFileSync(filePath, fileContent);
 
-    // Update registry/skills.json
-    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    // Update PersonalRegistry/skills.json
+    const registryPath = join(getPersonalRegistryDir(opts.config), "skills.json");
     let registryData: any = { skills: [] };
     try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
     registryData.skills = registryData.skills.filter((s: any) => s.id !== id);
@@ -1618,9 +1640,9 @@ export function startWebUI(opts: WebUIOptions): void {
     if (!(opts.config as any).mcps) (opts.config as any).mcps = {};
     (opts.config as any).mcps[id] = mcpEntry;
 
-    const registryPath = join(opts.baseDir, "registry", "mcps.json");
+    const personalMcpRegistryPath = join(getPersonalRegistryDir(opts.config), "mcps.json");
     let registryData: any = { mcps: [] };
-    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
+    try { registryData = JSON.parse(readFileSync(personalMcpRegistryPath, "utf-8")); } catch { /* fresh */ }
     registryData.mcps = registryData.mcps.filter((m: any) => m.id !== id);
     registryData.mcps.push({
       id, name, provider: "me", description: description || "",
@@ -1628,7 +1650,7 @@ export function startWebUI(opts: WebUIOptions): void {
       tags: ["personal"], requiredKeys: [],
       fetch: mcpType === "http" ? { type: "http", url } : { type: "local", command, args: args || [] },
     });
-    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
+    writeFileSync(personalMcpRegistryPath, JSON.stringify(registryData, null, 2));
 
     log.info(`[Marketplace] Added personal MCP: ${id}`);
     res.json({ ok: true });
@@ -4007,8 +4029,8 @@ export function startWebUI(opts: WebUIOptions): void {
     const fileContent = `---\nname: ${id}\ndescription: ${description || ""}\n---\n\n${content}\n`;
     writeFileSync(filePath, fileContent);
 
-    // Update registry/skills.json
-    const registryPath = join(opts.baseDir, "registry", "skills.json");
+    // Update PersonalRegistry/skills.json
+    const registryPath = join(getPersonalRegistryDir(opts.config), "skills.json");
     let registryData: any = { skills: [] };
     try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
     registryData.skills = registryData.skills.filter((s: any) => s.id !== id);
@@ -4106,13 +4128,22 @@ export function startWebUI(opts: WebUIOptions): void {
     log.warn(`[Registry Sync] MCP startup sync failed: ${err}`);
   }
 
-  // ─── Startup: sync disk skills → registry ───────────────────────
+  // ─── Startup: sync disk skills → PersonalRegistry ───────────────────────
   try {
-    const skillRegistryPath = join(opts.baseDir, "registry", "skills.json");
+    // Personal skills go to PersonalRegistry/skills.json (outside repo)
+    const skillRegistryPath = join(getPersonalRegistryDir(opts.config), "skills.json");
+    mkdirSync(dirname(skillRegistryPath), { recursive: true });
     let skillRegistry: any = { skills: [] };
     try { skillRegistry = JSON.parse(readFileSync(skillRegistryPath, "utf-8")); } catch { /* fresh */ }
     if (!Array.isArray(skillRegistry.skills)) skillRegistry.skills = [];
-    const existingSkillIds = new Set(skillRegistry.skills.map((s: any) => s.id));
+    // Also include ids already in the platform registry so we don't re-add platform skills as personal
+    const platformRegistryPath = join(opts.baseDir, "registry", "skills.json");
+    const platformIds = new Set<string>();
+    try {
+      const pd = JSON.parse(readFileSync(platformRegistryPath, "utf-8"));
+      (pd.skills || []).forEach((s: any) => platformIds.add(s.id));
+    } catch { /* ignore */ }
+    const existingSkillIds = new Set([...skillRegistry.skills.map((s: any) => s.id), ...platformIds]);
     let added = 0;
 
     // Scan: ~/.claude/commands, personalAgents/skills, org skills dirs

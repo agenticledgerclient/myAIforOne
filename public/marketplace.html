@@ -450,6 +450,9 @@ function renderSections(items){
 
   let html = '<div class="sections">';
 
+  // ── Built by Me (always shown first) ──
+  html += sectionPersonal(personal, typeSingular);
+
   // ── Platform ──
   const platformBtn = typeSingular==='app'
     ? `<button class="btn-sm btn-sm-ghost section-action" onclick="openAddAppPanel('AgenticLedger')">⊕ Add</button>` : '';
@@ -459,9 +462,6 @@ function renderSections(items){
   const externalBtn = typeSingular==='app'
     ? `<button class="btn-sm btn-sm-ghost section-action" onclick="openAddAppPanel('external')">⊕ Add</button>` : '';
   html += section('External Source', community, typeSingular, community.length, externalBtn);
-
-  // ── Built by Me (always shown, at bottom) ──
-  html += sectionPersonal(personal, typeSingular);
 
   html += '</div>';
   document.getElementById('content').innerHTML = html;

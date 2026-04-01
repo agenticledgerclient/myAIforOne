@@ -178,18 +178,35 @@ async function main(): Promise<void> {
     driverMap.set(channelId, driver);
   }
 
-  if (drivers.length === 0) {
-    log.error("No channel drivers initialized. Check config.json.");
-    process.exit(1);
+  // ─── Feature 6 + 9: Web UI + Webhooks (start early so it's accessible even with no channels) ───
+  const webUI = config.service.webUI;
+  let cronMessageHandler: (agentId: string, message: string, channel: string, chatId: string) => Promise<void>;
+
+  if (webUI?.enabled) {
+    // cronMessageHandler is defined below — bind via closure so webUI can reference it
+    startWebUI({
+      config,
+      baseDir,
+      port: webUI.port || 8080,
+      webhookSecret: webUI.webhookSecret,
+      driverMap,
+      onWebhookMessage: async (agentId, text, channel, chatId) => {
+        if (cronMessageHandler) await cronMessageHandler(agentId, text, channel, chatId);
+      },
+    });
   }
 
-  // Start all drivers
-  for (const driver of drivers) {
-    await driver.start();
+  if (drivers.length === 0) {
+    log.warn("No channel drivers enabled — running in web-UI-only mode. Configure a channel to enable messaging.");
+  } else {
+    // Start all drivers
+    for (const driver of drivers) {
+      await driver.start();
+    }
   }
 
   // ─── Feature 7: Cron jobs ──────────────────────────────────────────
-  const cronMessageHandler = async (agentId: string, message: string, channel: string, chatId: string) => {
+  cronMessageHandler = async (agentId: string, message: string, channel: string, chatId: string) => {
     const agent = config.agents[agentId];
     if (!agent) return;
 
@@ -226,21 +243,6 @@ async function main(): Promise<void> {
 
   // ─── Feature 8: Autonomous Goals ──────────────────────────────────
   startGoals(config, driverMap, baseDir, config.mcps);
-
-  // ─── Feature 6 + 9: Web UI + Webhooks ─────────────────────────────
-  const webUI = config.service.webUI;
-  if (webUI?.enabled) {
-    startWebUI({
-      config,
-      baseDir,
-      port: webUI.port || 8080,
-      webhookSecret: webUI.webhookSecret,
-      driverMap,
-      onWebhookMessage: async (agentId, text, channel, chatId) => {
-        await cronMessageHandler(agentId, text, channel, chatId);
-      },
-    });
-  }
 
   const agentCount = Object.keys(config.agents).length;
   log.info(

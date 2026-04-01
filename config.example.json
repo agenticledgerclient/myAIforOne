@@ -2,8 +2,10 @@
   "service": {
     "logLevel": "debug",
     "logFile": "./logs/service.log",
-    "_comment_personalAgentsDir": "Override where agent home dirs live (default: ~/Desktop/personalAgents)",
-    "personalAgentsDir": "~/Desktop/personalAgents",
+    "_comment_personalAgentsDir": "Override where agent home dirs live (default: ~/Desktop/MyAIforOne Drive/PersonalAgents)",
+    "personalAgentsDir": "~/Desktop/MyAIforOne Drive/PersonalAgents",
+    "_comment_personalRegistryDir": "Override where personal registry data lives (default: ~/Desktop/MyAIforOne Drive/PersonalRegistry)",
+    "personalRegistryDir": "~/Desktop/MyAIforOne Drive/PersonalRegistry",
     "webUI": {
       "enabled": true,
       "port": 4888,

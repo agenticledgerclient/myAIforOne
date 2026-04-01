@@ -310,6 +310,7 @@ describe("Config Accounts API", () => {
     const { status, body } = await json("/api/config/service");
     assert.equal(status, 200);
     assert.ok("personalAgentsDir" in (body as any));
+    assert.ok("personalRegistryDir" in (body as any), "personalRegistryDir must be present in service settings");
     assert.ok("webUIPort" in (body as any));
     assert.ok("logLevel" in (body as any));
   });

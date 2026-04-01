@@ -11,9 +11,9 @@ Add a new agent to the phone-accessible Claude agent gateway at `~/Desktop/APPs/
 
 - **Gateway project:** `~/Desktop/APPs/channelToAgentToClaude`
 - **Gateway config:** `~/Desktop/APPs/channelToAgentToClaude/config.json`
-- **Agent homes:** `~/Desktop/personalAgents/<Organization>/<agentId>/`
-- **Shared skills:** `~/Desktop/personalAgents/skills/`
-- **Shared MCP keys:** `~/Desktop/personalAgents/mcp-keys/`
+- **Agent homes:** `~/Desktop/MyAIforOne Drive/PersonalAgents/<Organization>/<agentId>/`
+- **Shared skills:** `~/Desktop/MyAIforOne Drive/PersonalAgents/skills/`
+- **Shared MCP keys:** `~/Desktop/MyAIforOne Drive/PersonalAgents/mcp-keys/`
 - **MCP catalog:** `~/Desktop/APPs/channelToAgentToClaude/mcp-catalog.json` — 39 pre-hosted HTTP MCPs with URLs, descriptions, categories, and required API keys. Read this file when showing available MCPs to the user.
 
 ## Checklist
@@ -41,12 +41,12 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 | `name` | YES | — | Human-readable name |
 | `description` | YES | — | One-line description |
 | `mentionAlias` | YES | — | The @mention trigger. Must be unique across all agents. |
-| `organization` | no | — | Org name (determines folder: personalAgents/<Org>/<agentId>/) |
+| `organization` | no | — | Org name (determines folder: MyAIforOne Drive/PersonalAgents/<Org>/<agentId>/) |
 | `function` | no | — | Department/function within the org |
 | `title` | no | — | Role title (e.g., "Senior Engineer") |
 | `reportsTo` | no | — | Alias of the agent this one reports to (e.g., "@cto") |
 | `workspace` | no | `<agentHome>` | Project/codebase the agent works ON. Defaults to the agent's own home folder unless the user specifies a project directory. |
-| `agentHome` | no | auto | Agent's own folder. Auto: `~/Desktop/personalAgents/<Org>/<agentId>/` or `~/Desktop/personalAgents/<agentId>/` if no org |
+| `agentHome` | no | auto | Agent's own folder. Auto: `~/Desktop/MyAIforOne Drive/PersonalAgents/<Org>/<agentId>/` or `~/Desktop/MyAIforOne Drive/PersonalAgents/<agentId>/` if no org |
 | `persistent` | no | `true` | Remember conversations across messages |
 | `streaming` | no | `true` | Real-time output in web UI |
 | `advancedMemory` | no | `true` | Semantic search + daily logs + auto-compaction |
@@ -85,7 +85,7 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 ## Folder Structure Created
 
 ```
-~/Desktop/personalAgents/<Organization>/<agentId>/    ← agentHome
+~/Desktop/MyAIforOne Drive/PersonalAgents/<Organization>/<agentId>/    ← agentHome
 ├── CLAUDE.md          # System prompt
 ├── memory/
 │   ├── context.md     # Initial context
@@ -99,7 +99,7 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
     └── Permanent/     # Permanent file storage
 ```
 
-If no organization specified, use `~/Desktop/personalAgents/<agentId>/`.
+If no organization specified, use `~/Desktop/MyAIforOne Drive/PersonalAgents/<agentId>/`.
 
 ## Config.json Entry Template
 
@@ -230,8 +230,8 @@ node -e "const {loadConfig}=require('./dist/config.js'); const c=loadConfig('./c
 
 - **Unique aliases:** Check existing agents before confirming an alias
 - **Tilde paths:** Use `~/` prefix — resolved at load time
-- **Org-based folders:** Agents in an org go to `personalAgents/<Org>/<agentId>/`
-- **Multi Org agents:** If agent is in multiple orgs, use `personalAgents/Multi Org/<agentId>/`
+- **Org-based folders:** Agents in an org go to `MyAIforOne Drive/PersonalAgents/<Org>/<agentId>/`
+- **Multi Org agents:** If agent is in multiple orgs, use `MyAIforOne Drive/PersonalAgents/Multi Org/<agentId>/`
 - **Same channel, multiple agents:** Differentiated by @mention alias
 - **No code changes needed:** Adding an agent is config + files only
 - **iMessage DB polling:** When adding an iMessage route, ALSO add the chat ID (as a number) to `channels.imessage.config.monitoredChatIds` in config.json if it's not already there. The iMessage driver polls the DB for these chat IDs — without this, messages from that chat won't be picked up.

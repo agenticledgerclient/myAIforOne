@@ -43,7 +43,7 @@ async function main() {
   }
 
   // Encrypt agent-level keys
-  const personalBase = join(process.env.HOME || process.env.USERPROFILE || "", "Desktop", "personalAgents");
+  const personalBase = join(process.env.HOME || process.env.USERPROFILE || "", "Desktop", "MyAIforOne Drive", "PersonalAgents");
   if (existsSync(personalBase)) {
     const walkDirs = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {

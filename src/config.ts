@@ -115,7 +115,8 @@ export interface ServiceConfig {
   logLevel: LogLevel;
   logFile?: string;
   pairingCode?: string;
-  personalAgentsDir?: string;  // Override path to personalAgents dir (default: ~/Desktop/personalAgents)
+  personalAgentsDir?: string;   // Override path to PersonalAgents dir (default: ~/Desktop/MyAIforOne Drive/PersonalAgents)
+  personalRegistryDir?: string; // Override path to PersonalRegistry dir (default: ~/Desktop/MyAIforOne Drive/PersonalRegistry)
   webUI?: WebUIConfig;
   claudeAccounts?: Record<string, string>;  // name → config dir path, e.g. {"main": "~/.claude"}
 }
@@ -137,29 +138,16 @@ export function loadConfig(configPath: string): AppConfig {
   const raw = readFileSync(fullPath, "utf-8");
   const config = JSON.parse(raw) as AppConfig;
 
-  // Validate required fields
-  if (!config.agents || Object.keys(config.agents).length === 0) {
-    throw new Error("config.json must have at least one agent defined");
-  }
+  // Ensure required top-level keys exist (default to empty — app can start for setup)
+  if (!config.agents) config.agents = {};
+  if (!config.channels) config.channels = {};
 
-  if (!config.channels || Object.keys(config.channels).length === 0) {
-    throw new Error("config.json must have at least one channel defined");
-  }
-
-  const enabledChannels = Object.entries(config.channels).filter(([, c]) => c.enabled);
-  if (enabledChannels.length === 0) {
-    throw new Error("At least one channel must be enabled");
-  }
-
-  // Validate each agent has at least one route — skip broken agents instead of crashing
+  // Normalize each agent's paths and ensure routes is always an array
   const agentIds = Object.keys(config.agents);
   for (const id of agentIds) {
     const agent = config.agents[id];
-    if (!agent.routes || agent.routes.length === 0) {
-      console.warn(`[config] Skipping agent "${id}" — no routes defined`);
-      delete config.agents[id];
-      continue;
-    }
+    // Routes are optional — agents without channel routes are still reachable via web UI
+    if (!agent.routes) agent.routes = [];
     if (!agent.workspace) {
       throw new Error(`Agent "${id}" must have a workspace path`);
     }
@@ -226,24 +214,45 @@ export function loadConfig(configPath: string): AppConfig {
   config.service.logLevel = config.service.logLevel ?? "info";
   config.defaultAgent = config.defaultAgent ?? null;
 
+  const home = homedir();
+  const driveRoot = resolve(home, "Desktop", "MyAIforOne Drive");
+
   // Resolve personalAgentsDir (expand ~)
   if (config.service.personalAgentsDir) {
-    const home = homedir();
     config.service.personalAgentsDir = config.service.personalAgentsDir.startsWith("~")
       ? config.service.personalAgentsDir.replace("~", home)
       : config.service.personalAgentsDir;
   }
-  _personalAgentsDir = config.service.personalAgentsDir || resolve(homedir(), "Desktop", "personalAgents");
+  _personalAgentsDir = config.service.personalAgentsDir || resolve(driveRoot, "PersonalAgents");
+
+  // Resolve personalRegistryDir (expand ~)
+  if (config.service.personalRegistryDir) {
+    config.service.personalRegistryDir = config.service.personalRegistryDir.startsWith("~")
+      ? config.service.personalRegistryDir.replace("~", home)
+      : config.service.personalRegistryDir;
+  }
+  _personalRegistryDir = config.service.personalRegistryDir || resolve(driveRoot, "PersonalRegistry");
 
   return config;
 }
 
-/** Resolved personalAgents directory — set during config loading, used by executor and keystore */
+/** Resolved PersonalAgents directory — set during config loading, used by executor and keystore */
 let _personalAgentsDir: string | null = null;
+/** Resolved PersonalRegistry directory — set during config loading, used by web-ui */
+let _personalRegistryDir: string | null = null;
 
-/** Resolve the personalAgents directory from config, falling back to ~/Desktop/personalAgents */
+/** Resolve the PersonalAgents directory from config, falling back to ~/Desktop/MyAIforOne Drive/PersonalAgents */
 export function getPersonalAgentsDir(config?: AppConfig): string {
   if (_personalAgentsDir) return _personalAgentsDir;
-  if (config) return config.service.personalAgentsDir || resolve(homedir(), "Desktop", "personalAgents");
-  return resolve(homedir(), "Desktop", "personalAgents");
+  const driveRoot = resolve(homedir(), "Desktop", "MyAIforOne Drive");
+  if (config) return config.service.personalAgentsDir || resolve(driveRoot, "PersonalAgents");
+  return resolve(driveRoot, "PersonalAgents");
+}
+
+/** Resolve the PersonalRegistry directory from config, falling back to ~/Desktop/MyAIforOne Drive/PersonalRegistry */
+export function getPersonalRegistryDir(config?: AppConfig): string {
+  if (_personalRegistryDir) return _personalRegistryDir;
+  const driveRoot = resolve(homedir(), "Desktop", "MyAIforOne Drive");
+  if (config) return config.service.personalRegistryDir || resolve(driveRoot, "PersonalRegistry");
+  return resolve(driveRoot, "PersonalRegistry");
 }

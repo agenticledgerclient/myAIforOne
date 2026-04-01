@@ -959,7 +959,7 @@ text-decoration:none;}
       <div class="form-group">
         <label class="form-label">Shared Skills</label>
         <input class="form-input" id="f-skills" placeholder="opcodereview, sop_pdf, opAgents_AddNew" style="font-family:var(--font-mono);font-size:11px">
-        <div class="form-hint">Comma-separated skill names from ~/.claude/commands/ or personalAgents/skills/</div>
+        <div class="form-hint">Comma-separated skill names from ~/.claude/commands/ or MyAIforOne Drive/PersonalAgents/skills/</div>
       </div>
       <div class="form-group">
         <label class="form-label">Agent Skills</label>
@@ -1114,7 +1114,7 @@ text-decoration:none;}
     <div class="modal-footer">
       <div class="modal-footer-left">
         <button class="btn-delete hidden" id="deleteBtn" onclick="showDeleteConfirm()">Delete Agent</button>
-        <div class="modal-footer-hint" id="modalHint">Agent files created in ~/Desktop/personalAgents/</div>
+        <div class="modal-footer-hint" id="modalHint">Agent files created in ~/Desktop/MyAIforOne Drive/PersonalAgents/</div>
       </div>
       <button class="btn-save" id="saveBtn" onclick="saveAgent()">Create Agent</button>
     </div>
@@ -1550,7 +1550,7 @@ function autoAlias() {
   }
   // Update agentHome preview
   const homeEl = document.getElementById('f-agentHome');
-  homeEl.value = id ? '~/Desktop/personalAgents/' + id : '~/Desktop/personalAgents/(agent-id)';
+  homeEl.value = id ? '~/Desktop/MyAIforOne Drive/PersonalAgents/' + id : '~/Desktop/MyAIforOne Drive/PersonalAgents/(agent-id)';
 }
 
 async function openModal(agentId) {
@@ -1694,7 +1694,7 @@ async function openModal(agentId) {
     // Create mode
     document.getElementById('modalTitle').textContent = 'Create New Agent';
     document.getElementById('saveBtn').textContent = 'Create Agent';
-    document.getElementById('modalHint').textContent = 'Agent files created in ~/Desktop/personalAgents/';
+    document.getElementById('modalHint').textContent = 'Agent files created in ~/Desktop/MyAIforOne Drive/PersonalAgents/';
     document.getElementById('deleteBtn').classList.add('hidden');
 
     idField.value = '';
@@ -1705,7 +1705,7 @@ async function openModal(agentId) {
     descField.value = '';
     instrField.value = '# Agent Name\n\nDescription of what this agent does.\n\n## Identity\n- Mention alias: @alias\n- Respond when mentioned\n\n## Guidelines\n- Keep responses concise\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n';
     wsField.value = '~';
-    homeField.value = '~/Desktop/personalAgents/(agent-id)';
+    homeField.value = '~/Desktop/MyAIforOne Drive/PersonalAgents/(agent-id)';
     persistPill.classList.add('checked');
     streamPill.classList.remove('checked');
     document.getElementById('f-advancedMemory')?.classList.add('checked');

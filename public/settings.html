@@ -210,7 +210,11 @@ html,body{width:100%;min-height:100%;background:var(--bg-deep);font-family:var(-
       <div class="service-grid">
         <div class="field">
           <label>Personal Agents Directory</label>
-          <input id="svcAgentsDir" placeholder="~/Desktop/personalAgents" />
+          <input id="svcAgentsDir" placeholder="~/Desktop/MyAIforOne Drive/PersonalAgents" />
+        </div>
+        <div class="field">
+          <label>Personal Registry Directory</label>
+          <input id="svcRegistryDir" placeholder="~/Desktop/MyAIforOne Drive/PersonalRegistry" />
         </div>
         <div class="field">
           <label>Web UI Port</label>
@@ -491,6 +495,7 @@ async function loadService() {
   const res = await fetch('/api/config/service');
   const s = await res.json();
   document.getElementById('svcAgentsDir').value = s.personalAgentsDir || '';
+  document.getElementById('svcRegistryDir').value = s.personalRegistryDir || '';
   document.getElementById('svcPort').value = s.webUIPort || '';
   document.getElementById('svcLogLevel').value = s.logLevel || '';
   // Deployment
@@ -503,11 +508,12 @@ async function loadService() {
 
 async function saveService() {
   const personalAgentsDir = document.getElementById('svcAgentsDir').value.trim();
+  const personalRegistryDir = document.getElementById('svcRegistryDir').value.trim();
   const webUIPort = document.getElementById('svcPort').value.trim();
   const logLevel = document.getElementById('svcLogLevel').value.trim();
   const res = await fetch('/api/config/service', {
     method: 'PUT', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ personalAgentsDir, webUIPort: webUIPort ? Number(webUIPort) : undefined, logLevel })
+    body: JSON.stringify({ personalAgentsDir, personalRegistryDir, webUIPort: webUIPort ? Number(webUIPort) : undefined, logLevel })
   });
   const data = await res.json();
   if (!res.ok) { showToast(data.error, 'err'); return; }

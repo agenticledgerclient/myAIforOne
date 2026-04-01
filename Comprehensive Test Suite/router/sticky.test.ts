@@ -18,7 +18,7 @@ function makeConfig(): AppConfig {
     channels: {
       telegram: {
         enabled: true, driver: "telegram",
-        config: { botToken: "x", stickyRouting: true, stickyTimeoutMs: 5000 },
+        config: { botToken: "x", stickyRouting: "sticky", stickyTimeoutMs: 5000 },
       },
     },
     agents: {

@@ -134,6 +134,19 @@ WhatsApp setup requires QR code pairing:
 We'll come back to this. Moving on.
 ```
 
+## Step 3b: Create MyAIforOne Drive
+
+Create the personal data folder structure outside the repo. This keeps user data separate from the downloaded codebase:
+
+```bash
+mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalAgents"
+mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry"
+mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/skills/personal"
+mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/prompts/personal"
+```
+
+This folder is the user's personal data root — all agents, registry items, and MCP keys live here, never in the repo.
+
 ## Step 4: Generate config.json
 
 Read `config.example.json` as the template. Fill in the user's credentials:
@@ -183,7 +196,7 @@ Pre-configured settings (don't ask, just set):
 
 Create the folder structure (this is the agent's **home** — separate from the **workspace** which is the project they work on):
 ```
-~/Desktop/personalAgents/<agentId>/    ← agentHome
+~/Desktop/MyAIforOne Drive/PersonalAgents/<agentId>/    ← agentHome
 ├── CLAUDE.md          # System prompt (generated from their description)
 ├── memory/
 │   ├── context.md     # Initial context
@@ -213,13 +226,13 @@ Write the CLAUDE.md with:
 
 Add the agent to config.json with routes for each enabled channel.
 
-## Step 6b: Create PlatformOrg Template Agents (automatic — do NOT ask)
+## Step 6b: Create DemoOrg Template Agents (automatic — do NOT ask)
 
-Every install gets 5 template agents under `PlatformOrg` that demonstrate platform capabilities. Create ALL of them silently — do not ask the user anything.
+Every install gets 5 template agents under `DemoOrg` that demonstrate platform capabilities. Create ALL of them silently — do not ask the user anything.
 
 For EACH agent below, create the standard folder structure:
 ```
-~/Desktop/personalAgents/PlatformOrg/<agentId>/
+~/Desktop/MyAIforOne Drive/PersonalAgents/DemoOrg/<agentId>/
 ├── CLAUDE.md          # System prompt (content specified below)
 ├── memory/
 │   └── context.md     # Brief context note
@@ -296,7 +309,7 @@ Meta-agent that monitors your agent fleet. Every morning, scans all agent folder
 
 ## How You Work
 
-On your daily heartbeat (7am), scan ~/Desktop/personalAgents/ recursively:
+On your daily heartbeat (7am), scan ~/Desktop/MyAIforOne Drive/PersonalAgents/ recursively:
 - Read each agent's memory/context.md and recent memory logs
 - Check tasks.json for open tasks across the fleet
 - Note which agents were active in the last 24-48 hours
@@ -313,7 +326,7 @@ You can also be asked directly: "what did @producer do yesterday?" or "any open 
 - Don't report on agents with zero activity unless asked
 ```
 
-**Config:** `autonomousCapable: true`, `workspace: ~/Desktop/personalAgents`, tools: `["Read", "Glob", "Grep", "Bash"]`
+**Config:** `autonomousCapable: true`, `workspace: ~/Desktop/MyAIforOne Drive/PersonalAgents`, tools: `["Read", "Glob", "Grep", "Bash"]`
 
 **Goals:**
 ```json
@@ -322,7 +335,7 @@ You can also be asked directly: "what did @producer do yesterday?" or "any open 
   "enabled": true,
   "description": "Scan all agent folders, read recent memory logs, check for open tasks, and produce a morning digest of fleet activity",
   "successCriteria": "Concise digest posted covering active agents, open tasks, key highlights, and dormant agents",
-  "instructions": "Scan ~/Desktop/personalAgents/ recursively. For each agent folder, read memory/context.md and any recent memory logs. Check for tasks.json or todo files. Summarize which agents were active in the last 24-48h, list open tasks across the fleet, highlight notable items, and note dormant agents.",
+  "instructions": "Scan ~/Desktop/MyAIforOne Drive/PersonalAgents/ recursively. For each agent folder, read memory/context.md and any recent memory logs. Check for tasks.json or todo files. Summarize which agents were active in the last 24-48h, list open tasks across the fleet, highlight notable items, and note dormant agents.",
   "heartbeat": "0 7 * * *",
   "budget": { "maxDailyUsd": 2 },
   "reportTo": "USE_FIRST_ENABLED_CHANNEL_AND_CHAT_ID"
@@ -436,10 +449,10 @@ When asked about markets, use WebSearch to find current data and WebFetch to hit
 
 **Config:** `autonomousCapable: false`, `workspace: ~`, tools: `["WebSearch", "WebFetch", "Read", "Bash"]`
 
-### All PlatformOrg agents share:
+### All DemoOrg agents share:
 - `persistent: true`, `streaming: true`
 - `agentClass: "platform"` (hidden from /org default view, accessible via Lab and filter)
-- `org: [{ "organization": "PlatformOrg", "function": "Platform", "title": "<varies>", "reportsTo": "" }]`
+- `org: [{ "organization": "DemoOrg", "function": "Platform", "title": "<varies>", "reportsTo": "" }]`
 - `timeout: 14400000`
 - `autoCommit: false`
 

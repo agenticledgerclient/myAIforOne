@@ -72,11 +72,11 @@ describe("Agents CRUD", () => {
     assert.ok(Array.isArray((body as any).agents));
   });
 
-  it("GET /api/agents?org=PlatformOrg filters by org", async () => {
-    const { status, body } = await json("/api/agents?org=PlatformOrg");
+  it("GET /api/agents?org=DemoOrg filters by org", async () => {
+    const { status, body } = await json("/api/agents?org=DemoOrg");
     assert.equal(status, 200);
     assert.ok(Array.isArray((body as any).agents));
-    // At least some agents should be returned for PlatformOrg
+    // At least some agents should be returned for DemoOrg
   });
 
   it("GET /api/platform-agents returns only platform agents", async () => {
@@ -556,6 +556,7 @@ describe("Config & Accounts", () => {
     const { status, body } = await json("/api/config/service");
     assert.equal(status, 200);
     assert.ok("personalAgentsDir" in (body as any));
+    assert.ok("personalRegistryDir" in (body as any));
     assert.ok("webUIPort" in (body as any));
   });
 

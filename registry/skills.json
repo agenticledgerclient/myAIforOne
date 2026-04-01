@@ -211,142 +211,6 @@
       }
     },
     {
-      "id": "ext-tdd",
-      "name": "Test-Driven Development",
-      "provider": "affaan-m",
-      "description": "Write failing tests first, then implement.",
-      "category": "devtools",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/commands/tdd.md",
-      "tags": [
-        "devtools",
-        "external"
-      ],
-      "localPath": "registry/skills/external/tdd.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
-      "id": "ext-code-review",
-      "name": "Code Review",
-      "provider": "affaan-m",
-      "description": "Systematic code review workflow.",
-      "category": "devtools",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/commands/code-review.md",
-      "tags": [
-        "devtools",
-        "external"
-      ],
-      "localPath": "registry/skills/external/code-review.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
-      "id": "ext-systematic-debugging",
-      "name": "Systematic Debugging",
-      "provider": "affaan-m",
-      "description": "Structured debugging process.",
-      "category": "devtools",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/commands/systematic-debugging.md",
-      "tags": [
-        "devtools",
-        "external"
-      ],
-      "localPath": "registry/skills/external/systematic-debugging.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
-      "id": "ext-writing-plans",
-      "name": "Write Plans",
-      "provider": "affaan-m",
-      "description": "Create detailed implementation plans.",
-      "category": "devtools",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/commands/writing-plans.md",
-      "tags": [
-        "devtools",
-        "external"
-      ],
-      "localPath": "registry/skills/external/writing-plans.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
-      "id": "ext-verification-before-completion",
-      "name": "Verify Before Completing",
-      "provider": "affaan-m",
-      "description": "Run checks before marking work done.",
-      "category": "devtools",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/commands/verification-before-completion.md",
-      "tags": [
-        "devtools",
-        "external"
-      ],
-      "localPath": "registry/skills/external/verification-before-completion.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
-      "id": "ext-brainstorming",
-      "name": "Brainstorming",
-      "provider": "affaan-m",
-      "description": "Design features through collaborative dialogue.",
-      "category": "devtools",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/commands/brainstorming.md",
-      "tags": [
-        "devtools",
-        "external"
-      ],
-      "localPath": "registry/skills/external/brainstorming.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
-      "id": "ext-frontend-slides",
-      "name": "Frontend Slides",
-      "provider": "affaan-m",
-      "description": "Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files.",
-      "category": "design",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/skills/frontend-slides/SKILL.md",
-      "tags": [
-        "design",
-        "external"
-      ],
-      "localPath": "registry/skills/external/frontend-slides.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
-      "id": "ext-frontend-patterns",
-      "name": "Frontend Patterns",
-      "provider": "affaan-m",
-      "description": "Frontend development patterns for React, Next.js, state management, performance optimization, and UI best practices.",
-      "category": "devtools",
-      "verified": false,
-      "source": "github:affaan-m/everything-claude-code/skills/frontend-patterns/SKILL.md",
-      "tags": [
-        "devtools",
-        "external"
-      ],
-      "localPath": "registry/skills/external/frontend-patterns.md",
-      "fetch": {
-        "type": "file"
-      }
-    },
-    {
       "id": "allium-onchain-data",
       "name": "Allium Onchain Data",
       "provider": "AgenticLedger",
@@ -358,45 +222,6 @@
         "global"
       ],
       "localPath": "/Users/oreph/.claude/commands/allium-onchain-data.md"
-    },
-    {
-      "id": "client_bastion_SOC1DataPrep",
-      "name": "Client Bastion SOC1DataPrep",
-      "provider": "AgenticLedger",
-      "description": "Sync Bastion SOC 1 data from Auditor Smartsheets to Master sheet and create snapshot",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/client_bastion_SOC1DataPrep.md"
-    },
-    {
-      "id": "client_bastion_SOC1Status",
-      "name": "Client Bastion SOC1Status",
-      "provider": "AgenticLedger",
-      "description": "Generate Bastion SOC 1 readiness dashboard with intelligent analysis and Slack message",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/client_bastion_SOC1Status.md"
-    },
-    {
-      "id": "client_bastion_notesintake",
-      "name": "Client Bastion Notesintake",
-      "provider": "AgenticLedger",
-      "description": "Intake meeting transcript or adhoc note and update Bastion SOC 1 live updates",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/client_bastion_notesintake.md"
     },
     {
       "id": "frexplorer",
@@ -631,71 +456,6 @@
         "global"
       ],
       "localPath": "/Users/oreph/.claude/commands/opbranchsetup.md"
-    },
-    {
-      "id": "opclient_bastion_notion",
-      "name": "Opclient Bastion Notion",
-      "provider": "AgenticLedger",
-      "description": "Generate Bastion SOC 1 readiness dashboard and owner responsibilities in Notion from Smartsheet data",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/opclient_bastion_notion.md"
-    },
-    {
-      "id": "opclient_bastion_owner_resp",
-      "name": "Opclient Bastion Owner Resp",
-      "provider": "AgenticLedger",
-      "description": "Generate SOC1 owner responsibility pages on Notion via Claude.ai MCP",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/opclient_bastion_owner_resp.md"
-    },
-    {
-      "id": "opclient_bastion_readiness_sync",
-      "name": "Opclient Bastion Readiness Sync",
-      "provider": "AgenticLedger",
-      "description": "Sync Bastion SOC 1 Readiness Tracker child controls from Smartsheet DRL to Notion",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/opclient_bastion_readiness_sync.md"
-    },
-    {
-      "id": "opclient_bastion_status_report",
-      "name": "Opclient Bastion Status Report",
-      "provider": "AgenticLedger",
-      "description": "Generate SOC1 weekly status report on Notion via Claude.ai MCP",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/opclient_bastion_status_report.md"
-    },
-    {
-      "id": "opclient_bastion_toplevel_sync",
-      "name": "Opclient Bastion Toplevel Sync",
-      "provider": "AgenticLedger",
-      "description": "Update Bastion SOC 1 Readiness Tracker top-level process pages from Smartsheet DRL",
-      "category": "global",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "global"
-      ],
-      "localPath": "/Users/oreph/.claude/commands/opclient_bastion_toplevel_sync.md"
     },
     {
       "id": "opclient_processcontrols_viz",
@@ -1036,19 +796,6 @@
       "localPath": "/Users/oreph/.claude/commands/wac_impairment.md"
     },
     {
-      "id": "weekly_wallet_update",
-      "name": "Weekly Wallet Update",
-      "provider": "me",
-      "description": "Weekly update of Total Quantity and Value (USD) in the MWI w Balance tab of the Master Wallet Inventory, using TRESDATA and Fireblocks source files.",
-      "category": "org",
-      "verified": false,
-      "source": "local",
-      "tags": [
-        "org"
-      ],
-      "localPath": "/Users/oreph/Desktop/personalAgents/p2pfinance/skills/weekly_wallet_update.md"
-    },
-    {
       "id": "ai41_app_orchestrator",
       "name": "App Build Orchestrator",
       "provider": "AgenticLedger",
@@ -1155,6 +902,155 @@
       "fetch": {
         "type": "file"
       }
+    },
+    {
+      "id": "ext-tdd",
+      "name": "Test-Driven Development",
+      "provider": "affaan-m",
+      "description": "Write failing tests first, then implement.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/commands/tdd.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/tdd.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-code-review",
+      "name": "Code Review",
+      "provider": "affaan-m",
+      "description": "Systematic code review workflow.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/commands/code-review.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/code-review.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-systematic-debugging",
+      "name": "Systematic Debugging",
+      "provider": "affaan-m",
+      "description": "Structured debugging process.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/commands/systematic-debugging.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/systematic-debugging.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-writing-plans",
+      "name": "Write Plans",
+      "provider": "affaan-m",
+      "description": "Create detailed implementation plans.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/commands/writing-plans.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/writing-plans.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-verification-before-completion",
+      "name": "Verify Before Completing",
+      "provider": "affaan-m",
+      "description": "Run checks before marking work done.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/commands/verification-before-completion.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/verification-before-completion.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-brainstorming",
+      "name": "Brainstorming",
+      "provider": "affaan-m",
+      "description": "Design features through collaborative dialogue.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/commands/brainstorming.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/brainstorming.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-frontend-slides",
+      "name": "Frontend Slides",
+      "provider": "affaan-m",
+      "description": "Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files.",
+      "category": "design",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/skills/frontend-slides/SKILL.md",
+      "tags": [
+        "design",
+        "external"
+      ],
+      "localPath": "registry/skills/external/frontend-slides.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "ext-frontend-patterns",
+      "name": "Frontend Patterns",
+      "provider": "affaan-m",
+      "description": "Frontend development patterns for React, Next.js, state management, performance optimization, and UI best practices.",
+      "category": "devtools",
+      "verified": false,
+      "source": "github:affaan-m/everything-claude-code/skills/frontend-patterns/SKILL.md",
+      "tags": [
+        "devtools",
+        "external"
+      ],
+      "localPath": "registry/skills/external/frontend-patterns.md",
+      "fetch": {
+        "type": "file"
+      }
+    },
+    {
+      "id": "weekly_wallet_update",
+      "name": "Weekly Wallet Update",
+      "provider": "me",
+      "description": "Weekly update of Total Quantity and Value (USD) in the MWI w Balance tab of the Master Wallet Inventory, using TRESDATA and Fireblocks source files.",
+      "category": "personal",
+      "verified": false,
+      "source": "local",
+      "tags": [
+        "personal"
+      ],
+      "localPath": "~/Desktop/MyAIforOne Drive/PersonalAgents/skills/weekly_wallet_update.md"
     }
   ]
 }

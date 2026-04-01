@@ -566,7 +566,7 @@ channelToAgentToClaude/           # The gateway project
 └── logs/
     └── service.log
 
-~/Desktop/personalAgents/         # Agent homes (personal agents)
+~/Desktop/MyAIforOne Drive/PersonalAgents/         # Agent homes (personal agents)
 └── claudeManager/
     ├── CLAUDE.md                 # System prompt
     ├── memory/
@@ -638,8 +638,8 @@ channelToAgentToClaude/           # The gateway project
   "name": "Claude Manager Agent",
   "description": "General-purpose Claude agent",
   "workspace": "~",
-  "claudeMd": "~/Desktop/personalAgents/claudeManager/CLAUDE.md",
-  "memoryDir": "~/Desktop/personalAgents/claudeManager/memory",
+  "claudeMd": "~/Desktop/MyAIforOne Drive/PersonalAgents/claudeManager/CLAUDE.md",
+  "memoryDir": "~/Desktop/MyAIforOne Drive/PersonalAgents/claudeManager/memory",
   "claudeAccount": "main",
   "mcps": ["context7", "playwright", "granola"],
   "persistent": true,

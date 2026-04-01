@@ -108,12 +108,12 @@ The easiest path: create a general-purpose agent.
 
 ```bash
 # Create agent directory
-mkdir -p ~/Desktop/personalAgents/my-agent/memory
+mkdir -p ~/Desktop/MyAIforOne Drive/PersonalAgents/my-agent/memory
 ```
 
 Write the system prompt:
 ```bash
-cat > ~/Desktop/personalAgents/my-agent/CLAUDE.md << 'EOF'
+cat > ~/Desktop/MyAIforOne Drive/PersonalAgents/my-agent/CLAUDE.md << 'EOF'
 # My Agent
 
 You are a general-purpose Claude agent accessible via phone. You help with coding, research, file management, and anything else.
@@ -131,7 +131,7 @@ EOF
 
 Write initial context:
 ```bash
-echo "# My Agent Context\n\nCreated $(date +%Y-%m-%d)." > ~/Desktop/personalAgents/my-agent/memory/context.md
+echo "# My Agent Context\n\nCreated $(date +%Y-%m-%d)." > ~/Desktop/MyAIforOne Drive/PersonalAgents/my-agent/memory/context.md
 ```
 
 The example config already includes this agent. Just update the route with your actual chat ID (see step 5).

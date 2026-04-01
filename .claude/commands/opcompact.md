@@ -23,7 +23,7 @@ The agent should:
 
 The agent's memory directory is configured in config.json under `memoryDir`. The context file is always `context.md` within that directory.
 
-For the claudeManager agent: `~/Desktop/personalAgents/claudeManager/memory/context.md`
+For the claudeManager agent: `~/Desktop/MyAIforOne Drive/PersonalAgents/claudeManager/memory/context.md`
 
 ## Guidelines
 

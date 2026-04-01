@@ -47,7 +47,7 @@ describe("loadConfig", () => {
     const agent = config.agents["test-agent"];
     assert.equal(agent.autoCommit, false);
     assert.equal(agent.autoCommitBranch, "main");
-    assert.equal(agent.timeout, 120_000);
+    assert.equal(agent.timeout, 14_400_000);
     assert.deepEqual(agent.allowedTools, ["Read", "Edit", "Write", "Glob", "Grep", "Bash"]);
   });
 
@@ -70,23 +70,28 @@ describe("loadConfig", () => {
     assert.ok(!config.agents["test-agent"].memoryDir.startsWith("~"));
   });
 
-  it("throws on missing agents", () => {
+  it("allows empty agents (fresh install)", () => {
     const cfg = { ...minimalConfig, agents: {} };
     const path = writeConfig(cfg);
-    assert.throws(() => loadConfig(path), /at least one agent/);
+    // Fresh install: no agents is allowed so web UI can start for setup
+    assert.doesNotThrow(() => loadConfig(path));
   });
 
-  it("throws on missing channels", () => {
+  it("allows empty channels (fresh install)", () => {
     const cfg = { ...minimalConfig, channels: {} };
     const path = writeConfig(cfg);
-    assert.throws(() => loadConfig(path), /at least one channel/);
+    // Fresh install: no channels is allowed so web UI can start for setup
+    assert.doesNotThrow(() => loadConfig(path));
   });
 
-  it("throws on agent missing routes", () => {
+  it("keeps agent with no routes (web-UI-only agents are valid)", () => {
     const cfg = JSON.parse(JSON.stringify(minimalConfig));
     cfg.agents["test-agent"].routes = [];
     const path = writeConfig(cfg);
-    assert.throws(() => loadConfig(path), /at least one route/);
+    const config = loadConfig(path);
+    // Agent should still be present — reachable via web UI even without channel routes
+    assert.ok(config.agents["test-agent"]);
+    assert.deepEqual(config.agents["test-agent"].routes, []);
   });
 
   it("throws on agent referencing unknown MCP", () => {

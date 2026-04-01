@@ -14,9 +14,9 @@ Skills live at 4 levels. Ask the user which level makes sense:
 | Level | Location | Who sees it | When to use |
 |-------|----------|-------------|-------------|
 | **Global** | `~/.claude/commands/` | All Claude sessions + all agents | Platform utilities, cross-cutting ops |
-| **Personal** | `~/Desktop/personalAgents/skills/` | All agents via shared index | User's custom skills not tied to an org |
-| **Org-scoped** | `~/Desktop/personalAgents/{OrgName}/skills/` | All agents in that org (auto-discovered, marked ◆) | Domain skills shared within a team/org |
-| **Agent-specific** | `~/Desktop/personalAgents/{OrgName}/{agentId}/skills/` or `{agentHome}/skills/` | Only that agent (marked ★) | Highly specific workflows for one agent |
+| **Personal** | `~/Desktop/MyAIforOne Drive/PersonalAgents/skills/` | All agents via shared index | User's custom skills not tied to an org |
+| **Org-scoped** | `~/Desktop/MyAIforOne Drive/PersonalAgents/{OrgName}/skills/` | All agents in that org (auto-discovered, marked ◆) | Domain skills shared within a team/org |
+| **Agent-specific** | `~/Desktop/MyAIforOne Drive/PersonalAgents/{OrgName}/{agentId}/skills/` or `{agentHome}/skills/` | Only that agent (marked ★) | Highly specific workflows for one agent |
 
 If the user says "for this org" or names an org → **org-scoped**.
 If the user says "for this agent" or names an agent → **agent-specific**.
@@ -93,8 +93,8 @@ Based on the level chosen:
 | Level | Write `.md` to | Write scripts to |
 |-------|----------------|-----------------|
 | Global | `~/.claude/commands/{name}.md` | `~/.claude/commands/{name}/` |
-| Personal | `~/Desktop/personalAgents/skills/{name}.md` | `~/Desktop/personalAgents/skills/{name}/` |
-| Org-scoped | `~/Desktop/personalAgents/{OrgName}/skills/{name}.md` | `~/Desktop/personalAgents/{OrgName}/skills/{name}/` |
+| Personal | `~/Desktop/MyAIforOne Drive/PersonalAgents/skills/{name}.md` | `~/Desktop/MyAIforOne Drive/PersonalAgents/skills/{name}/` |
+| Org-scoped | `~/Desktop/MyAIforOne Drive/PersonalAgents/{OrgName}/skills/{name}.md` | `~/Desktop/MyAIforOne Drive/PersonalAgents/{OrgName}/skills/{name}/` |
 | Agent-specific | `{agentHome}/skills/{name}.md` | `{agentHome}/skills/{name}/` |
 
 To find an agent's home directory, read config.json:
