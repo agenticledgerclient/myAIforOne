@@ -598,6 +598,14 @@ text-decoration:none;}
         <textarea class="intake-textarea" id="intakeDesc" placeholder="Describe what you'd like to build..."></textarea>
         <div class="intake-hint" id="intakeHint">Be specific — the more detail you give, the better the result.</div>
       </div>
+      <div class="intake-field" id="intakeWorkspaceField" style="display:none">
+        <label class="intake-label" for="intakeWorkspace">Project Directory</label>
+        <div style="display:flex;gap:8px">
+          <input class="intake-input" id="intakeWorkspace" type="text" placeholder="~/Desktop/APPs/my-app" style="flex:1">
+          <button type="button" class="intake-attach-btn" onclick="openDirPicker()" style="white-space:nowrap;padding:8px 14px">&#128193; Browse</button>
+        </div>
+        <div class="intake-hint">Where to create the project folder. Leave blank for default.</div>
+      </div>
       <div>
         <input type="file" id="intakeFileInput" multiple style="display:none" onchange="handleIntakeFileSelect(event)">
         <button class="intake-attach-btn" id="intakeAttachBtn" onclick="document.getElementById('intakeFileInput').click()" type="button">&#x1F4CE; Attach files</button>
@@ -855,6 +863,8 @@ function showIntake(type){
   document.getElementById('intakeHint').textContent=cfg.hint;
   document.getElementById('intakeName').value='';
   document.getElementById('intakeDesc').value='';
+  document.getElementById('intakeWorkspace').value='';
+  document.getElementById('intakeWorkspaceField').style.display = type==='app' ? '' : 'none';
 
   document.getElementById('landing').style.display='none';
   document.getElementById('intake').style.display='flex';
@@ -889,9 +899,11 @@ async function submitIntake(){
   const label=TYPE_LABELS[type];
 
   // Build structured prompt for the creator agent — for apps, reference the skill directly
+  const workspace=document.getElementById('intakeWorkspace').value.trim();
   let msg;
   if(type==='app'){
     msg=`Use the skill "ai41_app_build" to create an app called "${name}". Read the skill first and follow it phase by phase.\n\nDescription: ${desc}`;
+    if(workspace) msg+=`\n\nProject directory: ${workspace}`;
   } else {
     msg=`Create a new ${label.toLowerCase()} called "${name}".\n\nDescription: ${desc}`;
   }
@@ -1554,8 +1566,72 @@ function openCanvas(){
 // ── Utils ──
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
+// ── Directory Picker ──
+let dirPickerPath='~';
+function openDirPicker(){ dirPickerPath='~'; renderDirPicker(); document.getElementById('dirPickerOverlay').classList.remove('hidden'); }
+function closeDirPicker(){ document.getElementById('dirPickerOverlay').classList.add('hidden'); }
+async function renderDirPicker(){
+  const list=document.getElementById('dirPickerList');
+  const pathEl=document.getElementById('dirPickerPath');
+  list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted)">Loading...</div>';
+  try{
+    const res=await fetch(`/api/browse-dirs?path=${encodeURIComponent(dirPickerPath)}`);
+    const data=await res.json();
+    if(data.error){ list.innerHTML=`<div style="padding:20px;color:#f87171">${data.error}</div>`; return; }
+    dirPickerPath=data.path;
+    pathEl.textContent=data.path;
+    let html='';
+    if(data.path!=='~'&&data.path!=='/'){
+      html+=`<div class="dir-item dir-parent" onclick="dirPickerUp()">&#x2B06; ..</div>`;
+    }
+    for(const d of data.dirs){
+      html+=`<div class="dir-item" onclick="dirPickerInto('${d.replace(/'/g,"\\'")}')">${d}</div>`;
+    }
+    if(!data.dirs.length&&!html) html='<div style="padding:20px;text-align:center;color:var(--text-muted)">Empty directory</div>';
+    list.innerHTML=html;
+  }catch(e){ list.innerHTML=`<div style="padding:20px;color:#f87171">Error: ${e.message}</div>`; }
+}
+function dirPickerInto(name){ dirPickerPath=dirPickerPath==='/'?'/'+name:dirPickerPath+'/'+name; renderDirPicker(); }
+function dirPickerUp(){ const parts=dirPickerPath.split('/'); parts.pop(); dirPickerPath=parts.join('/')||'~'; renderDirPicker(); }
+function dirPickerSelect(){
+  const name=document.getElementById('intakeName').value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  const suffix=name?'/'+name:'';
+  document.getElementById('intakeWorkspace').value=dirPickerPath+suffix;
+  closeDirPicker();
+}
+function dirPickerNewFolder(){
+  const name=prompt('New folder name:');
+  if(!name||!name.trim())return;
+  dirPickerInto(name.trim());
+}
+
 // ── Init ──
 loadArtifacts();
 </script>
+
+<!-- Directory Picker Modal -->
+<div class="hidden" id="dirPickerOverlay" onclick="closeDirPicker()" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:3000;display:flex;align-items:center;justify-content:center">
+  <div onclick="event.stopPropagation()" style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:16px;width:480px;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border-dim);display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">&#128193;</span>
+      <span style="font-weight:700;font-size:15px">Choose Directory</span>
+      <span style="flex:1"></span>
+      <button onclick="closeDirPicker()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px">&times;</button>
+    </div>
+    <div id="dirPickerPath" style="padding:8px 20px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted);background:var(--bg-input);border-bottom:1px solid var(--border-dim);word-break:break-all">~</div>
+    <div id="dirPickerList" style="flex:1;overflow-y:auto;min-height:200px;max-height:400px"></div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border-dim);display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="dirPickerNewFolder()" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text);cursor:pointer;font-size:12px">+ New Folder</button>
+      <button onclick="closeDirPicker()" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px">Cancel</button>
+      <button onclick="dirPickerSelect()" style="padding:6px 18px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;font-size:12px;font-weight:600">Select</button>
+    </div>
+  </div>
+</div>
+<style>
+.dir-item{padding:10px 20px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border-dim);transition:background .15s}
+.dir-item:hover{background:var(--bg-input)}
+.dir-parent{color:var(--text-muted);font-style:italic}
+#dirPickerOverlay.hidden{display:none!important}
+</style>
 </body>
 </html>

@@ -14,20 +14,20 @@ Create the project directory and all configuration files deterministically. DO N
 Before starting, determine:
 - `APP_SLUG` — lowercase hyphenated (e.g., `expense-tracker`)
 - `APP_NAME` — human readable (e.g., `Expense Tracker`)
-- `APP_DIR` — `~/Desktop/APPs/{APP_SLUG}`
+- `APP_DIR` — `{PROJECT_DIR}`
 - `NEEDS_DB` — true/false (default: true)
 
 ## Step 1: Create Directory Structure
 
 ```bash
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/backend/src/routes
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/backend/src/middleware
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/backend/prisma
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/components/ui
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/pages
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/hooks
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/lib
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/public
+mkdir -p {PROJECT_DIR}/backend/src/routes
+mkdir -p {PROJECT_DIR}/backend/src/middleware
+mkdir -p {PROJECT_DIR}/backend/prisma
+mkdir -p {PROJECT_DIR}/frontend/src/components/ui
+mkdir -p {PROJECT_DIR}/frontend/src/pages
+mkdir -p {PROJECT_DIR}/frontend/src/hooks
+mkdir -p {PROJECT_DIR}/frontend/src/lib
+mkdir -p {PROJECT_DIR}/frontend/public
 ```
 
 ## Step 2: Write Root Files
@@ -395,8 +395,8 @@ export const api = {
 ## Step 5: Install Dependencies
 
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/backend && npm install
-cd ~/Desktop/APPs/{APP_SLUG}/frontend && npm install
+cd {PROJECT_DIR}/backend && npm install
+cd {PROJECT_DIR}/frontend && npm install
 ```
 
 Wait for both to complete. If either fails, retry once.
@@ -404,7 +404,7 @@ Wait for both to complete. If either fails, retry once.
 ## Step 6: Initialize shadcn/ui (install base components)
 
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/frontend && npx shadcn@latest add button card input label --yes 2>/dev/null || true
+cd {PROJECT_DIR}/frontend && npx shadcn@latest add button card input label --yes 2>/dev/null || true
 ```
 
 This installs the base shadcn/ui components. More will be added during BUILD as needed.
@@ -413,9 +413,9 @@ This installs the base shadcn/ui components. More will be added during BUILD as 
 
 Run these checks:
 ```bash
-test -f ~/Desktop/APPs/{APP_SLUG}/backend/node_modules/.package-lock.json && echo "backend: OK" || echo "backend: FAILED"
-test -f ~/Desktop/APPs/{APP_SLUG}/frontend/node_modules/.package-lock.json && echo "frontend: OK" || echo "frontend: FAILED"
-test -f ~/Desktop/APPs/{APP_SLUG}/backend/prisma/schema.prisma && echo "prisma: OK" || echo "prisma: SKIPPED"
+test -f {PROJECT_DIR}/backend/node_modules/.package-lock.json && echo "backend: OK" || echo "backend: FAILED"
+test -f {PROJECT_DIR}/frontend/node_modules/.package-lock.json && echo "frontend: OK" || echo "frontend: FAILED"
+test -f {PROJECT_DIR}/backend/prisma/schema.prisma && echo "prisma: OK" || echo "prisma: SKIPPED"
 ```
 
 All must pass before proceeding to BUILD phase.

@@ -334,6 +334,7 @@ const CATALOG = [
 
   // -- Lab --
   { cat: "Lab", method: "GET", path: "/api/platform-agents", summary: "List platform-managed creator agents for the Lab page", response: "{ agents: [{ id, name, description, streaming }] }" },
+  { cat: "Lab", method: "GET", path: "/api/browse-dirs", summary: "List subdirectories of a given path (for Lab directory picker)", params: [{ name: "path", in: "query", type: "string", desc: "Directory path (defaults to home dir, supports ~ prefix)" }], response: "{ path, dirs[] } or { error }" },
 
   // -- Apps --
   { cat: "Apps", method: "GET", path: "/api/apps", summary: "List all registered apps" },
@@ -505,6 +506,7 @@ const TOOLS = [
 
   // Lab
   {cat:"Lab",name:"get_platform_agents",desc:"List platform-managed creator agents (used by Lab)",params:[]},
+  {cat:"Lab",name:"browse_dirs",desc:"Browse subdirectories of a given path (for Lab directory picker)",params:[{n:"path",t:"string",r:false,d:"Directory path (defaults to home dir, supports ~ prefix)"}]},
 ];
 
 // ═══ STATE ═══════════════════════════════════════════════════════════

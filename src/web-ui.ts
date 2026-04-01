@@ -570,6 +570,24 @@ export function startWebUI(opts: WebUIOptions): void {
     } catch (err) { res.status(500).json({ error: String(err) }); }
   });
 
+  // ─── API: Browse directories (for Lab project directory picker) ───
+  app.get("/api/browse-dirs", (req, res) => {
+    const home = homedir();
+    const requestedPath = (req.query.path as string) || home;
+    const resolved = requestedPath.startsWith("~") ? requestedPath.replace("~", home) : requestedPath;
+    try {
+      const entries = readdirSync(resolved, { withFileTypes: true });
+      const dirs = entries
+        .filter(e => e.isDirectory() && !e.name.startsWith("."))
+        .map(e => e.name)
+        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      const tilePath = resolved.startsWith(home) ? resolved.replace(home, "~") : resolved;
+      res.json({ path: tilePath, dirs });
+    } catch {
+      res.status(400).json({ error: "Cannot read directory" });
+    }
+  });
+
   // ─── API: Dashboard ───────────────────────────────────────────────
   app.get("/api/dashboard", (_req, res) => {
     const agents = Object.entries(opts.config.agents)

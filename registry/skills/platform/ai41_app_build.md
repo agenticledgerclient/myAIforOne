@@ -11,6 +11,8 @@ One skill. Full pipeline. Scaffold → Plan → Build → Verify → Preview →
 
 **Arguments:** User message describes the app. Extract name and features from it.
 
+If the user specifies a **project directory**, use it as `{PROJECT_DIR}`. Otherwise default to `{PROJECT_DIR}/`.
+
 If no description provided, ask: "What should this app do, and who is it for?"
 
 ---
@@ -19,15 +21,14 @@ If no description provided, ask: "What should this app do, and who is it for?"
 
 | Resource | Path |
 |----------|------|
-| Apps workspace | `~/Desktop/APPs/{APP_SLUG}/` |
-| Platform registry | `/Users/oreph/Desktop/APPs/channelToAgentToClaude/registry/apps.json` |
-| Build checklist | `~/Desktop/APPs/{APP_SLUG}/BUILD_CHECKLIST.md` |
+| Apps workspace | `{PROJECT_DIR}` (user-specified or `{PROJECT_DIR}/`) |
+| Build checklist | `{PROJECT_DIR}/BUILD_CHECKLIST.md` |
 
 ---
 
 ## MANDATORY: Build Checklist
 
-**At the START, create `~/Desktop/APPs/{APP_SLUG}/BUILD_CHECKLIST.md` using this template.** Update it after every phase — check boxes off as you go.
+**At the START, create `{PROJECT_DIR}/BUILD_CHECKLIST.md` using this template.** Update it after every phase — check boxes off as you go.
 
 ```markdown
 # App Build Checklist — {APP_NAME}
@@ -117,7 +118,7 @@ If no description provided, ask: "What should this app do, and who is it for?"
 1. Parse the user's request. Identify:
    - `APP_NAME` — human readable (e.g., `Month-End Close Tracker`)
    - `APP_SLUG` — lowercase hyphenated (e.g., `month-end-close-tracker`)
-   - `APP_DIR` — `~/Desktop/APPs/{APP_SLUG}`
+   - `APP_DIR` — `{PROJECT_DIR}`
    - `NEEDS_DB` — default YES unless it's clearly a static/display-only app
    - `NEEDS_AUTH` — YES if user mentions login, users, accounts, roles
    - Sub-patterns needed (see table below)
@@ -151,16 +152,16 @@ Tell the user: **"Phase 1/7: Scaffolding project..."**
 ### Directory Structure
 
 ```bash
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/backend/src/routes
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/backend/src/middleware
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/backend/src/lib
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/backend/prisma
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/components/ui
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/components/layout
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/pages
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/hooks
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/src/lib
-mkdir -p ~/Desktop/APPs/{APP_SLUG}/frontend/public
+mkdir -p {PROJECT_DIR}/backend/src/routes
+mkdir -p {PROJECT_DIR}/backend/src/middleware
+mkdir -p {PROJECT_DIR}/backend/src/lib
+mkdir -p {PROJECT_DIR}/backend/prisma
+mkdir -p {PROJECT_DIR}/frontend/src/components/ui
+mkdir -p {PROJECT_DIR}/frontend/src/components/layout
+mkdir -p {PROJECT_DIR}/frontend/src/pages
+mkdir -p {PROJECT_DIR}/frontend/src/hooks
+mkdir -p {PROJECT_DIR}/frontend/src/lib
+mkdir -p {PROJECT_DIR}/frontend/public
 ```
 
 ### `.gitignore` (at project root)
@@ -479,15 +480,15 @@ export const api = {
 ### Install Dependencies
 
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/backend && npm install
-cd ~/Desktop/APPs/{APP_SLUG}/frontend && npm install
-cd ~/Desktop/APPs/{APP_SLUG}/frontend && npx shadcn@latest add button card input label --yes 2>/dev/null || true
+cd {PROJECT_DIR}/backend && npm install
+cd {PROJECT_DIR}/frontend && npm install
+cd {PROJECT_DIR}/frontend && npx shadcn@latest add button card input label --yes 2>/dev/null || true
 ```
 
 ### Verify Scaffold
 ```bash
-test -f ~/Desktop/APPs/{APP_SLUG}/backend/node_modules/.package-lock.json && echo "backend: OK" || echo "backend: FAILED"
-test -f ~/Desktop/APPs/{APP_SLUG}/frontend/node_modules/.package-lock.json && echo "frontend: OK" || echo "frontend: FAILED"
+test -f {PROJECT_DIR}/backend/node_modules/.package-lock.json && echo "backend: OK" || echo "backend: FAILED"
+test -f {PROJECT_DIR}/frontend/node_modules/.package-lock.json && echo "frontend: OK" || echo "frontend: FAILED"
 ```
 
 Both must say OK. If either fails, retry `npm install` once. Update checklist ✓.
@@ -641,7 +642,7 @@ Write complete, production-quality code — no stubs, no TODOs, no `as any`.
 
 ### Create `development-log.md`
 
-At the end of the build phase, write `~/Desktop/APPs/{APP_SLUG}/development-log.md`:
+At the end of the build phase, write `{PROJECT_DIR}/development-log.md`:
 
 ```markdown
 # {APP_NAME} — Development Log
@@ -699,31 +700,31 @@ Run these IN ORDER. Fix errors before moving to next step.
 
 ### Step 1: Prisma Generate
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/backend && npx prisma generate 2>&1
+cd {PROJECT_DIR}/backend && npx prisma generate 2>&1
 ```
 Fix schema errors if any. Max 5 retries.
 
 ### Step 2: Prisma DB Push
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/backend && npx prisma db push --accept-data-loss 2>&1
+cd {PROJECT_DIR}/backend && npx prisma db push --accept-data-loss 2>&1
 ```
 If "connection refused" or no local DB — skip this step. DB will be created on Railway.
 
 ### Step 3: Backend TypeScript
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/backend && npx tsc --noEmit 2>&1
+cd {PROJECT_DIR}/backend && npx tsc --noEmit 2>&1
 ```
 Fix ONE error at a time from the top — TypeScript errors cascade. Max 5 retries.
 
 ### Step 4: Frontend TypeScript
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/frontend && npx tsc -b 2>&1
+cd {PROJECT_DIR}/frontend && npx tsc -b 2>&1
 ```
 Fix errors. Max 5 retries.
 
 ### Step 5: Frontend Build
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/frontend && npx vite build 2>&1
+cd {PROJECT_DIR}/frontend && npx vite build 2>&1
 ```
 Fix import errors. Max 3 retries.
 
@@ -747,13 +748,13 @@ Use the `create_agent` MCP tool:
   "agentId": "{APP_SLUG}-dev",
   "name": "{APP_NAME} Developer",
   "description": "Develops and maintains {APP_NAME}",
-  "workspace": "~/Desktop/APPs/{APP_SLUG}",
+  "workspace": "{PROJECT_DIR}",
   "persistent": true,
   "streaming": true,
   "tools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
   "mcps": ["myaiforone"],
   "agentClass": "builder",
-  "instructions": "# {APP_NAME} Developer\n\nYou maintain and develop {APP_NAME}.\n\n## First Thing\nRead `development-log.md` in your workspace to understand the app's architecture, what was built, and the full build history.\n\n## Your Workspace\n`~/Desktop/APPs/{APP_SLUG}/`\n\n## Key Files\n- `development-log.md` — build history and architecture (READ THIS FIRST)\n- `BUILD_CHECKLIST.md` — build phase tracking\n- `backend/` — Express 5 API\n- `frontend/` — React 19 + Vite\n\n## Rules\n- Always update `development-log.md` Change History when you make changes\n- Use shadcn/ui for ALL UI components\n- Run `npx tsc --noEmit` after backend changes to verify\n- Run `npm run build` after frontend changes to verify"
+  "instructions": "# {APP_NAME} Developer\n\nYou maintain and develop {APP_NAME}.\n\n## First Thing\nRead `development-log.md` in your workspace to understand the app's architecture, what was built, and the full build history.\n\n## Your Workspace\n`{PROJECT_DIR}/`\n\n## Key Files\n- `development-log.md` — build history and architecture (READ THIS FIRST)\n- `BUILD_CHECKLIST.md` — build phase tracking\n- `backend/` — Express 5 API\n- `frontend/` — React 19 + Vite\n\n## Rules\n- Always update `development-log.md` Change History when you make changes\n- Use shadcn/ui for ALL UI components\n- Run `npx tsc --noEmit` after backend changes to verify\n- Run `npm run build` after frontend changes to verify"
 }
 ```
 
@@ -767,7 +768,7 @@ Use the `create_app` MCP tool:
   "status": "draft",
   "agentDeveloper": "{APP_SLUG}-dev",
   "provider": "me",
-  "otherDetails": "Workspace: ~/Desktop/APPs/{APP_SLUG}"
+  "otherDetails": "Workspace: {PROJECT_DIR}"
 }
 ```
 
@@ -782,8 +783,8 @@ Update checklist ✓.
 Tell the user: **"Phase 5/7: Starting preview servers..."**
 
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/backend && npm run dev &
-cd ~/Desktop/APPs/{APP_SLUG}/frontend && npm run dev &
+cd {PROJECT_DIR}/backend && npm run dev &
+cd {PROJECT_DIR}/frontend && npm run dev &
 sleep 4
 curl -s http://localhost:3001/api/health
 ```
@@ -817,7 +818,7 @@ Tell the user: **"Phase 6/7: Deploying to Railway..."**
 
 ### Step 1: Git
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}
+cd {PROJECT_DIR}
 git init
 git add -A
 git commit -m "Initial commit: {APP_NAME}"
@@ -833,8 +834,8 @@ If org fails: `gh repo create {APP_SLUG} --private --source=. --push`
 
 Before deploying, consolidate into a single Railway service:
 
-1. Build frontend: `cd ~/Desktop/APPs/{APP_SLUG}/frontend && npm run build`
-2. Copy dist: `cp -r ~/Desktop/APPs/{APP_SLUG}/frontend/dist ~/Desktop/APPs/{APP_SLUG}/backend/public`
+1. Build frontend: `cd {PROJECT_DIR}/frontend && npm run build`
+2. Copy dist: `cp -r {PROJECT_DIR}/frontend/dist {PROJECT_DIR}/backend/public`
 3. Add to `backend/src/index.ts` (after routes, before error handler):
 ```typescript
 import { fileURLToPath } from "url";
@@ -848,7 +849,7 @@ app.get("*", (_req, res) => res.sendFile(join(__dirname, "../public/index.html")
 
 ### Step 4: Railway
 ```bash
-cd ~/Desktop/APPs/{APP_SLUG}/backend
+cd {PROJECT_DIR}/backend
 railway init --name {APP_SLUG}
 railway add --database postgres
 railway variables set PORT=3001 NODE_ENV=production
@@ -923,7 +924,7 @@ Status:  live (visible in Registry at /marketplace)
 Developer agent: @{APP_SLUG}-dev
   Chat with this agent to make changes, redeploy, or maintain the app.
 
-Build log: ~/Desktop/APPs/{APP_SLUG}/development-log.md
+Build log: {PROJECT_DIR}/development-log.md
 ```
 
 Update checklist ✓. Done.

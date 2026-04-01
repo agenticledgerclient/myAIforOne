@@ -791,6 +791,13 @@ server.tool("get_platform_agents", "List platform-managed creator agents (used b
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+server.tool("browse_dirs", "Browse subdirectories of a given path (for Lab directory picker)", {
+  path: z.string().optional().describe("Directory path to list (defaults to home directory, supports ~ prefix)"),
+}, async ({ path }) => {
+  const r = await api.browseDirs(path);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 // ═══════════════════════════════════════════════════════════════════
 //  ADDITIONAL CONFIG — LOGIN
 // ═══════════════════════════════════════════════════════════════════

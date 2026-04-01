@@ -37,7 +37,7 @@ Use the `create_agent` MCP tool with:
   "name": "{APP_NAME} Developer",
   "alias": "@{APP_SLUG}-dev",
   "description": "Develops and maintains {APP_NAME}",
-  "workspace": "~/Desktop/APPs/{APP_SLUG}",
+  "workspace": "{PROJECT_DIR}",
   "persistent": true,
   "streaming": true,
   "advancedMemory": true,
@@ -78,7 +78,7 @@ Status: live (visible in Registry)
 
 Developer agent created:
 - Agent: {APP_NAME} Developer (@{APP_SLUG}-dev)
-- Workspace: ~/Desktop/APPs/{APP_SLUG}
+- Workspace: {PROJECT_DIR}
 - Heartbeat: monitors health and GitHub issues
 
 To make changes, chat with @{APP_SLUG}-dev or edit the code directly in the workspace.

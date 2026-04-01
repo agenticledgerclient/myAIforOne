@@ -48,10 +48,10 @@ If a sub-skill doesn't exist yet, apply the pattern using your best judgment bas
 ### Actions
 1. Read the `ai41_app_scaffold` skill
 2. Follow it exactly — it creates the project directory and all config files deterministically
-3. The workspace is `~/Desktop/APPs/{app-slug}/`
+3. The workspace is `{PROJECT_DIR}/`
 
 ### Exit Checklist
-- [ ] Directory `~/Desktop/APPs/{app-slug}/` exists
+- [ ] Directory `{PROJECT_DIR}/` exists
 - [ ] `backend/package.json` exists with correct dependencies
 - [ ] `frontend/package.json` exists with correct dependencies
 - [ ] `backend/node_modules/` exists (npm install succeeded)

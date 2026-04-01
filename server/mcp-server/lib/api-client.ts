@@ -229,3 +229,4 @@ export const getChatJobRaw = (jobId: string, after?: number) =>
 
 // ─── Lab / Platform Agents ───────────────────────────────────────
 export const getPlatformAgents = () => api("/api/platform-agents");
+export const browseDirs = (path?: string) => api("/api/browse-dirs", { query: { path } });
