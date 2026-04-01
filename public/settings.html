@@ -312,6 +312,7 @@ function renderAccounts() {
     <div class="account-row" id="acc-${escId(name)}">
       <span class="status-dot unknown" id="dot-${escId(name)}" title="Checking..."></span>
       <span class="account-name">${escHtml(name)}</span>
+      <span class="account-email" id="email-${escId(name)}" style="font-size:12px;color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       <span class="account-path" title="${escHtml(accounts[name])}">${escHtml(accounts[name])}</span>
       <button class="btn-icon relogin" onclick="reloginAccount('${escHtml(name)}')" title="Re-authorize">&#x21BA;</button>
       <button class="btn-icon" onclick="deleteAccount('${escHtml(name)}')" title="Remove">&#x2715;</button>
@@ -326,7 +327,9 @@ async function checkStatus(name) {
     const res = await fetch(`/api/config/accounts/${encodeURIComponent(name)}/status`);
     const d = await res.json();
     dot.className = `status-dot ${d.loggedIn ? 'ok' : 'err'}`;
-    dot.title = d.status || (d.loggedIn ? 'Logged in' : 'Not logged in');
+    dot.title = d.loggedIn ? 'Logged in' : 'Not logged in';
+    const emailEl = document.getElementById(`email-${escId(name)}`);
+    if (emailEl && d.email) emailEl.textContent = d.email;
   } catch { dot.className = 'status-dot unknown'; }
 }
 

@@ -323,8 +323,14 @@ export function startWebUI(opts: WebUIOptions): void {
       env.CLAUDE_CONFIG_DIR = resolvedPath;
       let status = "";
       try { status = execSync("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim(); } catch { /* not logged in */ }
-      const loggedIn = status.toLowerCase().includes("logged in") || status.toLowerCase().includes("authenticated");
-      res.json({ loggedIn, status });
+      const loggedIn = status.toLowerCase().includes("logged in") || status.toLowerCase().includes("authenticated") || status.includes('"loggedIn": true') || status.includes('"loggedIn":true');
+      // Try to extract email from JSON or text output
+      let email: string | null = null;
+      try { const parsed = JSON.parse(status); email = parsed.email || null; } catch {
+        const match = status.match(/email[:\s]+"?([^\s",]+@[^\s",]+)/i);
+        if (match) email = match[1];
+      }
+      res.json({ loggedIn, status, email });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
