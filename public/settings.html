@@ -30,17 +30,17 @@
   --green:#16a34a;--green-bg:rgba(22,163,74,0.08);--red:#dc2626;--red-bg:rgba(220,38,38,0.08);
   --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);--shadow:0 1px 8px rgba(0,0,0,0.06);
 }
-html,body{width:100%;min-height:100%;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+html,body{width:100%;min-height:100%;max-width:100vw;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
 
-.topbar{height:56px;display:flex;align-items:center;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;z-index:100}
-.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px}
+.topbar{height:56px;display:flex;align-items:center;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;z-index:100;overflow:hidden;max-width:100vw}
+.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px;flex-shrink:0}
 .logo-mark{width:32px;height:32px;border-radius:8px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent)}
 .logo-text{font-family:var(--font-display);font-size:15px;font-weight:700}
-.tab-group{display:flex;gap:0}
-.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:8px 14px;border-radius:8px;transition:color .2s;white-space:nowrap}
+.tab-group{display:flex;gap:0;flex-shrink:1;min-width:0;overflow-x:auto}
+.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:8px 14px;border-radius:8px;transition:color .2s;white-space:nowrap;flex-shrink:0}
 .tab-btn:hover{color:var(--text-secondary)}
 .tab-btn.active{color:var(--accent)}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .theme-toggle{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
 .theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
