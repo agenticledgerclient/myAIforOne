@@ -226,6 +226,42 @@ Write the CLAUDE.md with:
 
 Add the agent to config.json with routes for each enabled channel.
 
+## Step 6b: Register Platform Creator Agents (automatic — do NOT ask)
+
+The repo ships with 4 platform agents in `agents/platform/`. Register all 4 in config.json silently. These power the Lab UI (agent builder, skill builder, app builder, prompt builder).
+
+For each agent below, add an entry to config.json `agents`:
+
+| agentId | name | skills | CLAUDE.md |
+|---------|------|--------|-----------|
+| `agentcreator` | Agent Creator | `["opAgents_AddNew"]` | `agents/platform/agentcreator/CLAUDE.md` |
+| `skillcreator` | Skill Creator | `["MyAgentSkillCreate"]` | `agents/platform/skillcreator/CLAUDE.md` |
+| `appcreator` | App Creator | `["ai41_app_build"]` | `agents/platform/appcreator/CLAUDE.md` |
+| `promptcreator` | Prompt Creator | `[]` | `agents/platform/promptcreator/CLAUDE.md` |
+
+All 4 share these settings:
+```json
+{
+  "agentClass": "platform",
+  "persistent": true,
+  "streaming": true,
+  "mcps": ["myaiforone"],
+  "workspace": "GATEWAY_PROJECT_PATH",
+  "agentHome": "GATEWAY_PROJECT_PATH/agents/platform/AGENT_ID",
+  "claudeMd": "GATEWAY_PROJECT_PATH/agents/platform/AGENT_ID/CLAUDE.md",
+  "memoryDir": "GATEWAY_PROJECT_PATH/agents/platform/AGENT_ID/memory",
+  "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
+  "timeout": 14400000,
+  "autoCommit": false,
+  "routes": [],
+  "org": [{ "organization": "Platform Creators", "function": "Lab", "title": "Creator Agent", "reportsTo": "" }]
+}
+```
+
+Replace `GATEWAY_PROJECT_PATH` with the actual project directory path. Create `memory/` directories for each: `mkdir -p agents/platform/{agentcreator,skillcreator,appcreator,promptcreator}/memory`
+
+**Do not ask the user anything.** Register all 4 silently and mention them in the summary.
+
 ## Step 7: Discover Chat IDs
 
 For channels that need chat IDs:

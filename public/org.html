@@ -905,11 +905,11 @@ text-decoration:none;}
   <div class="topbar-right">
     <input type="text" id="agentSearch" class="topbar-control" placeholder="Search agents..." oninput="handleSearch()" style="width:160px">
     <div class="class-dropdown" id="classDropdown">
-      <button class="class-dropdown-btn" onclick="toggleClassDropdown()" id="classDropdownBtn">Standard ▾</button>
+      <button class="class-dropdown-btn" onclick="toggleClassDropdown()" id="classDropdownBtn">Standard + Platform ▾</button>
       <div class="class-dropdown-menu" id="classDropdownMenu">
         <div class="class-dropdown-item" onclick="toggleClassFilter('standard')"><span class="check" id="chk-standard">✓</span> Standard</div>
         <div class="class-dropdown-item" onclick="toggleClassFilter('builder')"><span class="check" id="chk-builder">&nbsp;</span> Builder</div>
-        <div class="class-dropdown-item" onclick="toggleClassFilter('platform')"><span class="check" id="chk-platform">&nbsp;</span> Platform</div>
+        <div class="class-dropdown-item" onclick="toggleClassFilter('platform')"><span class="check" id="chk-platform">✓</span> Platform</div>
       </div>
     </div>
     <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
@@ -1214,7 +1214,7 @@ text-decoration:none;}
 
 <script>
 let agents = [];
-let visibleClasses = new Set(['standard']);
+let visibleClasses = new Set(['standard', 'platform']);
 let orgs = [];
 let availableMcps = [];
 let availableAccounts = [];
