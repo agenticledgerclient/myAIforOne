@@ -731,7 +731,7 @@ async function loadArtifacts(){
   try{
     const[agentsRes,appsRes,skillsRes,promptsRes]=await Promise.all([
       fetch('/api/agents'),fetch('/api/apps'),
-      fetch('/api/marketplace/skills'),fetch('/api/marketplace/prompts'),
+      fetch('/api/marketplace/skills?source=personal'),fetch('/api/marketplace/prompts?source=personal'),
     ]);
     const{agents}=await agentsRes.json();
     const apps=await appsRes.json();

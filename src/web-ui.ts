@@ -1203,25 +1203,37 @@ export function startWebUI(opts: WebUIOptions): void {
     // Platform items from registry/{type}.json (committed), personal from PersonalRegistry/{type}.json (outside repo)
     const registryPath = join(opts.baseDir, "registry", `${type}.json`);
     const personalRegistryPath = join(getPersonalRegistryDir(opts.config), `${type}.json`);
+    const source = (req.query.source as string) || "";
 
-    let entries: any[] = [];
+    let platformEntries: any[] = [];
+    let personalEntries: any[] = [];
     try {
       if (existsSync(registryPath)) {
         const data = JSON.parse(readFileSync(registryPath, "utf-8"));
-        entries = data[type] || [];
+        platformEntries = data[type] || [];
       }
     } catch {
       return res.status(500).json({ error: "Failed to read registry" });
     }
-    // Merge personal items (personal overrides platform for same id)
     try {
       if (existsSync(personalRegistryPath)) {
         const personalData = JSON.parse(readFileSync(personalRegistryPath, "utf-8"));
-        const personalEntries: any[] = personalData[type] || [];
-        const personalIds = new Set(personalEntries.map((e: any) => e.id));
-        entries = [...entries.filter((e: any) => !personalIds.has(e.id)), ...personalEntries];
+        personalEntries = personalData[type] || [];
       }
     } catch { /* ignore missing personal file */ }
+
+    // source=personal → only personal registry items (Library)
+    // source=platform → only platform registry items (Marketplace)
+    // no source → merged (backward compat)
+    let entries: any[];
+    const personalIds = new Set(personalEntries.map((e: any) => e.id));
+    if (source === "personal") {
+      entries = personalEntries;
+    } else if (source === "platform") {
+      entries = platformEntries;
+    } else {
+      entries = [...platformEntries.filter((e: any) => !personalIds.has(e.id)), ...personalEntries];
+    }
 
     if (entries.length === 0 && !existsSync(registryPath) && !existsSync(personalRegistryPath)) {
       return res.json({ items: [] });
@@ -1260,7 +1272,7 @@ export function startWebUI(opts: WebUIOptions): void {
           if ((agent as any).prompts?.includes(id)) assignedTo.push(agentId);
         }
       } else if (type === "mcps") {
-        installed = !!(opts.config.mcps as any)?.[entry.id];
+        installed = personalIds.has(entry.id) || !!(opts.config.mcps as any)?.[entry.id];
         for (const [agentId, agent] of Object.entries(opts.config.agents)) {
           if ((agent as any).mcps?.includes(entry.id)) assignedTo.push(agentId);
         }

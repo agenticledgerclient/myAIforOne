@@ -397,7 +397,7 @@ function switchType(type){
 async function loadItems(){
   document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)">Loading…</div>';
   try{
-    const d = await (await fetch(`/api/marketplace/${currentType}`)).json();
+    const d = await (await fetch(`/api/marketplace/${currentType}?source=personal`)).json();
     allItems = (d.items||[]);
     buildPills();
     render();

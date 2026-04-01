@@ -389,7 +389,7 @@ function switchType(type){
 async function loadItems(){
   document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)">Loading…</div>';
   try{
-    const d = await (await fetch(`/api/marketplace/${currentType}`)).json();
+    const d = await (await fetch(`/api/marketplace/${currentType}?source=platform`)).json();
     allItems = d.items||[];
     buildPills();
     render();
@@ -454,8 +454,7 @@ function renderSections(items){
   // Marketplace: show everything except personal (those are in My Library)
   const available = items.filter(i=>i.provider!=='me');
 
-  const actionBtn = typeSingular==='app'
-    ? `<button class="btn-sm btn-sm-accent section-action" onclick="toggleRegisterAppPanel()">⊕ Register App</button>` : '';
+  const actionBtn = '';
 
   let html = '<div class="sections">';
   html += `<div>
