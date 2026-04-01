@@ -1,20 +1,3 @@
 {
-  "agents": [
-    {
-      "id": "general-assistant",
-      "name": "General Assistant",
-      "provider": "AgenticLedger",
-      "description": "A general-purpose agent for everyday tasks.",
-      "category": "general",
-      "verified": true,
-      "source": "agenticledger/platform",
-      "tags": [
-        "general"
-      ],
-      "localPath": "registry/agents/platform/general-assistant",
-      "fetch": {
-        "type": "file"
-      }
-    }
-  ]
+  "agents": []
 }
