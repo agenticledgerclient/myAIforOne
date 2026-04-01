@@ -1077,6 +1077,8 @@ async function doAddApp(){
 }
 
 // ─── Init ─────────────────────────────────────────────────────────
+const _typeParam = new URLSearchParams(window.location.search).get('type');
+if(_typeParam) switchType(_typeParam);
 loadAgents();
 loadTrigger();
 loadItems();

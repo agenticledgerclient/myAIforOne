@@ -503,19 +503,25 @@ function closeAddChoices(id){
 }
 
 function sectionPersonal(items, typeSingular){
+  const mktType = typeSingular==='mcp' ? 'mcps' : typeSingular+'s';
   const actionBtn = typeSingular==='app'
     ? addSplitBtn('app','App',[
         ['Register', "toggleRegisterAppPanel()"],
-        ['Build', "window.location='/lab'", true]])
+        ['Build', "window.location='/lab'", true],
+        ['Marketplace', `window.location='/marketplace?type=${mktType}'`]])
     : typeSingular==='skill'
     ? addSplitBtn('skill','Skill',[
         ['Scan', "toggleScanPanel()"],
-        ['Build', "window.location='/lab'", true]])
+        ['Build', "window.location='/lab'", true],
+        ['Marketplace', `window.location='/marketplace?type=${mktType}'`]])
     : typeSingular==='prompt'
     ? addSplitBtn('prompt','Prompt',[
         ['Paste', "toggleCreatePromptPanel()"],
-        ['Build', "window.location='/lab'", true]])
-    : `<button class="btn-sm btn-sm-accent section-action" onclick="toggleAddMcpPanel()">⊕ Add MCP</button>`;
+        ['Build', "window.location='/lab'", true],
+        ['Marketplace', `window.location='/marketplace?type=${mktType}'`]])
+    : addSplitBtn('mcp','MCP',[
+        ['Add', "toggleAddMcpPanel()"],
+        ['Marketplace', `window.location='/marketplace?type=${mktType}'`]]);
 
   const panelHtml = typeSingular==='skill' ? scanPanelHtml() : typeSingular==='prompt' ? createPromptPanelHtml() : typeSingular==='app' ? registerAppPanelHtml() : addMcpPanelHtml();
 
