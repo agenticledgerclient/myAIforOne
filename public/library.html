@@ -507,17 +507,17 @@ function sectionPersonal(items, typeSingular){
   const actionBtn = typeSingular==='app'
     ? addSplitBtn('app','App',[
         ['Register', "toggleRegisterAppPanel()"],
-        ['Build', "window.location='/lab'", true],
+        ['AI Build', "window.location='/lab?build=app'", true],
         ['Marketplace', `window.location='/marketplace?type=${mktType}'`]])
     : typeSingular==='skill'
     ? addSplitBtn('skill','Skill',[
         ['Scan', "toggleScanPanel()"],
-        ['Build', "window.location='/lab'", true],
+        ['AI Build', "window.location='/lab?build=skill'", true],
         ['Marketplace', `window.location='/marketplace?type=${mktType}'`]])
     : typeSingular==='prompt'
     ? addSplitBtn('prompt','Prompt',[
         ['Paste', "toggleCreatePromptPanel()"],
-        ['Build', "window.location='/lab'", true],
+        ['AI Build', "window.location='/lab?build=prompt'", true],
         ['Marketplace', `window.location='/marketplace?type=${mktType}'`]])
     : addSplitBtn('mcp','MCP',[
         ['Add', "toggleAddMcpPanel()"],

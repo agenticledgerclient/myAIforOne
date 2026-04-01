@@ -1608,6 +1608,8 @@ function dirPickerNewFolder(){
 
 // ── Init ──
 loadArtifacts();
+const _buildType = new URLSearchParams(window.location.search).get('build');
+if(_buildType) showIntake(_buildType);
 </script>
 
 <!-- Directory Picker Modal -->
