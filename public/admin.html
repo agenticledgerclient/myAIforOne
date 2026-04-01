@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;--bg-surface:rgba(12,18,33,0.92);--bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);--border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);--border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);--text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);--accent:#22d3ee;--accent-bg:rgba(6,182,212,0.15);
+  --purple:rgba(139,92,246,0.7);--purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);--shadow-glow:0 0 20px rgba(34,211,238,0.08);--radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);--border-dim:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.18);--border-active:rgba(14,116,144,0.45);
+  --text-primary:rgba(15,23,42,0.92);--text-secondary:rgba(51,65,85,0.8);
+  --text-muted:rgba(100,116,139,0.6);--accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
+  --purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);--red:#dc2626;--red-bg:rgba(220,38,38,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);--shadow:0 1px 8px rgba(0,0,0,0.06);--shadow-glow:none;
+}
+html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+/* ── Topbar ── */
+.topbar{height:56px;display:flex;align-items:center;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;z-index:100;overflow:hidden;max-width:100vw}
+.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px;flex-shrink:0}
+.logo-mark{width:32px;height:32px;border-radius:8px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--accent)}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700}
+.tab-group{display:flex;gap:0;flex-shrink:1;min-width:0;overflow-x:auto}
+.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;padding:16px 14px;cursor:pointer;position:relative;transition:color .2s;text-decoration:none;display:block;white-space:nowrap;flex-shrink:0}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.theme-toggle{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.gear-btn{height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;letter-spacing:.03em;padding:0 10px;transition:all .2s;text-decoration:none;white-space:nowrap}
+.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.docs-dropdown{position:relative;display:inline-block}
+.docs-menu{display:none;position:absolute;top:40px;right:0;min-width:160px;background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;padding:4px;backdrop-filter:blur(20px)}
+.docs-menu.open{display:block}
+.docs-menu a{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:6px;transition:all .15s}
+.docs-menu a:hover{background:var(--accent-bg);color:var(--accent)}
+.docs-menu a .dm-icon{font-size:14px;width:18px;text-align:center}
+
+/* ── Admin tab bar (below topbar) ── */
+.admin-nav{position:fixed;top:56px;left:0;right:0;z-index:99;height:44px;display:flex;align-items:center;gap:2px;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.type-tab{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:6px 18px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s}
+.type-tab:hover{color:var(--text-secondary)}
+.type-tab.active{background:var(--accent-bg);color:var(--accent);border:1px solid var(--border-active)}
+
+/* ── Canvas ── */
+.canvas{position:fixed;top:100px;left:0;right:0;bottom:0;overflow:auto}
+
+/* ── Tab panels ── */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* ── CHANNELS TAB ── */
+/* ─────────────────────────────────────────────────────────────── */
+.channels-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:24px;padding:24px 40px}
+.org-title-banner{font-family:var(--font-display);font-size:20px;font-weight:800;padding:24px 40px 0;color:var(--text-primary)}
+.empty-org{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;color:var(--text-muted)}
+.empty-org-icon{font-size:48px;opacity:.3;margin-bottom:12px}
+.empty-org-text{font-size:14px;font-weight:500;margin-bottom:4px}
+
+.channel-card{width:480px;max-width:94vw;background:var(--bg-card);border:1px solid var(--border-glow);border-radius:16px;overflow:hidden;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--shadow);transition:all .3s}
+.channel-card:hover{box-shadow:var(--shadow),var(--shadow-glow)}
+.channel-card-header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-dim)}
+.channel-card-icon{width:36px;height:36px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.channel-card-name{font-family:var(--font-display);font-size:15px;font-weight:700;text-transform:capitalize}
+.channel-status-pill{margin-left:auto;font-family:var(--font-mono);font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em}
+.channel-status-pill.enabled{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.2)}
+.channel-status-pill.disabled{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.2)}
+
+.channel-card-body{padding:16px 20px}
+.channel-setting-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.channel-setting-label{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);min-width:100px;flex-shrink:0}
+.channel-setting-input{padding:6px 10px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color .2s}
+.channel-setting-input:focus{border-color:var(--accent)}
+.channel-setting-select{padding:6px 10px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-mono);font-size:12px;outline:none;cursor:pointer}
+.channel-save-btn{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:6px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;transition:all .2s;margin-top:4px}
+.channel-save-btn:hover{filter:brightness(1.1)}
+.channel-save-btn:disabled{opacity:.5;cursor:not-allowed}
+.channel-section-title{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border-dim)}
+.channel-agent-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px}
+.channel-agent-name{font-family:var(--font-sans);font-weight:600;color:var(--text-primary)}
+.channel-agent-alias{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.channel-agent-chatid{font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);margin-left:auto}
+.channel-agent-remove{width:22px;height:22px;border-radius:5px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s}
+.channel-agent-remove:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
+.channel-add-row{display:flex;gap:6px;align-items:center;margin-top:8px}
+.channel-add-select,.channel-add-input{padding:6px 8px;border-radius:7px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-mono);font-size:11px;outline:none}
+.channel-add-select{width:140px}
+.channel-add-input{flex:1;min-width:80px}
+.channel-add-btn{font-family:var(--font-mono);font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:7px;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all .2s}
+.channel-add-btn:hover{background:var(--accent-bg)}
+.monitored-ids{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.monitored-pill{font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:5px;background:var(--bg-input);border:1px solid var(--border-dim);color:var(--text-secondary);display:flex;align-items:center;gap:4px}
+.monitored-pill button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0 2px;transition:color .2s}
+.monitored-pill button:hover{color:#ef4444}
+.channel-restart-note{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-top:8px;opacity:.7}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* ── ACTIVITY TAB ── */
+/* ─────────────────────────────────────────────────────────────── */
+.activity-toolbar{padding:14px 40px;display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid var(--border-dim);background:var(--bg-surface)}
+.filter-select{padding:6px 12px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;cursor:pointer;transition:border-color .2s;outline:none}
+.filter-select:focus{border-color:var(--border-active)}
+.search-input{flex:1;min-width:200px;padding:6px 14px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:13px;transition:border-color .2s;outline:none}
+.search-input:focus{border-color:var(--border-active)}
+.search-input::placeholder{color:var(--text-muted)}
+.result-count{font-size:11px;color:var(--text-muted)}
+.activity-list{padding:12px 40px}
+.activity-list::-webkit-scrollbar{width:4px}
+.activity-list::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+.activity-entry{padding:12px 16px;margin-bottom:6px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border-dim);transition:all .2s;cursor:pointer}
+.activity-entry:hover{border-color:var(--border-glow)}
+.activity-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.activity-avatar{width:28px;height:28px;border-radius:7px;flex-shrink:0;background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent)}
+.activity-agent{font-size:13px;font-weight:600;color:var(--accent)}
+.activity-channel{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--purple-bg);color:var(--purple);font-weight:500}
+.activity-time{font-size:11px;color:var(--text-muted);margin-left:auto}
+.activity-query{font-size:13px;color:var(--text-primary);margin-bottom:4px;line-height:1.5}
+.activity-response{font-size:12px;color:var(--text-secondary);line-height:1.5;max-height:0;overflow:hidden;transition:max-height .3s ease;border-top:1px solid transparent}
+.activity-entry.expanded .activity-response{max-height:500px;overflow-y:auto;padding-top:8px;margin-top:8px;border-top-color:var(--border-dim)}
+.activity-expand{font-size:10px;color:var(--text-muted);cursor:pointer}
+.no-activity{text-align:center;padding:40px;color:var(--text-muted);font-size:14px}
+.loading-msg{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* ── SETTINGS TAB ── */
+/* ─────────────────────────────────────────────────────────────── */
+.settings-page{padding:28px 40px 60px;max-width:820px;margin:0 auto}
+.page-title{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:4px}
+.page-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:36px}
+.section{background:var(--bg-card);border:1px solid var(--border-glow);border-radius:var(--radius);margin-bottom:24px;overflow:hidden}
+.section-header{padding:16px 20px;border-bottom:1px solid var(--border-dim);display:flex;align-items:center;gap:10px}
+.section-icon{width:28px;height:28px;border-radius:7px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--accent);flex-shrink:0}
+.section-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent)}
+.section-body{padding:16px 20px}
+.account-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border-dim)}
+.account-row:last-of-type{border-bottom:none}
+.account-name{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent);min-width:90px}
+.account-path{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px rgba(74,222,128,0.5)}
+.status-dot.unknown{background:var(--text-muted)}
+.status-dot.err{background:var(--red)}
+.btn-icon{width:26px;height:26px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.btn-icon:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.btn-icon.relogin:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.divider{border:none;border-top:1px solid var(--border-dim);margin:16px 0}
+.form-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}
+.field-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.field label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}
+.field input{padding:8px 10px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color .2s;width:100%}
+.field input:focus{border-color:var(--border-active)}
+.field input::placeholder{color:var(--text-muted)}
+.btn-primary{padding:8px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;align-self:flex-end;flex-shrink:0}
+.btn-primary:hover{background:var(--accent);color:#000}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6}
+.hint code{font-family:var(--font-mono);font-size:10px;background:var(--bg-input);padding:1px 5px;border-radius:4px}
+.login-panel{margin-top:14px;padding:16px;border-radius:10px;border:1px solid var(--border-dim);background:var(--bg-input);display:none}
+.login-panel.visible{display:block}
+.login-panel-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.login-url-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.login-url{font-family:var(--font-mono);font-size:11px;color:var(--accent);word-break:break-all;flex:1;min-width:0;user-select:all}
+.btn-copy{padding:5px 12px;border-radius:7px;border:1px solid var(--border-glow);background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.btn-copy:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.btn-open{padding:5px 12px;border-radius:7px;border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.btn-open:hover{background:var(--accent);color:#000}
+.code-input-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.code-input-row input{flex:1;min-width:160px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-deep);color:var(--text-primary);font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color .2s}
+.code-input-row input:focus{border-color:var(--border-active)}
+.code-input-row input::placeholder{color:var(--text-muted)}
+.login-status-msg{font-size:12px;color:var(--text-muted);min-height:16px}
+.btn-verify{padding:7px 16px;border-radius:7px;border:1px solid var(--green);background:var(--green-bg);color:var(--green);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-verify:hover{background:var(--green);color:#000}
+.btn-verify:disabled{opacity:.45;cursor:not-allowed}
+.service-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.service-grid{grid-template-columns:1fr}}
+.btn-save{padding:8px 20px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:14px}
+.btn-save:hover{background:var(--accent);color:#000}
+.empty{padding:20px 0;text-align:center;color:var(--text-muted);font-size:12px}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* ── DOCS TAB ── */
+/* ─────────────────────────────────────────────────────────────── */
+.docs-page{padding:28px 40px 60px;max-width:820px;margin:0 auto}
+.docs-cards{display:flex;flex-direction:column;gap:14px;margin-top:20px}
+.docs-card{display:flex;align-items:center;gap:16px;padding:20px 24px;background:var(--bg-card);border:1px solid var(--border-glow);border-radius:var(--radius);text-decoration:none;color:var(--text-primary);transition:all .25s}
+.docs-card:hover{border-color:var(--border-active);box-shadow:var(--shadow),var(--shadow-glow);transform:translateY(-1px)}
+.docs-card-icon{width:40px;height:40px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--accent);flex-shrink:0}
+.docs-card-body{flex:1}
+.docs-card-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent);margin-bottom:3px}
+.docs-card-desc{font-size:12px;color:var(--text-muted)}
+.docs-card-arrow{font-size:18px;color:var(--text-muted);flex-shrink:0}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:var(--green-bg);border:1px solid var(--green);color:var(--green)}
+.toast.err{background:var(--red-bg);border:1px solid var(--red);color:var(--red)}
+.toast.info{background:var(--accent-bg);border:1px solid var(--accent);color:var(--accent)}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-mark">A</div>
+    <div class="logo-text">MyAIforOne</div>
+  </div>
+  <nav class="tab-group">
+    <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn" href="/library">Library</a>
+    <a class="tab-btn" href="/marketplace">Marketplace</a>
+    <a class="tab-btn" href="/lab">Lab</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="docs-dropdown" id="docsDropdown">
+      <button class="gear-btn" onclick="document.getElementById('docsMenu').classList.toggle('open')" title="Documentation">&#9776;</button>
+      <div class="docs-menu" id="docsMenu">
+        <a href="/api-docs#api" target="_blank"><span class="dm-icon">&#9881;</span> API Docs</a>
+        <a href="/api-docs#mcp" target="_blank"><span class="dm-icon">&#9830;</span> MCP Tools</a>
+        <a href="/changelog"><span class="dm-icon">&#x29C9;</span> Changelog</a>
+      </div>
+    </div>
+    <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">&#9728;</button>
+  </div>
+</div>
+
+<!-- ── Admin tab nav ── -->
+<div class="admin-nav">
+  <button class="type-tab" data-tab="channels" onclick="switchTab('channels')">Channels</button>
+  <button class="type-tab" data-tab="activity" onclick="switchTab('activity')">Activity</button>
+  <button class="type-tab active" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+  <button class="type-tab" data-tab="docs" onclick="switchTab('docs')">Docs</button>
+</div>
+
+<!-- ── Canvas ── -->
+<div class="canvas">
+
+  <!-- ═══════════════════════════ CHANNELS TAB ═══════════════════════════ -->
+  <div class="tab-panel" id="panel-channels">
+    <div id="channelsPanelRoot"><div class="loading-msg">Loading channels...</div></div>
+  </div>
+
+  <!-- ═══════════════════════════ ACTIVITY TAB ═══════════════════════════ -->
+  <div class="tab-panel" id="panel-activity">
+    <div class="activity-toolbar">
+      <select class="filter-select" id="agentFilter" onchange="fetchActivity()">
+        <option value="">All Agents</option>
+      </select>
+      <select class="filter-select" id="channelFilter" onchange="renderActivity()">
+        <option value="">All Channels</option>
+        <option value="web">Web</option>
+        <option value="telegram">Telegram</option>
+        <option value="slack">Slack</option>
+        <option value="imessage">iMessage</option>
+        <option value="goals">Goals</option>
+        <option value="delegate">Delegate</option>
+      </select>
+      <input class="search-input" id="searchInput" placeholder="Search messages..." oninput="debounceSearch()">
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div class="activity-list" id="activityList">
+      <div class="loading-msg">Loading activity...</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SETTINGS TAB ═══════════════════════════ -->
+  <div class="tab-panel active" id="panel-settings">
+    <div class="settings-page">
+      <div class="page-title">Settings</div>
+      <div class="page-subtitle">Manage Claude accounts, service options, and global defaults.</div>
+
+      <!-- ── Claude Accounts ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">&#9881;</div>
+          <div><div class="section-title">Claude Accounts</div></div>
+        </div>
+        <div class="section-body">
+          <div id="accountsList"><div class="empty">Loading...</div></div>
+          <hr class="divider">
+          <div class="form-label">Add Account</div>
+          <div class="field-row">
+            <div class="field" style="max-width:200px">
+              <label>Account Name</label>
+              <input id="newAccName" placeholder="main, work, personal…" />
+            </div>
+            <button class="btn-primary" id="startLoginBtn" onclick="startLogin()">&#x2192; Login &amp; Add</button>
+          </div>
+          <div class="login-panel" id="loginPanel">
+            <div class="login-panel-title">Authorize Claude Account</div>
+            <div id="loginPanelBody"></div>
+          </div>
+          <div class="hint">
+            The config directory is derived automatically from the account name — <code>main</code> uses <code>~/.claude</code>, any other name uses <code>~/.claude-{name}</code>.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Service ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">&#9670;</div>
+          <div><div class="section-title" style="color:var(--purple)">Service</div></div>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">Restart required for most changes</span>
+        </div>
+        <div class="section-body">
+          <div class="service-grid">
+            <div class="field">
+              <label>Personal Agents Directory</label>
+              <input id="svcAgentsDir" placeholder="~/Desktop/MyAIforOne Drive/PersonalAgents" />
+            </div>
+            <div class="field">
+              <label>Personal Registry Directory</label>
+              <input id="svcRegistryDir" placeholder="~/Desktop/MyAIforOne Drive/PersonalRegistry" />
+            </div>
+            <div class="field">
+              <label>Web UI Port</label>
+              <input id="svcPort" type="number" placeholder="4888" />
+            </div>
+            <div class="field">
+              <label>Log Level</label>
+              <input id="svcLogLevel" placeholder="info" />
+            </div>
+          </div>
+          <button class="btn-save" onclick="saveService()">Save</button>
+        </div>
+      </div>
+
+      <!-- ── Deployment ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:var(--green-bg);border-color:var(--green);color:var(--green)">&#9652;</div>
+          <div><div class="section-title" style="color:var(--green)">Deployment</div></div>
+        </div>
+        <div class="section-body">
+          <div class="service-grid">
+            <div class="field">
+              <label>Provider</label>
+              <input id="depProvider" placeholder="railway" />
+            </div>
+            <div class="field">
+              <label>Deploy Token <span id="depTokenReveal" onclick="toggleReveal('depToken','depTokenReveal')" style="cursor:pointer;font-size:10px;color:var(--accent);margin-left:4px">show</span></label>
+              <input id="depToken" type="password" placeholder="••••••••" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label>GitHub Org / User</label>
+              <input id="depGithubOrg" placeholder="myorg" />
+            </div>
+            <div class="field">
+              <label>GitHub Token <span id="depGithubTokenReveal" onclick="toggleReveal('depGithubToken','depGithubTokenReveal')" style="cursor:pointer;font-size:10px;color:var(--accent);margin-left:4px">show</span></label>
+              <input id="depGithubToken" type="password" placeholder="••••••••" autocomplete="off" />
+            </div>
+          </div>
+          <button class="btn-save" onclick="saveDeployment()">Save</button>
+        </div>
+      </div>
+
+      <!-- ── Status Indicator ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(168,85,247,0.15);border-color:#a855f7;color:#a855f7">&#9679;</div>
+          <div>
+            <div class="section-title">Status Indicator</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Show a live status dot in your menu bar (Mac) or system tray (Windows)</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">
+            Adds a small green/red indicator that shows if MyAgent is running. Click it to see agent count, uptime, and quick links. You can restart or stop the service from the menu.
+          </p>
+          <div id="indicatorInstallArea"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ DOCS TAB ═══════════════════════════ -->
+  <div class="tab-panel" id="panel-docs">
+    <div class="docs-page">
+      <div class="page-title">Docs</div>
+      <div class="page-subtitle">Reference documentation for the MyAgent API, MCP tools, and changelog.</div>
+      <div class="docs-cards">
+        <a class="docs-card" href="/api-docs#api" target="_blank">
+          <div class="docs-card-icon">&#9881;</div>
+          <div class="docs-card-body">
+            <div class="docs-card-title">API Docs</div>
+            <div class="docs-card-desc">Full REST API reference — endpoints, request/response schemas, authentication.</div>
+          </div>
+          <span class="docs-card-arrow">&#x2197;</span>
+        </a>
+        <a class="docs-card" href="/api-docs#mcp" target="_blank">
+          <div class="docs-card-icon">&#9830;</div>
+          <div class="docs-card-body">
+            <div class="docs-card-title">MCP Tools</div>
+            <div class="docs-card-desc">Model Context Protocol tool definitions — available actions agents can invoke via MCP.</div>
+          </div>
+          <span class="docs-card-arrow">&#x2197;</span>
+        </a>
+        <a class="docs-card" href="/changelog">
+          <div class="docs-card-icon">&#x29C9;</div>
+          <div class="docs-card-body">
+            <div class="docs-card-title">Changelog</div>
+            <div class="docs-card-desc">Release history — feature additions, fixes, and breaking changes by version.</div>
+          </div>
+          <span class="docs-card-arrow">&#x2192;</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /canvas -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Theme ──────────────────────────────────────────────────────────────
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  localStorage.setItem('theme',t);
+  document.getElementById('themeBtn').textContent = t === 'light' ? '🌙' : '☀️';
+}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')}
+(function(){
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  setTimeout(() => { document.getElementById('themeBtn').textContent = saved === 'light' ? '🌙' : '☀️'; }, 0);
+})();
+
+// ── Toast ──────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────
+const TABS = ['channels','activity','settings','docs'];
+
+function switchTab(name) {
+  if (!TABS.includes(name)) name = 'settings';
+  TABS.forEach(t => {
+    document.getElementById('panel-' + t).classList.toggle('active', t === name);
+    document.querySelector(`.type-tab[data-tab="${t}"]`).classList.toggle('active', t === name);
+  });
+  // Lazy-load tab data
+  if (name === 'channels' && !channelsLoaded) loadChannels();
+  if (name === 'activity' && !activityLoaded) initActivity();
+  if (name === 'settings' && !settingsLoaded) { loadAccounts(); loadService(); settingsLoaded = true; }
+  // Update URL param
+  const url = new URL(location.href);
+  url.searchParams.set('tab', name);
+  history.replaceState(null, '', url.toString());
+}
+
+// Read tab from URL on load
+(function(){
+  const params = new URLSearchParams(location.search);
+  const tab = params.get('tab');
+  switchTab(TABS.includes(tab) ? tab : 'settings');
+})();
+
+// ──────────────────────────────────────────────────────────────────────
+// ── CHANNELS ──────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────
+let channelsData = [];
+let channelAgents = [];
+let channelsLoaded = false;
+
+const channelIcons = {
+  telegram: '✈️', slack: '💬', discord: '🎮', imessage: '💬', whatsapp: '📲',
+};
+
+async function loadChannels() {
+  channelsLoaded = true;
+  const root = document.getElementById('channelsPanelRoot');
+  try {
+    const [chRes, dashRes] = await Promise.all([
+      fetch('/api/channels'),
+      fetch('/api/dashboard'),
+    ]);
+    channelsData = (await chRes.json()).channels || [];
+    const dash = await dashRes.json();
+    channelAgents = dash.agents || [];
+    renderChannelsPanel(root);
+  } catch(e) {
+    root.innerHTML = '<div class="no-activity">Failed to load channels: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+async function refreshChannels() {
+  const root = document.getElementById('channelsPanelRoot');
+  try {
+    const [chRes, dashRes] = await Promise.all([fetch('/api/channels'), fetch('/api/dashboard')]);
+    channelsData = (await chRes.json()).channels || [];
+    channelAgents = (await dashRes.json()).agents || [];
+    renderChannelsPanel(root);
+  } catch {}
+}
+
+function renderChannelsPanel(canvas) {
+  if (!channelsData || channelsData.length === 0) {
+    canvas.innerHTML = '<div class="empty-org"><div class="empty-org-icon">📡</div><div class="empty-org-text">No channels configured</div></div>';
+    return;
+  }
+
+  let html = '<div class="org-title-banner">Channels</div><div class="channels-grid">';
+
+  for (const ch of channelsData) {
+    const icon = channelIcons[ch.name] || '🔗';
+    const statusClass = ch.enabled ? 'enabled' : 'disabled';
+    const statusText = ch.enabled ? 'Connected' : 'Disabled';
+    const timeoutMin = Math.round((ch.stickyTimeoutMs || 300000) / 60000);
+
+    html += `<div class="channel-card" id="ch-card-${ch.name}">
+      <div class="channel-card-header">
+        <div class="channel-card-icon">${icon}</div>
+        <div class="channel-card-name">${escHtml(ch.name)}</div>
+        <span class="channel-status-pill ${statusClass}">${statusText}</span>
+      </div>
+      <div class="channel-card-body">
+        <div class="channel-setting-row">
+          <span class="channel-setting-label">Sticky Mode</span>
+          <select class="channel-setting-select" id="ch-sticky-${ch.name}" onchange="togglePrefixVisibility('${ch.name}')">
+            <option value="none" ${ch.stickyRouting==='none'?'selected':''}>None</option>
+            <option value="sticky" ${ch.stickyRouting==='sticky'?'selected':''}>Sticky</option>
+            <option value="prefix" ${ch.stickyRouting==='prefix'?'selected':''}>Prefix</option>
+          </select>
+        </div>
+        <div class="channel-setting-row" id="ch-prefix-row-${ch.name}" style="${ch.stickyRouting==='prefix'?'':'display:none'}">
+          <span class="channel-setting-label">Prefix</span>
+          <input class="channel-setting-input" id="ch-prefix-${ch.name}" value="${escHtml(ch.stickyPrefix || '!')}" style="width:60px">
+        </div>
+        <div class="channel-setting-row">
+          <span class="channel-setting-label">Timeout (min)</span>
+          <input class="channel-setting-input" id="ch-timeout-${ch.name}" type="number" min="1" value="${timeoutMin}" style="width:80px">
+        </div>
+        <button class="channel-save-btn" onclick="saveChannelSettings('${ch.name}')">Save Settings</button>
+        <div class="channel-restart-note">Changes require service restart to take effect</div>`;
+
+    // iMessage monitored chat IDs
+    if (ch.name === 'imessage' && ch.monitoredChatIds) {
+      html += `<div class="channel-section-title">Monitored Chat IDs</div>
+        <div class="monitored-ids" id="ch-monitored-${ch.name}">`;
+      for (const mid of ch.monitoredChatIds) {
+        html += `<div class="monitored-pill">${mid}<button onclick="removeMonitoredId(${mid})">&times;</button></div>`;
+      }
+      html += `</div>
+        <div class="channel-add-row" style="margin-top:6px">
+          <input class="channel-add-input" id="ch-addmon-${ch.name}" type="number" placeholder="Chat ID (number)" style="width:140px">
+          <button class="channel-add-btn" onclick="addMonitoredId('${ch.name}')">+ Add</button>
+        </div>`;
+    }
+
+    // Agents grouped by chat ID
+    const chatGroups = {};
+    for (const ag of ch.agents) {
+      if (!chatGroups[ag.chatId]) chatGroups[ag.chatId] = [];
+      chatGroups[ag.chatId].push(ag);
+    }
+    const chatIds = Object.keys(chatGroups).sort();
+    html += `<div class="channel-section-title" style="display:flex;align-items:center;gap:8px">
+      Chat Groups
+      <select class="channel-setting-select" id="ch-chatfilter-${ch.name}" onchange="filterChatGroup('${ch.name}')" style="font-size:11px;padding:2px 6px">
+        <option value="">All (${chatIds.length} chats, ${ch.agents.length} routes)</option>
+        ${chatIds.map(cid => `<option value="${cid}">Chat ${escHtml(cid)} (${chatGroups[cid].length})</option>`).join('')}
+      </select>
+    </div>`;
+    if (chatIds.length === 0) {
+      html += '<div style="font-size:12px;color:var(--text-muted);padding:4px 0">No agents on this channel</div>';
+    } else {
+      for (const cid of chatIds) {
+        const agentsInChat = chatGroups[cid];
+        html += `<div class="ch-chatgroup-${ch.name}" data-chatid="${escHtml(cid)}" style="margin:8px 0 4px;padding:6px 10px;background:rgba(139,92,246,0.05);border:1px solid var(--border-dim);border-radius:8px">
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px">Chat ${escHtml(cid)} <span style="font-weight:400;color:var(--text-muted)">(${agentsInChat.length} agent${agentsInChat.length>1?'s':''})</span></div>`;
+        for (const ag of agentsInChat) {
+          html += `<div class="channel-agent-row">
+            <span class="channel-agent-name">${escHtml(ag.agentName)}</span>
+            <span class="channel-agent-alias">${escHtml(ag.alias)}</span>
+            <button class="channel-agent-remove" onclick="removeChannelAgent('${ch.name}','${escHtml(ag.agentId)}','${escHtml(ag.chatId)}')" title="Remove route">&times;</button>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+    }
+
+    // Add agent
+    const agentIdsOnChannel = new Set(ch.agents.map(a => a.agentId));
+    const availableAgents = channelAgents.filter(a => !agentIdsOnChannel.has(a.id));
+    html += `<div class="channel-add-row">
+      <select class="channel-add-select" id="ch-addagent-${ch.name}">
+        ${availableAgents.length === 0 ? '<option value="">All agents added</option>' :
+          '<option value="">Select agent...</option>' + availableAgents.map(a => `<option value="${a.id}">${escHtml(a.name)} (${a.aliases?.[0] || a.id})</option>`).join('')}
+      </select>
+      <input class="channel-add-input" id="ch-addchatid-${ch.name}" placeholder="Chat/Channel ID">
+      <button class="channel-add-btn" onclick="addChannelAgent('${ch.name}')" ${availableAgents.length===0?'disabled':''}>+ Add Agent</button>
+    </div>`;
+
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  canvas.innerHTML = html;
+}
+
+function togglePrefixVisibility(channelName) {
+  const mode = document.getElementById('ch-sticky-' + channelName).value;
+  document.getElementById('ch-prefix-row-' + channelName).style.display = mode === 'prefix' ? '' : 'none';
+}
+
+async function saveChannelSettings(channelName) {
+  const mode = document.getElementById('ch-sticky-' + channelName).value;
+  const prefix = document.getElementById('ch-prefix-' + channelName)?.value || '!';
+  const timeoutMin = parseInt(document.getElementById('ch-timeout-' + channelName).value) || 5;
+  const timeoutMs = timeoutMin * 60000;
+  try {
+    const res = await fetch('/api/channels/' + channelName, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ stickyRouting: mode, stickyPrefix: prefix, stickyTimeoutMs: timeoutMs }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const ch = channelsData.find(c => c.name === channelName);
+      if (ch) { ch.stickyRouting = mode; ch.stickyPrefix = prefix; ch.stickyTimeoutMs = timeoutMs; }
+      showToast('Saved. Restart service for full effect.', 'ok');
+    } else { showToast('Error: ' + (data.error || 'Unknown'), 'err'); }
+  } catch(err) { showToast('Error: ' + err.message, 'err'); }
+}
+
+async function addChannelAgent(channelName) {
+  const selectEl = document.getElementById('ch-addagent-' + channelName);
+  const chatIdEl = document.getElementById('ch-addchatid-' + channelName);
+  const agentId = selectEl.value;
+  const chatId = chatIdEl.value.trim();
+  if (!agentId) { showToast('Select an agent', 'err'); return; }
+  if (!chatId) { showToast('Enter a chat/channel ID', 'err'); return; }
+  try {
+    const res = await fetch('/api/channels/' + channelName + '/agents', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ agentId, chatId, requireMention: true }),
+    });
+    const data = await res.json();
+    if (data.ok) { await refreshChannels(); }
+    else { showToast('Error: ' + (data.error || 'Unknown'), 'err'); }
+  } catch(err) { showToast('Error: ' + err.message, 'err'); }
+}
+
+function filterChatGroup(channelName) {
+  const filter = document.getElementById('ch-chatfilter-' + channelName)?.value || '';
+  const groups = document.querySelectorAll('.ch-chatgroup-' + channelName);
+  for (const g of groups) {
+    g.style.display = (!filter || g.dataset.chatid === filter) ? '' : 'none';
+  }
+}
+
+async function removeChannelAgent(channelName, agentId, chatId) {
+  if (!confirm('Remove ' + agentId + ' from ' + channelName + ':' + chatId + '?')) return;
+  try {
+    const res = await fetch('/api/channels/' + channelName + '/agents/' + agentId, {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chatId }),
+    });
+    const data = await res.json();
+    if (data.ok) { await refreshChannels(); }
+    else { showToast('Error: ' + (data.error || 'Unknown'), 'err'); }
+  } catch(err) { showToast('Error: ' + err.message, 'err'); }
+}
+
+async function addMonitoredId(channelName) {
+  const input = document.getElementById('ch-addmon-' + channelName);
+  const chatId = parseInt(input.value);
+  if (isNaN(chatId)) { showToast('Enter a valid numeric chat ID', 'err'); return; }
+  try {
+    const res = await fetch('/api/channels/' + channelName + '/monitored', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chatId }),
+    });
+    const data = await res.json();
+    if (data.ok) { input.value = ''; await refreshChannels(); }
+    else { showToast('Error: ' + (data.error || 'Unknown'), 'err'); }
+  } catch(err) { showToast('Error: ' + err.message, 'err'); }
+}
+
+async function removeMonitoredId(chatId) {
+  if (!confirm('Remove monitored chat ID ' + chatId + '?')) return;
+  try {
+    const res = await fetch('/api/channels/imessage/monitored', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chatId }),
+    });
+    const data = await res.json();
+    if (data.ok) { await refreshChannels(); }
+    else { showToast('Error: ' + (data.error || 'Unknown'), 'err'); }
+  } catch(err) { showToast('Error: ' + err.message, 'err'); }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// ── ACTIVITY ──────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────
+let activityAgents = [];
+let allEntries = [];
+let searchTimeout = null;
+let activityLoaded = false;
+
+async function initActivity() {
+  activityLoaded = true;
+  try {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+    activityAgents = data.agents || [];
+    const select = document.getElementById('agentFilter');
+    const sorted = activityAgents.slice().sort((a, b) => a.name.localeCompare(b.name));
+    for (const a of sorted) {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name} (${a.aliases?.[0] || a.id})`;
+      select.appendChild(opt);
+    }
+  } catch { /* ignore */ }
+  fetchActivity();
+}
+
+async function fetchActivity() {
+  const agentId = document.getElementById('agentFilter').value;
+  const search = document.getElementById('searchInput').value.trim();
+  const params = new URLSearchParams();
+  if (agentId) params.set('agent', agentId);
+  if (search) params.set('q', search);
+  params.set('limit', '300');
+  try {
+    const res = await fetch('/api/activity?' + params.toString());
+    const data = await res.json();
+    allEntries = data.entries || [];
+    renderActivity();
+  } catch {
+    document.getElementById('activityList').innerHTML = '<div class="no-activity">Failed to load activity</div>';
+  }
+}
+
+function renderActivity() {
+  const channelFilter = document.getElementById('channelFilter').value;
+  let entries = allEntries;
+  if (channelFilter) entries = entries.filter(e => e.channel === channelFilter);
+  document.getElementById('resultCount').textContent = `${entries.length} entries`;
+  if (entries.length === 0) {
+    document.getElementById('activityList').innerHTML = '<div class="no-activity">No activity found</div>';
+    return;
+  }
+  const html = entries.map((e) => {
+    const agent = activityAgents.find(a => a.id === e.agentId);
+    const initials = (agent?.aliases?.[0] || e.agentId || '??').replace('@','').slice(0,2).toUpperCase();
+    const name = agent?.name || e.agentId;
+    const time = formatTime(e.ts);
+    const date = formatDate(e.ts);
+    const channel = e.channel || '';
+    const query = escHtml((e.text || '').slice(0, 200));
+    const response = escHtml((e.response || '').slice(0, 800));
+    const agentLink = e.agentId ? `/ui#${e.agentId}${e.ts ? '?ts=' + encodeURIComponent(e.ts) : ''}` : '#';
+    return `<div class="activity-entry" onclick="this.classList.toggle('expanded')">
+      <div class="activity-top">
+        <div class="activity-avatar">${initials}</div>
+        <a class="activity-agent" href="${agentLink}" onclick="event.stopPropagation()" style="text-decoration:none">${escHtml(name)}</a>
+        ${channel ? `<span class="activity-channel">${channel}</span>` : ''}
+        ${e.sessionId ? `<span class="activity-channel" style="background:var(--green-bg);color:var(--green)">session</span>` : ''}
+        <span class="activity-time">${date} ${time}</span>
+        <a href="${agentLink}" onclick="event.stopPropagation()" style="font-size:10px;color:var(--text-muted);text-decoration:none;padding:2px 8px;border-radius:4px;border:1px solid var(--border-dim)" onmouseover="this.style.borderColor='var(--border-glow)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-muted)'">Chat &#x2192;</a>
+      </div>
+      <div class="activity-query">${query}</div>
+      <div class="activity-response">${response}</div>
+      <span class="activity-expand">Click to expand response</span>
+    </div>`;
+  }).join('');
+  document.getElementById('activityList').innerHTML = html;
+}
+
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(fetchActivity, 400);
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch { return ''; }
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return 'Today';
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString([], {month:'short',day:'numeric'});
+  } catch { return ''; }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// ── SETTINGS ──────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────
+let accounts = {};
+let settingsLoaded = false;
+
+async function loadAccounts() {
+  const res = await fetch('/api/config/accounts');
+  accounts = await res.json();
+  renderAccounts();
+  for (const name of Object.keys(accounts)) checkStatus(name);
+}
+
+function renderAccounts() {
+  const el = document.getElementById('accountsList');
+  const keys = Object.keys(accounts);
+  if (!keys.length) { el.innerHTML = '<div class="empty">No accounts yet. Add one below.</div>'; return; }
+  el.innerHTML = keys.map(name => `
+    <div class="account-row" id="acc-${escId(name)}">
+      <span class="status-dot unknown" id="dot-${escId(name)}" title="Checking..."></span>
+      <span class="account-name">${escHtml(name)}</span>
+      <span id="email-${escId(name)}" style="font-size:12px;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <span class="account-path" title="${escHtml(accounts[name])}">${escHtml(accounts[name])}</span>
+      <button class="btn-icon relogin" onclick="reloginAccount('${escHtml(name)}')" title="Re-authorize">&#x21BA;</button>
+      <button class="btn-icon" onclick="deleteAccount('${escHtml(name)}')" title="Remove">&#x2715;</button>
+    </div>
+  `).join('');
+}
+
+async function checkStatus(name) {
+  const dot = document.getElementById(`dot-${escId(name)}`);
+  if (!dot) return;
+  try {
+    const res = await fetch(`/api/config/accounts/${encodeURIComponent(name)}/status`);
+    const d = await res.json();
+    dot.className = `status-dot ${d.loggedIn ? 'ok' : 'err'}`;
+    dot.title = d.loggedIn ? 'Logged in' : 'Not logged in';
+    const emailEl = document.getElementById(`email-${escId(name)}`);
+    if (emailEl && d.email) emailEl.textContent = d.email;
+  } catch { dot.className = 'status-dot unknown'; }
+}
+
+async function deleteAccount(name) {
+  if (!confirm(`Remove account "${name}"?`)) return;
+  const res = await fetch(`/api/config/accounts/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  if (!res.ok) { const e = await res.json(); showToast(e.error, 'err'); return; }
+  delete accounts[name];
+  renderAccounts();
+  showToast(`Account "${name}" removed`);
+}
+
+let pendingLogin = null;
+
+async function startLogin() {
+  const name = document.getElementById('newAccName').value.trim();
+  if (!name) { showToast('Account name required', 'err'); return; }
+  const path = (name === 'main' || name === 'default') ? '~/.claude' : `~/.claude-${name}`;
+  const btn = document.getElementById('startLoginBtn');
+  btn.disabled = true; btn.textContent = 'Connecting…';
+  const panel = document.getElementById('loginPanel');
+  const body = document.getElementById('loginPanelBody');
+  panel.classList.remove('visible');
+  body.innerHTML = `<div style="color:var(--text-muted);font-size:12px">Starting login process…</div>`;
+  panel.classList.add('visible');
+  try {
+    const res = await fetch('/api/config/accounts/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, path })
+    });
+    const data = await res.json();
+    if (data.alreadyLoggedIn) {
+      await saveAccount(name, path);
+      panel.classList.remove('visible');
+      showToast(`Account "${name}" added (already logged in)`);
+      clearAddForm();
+    } else if (data.url) {
+      pendingLogin = { name, path, sessionId: data.sessionId };
+      showLoginPanel(data.url, data.sessionId);
+      showToast('Authorization URL ready', 'info');
+    } else {
+      body.innerHTML = `<div style="color:var(--red);font-size:12px">${escHtml(data.error || 'Could not start login')}</div>`;
+    }
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--red);font-size:12px">${escHtml(e.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '→ Login & Add';
+  }
+}
+
+function showLoginPanel(url) {
+  const body = document.getElementById('loginPanelBody');
+  body.innerHTML = `
+    <div class="login-panel-title">Step 1 — Open this URL in your browser</div>
+    <div class="login-url-row">
+      <span class="login-url" id="loginUrlText">${escHtml(url)}</span>
+      <button class="btn-copy" onclick="copyUrl('${escHtml(url)}')" title="Copy URL">&#x2398; Copy</button>
+      <a class="btn-open" href="${escHtml(url)}" target="_blank">Open &#x2197;</a>
+    </div>
+    <div class="login-panel-title" style="margin-top:14px">Step 2 — Paste the code Anthropic gives you</div>
+    <div class="code-input-row">
+      <input id="authCodeInput" placeholder="Paste code here…" autocomplete="off" spellcheck="false" />
+      <button class="btn-verify" id="submitCodeBtn" onclick="submitCode()">Submit Code</button>
+    </div>
+    <div id="codeStatus" class="login-status-msg"></div>
+    <div style="margin-top:12px;font-size:11px;color:var(--text-muted)">
+      If the browser flow completes automatically (no code shown), just click
+      <button class="btn-verify" style="padding:4px 12px;font-size:11px" onclick="verifyLogin()">Verify &amp; Save</button>
+    </div>
+  `;
+}
+
+async function copyUrl(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('URL copied to clipboard', 'info');
+  } catch {
+    const el = document.getElementById('loginUrlText');
+    if (el) { const r = document.createRange(); r.selectNode(el); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); }
+    showToast('Select + copy the URL above', 'info');
+  }
+}
+
+async function submitCode() {
+  if (!pendingLogin?.sessionId) return;
+  const code = document.getElementById('authCodeInput')?.value.trim();
+  if (!code) { showToast('Paste the code first', 'err'); return; }
+  const btn = document.getElementById('submitCodeBtn');
+  if (btn) btn.disabled = true;
+  document.getElementById('codeStatus').textContent = 'Submitting code…';
+  try {
+    const res = await fetch('/api/config/accounts/login/code', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ sessionId: pendingLogin.sessionId, code })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error);
+    document.getElementById('codeStatus').textContent = 'Code submitted — verifying…';
+    setTimeout(() => verifyLogin(), 2000);
+  } catch(e) {
+    document.getElementById('codeStatus').textContent = `Error: ${e.message}`;
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function verifyLogin() {
+  if (!pendingLogin) return;
+  const { name, path } = pendingLogin;
+  try {
+    await saveAccount(name, path);
+    const res = await fetch(`/api/config/accounts/${encodeURIComponent(name)}/status`);
+    const d = await res.json();
+    if (d.loggedIn) {
+      showToast(`Account "${name}" added and verified`);
+      pendingLogin = null;
+      document.getElementById('loginPanel').classList.remove('visible');
+      clearAddForm();
+    } else {
+      const status = document.getElementById('codeStatus');
+      if (status) status.textContent = 'Not authorized yet — finish the browser flow then try again.';
+      showToast('Not authorized yet', 'info');
+    }
+  } catch(e) { showToast(e.message, 'err'); }
+}
+
+function clearAddForm() { document.getElementById('newAccName').value = ''; }
+
+async function reloginAccount(name) {
+  const path = accounts[name];
+  if (!path) return;
+  const btn = event.target;
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/config/accounts/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, path })
+    });
+    const data = await res.json();
+    if (data.alreadyLoggedIn) {
+      showToast(`"${name}" is already logged in`);
+      checkStatus(name);
+    } else if (data.url) {
+      window.open(data.url, '_blank');
+      showToast('Opened auth URL — authorize then refresh status', 'info');
+      setTimeout(() => checkStatus(name), 8000);
+    } else { showToast(data.error || 'Could not get login URL', 'err'); }
+  } finally { btn.disabled = false; }
+}
+
+async function saveAccount(name, path) {
+  const res = await fetch('/api/config/accounts', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name, path })
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+  accounts[name] = path;
+  renderAccounts();
+  checkStatus(name);
+}
+
+async function loadService() {
+  const res = await fetch('/api/config/service');
+  const s = await res.json();
+  document.getElementById('svcAgentsDir').value = s.personalAgentsDir || '';
+  document.getElementById('svcRegistryDir').value = s.personalRegistryDir || '';
+  document.getElementById('svcPort').value = s.webUIPort || '';
+  document.getElementById('svcLogLevel').value = s.logLevel || '';
+  const d = s.deployment || {};
+  document.getElementById('depProvider').value = d.provider || '';
+  document.getElementById('depToken').value = d.deployToken || '';
+  document.getElementById('depGithubOrg').value = d.githubOrg || '';
+  document.getElementById('depGithubToken').value = d.githubToken || '';
+}
+
+async function saveService() {
+  const personalAgentsDir = document.getElementById('svcAgentsDir').value.trim();
+  const personalRegistryDir = document.getElementById('svcRegistryDir').value.trim();
+  const webUIPort = document.getElementById('svcPort').value.trim();
+  const logLevel = document.getElementById('svcLogLevel').value.trim();
+  const res = await fetch('/api/config/service', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ personalAgentsDir, personalRegistryDir, webUIPort: webUIPort ? Number(webUIPort) : undefined, logLevel })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast(data.note || 'Saved');
+}
+
+async function saveDeployment() {
+  const deployment = {
+    provider: document.getElementById('depProvider').value.trim(),
+    deployToken: document.getElementById('depToken').value,
+    githubOrg: document.getElementById('depGithubOrg').value.trim(),
+    githubToken: document.getElementById('depGithubToken').value,
+  };
+  const res = await fetch('/api/config/service', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ deployment })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast('Deployment settings saved');
+}
+
+function toggleReveal(inputId, labelId) {
+  const inp = document.getElementById(inputId);
+  const lbl = document.getElementById(labelId);
+  if (inp.type === 'password') { inp.type = 'text'; lbl.textContent = 'hide'; }
+  else { inp.type = 'password'; lbl.textContent = 'show'; }
+}
+
+// Status indicator install
+(function(){
+  const area = document.getElementById('indicatorInstallArea');
+  if (!area) return;
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  const isWin = navigator.platform.toUpperCase().includes('WIN');
+  if (isMac) {
+    area.innerHTML = `
+      <div style="font-size:13px;line-height:1.6">
+        <strong>macOS — xbar menu bar plugin</strong>
+        <ol style="margin:8px 0;padding-left:20px;color:var(--text-muted)">
+          <li>Install xbar: <code style="background:var(--bg-card);padding:2px 6px;border-radius:4px">brew install --cask xbar</code></li>
+          <li>Click the button below to copy the plugin into place</li>
+          <li>Open xbar — a green dot with agent count appears in your menu bar</li>
+        </ol>
+        <button class="btn-save" onclick="installXbar()" id="xbarInstallBtn" style="margin-top:4px">Install xbar Plugin</button>
+        <span id="xbarStatus" style="margin-left:12px;font-size:12px;color:var(--text-muted)"></span>
+      </div>`;
+  } else if (isWin) {
+    area.innerHTML = `
+      <div style="font-size:13px;line-height:1.6">
+        <strong>Windows — System Tray indicator</strong>
+        <ol style="margin:8px 0;padding-left:20px;color:var(--text-muted)">
+          <li>The tray indicator script is at <code style="background:var(--bg-card);padding:2px 6px;border-radius:4px">scripts/tray-indicator.ps1</code></li>
+          <li>Run it: <code style="background:var(--bg-card);padding:2px 6px;border-radius:4px">powershell -WindowStyle Hidden -File scripts\\tray-indicator.ps1</code></li>
+          <li>A tray icon appears — right-click for Web UI, Restart, and Exit</li>
+        </ol>
+        <p style="color:var(--text-muted);font-size:11px;margin-top:8px">To auto-start: add the script to your Windows Startup folder or Task Scheduler.</p>
+      </div>`;
+  } else {
+    area.innerHTML = '<p style="font-size:12px;color:var(--text-muted)">Status indicator is available for macOS (xbar) and Windows (system tray).</p>';
+  }
+})();
+
+async function installXbar() {
+  const btn = document.getElementById('xbarInstallBtn');
+  const status = document.getElementById('xbarStatus');
+  btn.disabled = true; btn.textContent = 'Installing...';
+  try {
+    const res = await fetch('/api/install-xbar', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      status.textContent = 'Installed! Open xbar to see the status dot.';
+      status.style.color = '#22c55e'; btn.textContent = 'Installed';
+    } else {
+      status.textContent = data.error || 'Install failed';
+      status.style.color = '#f87171'; btn.textContent = 'Install xbar Plugin'; btn.disabled = false;
+    }
+  } catch(e) {
+    status.textContent = e.message; status.style.color = '#f87171';
+    btn.textContent = 'Install xbar Plugin'; btn.disabled = false;
+  }
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function escId(s){ return String(s||'').replace(/[^a-z0-9]/gi,'_') }
+
+// ── Close docs dropdown on outside click ──────────────────────────────
+document.addEventListener('click', function(e){
+  const dd = document.getElementById('docsDropdown');
+  if (dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
+});
+</script>
+</body>
+</html>
