@@ -737,12 +737,21 @@ const TYPE_LABELS={agent:'Agent',skill:'Skill',app:'App',prompt:'Prompt'};
 // ── Landing: load artifacts ──
 async function loadArtifacts(){
   try{
-    const[agentsRes,appsRes]=await Promise.all([fetch('/api/agents'),fetch('/api/apps')]);
+    const[agentsRes,appsRes,skillsRes,promptsRes]=await Promise.all([
+      fetch('/api/agents'),fetch('/api/apps'),
+      fetch('/api/marketplace/skills'),fetch('/api/marketplace/prompts'),
+    ]);
     const{agents}=await agentsRes.json();
     const apps=await appsRes.json();
+    const skillsData=await skillsRes.json();
+    const promptsData=await promptsRes.json();
+    const mySkills=(skillsData.items||[]).filter(s=>s.provider==='me');
+    const myPrompts=(promptsData.items||[]).filter(p=>p.provider==='me');
     allArtifacts=[
       ...agents.map(a=>({id:a.id,name:a.name,type:'agent',status:'active',meta:a.id})),
       ...(Array.isArray(apps)?apps:[]).map(a=>({id:a.id,name:a.name,type:'app',status:a.status||'draft',meta:a.category||'',url:a.url||'',agentDeveloper:a.agentDeveloper||''})),
+      ...mySkills.map(s=>({id:s.id,name:s.name,type:'skill',status:'active',meta:s.category||''})),
+      ...myPrompts.map(p=>({id:p.id,name:p.name,type:'prompt',status:'active',meta:p.category||''})),
     ];
     renderArtifacts();
   }catch(e){

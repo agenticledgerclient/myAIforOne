@@ -61,15 +61,9 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
-  // ─── Serve the Activity Logs page ────────────────────────────────
+  // ─── Serve the Activity Logs page (redirects to admin) ──────────
   app.get("/activity", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "activity.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.redirect("/ui");
-    }
+    res.redirect("/admin?tab=activity");
   });
 
   // ─── Serve the UI HTML (no-cache to always get latest) ──────────
@@ -115,14 +109,20 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
-  // ─── Serve the Channels page (reuses org.html) ─────────────────
-  app.get("/channels", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "org.html");
+  // ─── Serve the Admin page ──────────────────────────────────────
+  app.get("/admin", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "admin.html");
     if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(htmlPath);
     } else {
-      res.status(404).send("Channels page not found.");
+      res.status(404).send("Admin page not found.");
     }
+  });
+
+  // ─── Channels redirects to admin ───────────────────────────────
+  app.get("/channels", (_req, res) => {
+    res.redirect("/admin?tab=channels");
   });
 
   // ─── Serve the Tasks page ───────────────────────────────────────
@@ -170,13 +170,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   app.get("/settings", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "settings.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Settings page not found.");
-    }
+    res.redirect("/admin?tab=settings");
   });
 
   app.get("/mcp-docs", (_req, res) => {
@@ -1290,7 +1284,7 @@ export function startWebUI(opts: WebUIOptions): void {
         isPlatformDefault = !!(opts.config.defaultPrompts?.includes(entry.id));
       }
 
-      return { ...entry, installed, assignedTo, isPlatformDefault };
+      return { ...entry, provider: entry.provider || "AgenticLedger", installed, assignedTo, isPlatformDefault };
     });
 
     res.json({ items });
