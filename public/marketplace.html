@@ -758,10 +758,8 @@ function cardHtml(item, typeSingular){
   const tagsHtml = (item.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
 
   let actionBtn;
-  if(item.installed && typeSingular!=='agent'){
-    actionBtn = `<button class="btn btn-manage" onclick='openAssignModal(${JSON.stringify(item)}, "${typeSingular}", false)'>Manage</button>`;
-  } else if(item.installed){
-    actionBtn = `<button class="btn btn-manage" disabled>Needs setup → Org</button>`;
+  if(item.installed){
+    actionBtn = `<button class="btn btn-manage" disabled style="opacity:.6;cursor:default">✓ Installed</button>`;
   } else {
     actionBtn = `<button class="btn btn-install" id="install-btn-${esc(item.id)}" onclick='installItem(${JSON.stringify(item)}, "${typeSingular}")'>+ Install</button>`;
   }
