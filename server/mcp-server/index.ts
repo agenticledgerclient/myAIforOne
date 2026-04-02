@@ -960,6 +960,164 @@ server.tool("send_webhook", "Send a message to an agent via webhook (external tr
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  SAAS INTEGRATION
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("get_saas_config", "Get SaaS connection configuration (base URL, connection status)", {}, async () => {
+  const r = await api.getSaasConfig();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_saas_config", "Configure SaaS connection (base URL and API key)", {
+  baseUrl: z.string().optional().describe("SaaS platform base URL"),
+  apiKey: z.string().optional().describe("SaaS API key"),
+}, async ({ baseUrl, apiKey }) => {
+  const r = await api.updateSaasConfig(baseUrl, apiKey);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("test_saas_connection", "Test SaaS connection with current or provided credentials", {
+  baseUrl: z.string().optional().describe("Override base URL (uses saved if omitted)"),
+  apiKey: z.string().optional().describe("Override API key (uses saved if omitted)"),
+}, async ({ baseUrl, apiKey }) => {
+  const r = await api.testSaasConnection(baseUrl, apiKey);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("publish_to_saas", "Publish a skill, prompt, agent, or app to the connected SaaS platform", {
+  type: z.enum(["skill", "prompt", "agent", "app"]).describe("Type of resource to publish"),
+  id: z.string().describe("ID of the resource to publish"),
+  destination: z.enum(["library", "marketplace"]).optional().describe("Publish to library or marketplace (default: library)"),
+}, async ({ type, id, destination }) => {
+  const r = await api.publishToSaas(type, id, destination);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  FILE UPLOAD
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("upload_file", "Upload a file to an agent's FileStorage (send base64-encoded content)", {
+  agentId: z.string().describe("Agent ID"),
+  fileName: z.string().describe("File name (e.g. report.pdf)"),
+  base64Content: z.string().describe("File content encoded as base64"),
+  mode: z.enum(["temp", "permanent"]).optional().describe("Storage mode (default: temp)"),
+}, async ({ agentId, fileName, base64Content, mode }) => {
+  const r = await api.uploadFile(agentId, fileName, base64Content, mode);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  USER GUIDE
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("get_user_guide", "Get the full platform user guide — every page, button, action, API endpoint, and MCP tool documented", {}, async () => {
+  const r = await api.getUserGuide();
+  return { content: [{ type: "text", text: r.content || JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  MEMORY WRITE
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("write_memory", "Write content to an agent's memory (context.md or daily journal)", {
+  agentId: z.string().describe("Agent ID"),
+  content: z.string().describe("Content to write"),
+  target: z.enum(["context", "daily", "overwrite"]).optional().describe("Where to write: 'context' appends to context.md, 'daily' appends to today's journal, 'overwrite' replaces context.md entirely (default: overwrite)"),
+}, async ({ agentId, content, target }) => {
+  const r = await api.writeMemory(agentId, content, target);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  SKILL CONTENT
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("get_skill_content", "Read the full content of a skill file (markdown)", {
+  path: z.string().describe("Absolute path to the skill .md file (from get_agent_skills or browse_registry)"),
+}, async ({ path }) => {
+  const r = await api.getSkillContent(path);
+  return { content: [{ type: "text", text: r.content || JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  GOAL & CRON UPDATE
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("update_goal", "Update an existing goal's configuration (description, schedule, budget, etc.)", {
+  agentId: z.string().describe("Agent ID"),
+  goalId: z.string().describe("Goal ID to update"),
+  description: z.string().optional().describe("New description"),
+  successMetric: z.string().optional().describe("New success metric"),
+  enabled: z.boolean().optional().describe("Enable or disable"),
+  budget: z.number().optional().describe("Max daily USD budget"),
+  heartbeat: z.any().optional().describe("Updated heartbeat schedule config"),
+  reportTargets: z.any().optional().describe("Updated report channel targets"),
+}, async ({ agentId, goalId, ...updates }) => {
+  const r = await api.updateGoal(agentId, goalId, updates);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_cron", "Update an existing cron job's schedule, message, or channel", {
+  agentId: z.string().describe("Agent ID"),
+  index: z.number().describe("Cron index (0-based)"),
+  schedule: z.string().optional().describe("New cron expression"),
+  message: z.string().optional().describe("New message text"),
+  channel: z.string().optional().describe("New channel"),
+  chatId: z.string().optional().describe("New chat ID"),
+  enabled: z.boolean().optional().describe("Enable or disable"),
+}, async ({ agentId, index, ...updates }) => {
+  const r = await api.updateCron(agentId, index, updates);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  SERVICE RESTART
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("restart_service", "Restart the MyAgent gateway service (required after config changes to channels, service settings, etc.)", {}, async () => {
+  const r = await api.restart();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  DISCOVERY
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_capabilities", "Get a structured summary of all platform capabilities grouped by category — use this to understand what you can do", {}, async () => {
+  const r = await api.listCapabilities();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  DRIVE — browse, read, search the PersonalAgents data drive
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("browse_drive", "Browse files and folders in the PersonalAgents data drive (where all agent data, memory, skills, registry files live)", {
+  path: z.string().optional().describe("Path to browse (default: drive root). Can be absolute or relative to drive root."),
+}, async ({ path }) => {
+  const r = await api.browseDrive(path);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("read_drive_file", "Read a file from the PersonalAgents data drive (max 1MB)", {
+  path: z.string().describe("Absolute path to the file"),
+}, async ({ path }) => {
+  const r = await api.readDriveFile(path);
+  return { content: [{ type: "text", text: r.content || JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("search_drive", "Full-text search across the PersonalAgents data drive — search conversation logs, memory, skills, configs, registry files", {
+  q: z.string().describe("Search query (case-insensitive substring match)"),
+  path: z.string().optional().describe("Scope search to a subdirectory (default: entire drive)"),
+  limit: z.number().optional().describe("Max results (default: 50, max: 200)"),
+  types: z.string().optional().describe("Comma-separated file extensions to search (default: .md,.json,.jsonl,.txt)"),
+}, async ({ q, path, limit, types }) => {
+  const r = await api.searchDrive(q, path, limit, types);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  START SERVER
 // ═══════════════════════════════════════════════════════════════════
 

@@ -1748,6 +1748,196 @@ export function startWebUI(opts: WebUIOptions): void {
     res.json({ ok: true, id });
   });
 
+  // ─── API: Import from SaaS export folder ─────────────────────────
+  app.post("/api/import-from-folder", async (req, res) => {
+    const { folderPath, preview } = req.body as { folderPath?: string; preview?: boolean };
+    if (!folderPath) return res.status(400).json({ error: "folderPath is required" });
+
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    const absFolder = resolveTilde(folderPath);
+
+    if (!existsSync(absFolder)) return res.status(400).json({ error: `Folder not found: ${folderPath}` });
+
+    // Helper: parse frontmatter from a .md file
+    const parseMd = (mdPath: string): { name: string; description: string; body: string } => {
+      const raw = readFileSync(mdPath, "utf-8");
+      const fm = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+      if (!fm) return { name: "", description: "", body: raw };
+      const attrs: Record<string, string> = {};
+      fm[1].split("\n").forEach(line => {
+        const m = line.match(/^(\w+):\s*(.*)$/);
+        if (m) attrs[m[1]] = m[2].trim();
+      });
+      return { name: attrs.name || "", description: attrs.description || "", body: fm[2].trim() };
+    };
+
+    type FoundItem = { type: "skill" | "prompt" | "agent"; id: string; name: string; description: string; folderPath: string; contentFile: string };
+    const found: FoundItem[] = [];
+
+    // Scan a candidate directory: look for meta.json + content file
+    const scanItemDir = (dir: string): FoundItem | null => {
+      const metaPath = join(dir, "meta.json");
+      if (!existsSync(metaPath)) return null;
+      let meta: any = {};
+      try { meta = JSON.parse(readFileSync(metaPath, "utf-8")); } catch { return null; }
+
+      const skillMd = join(dir, "skill.md");
+      const promptMd = join(dir, "prompt.md");
+      const claudeMd = join(dir, "CLAUDE.md");
+
+      let type: "skill" | "prompt" | "agent" | null = null;
+      let contentFile = "";
+
+      if (existsSync(skillMd)) { type = "skill"; contentFile = skillMd; }
+      else if (existsSync(promptMd)) { type = "prompt"; contentFile = promptMd; }
+      else if (existsSync(claudeMd)) { type = "agent"; contentFile = claudeMd; }
+
+      if (!type) return null;
+
+      const id = meta.id || basename(dir);
+      const name = meta.name || id;
+      const description = meta.description || "";
+      return { type, id, name, description, folderPath: dir, contentFile };
+    };
+
+    // Check if the folder itself is a single item
+    const direct = scanItemDir(absFolder);
+    if (direct) {
+      found.push(direct);
+    } else {
+      // Multi-item: scan skills/*, prompts/*, agents/* subdirs
+      for (const sub of ["skills", "prompts", "agents"]) {
+        const subDir = join(absFolder, sub);
+        if (!existsSync(subDir)) continue;
+        try {
+          for (const entry of readdirSync(subDir, { withFileTypes: true })) {
+            if (!entry.isDirectory()) continue;
+            const item = scanItemDir(join(subDir, entry.name));
+            if (item) found.push(item);
+          }
+        } catch { /* skip unreadable */ }
+      }
+    }
+
+    if (!found.length) return res.status(400).json({ error: "No importable items found in that folder. Expected meta.json + skill.md / prompt.md / CLAUDE.md." });
+
+    if (preview) return res.json({ items: found.map(i => ({ type: i.type, id: i.id, name: i.name, description: i.description })) });
+
+    // ── Import ─────────────────────────────────────────────────────
+    const imported: any[] = [];
+    const errors: string[] = [];
+
+    const skillRegistryPath = join(getPersonalRegistryDir(opts.config), "skills.json");
+    let skillRegistry: any = { skills: [] };
+    try { skillRegistry = JSON.parse(readFileSync(skillRegistryPath, "utf-8")); } catch { /* fresh */ }
+
+    const promptRegistryPath = join(getPersonalRegistryDir(opts.config), "prompts.json");
+    let promptRegistry: any = { prompts: [] };
+    try { promptRegistry = JSON.parse(readFileSync(promptRegistryPath, "utf-8")); } catch { /* fresh */ }
+
+    let registriesDirty = false;
+
+    for (const item of found) {
+      try {
+        if (item.type === "skill") {
+          const parsed = parseMd(item.contentFile);
+          const name = item.name || parsed.name || item.id;
+          const description = item.description || parsed.description;
+          const skillDir = join(opts.baseDir, "registry", "skills", "personal");
+          mkdirSync(skillDir, { recursive: true });
+          const destPath = join(skillDir, `${item.id}.md`);
+          const fileContent = `---\nname: ${name}\ndescription: ${description}\n---\n\n${parsed.body || readFileSync(item.contentFile, "utf-8")}\n`;
+          writeFileSync(destPath, fileContent);
+          const localPath = `registry/skills/personal/${item.id}.md`;
+          skillRegistry.skills = skillRegistry.skills.filter((s: any) => s.id !== item.id);
+          skillRegistry.skills.push({ id: item.id, name, provider: "saas", description, category: "personal", verified: false, source: "saas", tags: ["saas"], localPath, fetch: { type: "file" } });
+          registriesDirty = true;
+          imported.push({ type: "skill", id: item.id, name });
+
+        } else if (item.type === "prompt") {
+          const parsed = parseMd(item.contentFile);
+          const name = item.name || parsed.name || item.id;
+          const description = item.description || parsed.description;
+          const promptDir = join(opts.baseDir, "registry", "prompts", "personal");
+          mkdirSync(promptDir, { recursive: true });
+          const localPath = `registry/prompts/personal/${item.id}.md`;
+          const destPath = join(opts.baseDir, localPath);
+          const fileContent = `---\nname: ${name}\ndescription: ${description}\n---\n\n${parsed.body || readFileSync(item.contentFile, "utf-8")}\n`;
+          writeFileSync(destPath, fileContent);
+          promptRegistry.prompts = promptRegistry.prompts.filter((p: any) => p.id !== item.id);
+          promptRegistry.prompts.push({ id: item.id, name, provider: "saas", description, category: "personal", source: "saas", tags: ["saas"], localPath, fetch: { type: "file" } });
+          registriesDirty = true;
+          imported.push({ type: "prompt", id: item.id, name });
+
+        } else if (item.type === "agent") {
+          let meta: any = {};
+          try { meta = JSON.parse(readFileSync(join(item.folderPath, "meta.json"), "utf-8")); } catch { /* use defaults */ }
+          const agentId = item.id;
+          const agentName = item.name;
+
+          if (opts.config.agents[agentId]) {
+            errors.push(`Agent "${agentId}" already exists — skipped`);
+            continue;
+          }
+          // Derive alias — ensure uniqueness
+          let alias = meta.mentionAlias || `@${agentId}`;
+          if (!alias.startsWith("@")) alias = `@${alias}`;
+          const allAliases = Object.values(opts.config.agents).flatMap((a: any) => a.mentionAliases || []);
+          if (allAliases.includes(alias)) alias = `@${agentId}-imported`;
+
+          const paDir = getPersonalAgentsDir();
+          const agentHome = join(paDir, agentId);
+          const memoryDir = join(agentHome, "memory");
+          mkdirSync(memoryDir, { recursive: true });
+          mkdirSync(join(agentHome, "mcp-keys"), { recursive: true });
+          mkdirSync(join(agentHome, "skills"), { recursive: true });
+          mkdirSync(join(agentHome, "FileStorage", "Temp"), { recursive: true });
+          mkdirSync(join(agentHome, "FileStorage", "Permanent"), { recursive: true });
+
+          const claudeMdContent = readFileSync(item.contentFile, "utf-8");
+          writeFileSync(join(agentHome, "CLAUDE.md"), claudeMdContent);
+          writeFileSync(join(agentHome, "tasks.json"), JSON.stringify({ agentId, projects: [{ id: "general", name: "General", color: "#6b7280" }], tasks: [] }, null, 2));
+          writeFileSync(join(memoryDir, "context.md"), `# ${agentName} Context\n\nImported from SaaS on ${new Date().toISOString().split("T")[0]}.\n`);
+
+          const paDirTilde = paDir.startsWith(home) ? paDir.replace(home, "~") : paDir;
+          const agentCfg: any = {
+            name: agentName,
+            description: item.description || `Imported agent ${agentName}`,
+            agentHome: `${paDirTilde}/${agentId}`,
+            workspace: meta.workspace || "~",
+            claudeMd: `${paDirTilde}/${agentId}/CLAUDE.md`,
+            memoryDir: `${paDirTilde}/${agentId}/memory`,
+            persistent: meta.persistent ?? true,
+            streaming: meta.streaming ?? true,
+            advancedMemory: meta.advancedMemory ?? false,
+            mentionAliases: [alias],
+            allowedTools: meta.allowedTools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
+            timeout: meta.timeout || 14400000,
+            agentClass: meta.agentClass || "standard",
+          };
+          (opts.config.agents as any)[agentId] = agentCfg;
+          const rawConfig = JSON.parse(readFileSync(join(opts.baseDir, "config.json"), "utf-8"));
+          rawConfig.agents = rawConfig.agents || {};
+          rawConfig.agents[agentId] = agentCfg;
+          writeFileSync(join(opts.baseDir, "config.json"), JSON.stringify(rawConfig, null, 2));
+
+          imported.push({ type: "agent", id: agentId, name: agentName });
+        }
+      } catch (err: any) {
+        errors.push(`${item.type} "${item.id}": ${err.message}`);
+      }
+    }
+
+    if (registriesDirty) {
+      writeFileSync(skillRegistryPath, JSON.stringify(skillRegistry, null, 2));
+      writeFileSync(promptRegistryPath, JSON.stringify(promptRegistry, null, 2));
+    }
+
+    log.info(`[Import] Imported ${imported.length} items from ${folderPath}`);
+    res.json({ ok: true, imported, errors });
+  });
+
   // ─── API: Skills — create skill ──────────────────────────────────
   app.post("/api/skills/create", (req, res) => {
     const { id, name, description, content, scope, orgName, agentId } = req.body as {
@@ -2008,6 +2198,28 @@ export function startWebUI(opts: WebUIOptions): void {
       size: fileData.length,
       mode,
     });
+  });
+
+  // ─── API: Upload file (JSON/base64 — for MCP / programmatic use) ─
+  app.post("/api/upload/:agentId/json", (req, res) => {
+    const { agentId } = req.params;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    const { fileName, base64Content, mode = "temp" } = req.body as any;
+    if (!fileName || !base64Content) return res.status(400).json({ error: "fileName and base64Content required" });
+
+    const fileData = Buffer.from(base64Content, "base64");
+    const agentHome = agent.agentHome || resolve(opts.baseDir, agent.memoryDir, "..");
+    const storageDir = join(agentHome, "FileStorage", mode === "permanent" ? "Permanent" : "Temp");
+    mkdirSync(storageDir, { recursive: true });
+
+    const savePath = join(storageDir, fileName);
+    writeFileSync(savePath, fileData);
+
+    log.info(`[Upload/JSON] ${agentId}: ${fileName} (${fileData.length} bytes, ${mode}) → ${savePath}`);
+
+    res.json({ ok: true, path: savePath, fileName, size: fileData.length, mode });
   });
 
   // ─── API: List agent files ──────────────────────────────────────
@@ -4147,6 +4359,115 @@ export function startWebUI(opts: WebUIOptions): void {
     res.json({ ok: true });
   });
 
+  // ─── API: Memory Write ─────────────────────────────────────────────
+  app.post("/api/agents/:agentId/memory/write", (req, res) => {
+    const memDir = agentMemDir(req.params.agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const { target, content } = req.body as any;
+    if (!content) return res.status(400).json({ error: "content is required" });
+
+    try {
+      if (target === "context") {
+        const ctxPath = join(memDir, "context.md");
+        const existing = existsSync(ctxPath) ? readFileSync(ctxPath, "utf-8") : "";
+        writeFileSync(ctxPath, existing ? existing + "\n" + content : content);
+        res.json({ ok: true, file: "context.md", action: "appended" });
+      } else if (target === "daily") {
+        const dailyDir = join(memDir, "daily");
+        mkdirSync(dailyDir, { recursive: true });
+        const today = new Date().toISOString().slice(0, 10);
+        const dailyPath = join(dailyDir, `${today}.md`);
+        const existing = existsSync(dailyPath) ? readFileSync(dailyPath, "utf-8") : "";
+        writeFileSync(dailyPath, existing ? existing + "\n" + content : content);
+        res.json({ ok: true, file: `daily/${today}.md`, action: "appended" });
+      } else {
+        // Default: overwrite context.md entirely
+        const ctxPath = join(memDir, "context.md");
+        writeFileSync(ctxPath, content);
+        res.json({ ok: true, file: "context.md", action: "overwritten" });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Skill Content Read ──────────────────────────────────────
+  app.get("/api/skills/content", (req, res) => {
+    const skillPath = req.query.path as string;
+    if (!skillPath) return res.status(400).json({ error: "path query param required" });
+    const resolved = tilde(skillPath);
+    if (!existsSync(resolved)) return res.status(404).json({ error: "Skill file not found" });
+    try {
+      const content = readFileSync(resolved, "utf-8");
+      res.json({ ok: true, path: resolved, content });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Update Goal ─────────────────────────────────────────────
+  app.put("/api/agents/:id/goals/:goalId", (req, res) => {
+    const { id: agentId, goalId } = req.params;
+    const updates = req.body as any;
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      const idx = (agent.goals || []).findIndex((g: any) => g.id === goalId);
+      if (idx < 0) return res.status(404).json({ error: `Goal "${goalId}" not found` });
+
+      // Merge updates into existing goal
+      agent.goals[idx] = { ...agent.goals[idx], ...updates, id: goalId };
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[agentId];
+      if (memAgent?.goals?.[idx]) memAgent.goals[idx] = agent.goals[idx];
+
+      log.info(`[Goal Update] ${agentId}/${goalId}`);
+      res.json({ ok: true, goal: agent.goals[idx] });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Update Cron ─────────────────────────────────────────────
+  app.put("/api/agents/:id/cron/:index", (req, res) => {
+    const { id: agentId } = req.params;
+    const index = parseInt(req.params.index, 10);
+    const updates = req.body as any;
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[agentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      if (!agent.cron?.[index]) return res.status(404).json({ error: `Cron index ${index} not found` });
+
+      // Merge updates into existing cron
+      agent.cron[index] = { ...agent.cron[index], ...updates };
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[agentId];
+      if (memAgent?.cron?.[index]) memAgent.cron[index] = agent.cron[index];
+
+      log.info(`[Cron Update] ${agentId} index ${index}`);
+      res.json({ ok: true, index, cron: agent.cron[index] });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Service Restart ─────────────────────────────────────────
+  app.post("/api/restart", (_req, res) => {
+    res.json({ ok: true, message: "Restarting in 1 second..." });
+    setTimeout(() => {
+      log.info("[Restart] Service restart triggered via API");
+      process.exit(0); // launchd/systemd/scheduler will restart
+    }, 1000);
+  });
+
   // ─── API: Skills ────────────────────────────────────────────────────
 
   // GET /api/agents/:agentId/skills — list all skills available to an agent
@@ -4306,6 +4627,229 @@ export function startWebUI(opts: WebUIOptions): void {
 
   app.get("/changelog", (_req, res) => {
     res.sendFile(resolve(opts.baseDir, "public", "changelog.html"));
+  });
+
+  app.get("/user-guide", (_req, res) => {
+    res.sendFile(resolve(opts.baseDir, "public", "user-guide.html"));
+  });
+
+  app.get("/docs/user-guide.md", (_req, res) => {
+    res.type("text/markdown").sendFile(resolve(opts.baseDir, "docs", "user-guide.md"));
+  });
+
+  // ─── API: User Guide ────────────────────────────────────────────
+  app.get("/api/user-guide", (_req, res) => {
+    try {
+      const content = readFileSync(resolve(opts.baseDir, "docs", "user-guide.md"), "utf-8");
+      res.json({ ok: true, content });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Capabilities (Discovery) ────────────────────────────────
+  app.get("/api/capabilities", (_req, res) => {
+    res.json({
+      platform: "MyAIforOne",
+      version: "1.0.0",
+      categories: {
+        agents: {
+          description: "Create, configure, and manage AI agents",
+          actions: ["list_agents", "get_agent", "get_agent_instructions", "create_agent", "update_agent", "delete_agent", "recover_agent", "get_agent_registry"]
+        },
+        chat: {
+          description: "Send messages and manage conversations with agents",
+          actions: ["send_message", "delegate_message", "start_stream", "get_chat_job_raw", "stop_chat_job"]
+        },
+        sessions: {
+          description: "Manage agent conversation sessions",
+          actions: ["list_sessions", "reset_session", "delete_session"]
+        },
+        tasks: {
+          description: "Task management across agents",
+          actions: ["list_tasks", "create_task", "update_task", "delete_task", "get_all_tasks", "get_task_stats", "create_project"]
+        },
+        goals: {
+          description: "Autonomous goal tracking with scheduled execution",
+          actions: ["create_goal", "update_goal", "toggle_goal", "trigger_goal", "delete_goal", "get_goal_history"]
+        },
+        cron: {
+          description: "Scheduled message triggers",
+          actions: ["create_cron", "update_cron", "toggle_cron", "trigger_cron", "delete_cron", "get_cron_history"]
+        },
+        automations: {
+          description: "View all goals and crons across agents",
+          actions: ["list_automations"]
+        },
+        skills: {
+          description: "Manage reusable instruction sets for agents",
+          actions: ["get_agent_skills", "get_org_skills", "create_skill", "get_skill_content"]
+        },
+        mcps: {
+          description: "MCP server registry and connections",
+          actions: ["list_mcps", "get_mcp_catalog", "list_mcp_keys", "save_mcp_key", "delete_mcp_key", "list_mcp_connections", "create_mcp_connection", "delete_mcp_connection"]
+        },
+        marketplace: {
+          description: "Browse, install, and assign skills/prompts/agents/MCPs",
+          actions: ["browse_registry", "install_registry_item", "assign_to_agent", "set_platform_default", "scan_skills", "import_skills", "create_prompt", "create_skill", "add_mcp_to_registry", "get_prompt_trigger", "set_prompt_trigger"]
+        },
+        channels: {
+          description: "Configure messaging channels and agent routing",
+          actions: ["list_channels", "update_channel", "add_agent_route", "remove_agent_route", "add_monitored_chat", "remove_monitored_chat", "get_sticky_routing"]
+        },
+        memory: {
+          description: "Read, search, write, and clear agent memory",
+          actions: ["get_agent_memory", "search_memory", "write_memory", "clear_memory_context"]
+        },
+        files: {
+          description: "File storage per agent",
+          actions: ["list_agent_files", "download_agent_file", "upload_file"]
+        },
+        apps: {
+          description: "Registered web applications",
+          actions: ["list_apps", "create_app", "update_app", "delete_app", "check_app_health"]
+        },
+        cost: {
+          description: "Usage cost tracking",
+          actions: ["get_agent_cost", "get_all_costs"]
+        },
+        model: {
+          description: "Override Claude model per agent",
+          actions: ["get_model", "set_model", "clear_model"]
+        },
+        activity: {
+          description: "Activity feeds and conversation logs",
+          actions: ["get_activity", "get_agent_logs"]
+        },
+        accounts: {
+          description: "Claude account management and authentication",
+          actions: ["list_accounts", "add_account", "delete_account", "check_account_status", "start_account_login", "submit_login_code", "whoami"]
+        },
+        config: {
+          description: "Service configuration and deployment",
+          actions: ["get_service_config", "update_service_config", "restart_service"]
+        },
+        saas: {
+          description: "SaaS publishing integration",
+          actions: ["get_saas_config", "update_saas_config", "test_saas_connection", "publish_to_saas"]
+        },
+        pairing: {
+          description: "Authorized sender management",
+          actions: ["list_paired_senders", "pair_sender", "unpair_sender"]
+        },
+        heartbeat: {
+          description: "Agent health checks",
+          actions: ["trigger_heartbeat", "get_heartbeat_history"]
+        },
+        platform: {
+          description: "Platform-level tools",
+          actions: ["health_check", "get_dashboard", "get_changelog", "get_user_guide", "list_capabilities", "get_platform_agents", "browse_dirs", "install_xbar", "send_webhook"]
+        }
+      }
+    });
+  });
+
+  // ─── API: Drive — browse, read, search the PersonalAgents drive ──
+
+  const driveRoot = () => tilde(getPersonalAgentsDir(opts.config));
+  const registryRoot = () => tilde(getPersonalRegistryDir(opts.config));
+
+  // Ensure a path stays within the drive
+  function safeDrivePath(userPath: string): string | null {
+    const root = driveRoot();
+    const regRoot = registryRoot();
+    const resolved = resolve(userPath.startsWith("~") ? tilde(userPath) : userPath);
+    if (resolved.startsWith(root) || resolved.startsWith(regRoot)) return resolved;
+    return null;
+  }
+
+  app.get("/api/drive/browse", (req, res) => {
+    const target = (req.query.path as string) || driveRoot();
+    const resolved = safeDrivePath(target);
+    if (!resolved) return res.status(403).json({ error: "Path outside drive" });
+    if (!existsSync(resolved)) return res.status(404).json({ error: "Path not found" });
+
+    try {
+      const stat = statSync(resolved);
+      if (!stat.isDirectory()) {
+        return res.json({ type: "file", path: resolved, size: stat.size });
+      }
+      const entries = readdirSync(resolved, { withFileTypes: true }).map(d => ({
+        name: d.name,
+        type: d.isDirectory() ? "dir" : "file",
+        size: d.isFile() ? statSync(join(resolved, d.name)).size : undefined,
+      }));
+      res.json({ type: "dir", path: resolved, entries });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/drive/read", (req, res) => {
+    const filePath = req.query.path as string;
+    if (!filePath) return res.status(400).json({ error: "path query param required" });
+    const resolved = safeDrivePath(filePath);
+    if (!resolved) return res.status(403).json({ error: "Path outside drive" });
+    if (!existsSync(resolved)) return res.status(404).json({ error: "File not found" });
+
+    try {
+      const stat = statSync(resolved);
+      if (stat.isDirectory()) return res.status(400).json({ error: "Path is a directory, use /api/drive/browse" });
+      if (stat.size > 1024 * 1024) return res.status(413).json({ error: "File too large (>1MB). Use download endpoint instead." });
+      const content = readFileSync(resolved, "utf-8");
+      res.json({ ok: true, path: resolved, size: stat.size, content });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/drive/search", (req, res) => {
+    const query = (req.query.q as string || "").toLowerCase();
+    const searchPath = (req.query.path as string) || driveRoot();
+    const maxResults = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const fileTypes = (req.query.types as string || ".md,.json,.jsonl,.txt").split(",");
+
+    if (!query) return res.status(400).json({ error: "q query param required" });
+    const resolved = safeDrivePath(searchPath);
+    if (!resolved) return res.status(403).json({ error: "Path outside drive" });
+
+    const results: any[] = [];
+
+    function searchDir(dir: string, depth: number) {
+      if (depth > 8 || results.length >= maxResults) return;
+      try {
+        const entries = readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (results.length >= maxResults) break;
+          const full = join(dir, entry.name);
+          if (entry.isDirectory()) {
+            if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+            searchDir(full, depth + 1);
+          } else if (entry.isFile() && fileTypes.some(t => entry.name.endsWith(t))) {
+            try {
+              const stat = statSync(full);
+              if (stat.size > 512 * 1024) continue; // skip files > 512KB
+              const content = readFileSync(full, "utf-8");
+              const lower = content.toLowerCase();
+              const idx = lower.indexOf(query);
+              if (idx >= 0) {
+                const start = Math.max(0, idx - 80);
+                const end = Math.min(content.length, idx + query.length + 80);
+                results.push({
+                  path: full,
+                  relativePath: full.replace(driveRoot() + "/", ""),
+                  size: stat.size,
+                  snippet: (start > 0 ? "..." : "") + content.slice(start, end).replace(/\n/g, " ") + (end < content.length ? "..." : ""),
+                });
+              }
+            } catch { /* skip unreadable files */ }
+          }
+        }
+      } catch { /* skip unreadable dirs */ }
+    }
+
+    searchDir(resolved, 0);
+    res.json({ ok: true, query, results, total: results.length, searchPath: resolved });
   });
 
   app.get("/health", (_req, res) => {

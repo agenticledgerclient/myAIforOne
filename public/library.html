@@ -223,6 +223,39 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 .pub-menu-item{display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:11px;font-weight:600;color:var(--text-secondary);border-radius:6px;cursor:pointer;transition:all .15s;background:none;border:none;width:100%;text-align:left;font-family:var(--font-sans)}
 .pub-menu-item:hover{background:var(--accent-bg);color:var(--accent)}
 .pub-menu-item.done{opacity:.5;cursor:default;pointer-events:none}
+/* ── Import modal ── */
+.imp-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:900;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.imp-box{background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:14px;width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.imp-head{padding:16px 20px;border-bottom:1px solid var(--border-dim);display:flex;align-items:center;justify-content:space-between}
+.imp-title{font-size:14px;font-weight:700;color:var(--text-primary)}
+.imp-close{background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;padding:0 4px}
+.imp-body{padding:16px 20px;flex:1;overflow-y:auto}
+.imp-path-row{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.imp-path-input{flex:1;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:8px 10px;font-size:12px;font-family:var(--font-mono,monospace);color:var(--text-primary)}
+.imp-path-input:focus{outline:none;border-color:var(--accent)}
+.imp-path-btn{padding:7px 12px;border-radius:8px;border:1px solid var(--border-dim);background:none;color:var(--text-secondary);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.imp-path-btn:hover{border-color:var(--accent);color:var(--accent)}
+.imp-preview-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.imp-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;font-size:12px}
+.imp-item-type{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.imp-item-type.skill{background:rgba(139,92,246,0.2);color:#a78bfa}
+.imp-item-type.prompt{background:rgba(251,191,36,0.2);color:var(--amber)}
+.imp-item-type.agent{background:rgba(16,185,129,0.2);color:#34d399}
+.imp-item-info{flex:1;min-width:0}
+.imp-item-name{font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp-item-desc{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp-foot{padding:12px 20px;border-top:1px solid var(--border-dim);display:flex;gap:10px;justify-content:flex-end}
+.imp-scan-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--accent);background:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer}
+.imp-scan-btn:hover{background:var(--accent-bg)}
+.imp-import-btn{padding:7px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;font-size:12px;font-weight:700;cursor:pointer}
+.imp-import-btn:disabled{opacity:.5;cursor:default}
+.imp-import-btn:not(:disabled):hover{opacity:.85}
+.imp-dir-list{max-height:220px;overflow-y:auto;border:1px solid var(--border-dim);border-radius:8px;margin-bottom:12px}
+.imp-dir-item{padding:9px 14px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border-dim);color:var(--text-secondary);transition:background .15s}
+.imp-dir-item:last-child{border-bottom:none}
+.imp-dir-item:hover{background:var(--bg-input);color:var(--text-primary)}
+.imp-dir-parent{color:var(--text-muted);font-style:italic}
+.imp-cur-path{font-size:10px;font-family:var(--font-mono,monospace);color:var(--text-muted);margin-bottom:8px;word-break:break-all}
 /* ── Publish confirm modal ── */
 .pub-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .pub-confirm-box{background:var(--bg-surface);border:1px solid var(--border-glow);border-radius:14px;padding:24px 28px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
@@ -259,6 +292,48 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
   </div>
 </div>
 
+
+<!-- Import from folder modal -->
+<div id="impOverlay" class="imp-overlay" style="display:none" onclick="if(event.target===this)closeImport()">
+  <div class="imp-box" onclick="event.stopPropagation()">
+    <div class="imp-head">
+      <span class="imp-title" id="impTitle">↓ Import from Folder</span>
+      <button class="imp-close" onclick="closeImport()">×</button>
+    </div>
+    <div class="imp-body" id="impBody">
+      <!-- Step 1: pick folder -->
+      <div id="impStep1">
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.6">
+          Paste the path to the folder you downloaded from the SaaS app, or browse to it below.
+        </div>
+        <div class="imp-path-row">
+          <input class="imp-path-input" id="impPathInput" placeholder="~/Desktop/my-skill-export" onkeydown="if(event.key==='Enter')impScan()">
+          <button class="imp-path-btn" onclick="impBrowseOpen()">Browse</button>
+        </div>
+        <!-- inline dir browser -->
+        <div id="impBrowser" style="display:none">
+          <div class="imp-cur-path" id="impBrowserPath"></div>
+          <div class="imp-dir-list" id="impBrowserList"></div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="imp-path-btn" onclick="impBrowserSelect()" style="flex:1;text-align:center">Use this folder</button>
+          </div>
+        </div>
+        <div id="impScanMsg" style="font-size:12px;color:var(--text-muted);min-height:18px"></div>
+      </div>
+      <!-- Step 2: preview -->
+      <div id="impStep2" style="display:none">
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">Found <strong id="impFoundCount">0</strong> item(s) ready to import:</div>
+        <div class="imp-preview-list" id="impPreviewList"></div>
+        <div id="impErrMsg" style="font-size:11px;color:#f87171;margin-top:-4px;margin-bottom:8px;display:none"></div>
+      </div>
+    </div>
+    <div class="imp-foot">
+      <button class="imp-path-btn" onclick="closeImport()">Cancel</button>
+      <button class="imp-scan-btn" id="impScanBtn" onclick="impScan()">Scan Folder</button>
+      <button class="imp-import-btn" id="impDoImportBtn" style="display:none" onclick="impDoImport()">Import All</button>
+    </div>
+  </div>
+</div>
 
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:10px;margin-right:32px">
@@ -297,6 +372,7 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
       <input class="search-input" id="search-input" placeholder="Search…" oninput="render()">
     </div>
     <div class="filter-pills" id="filter-pills"></div>
+    <button class="btn-sm btn-sm-ghost" onclick="openImport()" title="Import skills, prompts, or agents from a SaaS export folder" style="white-space:nowrap;flex-shrink:0">↓ Import</button>
   </div>
   <div id="content"></div>
 </div>
@@ -1231,6 +1307,114 @@ function publishToSaas(type, id, name, destination){
       if(menuBtn){ menuBtn.textContent = destination==='library' ? 'Company Library' : 'Marketplace'; menuBtn.disabled = false; }
     }
   };
+}
+
+// ─── Import from Folder ───────────────────────────────────────────
+let impBrowserPath = '~';
+let impPreviewItems = [];
+
+function openImport(){
+  document.getElementById('impOverlay').style.display = 'flex';
+  document.getElementById('impStep1').style.display = '';
+  document.getElementById('impStep2').style.display = 'none';
+  document.getElementById('impScanBtn').style.display = '';
+  document.getElementById('impDoImportBtn').style.display = 'none';
+  document.getElementById('impScanMsg').textContent = '';
+  document.getElementById('impPathInput').value = '';
+  document.getElementById('impBrowser').style.display = 'none';
+  document.getElementById('impTitle').textContent = '↓ Import from Folder';
+  impPreviewItems = [];
+}
+function closeImport(){ document.getElementById('impOverlay').style.display = 'none'; }
+
+async function impBrowseOpen(){
+  impBrowserPath = '~';
+  document.getElementById('impBrowser').style.display = '';
+  await impBrowserRender();
+}
+async function impBrowserRender(){
+  const list = document.getElementById('impBrowserList');
+  const pathEl = document.getElementById('impBrowserPath');
+  list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px">Loading…</div>';
+  try {
+    const res = await fetch(`/api/browse-dirs?path=${encodeURIComponent(impBrowserPath)}`);
+    const data = await res.json();
+    if(data.error){ list.innerHTML=`<div style="padding:12px;color:#f87171;font-size:12px">${data.error}</div>`; return; }
+    impBrowserPath = data.path;
+    pathEl.textContent = data.path;
+    let html = '';
+    if(data.path !== '~' && data.path !== '/') html += `<div class="imp-dir-item imp-dir-parent" onclick="impBrowserUp()">↑ ..</div>`;
+    for(const d of data.dirs) html += `<div class="imp-dir-item" onclick="impBrowserInto('${d.replace(/'/g,"\\'")}')">📁 ${d}</div>`;
+    if(!html) html = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px">Empty</div>';
+    list.innerHTML = html;
+  } catch(e){ list.innerHTML=`<div style="padding:12px;color:#f87171;font-size:12px">Error: ${e.message}</div>`; }
+}
+function impBrowserInto(name){ impBrowserPath = (impBrowserPath==='/'?'/':impBrowserPath)+'/'+name; impBrowserRender(); }
+function impBrowserUp(){ const parts = impBrowserPath.split('/'); parts.pop(); impBrowserPath = parts.join('/')||'~'; impBrowserRender(); }
+function impBrowserSelect(){
+  document.getElementById('impPathInput').value = impBrowserPath;
+  document.getElementById('impBrowser').style.display = 'none';
+}
+
+async function impScan(){
+  const path = document.getElementById('impPathInput').value.trim();
+  if(!path){ document.getElementById('impScanMsg').textContent = 'Enter a folder path first.'; return; }
+  const btn = document.getElementById('impScanBtn');
+  btn.textContent = 'Scanning…'; btn.disabled = true;
+  document.getElementById('impScanMsg').textContent = '';
+  try{
+    const res = await fetch('/api/import-from-folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folderPath:path,preview:true})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Scan failed');
+    impPreviewItems = data.items;
+    document.getElementById('impFoundCount').textContent = data.items.length;
+    const html = data.items.map(it=>`
+      <div class="imp-item">
+        <span class="imp-item-type ${it.type}">${it.type}</span>
+        <div class="imp-item-info">
+          <div class="imp-item-name">${esc(it.name||it.id)}</div>
+          ${it.description?`<div class="imp-item-desc">${esc(it.description)}</div>`:''}
+        </div>
+      </div>`).join('');
+    document.getElementById('impPreviewList').innerHTML = html;
+    document.getElementById('impErrMsg').style.display = 'none';
+    document.getElementById('impStep1').style.display = 'none';
+    document.getElementById('impStep2').style.display = '';
+    document.getElementById('impScanBtn').style.display = 'none';
+    document.getElementById('impDoImportBtn').style.display = '';
+    document.getElementById('impTitle').textContent = `↓ Import — ${data.items.length} item${data.items.length!==1?'s':''} found`;
+  } catch(e){
+    document.getElementById('impScanMsg').textContent = e.message;
+  } finally {
+    btn.textContent = 'Scan Folder'; btn.disabled = false;
+  }
+}
+
+async function impDoImport(){
+  const path = document.getElementById('impPathInput').value.trim();
+  const btn = document.getElementById('impDoImportBtn');
+  btn.textContent = 'Importing…'; btn.disabled = true;
+  try{
+    const res = await fetch('/api/import-from-folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folderPath:path})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Import failed');
+    const n = data.imported.length;
+    if(data.errors&&data.errors.length){
+      const errEl = document.getElementById('impErrMsg');
+      errEl.textContent = 'Some items skipped: '+data.errors.join('; ');
+      errEl.style.display = '';
+    }
+    if(n){
+      toast(`${n} item${n!==1?'s':''} imported successfully`, 'success');
+      closeImport();
+      await loadItems();
+    } else {
+      toast('Nothing imported — check errors', 'error');
+    }
+  } catch(e){
+    toast(`Import failed: ${e.message}`, 'error');
+    btn.textContent = 'Import All'; btn.disabled = false;
+  }
 }
 
 // ─── Init ─────────────────────────────────────────────────────────

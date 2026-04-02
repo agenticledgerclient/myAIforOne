@@ -252,3 +252,45 @@ export const installXbar = () => api("/api/install-xbar", { method: "POST" });
 // ─── Lab / Platform Agents ───────────────────────────────────────
 export const getPlatformAgents = () => api("/api/platform-agents");
 export const browseDirs = (path?: string) => api("/api/browse-dirs", { query: { path } });
+
+// ─── SaaS Integration ───────────────────────────────────────────
+export const getSaasConfig = () => api("/api/saas/config");
+export const updateSaasConfig = (baseUrl?: string, apiKey?: string) =>
+  api("/api/saas/config", { method: "PUT", body: { baseUrl, apiKey } });
+export const testSaasConnection = (baseUrl?: string, apiKey?: string) =>
+  api("/api/saas/test", { method: "POST", body: { baseUrl, apiKey } });
+export const publishToSaas = (type: string, id: string, destination?: string) =>
+  api("/api/saas/publish", { method: "POST", body: { type, id, destination } });
+
+// ─── File Upload ────────────────────────────────────────────────
+export const uploadFile = (agentId: string, fileName: string, base64Content: string, mode?: string) =>
+  api(`/api/upload/${agentId}/json`, { method: "POST", body: { fileName, base64Content, mode } });
+
+// ─── User Guide ─────────────────────────────────────────────────
+export const getUserGuide = () => api("/api/user-guide");
+
+// ─── Memory Write ───────────────────────────────────────────────
+export const writeMemory = (agentId: string, content: string, target?: string) =>
+  api(`/api/agents/${agentId}/memory/write`, { method: "POST", body: { content, target } });
+
+// ─── Skill Content ──────────────────────────────────────────────
+export const getSkillContent = (path: string) =>
+  api("/api/skills/content", { query: { path } });
+
+// ─── Goal/Cron Update ───────────────────────────────────────────
+export const updateGoal = (agentId: string, goalId: string, body: any) =>
+  api(`/api/agents/${agentId}/goals/${goalId}`, { method: "PUT", body });
+export const updateCron = (agentId: string, index: number, body: any) =>
+  api(`/api/agents/${agentId}/cron/${index}`, { method: "PUT", body });
+
+// ─── Service Restart ────────────────────────────────────────────
+export const restart = () => api("/api/restart", { method: "POST" });
+
+// ─── Discovery ──────────────────────────────────────────────────
+export const listCapabilities = () => api("/api/capabilities");
+
+// ─── Drive ──────────────────────────────────────────────────────
+export const browseDrive = (path?: string) => api("/api/drive/browse", { query: { path } });
+export const readDriveFile = (path: string) => api("/api/drive/read", { query: { path } });
+export const searchDrive = (q: string, path?: string, limit?: number, types?: string) =>
+  api("/api/drive/search", { query: { q, path, limit, types } });

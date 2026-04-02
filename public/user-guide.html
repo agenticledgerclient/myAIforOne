@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — User Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;--bg-surface:rgba(12,18,33,0.92);--bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);--border-dim:rgba(56,189,248,0.08);--border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);--text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);--text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;--accent-bg:rgba(6,182,212,0.15);
+  --purple:rgba(139,92,246,0.7);--purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);--radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;--font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);--border-dim:rgba(0,0,0,0.08);--border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);--text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);--text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;--accent-bg:rgba(14,116,144,0.08);
+  --purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);
+  --red:#dc2626;--red-bg:rgba(220,38,38,0.08);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+}
+html,body{width:100%;height:100%;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+/* Topbar */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:48px;z-index:100;
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+  background:var(--bg-surface);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border-dim);
+}
+.topbar-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--accent)}
+.logo-text{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent)}
+.tab-group{display:flex;gap:4px;margin-left:24px}
+.tab-btn{font-family:var(--font-sans);font-size:12px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:6px 12px;border-radius:6px;transition:all .2s}
+.tab-btn:hover{color:var(--text-secondary);background:var(--bg-input)}
+.tab-btn.active{color:var(--accent);background:var(--accent-bg)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.theme-toggle,.gear-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;text-decoration:none}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* Layout */
+.layout{display:flex;height:100vh;padding-top:48px}
+
+/* Sidebar TOC */
+.sidebar{
+  width:260px;min-width:260px;border-right:1px solid var(--border-dim);
+  background:var(--bg-surface);overflow-y:auto;padding:16px 0;
+  position:sticky;top:48px;height:calc(100vh - 48px);
+}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+.toc-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--accent);padding:0 16px;margin-bottom:12px;letter-spacing:.03em}
+.toc-link{
+  display:block;padding:5px 16px;font-size:12px;font-weight:500;
+  color:var(--text-muted);text-decoration:none;transition:all .15s;
+  border-left:2px solid transparent;
+}
+.toc-link:hover{color:var(--text-secondary);background:var(--bg-input)}
+.toc-link.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-bg)}
+.toc-link.indent{padding-left:32px;font-size:11px}
+
+/* Content */
+.content{flex:1;overflow-y:auto;padding:32px 48px 80px;max-width:960px}
+.content h1{font-family:var(--font-display);font-size:28px;font-weight:800;margin:40px 0 16px;color:var(--text-primary);border-bottom:2px solid var(--border-glow);padding-bottom:8px}
+.content h1:first-child{margin-top:0}
+.content h2{font-family:var(--font-display);font-size:20px;font-weight:700;margin:32px 0 12px;color:var(--text-primary)}
+.content h3{font-size:15px;font-weight:700;margin:24px 0 8px;color:var(--text-secondary)}
+.content h4{font-size:13px;font-weight:700;margin:16px 0 6px;color:var(--text-muted)}
+.content p{font-size:13px;line-height:1.7;color:var(--text-secondary);margin-bottom:12px}
+.content ul,.content ol{font-size:13px;line-height:1.7;color:var(--text-secondary);margin:0 0 12px 20px}
+.content li{margin-bottom:4px}
+.content strong{color:var(--text-primary);font-weight:600}
+.content code{font-family:var(--font-mono);font-size:11px;background:var(--bg-input);padding:2px 6px;border-radius:4px;border:1px solid var(--border-dim);color:var(--accent)}
+.content pre{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:8px;padding:14px;margin:12px 0;overflow-x:auto}
+.content pre code{background:none;border:none;padding:0;font-size:12px;color:var(--text-secondary)}
+.content blockquote{border-left:3px solid var(--accent);padding:8px 16px;margin:12px 0;background:var(--accent-bg);border-radius:0 8px 8px 0;font-size:12px;color:var(--text-secondary)}
+.content hr{border:none;border-top:1px solid var(--border-dim);margin:32px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+
+/* Tables */
+.content table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+.content th{text-align:left;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-dim);font-weight:600;color:var(--text-primary);font-size:11px;letter-spacing:.02em}
+.content td{padding:8px 12px;border:1px solid var(--border-dim);color:var(--text-secondary);vertical-align:top}
+.content tr:hover td{background:var(--bg-input)}
+
+.loading{padding:60px;text-align:center;color:var(--text-muted);font-size:13px}
+
+/* Search */
+.search-box{padding:0 16px 12px}
+.search-input{
+  width:100%;padding:6px 10px;font-size:11px;font-family:var(--font-sans);
+  background:var(--bg-input);border:1px solid var(--border-dim);border-radius:6px;
+  color:var(--text-primary);outline:none;transition:border-color .2s;
+}
+.search-input:focus{border-color:var(--border-active)}
+.search-input::placeholder{color:var(--text-muted)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="topbar-logo" href="/">
+    <div class="logo-mark">A</div>
+    <div class="logo-text">MyAIforOne</div>
+  </a>
+  <div class="tab-group">
+    <a class="tab-btn" href="/org">Agents</a>
+    <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn" href="/library">Library</a>
+    <a class="tab-btn" href="/lab">Lab</a>
+  </div>
+  <div class="topbar-right">
+    <a href="/marketplace" style="font-size:11px;font-weight:500;color:var(--text-muted);text-decoration:none;letter-spacing:.03em;transition:color .2s" onmouseover="this.style.color='var(--text-secondary)'" onmouseout="this.style.color='var(--text-muted)'">Marketplace</a>
+    <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
+    <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">&#x2291;</button>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9728;</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar" id="toc">
+    <div class="toc-title">User Guide</div>
+    <div class="search-box"><input class="search-input" id="tocSearch" placeholder="Search guide..." oninput="filterToc(this.value)"></div>
+    <div id="tocLinks"></div>
+  </div>
+  <div class="content" id="content">
+    <div class="loading">Loading user guide...</div>
+  </div>
+</div>
+
+<script>
+// Theme
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('theme',t)}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')}
+applyTheme(localStorage.getItem('theme')||'dark');
+
+// Load & render
+async function loadGuide() {
+  try {
+    const res = await fetch('/docs/user-guide.md');
+    if (!res.ok) throw new Error('Failed to fetch');
+    const md = await res.text();
+    const html = marked.parse(md);
+    document.getElementById('content').innerHTML = html;
+    buildToc();
+    // Jump to hash if present
+    if (location.hash) {
+      const el = document.getElementById(location.hash.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  } catch (e) {
+    document.getElementById('content').innerHTML = '<div class="loading">Failed to load user guide.</div>';
+  }
+}
+
+// Build TOC from rendered headings
+function buildToc() {
+  const headings = document.querySelectorAll('.content h1, .content h2');
+  const container = document.getElementById('tocLinks');
+  let html = '';
+  headings.forEach(h => {
+    const id = h.id || h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    h.id = id;
+    const isH2 = h.tagName === 'H2';
+    const label = h.textContent.length > 40 ? h.textContent.slice(0, 38) + '...' : h.textContent;
+    html += `<a class="toc-link${isH2 ? ' indent' : ''}" href="#${id}" data-text="${h.textContent.toLowerCase()}">${label}</a>`;
+  });
+  container.innerHTML = html;
+
+  // Scroll spy
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.toc-link[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-60px 0px -80% 0px' });
+  headings.forEach(h => observer.observe(h));
+}
+
+// TOC search
+function filterToc(q) {
+  const links = document.querySelectorAll('.toc-link');
+  const lower = q.toLowerCase();
+  links.forEach(l => {
+    l.style.display = !q || l.dataset.text.includes(lower) ? '' : 'none';
+  });
+}
+
+loadGuide();
+</script>
+</body>
+</html>
