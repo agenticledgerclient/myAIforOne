@@ -122,20 +122,23 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 }
 .chat-view.active{opacity:1;pointer-events:all;position:relative}
 
-.chat-header-home{
-  padding:12px 20px;border-bottom:1px solid var(--border-dim);
-  display:flex;align-items:center;gap:12px;
-  background:var(--bg-surface);backdrop-filter:blur(20px);
+/* ─── Topbar (matches /ui) ────────────────────────────── */
+.topbar{height:48px;display:flex;align-items:center;padding:0 20px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0;overflow:hidden;max-width:100vw}
+.tab-group{display:flex;gap:0;flex-shrink:1;min-width:0}
+.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;padding:14px 12px;cursor:pointer;position:relative;transition:color .2s;text-decoration:none;display:block;white-space:nowrap;flex-shrink:0}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:2px;background:var(--accent);border-radius:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:#fff}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent)}
+/* Second-level bar for hub actions */
+.hub-actions-bar{
+  padding:6px 20px;border-bottom:1px solid var(--border-dim);
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg-surface);flex-shrink:0;
 }
-.chat-header-home .logo{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent)}
-.nav-link{
-  font-size:12px;color:var(--text-muted);text-decoration:none;
-  padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);transition:all .2s;
-}
-.nav-link:hover{border-color:var(--border-glow);color:var(--text-secondary)}
-.nav-link.active{color:var(--accent);border-color:var(--accent)}
-.header-spacer{flex:1}
-.header-actions{display:flex;align-items:center;gap:6px;margin-left:auto}
+.hub-actions-bar .hub-label{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--accent);margin-right:8px}
 .header-btn{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s;text-decoration:none}
 .header-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .header-btn.danger{color:var(--text-muted);border-color:rgba(248,113,113,0.2)}
@@ -154,11 +157,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 text-decoration:none;}
 .theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 
-/* Landing header */
-.landing-header{
-  position:absolute;top:0;left:0;right:0;
-  padding:12px 20px;display:flex;align-items:center;gap:12px;z-index:10;
-}
+/* Landing needs padding below topbar */
+.landing{padding-top:48px}
 .landing-header .logo{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent)}
 
 .chat-messages-home{
@@ -325,29 +325,26 @@ text-decoration:none;}
 </head>
 <body>
 <div class="home">
-  <!-- Landing header -->
-  <div class="landing-header" id="landingHeader">
-    <span class="logo">MyAIforOne</span>
-    <div class="header-spacer"></div>
-    <a class="nav-link active" href="/">Home</a>
-    <a class="nav-link" href="/ui">Chat</a>
-    <a class="nav-link" href="/org">Agents</a>
-    <a class="nav-link" href="/library">Library</a>
-    <a class="nav-link" href="/marketplace">Marketplace</a>
-    <a class="nav-link" href="/lab">Lab</a>
-    <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" class="nav-link" style="font-size:15px;padding:0 8px;background:none;border:none;cursor:pointer">⊡</button>
-    <div class="docs-dropdown" id="docsDropdown1">
-      <button class="docs-btn" onclick="document.getElementById('docsMenu1').classList.toggle('open')" title="Documentation">&#9776;</button>
-      <div class="docs-menu" id="docsMenu1">
-        <a href="/api-docs#api" target="_blank"><span class="dm-icon">&#9881;</span> API Docs</a>
-        <a href="/api-docs#mcp" target="_blank"><span class="dm-icon">&#9830;</span> MCP Tools</a>
-        <a href="/changelog"><span class="dm-icon">&#x29C9;</span> Changelog</a>
-        <a href="/user-guide"><span class="dm-icon">&#x2709;</span> User Guide</a>
-      </div>
+  <!-- Topbar (same as /ui) -->
+  <div class="topbar" id="mainTopbar">
+    <div style="display:flex;align-items:center;gap:10px;margin-right:28px">
+      <div class="logo-mark">A</div>
+      <span class="logo-text">MyAIforOne</span>
     </div>
-    <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
-    <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtn">🌙</button>
+    <nav class="tab-group">
+      <a class="tab-btn active" href="/">Home</a>
+      <a class="tab-btn" href="/org">Agents</a>
+      <a class="tab-btn" href="/ui">Chat</a>
+      <a class="tab-btn" href="/library">Library</a>
+      <a class="tab-btn" href="/lab">Lab</a>
+    </nav>
+    <div class="topbar-right">
+      <a href="/marketplace" style="font-size:11px;font-weight:500;color:var(--text-muted);text-decoration:none;letter-spacing:.03em;transition:color .2s" onmouseover="this.style.color='var(--text-secondary)'" onmouseout="this.style.color='var(--text-muted)'">Marketplace</a>
+      <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
+      <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
+      <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">&#x22A1;</button>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtn">&#x1F319;</button>
+    </div>
   </div>
 
   <!-- Landing state -->
@@ -371,21 +368,11 @@ text-decoration:none;}
 
   <!-- Chat state -->
   <div class="chat-view" id="chatView">
-    <div class="chat-header-home">
-      <span class="logo">MyAIforOne</span>
-      <div class="header-spacer"></div>
-      <a class="nav-link active" href="/">Home</a>
-      <a class="nav-link" href="/ui">Chat</a>
-      <a class="nav-link" href="/org">Agents</a>
-      <a class="nav-link" href="/library">Library</a>
-      <a class="nav-link" href="/marketplace">Marketplace</a>
-      <a class="nav-link" href="/lab">Lab</a>
-      <div class="header-actions">
-        <select class="header-btn" id="accountSelect" style="padding:2px 6px;cursor:pointer;display:none" onchange="setAccountOverride(this.value)" title="Claude Account override"></select>
-        <button class="header-btn danger" onclick="confirmResetSession()" title="Reset hub session">&#x21BA; Reset</button>
-        <a class="header-btn" id="configureHubLink" href="/agent/hub" title="Configure hub agent">&#x2699; Configure</a>
-      </div>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtnChat">🌙</button>
+    <div class="hub-actions-bar">
+      <span class="hub-label">@hub</span>
+      <select class="header-btn" id="accountSelect" style="padding:2px 6px;cursor:pointer;display:none" onchange="setAccountOverride(this.value)" title="Claude Account override"></select>
+      <button class="header-btn danger" onclick="confirmResetSession()" title="Reset hub session">&#x21BA; Reset session</button>
+      <a class="header-btn" id="configureHubLink" href="/agent/hub" title="Configure hub agent">&#x2699; Configure</a>
     </div>
     <div class="chat-messages-home" id="chatMessages"></div>
     <div class="logs-drawer" id="logsDrawer">
@@ -610,7 +597,6 @@ function mentionAgent(alias) {
 // ─── Transition ────────────────────────────────────────
 function transitionToChat() {
   document.getElementById('landing').classList.add('hidden');
-  document.getElementById('landingHeader').style.display = 'none';
   document.getElementById('chatView').classList.add('active');
   setTimeout(() => {
     document.getElementById('chatInput').focus();
@@ -1042,9 +1028,7 @@ function toggleTheme() {
   html.setAttribute('data-theme', isLight ? '' : 'light');
   const icon = isLight ? '🌙' : '☀️';
   const btn1 = document.getElementById('themeBtn');
-  const btn2 = document.getElementById('themeBtnChat');
   if (btn1) btn1.textContent = icon;
-  if (btn2) btn2.textContent = icon;
   localStorage.setItem('theme', isLight ? 'dark' : 'light');
 }
 
@@ -1055,8 +1039,7 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', 'light');
     setTimeout(() => {
       const btn1 = document.getElementById('themeBtn');
-      const btn2 = document.getElementById('themeBtnChat');
-      if (btn1) btn1.textContent = '☀️';
+          if (btn1) btn1.textContent = '☀️';
       if (btn2) btn2.textContent = '☀️';
     }, 50);
   }

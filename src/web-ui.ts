@@ -49,9 +49,7 @@ export function startWebUI(opts: WebUIOptions): void {
   app.use(express.json());
 
   // ─── Serve the Home page ─────────────────────────────────────────
-  app.get("/", (_req, res) => res.redirect("/org"));
-
-  app.get("/home", (_req, res) => {
+  const serveHome = (_req: any, res: any) => {
     const htmlPath = join(opts.baseDir, "public", "home.html");
     if (existsSync(htmlPath)) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -59,7 +57,9 @@ export function startWebUI(opts: WebUIOptions): void {
     } else {
       res.redirect("/org");
     }
-  });
+  };
+  app.get("/", serveHome);
+  app.get("/home", serveHome);
 
   // ─── Serve the Activity Logs page (redirects to admin) ──────────
   app.get("/activity", (_req, res) => {
