@@ -70,8 +70,9 @@ powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1  
 1. Add tests to `Comprehensive Test Suite/{domain}/`
 2. Run all tests: `node "Comprehensive Test Suite/run-all-tests.js"`
 3. ALL tests must pass before committing
-4. Run `/opappbuild_agentready_trueup` — updates API docs, MCP tools, and MCP docs to match new endpoints
-5. Run `/opappbuild_testsuite_trueup` — adds test coverage for new endpoints
+4. Update the User Guide (`docs/user-guide.md`) — add/update entries for any new pages, buttons, API endpoints, or MCP tools
+5. Run `/opappbuild_agentready_trueup` — updates API docs, MCP tools, and MCP docs to match new endpoints
+6. Run `/opappbuild_testsuite_trueup` — adds test coverage for new endpoints
 
 ## Related Projects
 
