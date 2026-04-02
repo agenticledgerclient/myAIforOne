@@ -433,6 +433,164 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── API: SaaS Publishing ──────────────────────────────────────────
+
+  app.get("/api/saas/config", (_req, res) => {
+    const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+    const saas = raw.saas || {};
+    res.json({ baseUrl: saas.baseUrl || "", connected: !!(saas.baseUrl && saas.apiKey), hasKey: !!saas.apiKey });
+  });
+
+  app.put("/api/saas/config", (req, res) => {
+    const { baseUrl, apiKey } = req.body as any;
+    try {
+      const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+      if (!raw.saas) raw.saas = {};
+      if (baseUrl !== undefined) raw.saas.baseUrl = baseUrl;
+      if (apiKey && apiKey !== "••••••••") raw.saas.apiKey = apiKey;
+      writeFileSync(configFilePath(), JSON.stringify(raw, null, 2));
+      (opts.config as any).saas = raw.saas;
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/saas/test", async (req, res) => {
+    // Accept credentials from body (test before save) or fall back to saved config
+    const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+    const saved = raw.saas || {};
+    const baseUrl = (req.body as any)?.baseUrl || saved.baseUrl;
+    const apiKey = (req.body as any)?.apiKey && (req.body as any).apiKey !== "••••••••"
+      ? (req.body as any).apiKey
+      : saved.apiKey;
+    if (!baseUrl || !apiKey) {
+      return res.status(400).json({ error: "Enter a base URL and API key first" });
+    }
+    try {
+      const resp = await fetch(`${baseUrl.replace(/\/$/, "")}/api/agents`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!resp.ok) return res.status(401).json({ error: `SaaS returned ${resp.status} — check your API key` });
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(502).json({ error: `Could not reach SaaS: ${e.message}` });
+    }
+  });
+
+  app.post("/api/saas/publish", async (req, res) => {
+    // destination: "library" (company-private, upsert) | "marketplace" (platform-wide, create)
+    const { type, id, destination = "library" } = req.body as { type: string; id: string; destination?: string };
+    if (!["skill", "prompt", "agent", "app"].includes(type)) {
+      return res.status(400).json({ error: "type must be skill, prompt, agent, or app" });
+    }
+    if (!["library", "marketplace"].includes(destination)) {
+      return res.status(400).json({ error: "destination must be library or marketplace" });
+    }
+    if (!id) return res.status(400).json({ error: "id required" });
+
+    const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
+    const saas = raw.saas || {};
+    if (!saas.baseUrl || !saas.apiKey) {
+      return res.status(400).json({ error: "SaaS not configured — go to Admin → Settings to add your SaaS URL and API key" });
+    }
+    const base = saas.baseUrl.replace(/\/$/, "");
+    const headers: Record<string, string> = { Authorization: `Bearer ${saas.apiKey}`, "Content-Type": "application/json" };
+    const home = homedir();
+    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
+    // Both destinations use POST /api/marketplace/install — destination field controls where it lands
+    const flag = destination === "library" ? "saasLibrary" : "saasMarketplace";
+
+    try {
+      if (type === "skill") {
+        const registryPath = join(getPersonalRegistryDir(opts.config), "skills.json");
+        const data = existsSync(registryPath) ? JSON.parse(readFileSync(registryPath, "utf-8")) : { skills: [] };
+        const entry = (data.skills || []).find((s: any) => s.id === id);
+        if (!entry) return res.status(404).json({ error: `Skill "${id}" not found in personal registry` });
+        const personalSkillsDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "skills");
+        let contentPath = join(personalSkillsDir, `${id}.md`);
+        if (!existsSync(contentPath)) contentPath = join(home, ".claude", "commands", `${id}.md`);
+        if (!existsSync(contentPath) && entry.localPath) {
+          contentPath = isAbsolute(entry.localPath) ? entry.localPath : join(opts.baseDir, entry.localPath);
+        }
+        const content = existsSync(contentPath) ? readFileSync(contentPath, "utf-8") : "";
+        const resp = await fetch(`${base}/api/marketplace/install`, {
+          method: "POST", headers,
+          body: JSON.stringify({ type: "skill", destination, name: entry.name || id, description: entry.description || "", content, category: entry.category || "" }),
+        });
+        if (!resp.ok) return res.status(resp.status).json({ error: `SaaS error: ${await resp.text()}` });
+        entry[flag] = true;
+        writeFileSync(registryPath, JSON.stringify(data, null, 2));
+        return res.json({ ok: true });
+
+      } else if (type === "prompt") {
+        const registryPath = join(getPersonalRegistryDir(opts.config), "prompts.json");
+        const data = existsSync(registryPath) ? JSON.parse(readFileSync(registryPath, "utf-8")) : { prompts: [] };
+        const entry = (data.prompts || []).find((p: any) => p.id === id);
+        if (!entry) return res.status(404).json({ error: `Prompt "${id}" not found` });
+        const personalPromptsDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "prompts");
+        let contentPath = join(personalPromptsDir, `${id}.md`);
+        if (!existsSync(contentPath) && entry.localPath) {
+          contentPath = isAbsolute(entry.localPath) ? entry.localPath : join(opts.baseDir, entry.localPath);
+        }
+        const content = existsSync(contentPath) ? readFileSync(contentPath, "utf-8") : (entry.content || "");
+        const resp = await fetch(`${base}/api/marketplace/install`, {
+          method: "POST", headers,
+          body: JSON.stringify({ type: "prompt", destination, name: entry.name || id, description: entry.description || "", content }),
+        });
+        if (!resp.ok) return res.status(resp.status).json({ error: `SaaS error: ${await resp.text()}` });
+        entry[flag] = true;
+        writeFileSync(registryPath, JSON.stringify(data, null, 2));
+        return res.json({ ok: true });
+
+      } else if (type === "agent") {
+        const agent = opts.config.agents[id];
+        if (!agent) return res.status(404).json({ error: `Agent "${id}" not found` });
+        const claudeMd = existsSync(agent.claudeMd) ? readFileSync(agent.claudeMd, "utf-8") : "";
+        const resp = await fetch(`${base}/api/agents`, {
+          method: "POST", headers,
+          body: JSON.stringify({
+            agentId: id, name: agent.name, description: agent.description, claudeMd,
+            allowedTools: agent.allowedTools, skills: agent.skills || [], mcps: [],
+            mentionAliases: agent.mentionAliases || [], model: "claude-sonnet-4-6",
+            persistent: agent.persistent ?? true, streaming: agent.streaming ?? true,
+            advancedMemory: agent.advancedMemory ?? false, agentClass: agent.agentClass || "standard",
+            timeout: agent.timeout || 14400000,
+          }),
+        });
+        if (!resp.ok) return res.status(resp.status).json({ error: `SaaS error: ${await resp.text()}` });
+        const agentJsonPath = join(resolveTilde(agent.agentHome || ""), "agent.json");
+        if (agent.agentHome && existsSync(agentJsonPath)) {
+          const agentJson = JSON.parse(readFileSync(agentJsonPath, "utf-8"));
+          agentJson[flag] = true;
+          writeFileSync(agentJsonPath, JSON.stringify(agentJson, null, 2));
+        }
+        return res.json({ ok: true });
+
+      } else if (type === "app") {
+        const apps = readApps();
+        const entry = apps.find((a: any) => a.id === id);
+        if (!entry) return res.status(404).json({ error: `App "${id}" not found` });
+        const resp = await fetch(`${base}/api/apps`, {
+          method: "POST", headers,
+          body: JSON.stringify({
+            name: entry.name, url: entry.url || "",
+            description: entry.shortDescription || entry.description || "",
+            deployPlatform: entry.deployPlatform || "", githubRepo: entry.githubRepo || "",
+            status: entry.status || "draft", category: entry.category || "",
+            public: destination === "marketplace",
+          }),
+        });
+        if (!resp.ok) return res.status(resp.status).json({ error: `SaaS error: ${await resp.text()}` });
+        const updatedApps = apps.map((a: any) => a.id === id ? { ...a, [flag]: true } : a);
+        writeFileSync(appsRegistryPath(), JSON.stringify(updatedApps, null, 2));
+        return res.json({ ok: true });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── MCP registry sync helper ───────────────────────────────────
   // Ensures an MCP entry in config.json is also in PersonalRegistry/mcps.json.
   // Call this whenever an MCP is added to config.json from any code path.
@@ -4079,63 +4237,6 @@ export function startWebUI(opts: WebUIOptions): void {
       });
       res.json({ skills, org: req.params.orgName });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // ─── API: Skills — create skill ─────────────────────────────────────
-  app.post("/api/skills/create", (req, res) => {
-    const { id, name, description, content, scope, orgName, agentId } = req.body as {
-      id?: string; name?: string; description?: string; content?: string;
-      scope?: string; orgName?: string; agentId?: string;
-    };
-    if (!id || !name || !content || !scope) return res.status(400).json({ error: "id, name, content, and scope are required" });
-    if (scope === "org" && !orgName) return res.status(400).json({ error: "orgName is required for org scope" });
-    if (scope === "agent" && !agentId) return res.status(400).json({ error: "agentId is required for agent scope" });
-
-    const home = homedir();
-    const resolveTilde = (p: string) => p.startsWith("~") ? p.replace("~", home) : p;
-
-    let targetDir: string;
-    let localPath: string;
-    if (scope === "global") {
-      targetDir = join(home, ".claude", "commands");
-      localPath = `~/.claude/commands/${id}.md`;
-    } else if (scope === "personal") {
-      targetDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), "skills");
-      localPath = `registry/skills/personal/${id}.md`;
-    } else if (scope === "org") {
-      targetDir = join(resolveTilde(getPersonalAgentsDir(opts.config)), orgName!, "skills");
-      localPath = `registry/skills/org/${orgName}/${id}.md`;
-    } else if (scope === "agent") {
-      const agent = opts.config.agents[agentId!];
-      if (!agent) return res.status(404).json({ error: `Agent ${agentId} not found` });
-      const agentHome = agent.agentHome
-        ? resolveTilde(agent.agentHome)
-        : resolve(opts.baseDir, agent.memoryDir, "..");
-      targetDir = join(agentHome, "skills");
-      localPath = `agents/${agentId}/skills/${id}.md`;
-    } else {
-      return res.status(400).json({ error: "scope must be global, personal, org, or agent" });
-    }
-
-    mkdirSync(targetDir, { recursive: true });
-    const filePath = join(targetDir, `${id}.md`);
-    const fileContent = `---\nname: ${id}\ndescription: ${description || ""}\n---\n\n${content}\n`;
-    writeFileSync(filePath, fileContent);
-
-    // Update PersonalRegistry/skills.json
-    const registryPath = join(getPersonalRegistryDir(opts.config), "skills.json");
-    let registryData: any = { skills: [] };
-    try { registryData = JSON.parse(readFileSync(registryPath, "utf-8")); } catch { /* fresh */ }
-    registryData.skills = registryData.skills.filter((s: any) => s.id !== id);
-    registryData.skills.push({
-      id, name, provider: "me", description: description || "",
-      category: scope, verified: false, source: "local",
-      tags: [scope], localPath, fetch: { type: "file" },
-    });
-    writeFileSync(registryPath, JSON.stringify(registryData, null, 2));
-
-    log.info(`[Skills] Created ${scope} skill: ${id} at ${filePath}`);
-    res.json({ ok: true, id, path: filePath, scope });
   });
 
   // ─── API: Sticky Routing ────────────────────────────────────────────

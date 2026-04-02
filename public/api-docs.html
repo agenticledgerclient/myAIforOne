@@ -343,6 +343,12 @@ const CATALOG = [
   { cat: "Apps", method: "DELETE", path: "/api/apps/:id", summary: "Delete app", params: [{ name: "id", in: "path", type: "string", required: true }] },
   { cat: "Apps", method: "POST", path: "/api/apps/:id/check-health", summary: "Check app health/status", params: [{ name: "id", in: "path", type: "string", required: true }] },
 
+  // -- SaaS Publishing --
+  { cat: "SaaS", method: "GET", path: "/api/saas/config", summary: "Get SaaS connection config (baseUrl, connected flag, hasKey flag)" },
+  { cat: "SaaS", method: "PUT", path: "/api/saas/config", summary: "Save SaaS connection settings", body: { baseUrl: { type: "string", required: true, desc: "Base URL of the SaaS instance (e.g. https://app.myai41.com)" }, apiKey: { type: "string", required: true, desc: "SaaS API key (mak_...)" } } },
+  { cat: "SaaS", method: "POST", path: "/api/saas/test", summary: "Test connection to SaaS instance (uses body values or falls back to saved config)", body: { baseUrl: { type: "string", desc: "Override saved base URL" }, apiKey: { type: "string", desc: "Override saved API key" } } },
+  { cat: "SaaS", method: "POST", path: "/api/saas/publish", summary: "Publish a skill, prompt, or app to the connected SaaS platform", body: { type: { type: "string", required: true, enum: ["skill", "prompt", "app"], desc: "Type of item to publish" }, id: { type: "string", required: true, desc: "Local registry ID of the item" }, destination: { type: "string", required: true, enum: ["library", "marketplace"], desc: "library = company-private, marketplace = public" } } },
+
   // -- Activity & Logs --
   { cat: "Activity", method: "GET", path: "/api/activity", summary: "Get activity feed (latest conversations across agents)", params: [{ name: "limit", in: "query", type: "number", desc: "Max entries (default 100)" }] },
   { cat: "Activity", method: "GET", path: "/api/agents/:agentId/logs", summary: "Paginated conversation logs with search", params: [{ name: "agentId", in: "path", type: "string", required: true }, { name: "limit", in: "query", type: "number", desc: "Max entries (default 50)" }, { name: "offset", in: "query", type: "number" }, { name: "search", in: "query", type: "string", desc: "Keyword filter" }] },

@@ -259,6 +259,12 @@ const TOOLS = [
   // Changelog
   {cat:"Dashboard",name:"get_changelog",desc:"Get recent changelog parsed from git history (grouped by date)",params:[]},
 
+  // SaaS Publishing
+  {cat:"SaaS",name:"get_saas_config",desc:"Get SaaS connection config (baseUrl, connected, hasKey)",params:[]},
+  {cat:"SaaS",name:"set_saas_config",desc:"Save SaaS connection settings (baseUrl + apiKey)",params:[{n:"baseUrl",t:"string",r:true,d:"Base URL of the SaaS instance (e.g. https://app.myai41.com)"},{n:"apiKey",t:"string",r:true,d:"SaaS API key (mak_...)"}]},
+  {cat:"SaaS",name:"test_saas_connection",desc:"Test connection to SaaS instance — pass values to test before saving",params:[{n:"baseUrl",t:"string",r:false,d:"Override saved base URL"},{n:"apiKey",t:"string",r:false,d:"Override saved API key"}]},
+  {cat:"SaaS",name:"publish_to_saas",desc:"Publish a skill, prompt, or app to the connected SaaS platform",params:[{n:"type",t:"enum",r:true,d:"skill | prompt | app"},{n:"id",t:"string",r:true,d:"Local registry ID of the item"},{n:"destination",t:"enum",r:true,d:"library (company-private) | marketplace (public)"}]},
+
   // xbar
   {cat:"Config",name:"install_xbar",desc:"Install xbar status bar plugin (macOS only)",params:[]},
 

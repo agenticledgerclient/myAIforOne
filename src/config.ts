@@ -131,6 +131,10 @@ export interface AppConfig {
   defaultMcps?: string[];     // MCPs given to every agent automatically
   defaultPrompts?: string[];  // prompt templates given to every agent automatically
   promptTrigger?: string;     // character used to invoke prompt templates (default: "!")
+  saas?: {
+    baseUrl: string;
+    apiKey: string;
+  };
 }
 
 export function loadConfig(configPath: string): AppConfig {

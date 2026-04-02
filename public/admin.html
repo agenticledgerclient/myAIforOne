@@ -232,6 +232,7 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
     <div class="logo-text">MyAIforOne</div>
   </div>
   <nav class="tab-group">
+    <a class="tab-btn" href="/org">Agents</a>
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn" href="/library">Library</a>
     <a class="tab-btn" href="/lab">Lab</a>
@@ -375,6 +376,34 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
+      <!-- ── SaaS Publishing ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:var(--accent-bg);border-color:var(--accent);color:var(--accent)">&#8599;</div>
+          <div>
+            <div class="section-title">SaaS Publishing</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Publish skills, prompts, agents, and apps from your Library to a shared SaaS workspace</div>
+          </div>
+          <span id="saas-status-dot" style="margin-left:auto;display:none;width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0" title="Connected"></span>
+        </div>
+        <div class="section-body">
+          <div class="service-grid">
+            <div class="field">
+              <label>SaaS Base URL</label>
+              <input id="saasBaseUrl" placeholder="https://myagent-app.up.railway.app" />
+            </div>
+            <div class="field">
+              <label>API Key <span id="saasKeyReveal" onclick="toggleReveal('saasKey','saasKeyReveal')" style="cursor:pointer;font-size:10px;color:var(--accent);margin-left:4px">show</span></label>
+              <input id="saasKey" type="password" placeholder="mak_..." autocomplete="off" />
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn-save" onclick="saveSaas()">Save</button>
+            <button class="btn-save" style="background:transparent;border:1px solid var(--border-glow);color:var(--text-secondary)" onclick="testSaas(this)">Test Connection</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Status Indicator ── -->
       <div class="section">
         <div class="section-header">
@@ -467,7 +496,7 @@ function switchTab(name) {
   // Lazy-load tab data
   if (name === 'channels' && !channelsLoaded) loadChannels();
   if (name === 'activity' && !activityLoaded) initActivity();
-  if (name === 'settings' && !settingsLoaded) { loadAccounts(); loadService(); settingsLoaded = true; }
+  if (name === 'settings' && !settingsLoaded) { loadAccounts(); loadService(); loadSaas(); settingsLoaded = true; }
   // Update URL param
   const url = new URL(location.href);
   url.searchParams.set('tab', name);
@@ -1058,6 +1087,46 @@ async function saveDeployment() {
   const data = await res.json();
   if (!res.ok) { showToast(data.error, 'err'); return; }
   showToast('Deployment settings saved');
+}
+
+async function loadSaas() {
+  try {
+    const d = await (await fetch('/api/saas/config')).json();
+    document.getElementById('saasBaseUrl').value = d.baseUrl || '';
+    document.getElementById('saasKey').value = d.hasKey ? '••••••••' : '';
+    if (d.connected) document.getElementById('saas-status-dot').style.display = 'block';
+  } catch { /* ignore */ }
+}
+
+async function saveSaas() {
+  const baseUrl = document.getElementById('saasBaseUrl').value.trim();
+  const apiKey = document.getElementById('saasKey').value;
+  const res = await fetch('/api/saas/config', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ baseUrl, apiKey })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast('SaaS settings saved');
+  await loadSaas();
+}
+
+async function testSaas(btn) {
+  const orig = btn.textContent;
+  btn.textContent = 'Testing…'; btn.disabled = true;
+  // Use current form values so you can test before saving
+  const baseUrl = document.getElementById('saasBaseUrl').value.trim();
+  const apiKey = document.getElementById('saasKey').value;
+  try {
+    const res = await fetch('/api/saas/test', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ baseUrl, apiKey })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Connection failed', 'err'); }
+    else { showToast('Connected to SaaS!', 'ok'); document.getElementById('saas-status-dot').style.display = 'block'; }
+  } catch { showToast('Could not reach SaaS', 'err'); }
+  btn.textContent = orig; btn.disabled = false;
 }
 
 function toggleReveal(inputId, labelId) {
