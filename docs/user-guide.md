@@ -1,6 +1,6 @@
-# MyAgent Platform — User Guide
+# MyAIforOne — User Guide
 
-> Master reference for every page, button, action, API endpoint, and MCP tool in the MyAgent platform.
+> Master reference for every page, button, action, API endpoint, and MCP tool in the MyAIforOne platform.
 > Organized by UI page. Each action includes its API and MCP mapping.
 > Intended audience: hub agent, platform agents, and advanced users.
 
