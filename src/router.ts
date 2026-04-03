@@ -180,14 +180,17 @@ export function resolveRoute(
     return sticky;
   }
 
-  // Fall back to default agent
-  if (config.defaultAgent && config.agents[config.defaultAgent]) {
+  // Fall back to default agent — only for the web channel
+  if (msg.channel === "web" && config.defaultAgent && config.agents[config.defaultAgent]) {
     const agent = config.agents[config.defaultAgent];
-    return {
-      agentId: config.defaultAgent,
-      agentConfig: agent,
-      route: agent.routes[0],
-    };
+    const matchingRoute = agent.routes.find(r => r.channel === msg.channel);
+    if (matchingRoute) {
+      return {
+        agentId: config.defaultAgent,
+        agentConfig: agent,
+        route: matchingRoute,
+      };
+    }
   }
 
   return null;

@@ -859,10 +859,11 @@ export function startWebUI(opts: WebUIOptions): void {
       .filter(([, c]) => c.enabled)
       .map(([id]) => id);
 
-    // Find default group agent (first one with subAgents, or explicitly set)
-    const defaultGroupAgent = (opts.config.service as any).defaultGroupAgent
+    // Find default group agent: explicit config > first with subAgents > hub
+    const defaultGroupAgent = (opts.config as any).defaultAgent
+      || (opts.config.service as any).defaultGroupAgent
       || Object.entries(opts.config.agents).find(([, a]) => a.subAgents)?.[0]
-      || null;
+      || (opts.config.agents["hub"] ? "hub" : null);
 
     res.json({
       status: "running",
