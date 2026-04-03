@@ -372,7 +372,7 @@ text-decoration:none;}
       <span class="hub-label">@hub</span>
       <select class="header-btn" id="accountSelect" style="padding:2px 6px;cursor:pointer;display:none" onchange="setAccountOverride(this.value)" title="Claude Account override"></select>
       <button class="header-btn danger" onclick="confirmResetSession()" title="Reset hub session">&#x21BA; Reset session</button>
-      <a class="header-btn" id="configureHubLink" href="/agent/hub" title="Configure hub agent">&#x2699; Configure</a>
+      <button class="header-btn" id="configureHubLink" onclick="openConfigOverlay()" title="Configure hub agent">&#x2699; Configure</button>
     </div>
     <div class="chat-messages-home" id="chatMessages"></div>
     <div class="logs-drawer" id="logsDrawer">
@@ -469,7 +469,7 @@ async function init() {
 
     // Update configure link to point to hub agent dashboard
     const configLink = document.getElementById('configureHubLink');
-    if (configLink && hubAgentId) configLink.href = `/agent/${hubAgentId}`;
+    // configureHubLink is now a button; hubAgentId used by openConfigOverlay()
 
     // Populate account dropdown
     if (availableAccounts.length > 0 && hubAgentId) {
@@ -1256,8 +1256,61 @@ async function streamRawLogs(jobId) {
   } catch { /* connection closed */ }
 }
 
+// ─── Config Overlay (iframe) ─────────────────────────────
+function openConfigOverlay() {
+  if (!hubAgentId) return;
+  const overlay = document.getElementById('configOverlay');
+  const iframe = document.getElementById('configIframe');
+  iframe.src = `/org?edit=${encodeURIComponent(hubAgentId)}`;
+  overlay.classList.add('show');
+}
+function closeConfigOverlay() {
+  const overlay = document.getElementById('configOverlay');
+  const iframe = document.getElementById('configIframe');
+  overlay.classList.remove('show');
+  setTimeout(() => { iframe.src = 'about:blank'; }, 300);
+}
+// Listen for modal close from iframe
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'configModalClosed') closeConfigOverlay();
+});
+
 init();
 setTimeout(() => document.getElementById('landingInput').focus(), 100);
 </script>
+
+<!-- Config Overlay -->
+<div class="config-overlay" id="configOverlay" onclick="closeConfigOverlay()">
+  <div class="config-overlay-inner" onclick="event.stopPropagation()">
+    <button class="config-overlay-close" onclick="closeConfigOverlay()">&#10005;</button>
+    <iframe id="configIframe" src="about:blank"></iframe>
+  </div>
+</div>
+<style>
+.config-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .25s ease;
+}
+.config-overlay.show{display:flex;opacity:1}
+.config-overlay-inner{
+  position:relative;width:90vw;max-width:680px;height:85vh;
+  border-radius:16px;overflow:hidden;
+  border:1px solid var(--border-glow);
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+.config-overlay-inner iframe{
+  width:100%;height:100%;border:none;background:var(--bg-deep);
+}
+.config-overlay-close{
+  position:absolute;top:10px;right:14px;z-index:10;
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;
+  font-size:16px;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.config-overlay-close:hover{border-color:var(--border-glow);color:var(--text-primary)}
+</style>
 </body>
 </html>

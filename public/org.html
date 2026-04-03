@@ -1347,11 +1347,21 @@ function toggleHideOrg(orgName) {
 }
 
 // Auto-open agent modal from URL params (e.g. /org?edit=agentId&tab=goals)
+// When embedded in an iframe, hide background and notify parent on close
 (function() {
   const params = new URLSearchParams(window.location.search);
   const editId = params.get('edit');
   const tab = params.get('tab');
+  const isEmbed = window !== window.parent;
   if (editId) {
+    // Hide background content when embedded so only the modal shows
+    if (isEmbed) {
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+      for (const sel of ['.topbar', '.sub-nav', '#canvas', '#bulkBar']) {
+        document.querySelector(sel)?.style.setProperty('display','none');
+      }
+    }
     setTimeout(() => {
       openModal(editId).then(() => {
         if (tab) {
@@ -2465,6 +2475,10 @@ async function executeDisconnectMcp(agentId, mcpName) {
 function closeModal() {
   document.getElementById('agentModal').classList.remove('show');
   editingAgentId = null;
+  // If embedded in an iframe (e.g. Home config overlay), tell parent to close
+  if (window !== window.parent) {
+    window.parent.postMessage({ type: 'configModalClosed' }, '*');
+  }
 }
 
 function addOrgEntry(org, func, title, reportsTo) {
