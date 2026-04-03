@@ -1100,6 +1100,39 @@ let rawLogsOpen = false;
 let rawLogsReader = null; // active fetch reader for raw stream
 let rawMode = false; // false = clean view, true = raw JSON
 
+// Throttled stream rendering — batch token updates to avoid per-token formatMarkdown() calls
+let streamRenderDirty = false;
+let streamRenderRaf = null;
+function scheduleStreamRender(ss, isViewing) {
+  if (!isViewing()) return;
+  streamRenderDirty = true;
+  if (!streamRenderRaf) {
+    streamRenderRaf = requestAnimationFrame(() => {
+      streamRenderRaf = null;
+      if (!streamRenderDirty) return;
+      streamRenderDirty = false;
+      flushStreamRender(ss, isViewing);
+    });
+  }
+}
+function flushStreamRender(ss, isViewing) {
+  if (!isViewing()) return;
+  const streamEl = document.getElementById('streamingContent');
+  const thinkWrap = document.getElementById('thinkingWrap');
+  if (streamEl) {
+    streamEl.innerHTML = formatMarkdown(ss.text);
+  } else {
+    if (thinkWrap) thinkWrap.innerHTML = '';
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'msg msg-agent';
+    msgDiv.id = 'streamingMsg';
+    msgDiv.innerHTML = `<div id="streamingContent">${formatMarkdown(ss.text)}</div><div class="msg-time">streaming...</div>`;
+    const chatMsgs = document.getElementById('chatMessages');
+    if (chatMsgs) chatMsgs.insertBefore(msgDiv, thinkWrap);
+  }
+  scrollChat();
+}
+
 function toggleRawLogs() {
   rawLogsOpen = !rawLogsOpen;
   const drawer = document.getElementById('rawLogsDrawer');
@@ -1467,22 +1500,7 @@ async function sendMessage(agentId, text) {
                 if (event.type === 'text') {
                   ss.text += event.data;
                   ss.isThinking = false;
-                  if (isViewing()) {
-                    const streamEl = document.getElementById('streamingContent');
-                    const thinkWrap = document.getElementById('thinkingWrap');
-                    if (streamEl) {
-                      streamEl.innerHTML = formatMarkdown(ss.text);
-                    } else {
-                      if (thinkWrap) thinkWrap.innerHTML = '';
-                      const msgDiv = document.createElement('div');
-                      msgDiv.className = 'msg msg-agent';
-                      msgDiv.id = 'streamingMsg';
-                      msgDiv.innerHTML = `<div id="streamingContent">${formatMarkdown(ss.text)}</div><div class="msg-time">streaming...</div>`;
-                      const chatMsgs = document.getElementById('chatMessages');
-                      if (chatMsgs) chatMsgs.insertBefore(msgDiv, thinkWrap);
-                    }
-                    scrollChat();
-                  }
+                  scheduleStreamRender(ss, isViewing);
                 } else if (event.type === 'tool') {
                   ss.status = event.data;
                   if (event.tool) {
@@ -1557,7 +1575,9 @@ async function sendMessage(agentId, text) {
         }
       }
 
-      // Finalize
+      // Finalize — flush any pending throttled render
+      if (streamRenderRaf) { cancelAnimationFrame(streamRenderRaf); streamRenderRaf = null; }
+      if (streamRenderDirty) { streamRenderDirty = false; flushStreamRender(ss, isViewing); }
       clearInterval(inactivityCheck);
       ss.isThinking = false;
       ss.jobId = null;
@@ -2001,7 +2021,8 @@ function deleteQueueItem(idx) {
 
 async function stopStreaming() {
   if (!selectedAgent) return;
-  const ss = getStream(selectedAgent);
+  const agentId = selectedAgent;
+  const ss = getStream(agentId);
   if (ss.jobId) {
     try {
       await fetch(`/api/chat/jobs/${ss.jobId}/stop`, { method: 'POST' });
@@ -2014,12 +2035,18 @@ async function stopStreaming() {
     ss.isThinking = false;
     ss.jobId = null;
     if (ss.text) {
-      chatHistory[selectedAgent].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+      chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
     }
     ss.text = '';
     ss.status = '';
     ss.tools = [];
-    if (isViewing()) { renderChat(); scrollChat(); }
+    if (selectedAgent === agentId) { renderChat(); scrollChat(); }
+  }
+  // Drain queue: auto-send next queued message after stop
+  if (ss.queue.length > 0) {
+    const next = ss.queue.shift();
+    renderQueueUI();
+    sendMessage(agentId, next);
   }
 }
 

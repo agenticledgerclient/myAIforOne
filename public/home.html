@@ -89,14 +89,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .agent-count{font-size:12px;color:var(--text-muted);margin-top:16px}
 
 /* ─── Agent Tiles ─────────────────────────────────────── */
-.tiles-wrap{margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:8px;max-width:600px}
+.tiles-wrap{margin-top:16px;display:flex;align-items:center;gap:8px;max-width:600px;flex-wrap:wrap;justify-content:center}
 .org-select{
   font-family:var(--font-mono);font-size:11px;padding:4px 10px;border-radius:8px;
   border:1px solid var(--border-glow);background:var(--bg-input);
   color:var(--text-primary);outline:none;cursor:pointer;
 }
 .agent-tiles{
-  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
 }
 .agent-tile{
   display:flex;align-items:center;gap:6px;
@@ -205,16 +205,48 @@ text-decoration:none;}
 }
 .chat-input-home-box textarea:focus{border-color:var(--border-active)}
 .chat-input-home-box textarea::placeholder{color:var(--text-muted)}
-.chat-input-home-box button{
+.chat-input-home-box > .home-send-btn{
   width:40px;height:40px;border-radius:10px;border:none;
   background:var(--accent);color:#000;cursor:pointer;
   font-size:16px;font-weight:700;flex-shrink:0;transition:all .2s;
 }
-.chat-input-home-box button:hover{filter:brightness(1.1);transform:scale(1.05)}
+.chat-input-home-box > .home-send-btn:hover{filter:brightness(1.1);transform:scale(1.05)}
 
-/* Bottom tiles in chat mode */
+/* Stop & Queue */
+.home-stop-btn{
+  width:40px;height:40px;border-radius:10px;border:none;
+  background:rgba(239,68,68,0.85);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:all .2s;flex-shrink:0;
+}
+.home-stop-btn:hover{filter:brightness(1.1);transform:scale(1.05);background:#ef4444}
+.home-send-btn.queue-mode{background:rgba(139,92,246,0.85);color:#fff;font-size:12px;font-weight:600}
+.home-send-btn.queue-mode:hover{background:rgba(139,92,246,1)}
+.home-queue{
+  max-width:800px;margin:4px auto 0;display:flex;flex-direction:column;gap:4px;
+}
+.home-queue-item{
+  display:flex;align-items:center;gap:8px;padding:4px 10px;
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:8px;
+  font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);
+}
+.home-queue-item .q-pos{color:var(--accent);font-weight:600;flex-shrink:0}
+.home-queue-item .q-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-queue-item .q-btn{
+  background:none;border:1px solid var(--border-dim);color:var(--text-muted);
+  width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:10px;
+  display:flex;align-items:center;justify-content:center;
+}
+.home-queue-item .q-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.home-queue-item .q-btn.danger:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
+
+/* Bottom agent bar in chat mode */
+.chat-agent-bar{
+  display:flex;align-items:center;gap:8px;max-width:800px;margin:8px auto 0;flex-wrap:wrap;
+}
+.chat-agent-bar .org-select{flex-shrink:0}
 .chat-tiles{
-  display:flex;gap:6px;max-width:800px;margin:8px auto 0;flex-wrap:wrap;
+  display:flex;gap:6px;flex-wrap:wrap;align-items:center;
 }
 .chat-tiles .agent-tile{padding:4px 10px;font-size:11px}
 .chat-tiles .tile-avatar{width:20px;height:20px;font-size:8px;border-radius:5px}
@@ -310,6 +342,7 @@ text-decoration:none;}
 .logs-content{
   flex:1;overflow-y:auto;padding:8px 16px;
   font-family:var(--font-mono);font-size:11px;line-height:1.6;color:var(--text-secondary);
+  white-space:pre-wrap;word-break:break-all;
 }
 .logs-content::-webkit-scrollbar{width:4px}
 .logs-content::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
@@ -397,11 +430,14 @@ text-decoration:none;}
         <textarea id="chatInput" placeholder="Ask anything... (type @ to mention an agent)" rows="1"
           onkeydown="handleChatKeydown(event)"
           oninput="autoResize(this);checkAutocomplete(this)"></textarea>
-        <button onclick="sendMessage()">→</button>
+        <button class="home-send-btn" id="homeSendBtn" onclick="sendMessage()">→</button>
       </div>
       <div id="homeFileList"></div>
-      <select class="org-select" id="chatOrgFilters" style="margin-bottom:4px" onchange="setOrgFilter(this.value)"></select>
-      <div class="chat-tiles" id="chatTiles"></div>
+      <div id="homeQueueContainer"></div>
+      <div class="chat-agent-bar">
+        <select class="org-select" id="chatOrgFilters" onchange="setOrgFilter(this.value)"></select>
+        <div class="chat-tiles" id="chatTiles"></div>
+      </div>
     </div>
   </div>
 
@@ -425,6 +461,8 @@ let hubAgentId = null;
 let isThinking = false;
 let streamingText = '';
 let voiceModeOn = false;
+let homeQueue = [];
+let currentJobId = null;
 let availableAccounts = [];
 let accountOverride = undefined;
 
@@ -631,14 +669,24 @@ function sendFirst() {
 }
 
 // ─── Send message (from chat) ──────────────────────────
-function sendMessage() {
+function sendMessage(queuedText) {
   const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if (!text || !hubAgentId || isThinking) return;
-  input.value = '';
-  autoResize(input);
-  hideAutocomplete();
+  const text = queuedText || input.value.trim();
+  if (!text || !hubAgentId) return;
+
+  // Queue if already streaming
+  if (isThinking && !queuedText) {
+    homeQueue.push(text);
+    input.value = '';
+    autoResize(input);
+    hideAutocomplete();
+    renderHomeQueue();
+    return;
+  }
+
+  if (!queuedText) { input.value = ''; autoResize(input); hideAutocomplete(); }
   addMessage('user', text);
+  updateHomeInputButtons();
   const direct = parseDirectAgent(text);
   if (direct) {
     executeDirectAgent(direct.agentId, direct.message);
@@ -774,6 +822,9 @@ function handleChatKeydown(event) {
     event.preventDefault();
     sendMessage();
   }
+  if (event.key === 'Escape' && isThinking) {
+    stopHomeStreaming();
+  }
 }
 
 // ─── Execute via hub agent (streaming) ─────────────────
@@ -791,8 +842,10 @@ async function executeHub(text) {
     const { jobId } = await startRes.json();
     if (!jobId) throw new Error('No jobId');
 
-    // Track job for raw logs
+    // Track job for stop + raw logs
+    currentJobId = jobId;
     currentRawJobId = jobId;
+    updateHomeInputButtons();
     if (logsOpen) streamRawLogs(jobId);
 
     // Stream events using fetch+reader with reconnect (no EventSource)
@@ -880,6 +933,8 @@ async function executeHub(text) {
 
     // Finalize
     isThinking = false;
+    currentJobId = null;
+    updateHomeInputButtons();
     if (streamingText) {
       speakText(streamingText);
       addMessage('agent', streamingText);
@@ -889,6 +944,8 @@ async function executeHub(text) {
     }
   } catch (err) {
     isThinking = false;
+    currentJobId = null;
+    updateHomeInputButtons();
     if (streamingText) {
       addMessage('agent', streamingText);
       streamingText = '';
@@ -898,6 +955,12 @@ async function executeHub(text) {
   }
   renderMessages();
   scrollChat();
+  // Drain queue: auto-send next queued message
+  if (homeQueue.length > 0) {
+    const next = homeQueue.shift();
+    renderHomeQueue();
+    sendMessage(next);
+  }
 }
 
 // ─── Messages ──────────────────────────────────────────
@@ -1147,6 +1210,83 @@ function stopHomeVoice() {
   homeIsRecording = false;
   const btn = document.getElementById('homeMicBtn');
   if (btn) btn.classList.remove('recording');
+}
+
+// ─── Stop & Queue ─────────────────────────────────────
+async function stopHomeStreaming() {
+  if (currentJobId) {
+    try { await fetch(`/api/chat/jobs/${currentJobId}/stop`, { method: 'POST' }); } catch {}
+  }
+  isThinking = false;
+  currentJobId = null;
+  if (streamingText) {
+    addMessage('agent', streamingText);
+    streamingText = '';
+  }
+  renderMessages();
+  scrollChat();
+  updateHomeInputButtons();
+  // Drain queue
+  if (homeQueue.length > 0) {
+    const next = homeQueue.shift();
+    renderHomeQueue();
+    sendMessage(next);
+  }
+}
+
+function updateHomeInputButtons() {
+  const box = document.querySelector('.chat-input-home-box');
+  if (!box) return;
+  const sendBtn = document.getElementById('homeSendBtn');
+  const existingStop = box.querySelector('.home-stop-btn');
+
+  if (isThinking || currentJobId) {
+    // Show stop button
+    if (!existingStop) {
+      const stopBtn = document.createElement('button');
+      stopBtn.className = 'home-stop-btn';
+      stopBtn.onclick = stopHomeStreaming;
+      stopBtn.title = 'Stop (Esc)';
+      stopBtn.innerHTML = '\u25A0';
+      if (sendBtn) box.insertBefore(stopBtn, sendBtn);
+    }
+    // Switch send to queue mode
+    if (sendBtn) { sendBtn.classList.add('queue-mode'); sendBtn.textContent = 'Queue'; }
+  } else {
+    // Remove stop button
+    if (existingStop) existingStop.remove();
+    // Restore send button
+    if (sendBtn) { sendBtn.classList.remove('queue-mode'); sendBtn.textContent = '\u2192'; }
+  }
+}
+
+function renderHomeQueue() {
+  const container = document.getElementById('homeQueueContainer');
+  if (!container) return;
+  if (!homeQueue.length) { container.innerHTML = ''; return; }
+  container.innerHTML = `<div class="home-queue">${homeQueue.map((msg, i) => {
+    const truncated = msg.length > 60 ? msg.slice(0, 60) + '...' : msg;
+    return `<div class="home-queue-item">
+      <span class="q-pos">${i + 1}</span>
+      <span class="q-text" title="${msg.replace(/"/g, '&quot;')}">${truncated.replace(/</g, '&lt;')}</span>
+      <button class="q-btn" onclick="editHomeQueueItem(${i})" title="Edit">&#x270E;</button>
+      <button class="q-btn danger" onclick="deleteHomeQueueItem(${i})" title="Delete">&#x2715;</button>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function editHomeQueueItem(idx) {
+  if (idx < 0 || idx >= homeQueue.length) return;
+  const text = homeQueue.splice(idx, 1)[0];
+  const input = document.getElementById('chatInput');
+  if (input) { input.value = text; input.focus(); autoResize(input); }
+  renderHomeQueue();
+}
+
+function deleteHomeQueueItem(idx) {
+  if (idx < 0 || idx >= homeQueue.length) return;
+  homeQueue.splice(idx, 1);
+  renderHomeQueue();
 }
 
 // ─── Raw Logs Drawer (claude -p stdout) ───────────────

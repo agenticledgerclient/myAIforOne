@@ -31,6 +31,7 @@ interface StreamJob {
   stopped: boolean;
   createdAt: number;
   listeners: Set<(idx: number) => void>; // notify waiting SSE connections
+  abort?: AbortController; // used to kill the child process on Stop
 }
 const jobStore = new Map<string, StreamJob>();
 // Track last-used Claude account per agent (for web UI dropdown switching)
@@ -1069,7 +1070,8 @@ export function startWebUI(opts: WebUIOptions): void {
 
     // Create job
     const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const job: StreamJob = { events: [], rawLines: [], rawListeners: new Set(), done: false, stopped: false, createdAt: Date.now(), listeners: new Set() };
+    const abortCtrl = new AbortController();
+    const job: StreamJob = { events: [], rawLines: [], rawListeners: new Set(), done: false, stopped: false, createdAt: Date.now(), listeners: new Set(), abort: abortCtrl };
     jobStore.set(jobId, job);
 
     const pushEvent = (data: string) => {
@@ -1118,7 +1120,7 @@ export function startWebUI(opts: WebUIOptions): void {
         }
       }, 30_000);
       try {
-        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, pushRawLine, { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger })) {
+        for await (const event of executeAgentStreaming(route, syntheticMsg, opts.baseDir, opts.config.mcps, opts.config.service.claudeAccounts, pushRawLine, { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger }, abortCtrl.signal)) {
           if (job.stopped) break;
           pushEvent(JSON.stringify(event));
         }
@@ -1234,6 +1236,9 @@ export function startWebUI(opts: WebUIOptions): void {
 
     job.stopped = true;
     job.done = true;
+
+    // Kill the underlying claude -p child process
+    if (job.abort) job.abort.abort();
 
     // Push a stopped event then [DONE] so connected SSE clients finalize
     const pushEvent = (data: string) => {

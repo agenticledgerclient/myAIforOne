@@ -1368,6 +1368,7 @@ export async function* executeAgentStreaming(
   claudeAccounts?: Record<string, string>,
   onRawLine?: (line: string) => void,
   globalDefaults?: { skills?: string[]; mcps?: string[]; prompts?: string[]; promptTrigger?: string },
+  signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
   const { agentId, agentConfig } = route;
   const effectiveSkills = [...new Set([...(agentConfig.skills || []), ...(globalDefaults?.skills || [])])];
@@ -1689,6 +1690,12 @@ export async function* executeAgentStreaming(
   if (stdinPayload && proc.stdin) {
     proc.stdin.write(stdinPayload);
     proc.stdin.end();
+  }
+
+  // Kill the child process if the abort signal fires (e.g. user clicked Stop)
+  if (signal) {
+    if (signal.aborted) { proc.kill("SIGTERM"); }
+    else { signal.addEventListener("abort", () => proc.kill("SIGTERM"), { once: true }); }
   }
 
   const timer = setTimeout(() => {
