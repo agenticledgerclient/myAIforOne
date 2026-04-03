@@ -292,6 +292,29 @@ Manage MCP server connections for the agent.
 - **Auth form** — dynamic fields based on MCP requirements (API key input, OAuth link, etc.)
 - **Cancel / Save buttons**
 
+#### Connecting Google OAuth MCPs (Sheets, Gmail, Calendar, Drive, Docs)
+
+Several MCPs use Google OAuth instead of an API key. These include:
+
+| MCP | What it enables |
+|-----|----------------|
+| `googlesheets` | Read, write, and manage Google Sheets spreadsheets |
+| `gmail` | Read, search, send Gmail messages |
+| `googlecalendar` | List, create, and manage calendar events |
+| `googledrive` | Browse, read, and manage Drive files |
+| `googledocs` | Read and edit Google Docs documents |
+
+**To connect a Google OAuth MCP to an agent:**
+1. Go to **Org page** → click the agent → **MCPs tab**
+2. Find the MCP (e.g. Google Sheets) in the accordion and click **+ Add Account**
+3. In the auth modal, click **Authorize** — this opens a Google sign-in flow
+4. Sign in with the Google account you want to connect
+5. The refresh token is stored automatically under a connection name like `googlesheets-agenticledger`
+
+**Multiple accounts:** You can add multiple Google accounts to the same MCP (e.g. `agenticledger`, `bst`, `financeiscooked`) by repeating the flow with a different account. Each becomes a separate named connection.
+
+**Via MCP tool:** Use `create_mcp_connection` with `baseMcp`, `label`, `envVar` (e.g. `GOOGLESHEETS_AGENTICLEDGER`), and `value` (refresh token). The token must be issued by the agenticledger.ai OAuth client — tokens from other Google Cloud projects will fail with `invalid_grant`.
+
 | Action | API | MCP |
 |--------|-----|-----|
 | List registered MCPs | `GET /api/mcps` | `list_mcps` |
