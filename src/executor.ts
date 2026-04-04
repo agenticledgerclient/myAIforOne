@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync, existsSync, unlinkSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
@@ -368,7 +368,6 @@ export function handleRelogin(accountName: string, configDir?: string): string {
     if (configDir) env.CLAUDE_CONFIG_DIR = configDir;
 
     // Try `claude auth status` first to check current state
-    const { execSync } = require("node:child_process");
     let statusOutput = "";
     try {
       statusOutput = execSync("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim();

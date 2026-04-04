@@ -1,8 +1,8 @@
 import express from "express";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, basename, dirname, extname, relative, isAbsolute } from "node:path";
-import { execSync } from "node:child_process";
+import { execSync, spawn as cpSpawn } from "node:child_process";
 import type { AppConfig } from "./config.js";
 import { getPersonalAgentsDir, getPersonalRegistryDir } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
@@ -260,12 +260,11 @@ export function startWebUI(opts: WebUIOptions): void {
     } catch { /* ignore */ }
 
     // Spawn `claude auth login` — it will print an auth URL and keep running
-    const { spawn } = require("node:child_process");
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(process.env)) { if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT") env[k] = v; }
     env.CLAUDE_CONFIG_DIR = resolvedPath;
 
-    const proc = spawn("claude", ["auth", "login"], { env, stdio: ["pipe", "pipe", "pipe"] });
+    const proc = cpSpawn("claude", ["auth", "login"], { env, stdio: ["pipe", "pipe", "pipe"] });
     const sessionId = `login-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     let output = "";
     loginSessions.set(sessionId, { proc, output, name: name.trim(), path: cfgPath.trim() });
@@ -325,8 +324,10 @@ export function startWebUI(opts: WebUIOptions): void {
     const resolvedPath = cfgPath.replace(/^~/, home);
     try {
       const env: Record<string, string> = {};
-      for (const [k, v] of Object.entries(process.env)) { if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT") env[k] = v; }
-      env.CLAUDE_CONFIG_DIR = resolvedPath;
+      for (const [k, v] of Object.entries(process.env)) { if (v !== undefined && k !== "CLAUDECODE" && k !== "CLAUDE_CODE_ENTRYPOINT" && k !== "CLAUDE_CONFIG_DIR") env[k] = v; }
+      // Only set CLAUDE_CONFIG_DIR for non-default accounts — setting it to ~/.claude breaks auth status
+      const defaultClaudeDir = join(home, ".claude");
+      if (resolvedPath !== defaultClaudeDir) env.CLAUDE_CONFIG_DIR = resolvedPath;
       let status = "";
       try { status = execSync("claude auth status 2>&1", { env, timeout: 10_000 }).toString().trim(); } catch { /* not logged in */ }
       const loggedIn = status.toLowerCase().includes("logged in") || status.toLowerCase().includes("authenticated") || status.includes('"loggedIn": true') || status.includes('"loggedIn":true');
@@ -555,7 +556,7 @@ export function startWebUI(opts: WebUIOptions): void {
             allowedTools: agent.allowedTools, skills: agent.skills || [], mcps: [],
             mentionAliases: agent.mentionAliases || [], model: "claude-sonnet-4-6",
             persistent: agent.persistent ?? true, streaming: agent.streaming ?? true,
-            advancedMemory: agent.advancedMemory ?? false, agentClass: agent.agentClass || "standard",
+            advancedMemory: agent.advancedMemory ?? true, agentClass: agent.agentClass || "standard",
             timeout: agent.timeout || 14400000,
           }),
         });
@@ -768,7 +769,6 @@ export function startWebUI(opts: WebUIOptions): void {
       const dest = join(destDir, "myagent.5s.sh");
       copyFileSync(src, dest);
       // Make executable
-      const { chmodSync } = require("node:fs");
       chmodSync(dest, 0o755);
       res.json({ ok: true, path: dest });
     } catch (err) {
@@ -838,7 +838,7 @@ export function startWebUI(opts: WebUIOptions): void {
         sessionActive,
         workspace: agent.workspace,
         streaming: agent.streaming ?? false,
-        advancedMemory: agent.advancedMemory ?? false,
+        advancedMemory: agent.advancedMemory ?? true,
         autonomousCapable: agent.autonomousCapable ?? true,
         autoCommit: agent.autoCommit ?? false,
         timeout: agent.timeout ?? 14400000,
@@ -1916,7 +1916,7 @@ export function startWebUI(opts: WebUIOptions): void {
             memoryDir: `${paDirTilde}/${agentId}/memory`,
             persistent: meta.persistent ?? true,
             streaming: meta.streaming ?? true,
-            advancedMemory: meta.advancedMemory ?? false,
+            advancedMemory: meta.advancedMemory ?? true,
             mentionAliases: [alias],
             allowedTools: meta.allowedTools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
             timeout: meta.timeout || 14400000,

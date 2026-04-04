@@ -288,11 +288,12 @@ applyTheme(localStorage.getItem('theme')||'dark');
 
 // ── Toast ──────────────────────────────────────────────────────────
 let toastTimer;
-function showToast(msg, type='ok') {
+function showToast(msg, type='ok', html=false) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `toast ${type} show`;
+  if (html) { t.innerHTML = msg; } else { t.textContent = msg; }
+  t.className = `toast ${type} show`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+  toastTimer = setTimeout(() => t.classList.remove('show'), html ? 10000 : 3500);
 }
 
 // ── Accounts ───────────────────────────────────────────────────────
@@ -489,8 +490,12 @@ async function reloginAccount(name) {
       showToast(`"${name}" is already logged in`);
       checkStatus(name);
     } else if (data.url) {
-      window.open(data.url, '_blank');
-      showToast('Opened auth URL — authorize then refresh status', 'info');
+      const w = window.open(data.url, '_blank');
+      if (!w || w.closed) {
+        showToast(`<a href="${data.url}" target="_blank" style="color:var(--accent);text-decoration:underline">Click here to authorize</a> (popup was blocked)`, 'info', true);
+      } else {
+        showToast('Opened auth URL — authorize then refresh status', 'info');
+      }
       setTimeout(() => checkStatus(name), 8000);
     } else {
       showToast(data.error || 'Could not get login URL', 'err');

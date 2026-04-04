@@ -487,15 +487,19 @@ function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-th
 
 // ── Toast ──────────────────────────────────────────────────────────────
 let toastTimer;
-function showToast(msg, type='ok') {
+function showToast(msg, type='ok', html=false) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `toast ${type} show`;
+  if (html) { t.innerHTML = msg; } else { t.textContent = msg; }
+  t.className = `toast ${type} show`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+  toastTimer = setTimeout(() => t.classList.remove('show'), html ? 10000 : 3500);
 }
 
 // ── Tab switching ──────────────────────────────────────────────────────
 const TABS = ['channels','activity','settings','docs'];
+let channelsLoaded = false;
+let activityLoaded = false;
+let settingsLoaded = false;
 
 function switchTab(name) {
   if (!TABS.includes(name)) name = 'settings';
@@ -525,7 +529,6 @@ function switchTab(name) {
 // ──────────────────────────────────────────────────────────────────────
 let channelsData = [];
 let channelAgents = [];
-let channelsLoaded = false;
 
 const channelIcons = {
   telegram: '✈️', slack: '💬', discord: '🎮', imessage: '💬', whatsapp: '📲',
@@ -760,7 +763,6 @@ async function removeMonitoredId(chatId) {
 let activityAgents = [];
 let allEntries = [];
 let searchTimeout = null;
-let activityLoaded = false;
 
 async function initActivity() {
   activityLoaded = true;
@@ -860,13 +862,17 @@ function formatDate(ts) {
 // ── SETTINGS ──────────────────────────────────────────────────────────
 // ──────────────────────────────────────────────────────────────────────
 let accounts = {};
-let settingsLoaded = false;
 
 async function loadAccounts() {
-  const res = await fetch('/api/config/accounts');
-  accounts = await res.json();
-  renderAccounts();
-  for (const name of Object.keys(accounts)) checkStatus(name);
+  const el = document.getElementById('accountsList');
+  try {
+    const res = await fetch('/api/config/accounts');
+    accounts = await res.json();
+    renderAccounts();
+    for (const name of Object.keys(accounts)) checkStatus(name);
+  } catch(e) {
+    if (el) el.innerHTML = `<div class="empty" style="color:var(--red)">Failed to load accounts: ${escHtml(e.message)}</div>`;
+  }
 }
 
 function renderAccounts() {
@@ -1037,8 +1043,12 @@ async function reloginAccount(name) {
       showToast(`"${name}" is already logged in`);
       checkStatus(name);
     } else if (data.url) {
-      window.open(data.url, '_blank');
-      showToast('Opened auth URL — authorize then refresh status', 'info');
+      const w = window.open(data.url, '_blank');
+      if (!w || w.closed) {
+        showToast(`<a href="${data.url}" target="_blank" style="color:var(--accent);text-decoration:underline">Click here to authorize</a> (popup was blocked)`, 'info', true);
+      } else {
+        showToast('Opened auth URL — authorize then refresh status', 'info');
+      }
       setTimeout(() => checkStatus(name), 8000);
     } else { showToast(data.error || 'Could not get login URL', 'err'); }
   } finally { btn.disabled = false; }
