@@ -53,6 +53,7 @@ export function startWebUI(opts: WebUIOptions): void {
   // ─── Serve static assets (SVGs, images, etc.) from public/ ─────
   app.use(express.static(join(opts.baseDir, "public"), {
     maxAge: "1h",
+    index: false,
     extensions: ["svg", "png", "ico", "jpg", "jpeg", "gif", "webp"],
   }));
 
