@@ -1,11 +1,11 @@
 ---
 name: setup
-description: First-time setup wizard for MyAgent. Detects platform, configures channels, creates first agent, builds and starts the service. Run this after cloning the repo.
+description: First-time setup wizard for MyAgent. Detects platform, installs dependencies, generates minimal config, builds, starts the service, and opens the web UI. Channel setup and agent creation happen through the hub agent in the browser.
 ---
 
 # MyAgent Setup Wizard
 
-Walk the user through setting up MyAgent from scratch. This is their first time — be friendly, clear, and handle errors gracefully.
+Get the user to the web UI as fast as possible. Channel setup and agent creation are handled by the hub agent in the browser — NOT in the terminal.
 
 ## Prerequisites Check
 
@@ -21,19 +21,16 @@ Complete each step in order. Mark done as you go.
 
 1. **Detect platform** — `process.platform` (darwin = Mac, win32 = Windows, linux = Linux)
 2. **Check prerequisites** — Node.js, Claude Code CLI, npm install
-3. **Choose channels** — ask which channels to enable
-4. **Collect channel credentials** — walk through each chosen channel
-5. **Generate config.json** — from template + user answers
-6. **Create first agent** — name, alias, description, workspace
-7. **Create agent folder** — CLAUDE.md + memory directory
-8. **Build** — `npm run build`
-9. **Test start** — start the service, verify it boots
-10. **Install as service** (optional) — launchd (Mac) or Windows Service
-11. **Verify** — health check, channel connection test
+3. **Create MyAIforOne Drive** — personal data folder structure
+4. **Generate config.json** — minimal config with web UI only
+5. **Register platform agents** — hub + 4 creator agents
+6. **Build** — `npm run build`
+7. **Start** — start the service
+8. **Create desktop shortcut** — silently
+9. **Open browser** — launch the web UI
+10. **Done** — user continues in the browser
 
 ## Step 1: Welcome & Platform Detection
-
-Detect the platform and greet the user:
 
 ```
 Welcome to MyAgent! Let's get you set up.
@@ -41,102 +38,15 @@ Welcome to MyAgent! Let's get you set up.
 Detected: [macOS / Windows / Linux]
 Node.js: [version]
 Claude Code: [version]
+
+This will take about 30 seconds.
 ```
 
 If on Windows, note that iMessage won't be available.
 
-## Step 2: Choose Channels
+## Step 2: Create MyAIforOne Drive
 
-Ask the user which channels they want to enable. Recommend Telegram as the easiest to start with.
-
-Present as a simple list:
-```
-Which messaging channels do you want to use?
-
-1. Telegram (recommended — easiest setup, just need a bot token)
-2. Slack (needs a Slack App with Socket Mode)
-3. Discord (needs a Discord Bot)
-4. iMessage (macOS only, needs imsg CLI)
-5. WhatsApp (needs QR code pairing, can be flaky)
-
-Pick one or more (e.g., "1" or "1,2"):
-```
-
-## Step 3: Collect Channel Credentials
-
-For each chosen channel, walk them through getting credentials. **One channel at a time.** Don't overwhelm.
-
-### Telegram
-```
-Let's set up Telegram:
-1. Open Telegram and message @BotFather
-2. Send /newbot
-3. Follow the prompts to name your bot
-4. Copy the bot token (looks like: 123456:ABC-DEF...)
-
-Paste your bot token:
-```
-
-If they want to use it in a group:
-```
-Do you want the bot in a group chat? (y/n)
-If yes: Go to @BotFather → /mybots → your bot → Bot Settings → Group Privacy → Turn off
-```
-
-### Slack
-```
-Let's set up Slack:
-1. Go to https://api.slack.com/apps and create a new app
-2. Enable Socket Mode (Settings → Socket Mode → Enable)
-3. Under OAuth & Permissions, add scopes: chat:write, channels:history, groups:history, im:history, files:read
-4. Install the app to your workspace
-5. Copy the Bot Token (starts with xoxb-)
-6. Copy the App Token (starts with xapp-)
-
-Paste your Bot Token (xoxb-...):
-Paste your App Token (xapp-...):
-
-Important: After the service starts, invite the bot to each Slack channel
-where you want agents to respond. In the channel, type: /invite @yourbotname
-Or go to channel settings → Integrations → Add apps.
-```
-
-### Discord
-```
-Let's set up Discord:
-1. Go to https://discord.com/developers/applications
-2. Create a new application
-3. Go to Bot settings, enable Message Content Intent
-4. Copy the bot token
-5. Generate an invite URL: Bot scope + Send Messages + Read Message History permissions
-6. Invite the bot to your server
-
-Paste your bot token:
-```
-
-### iMessage (macOS only)
-```
-Let's set up iMessage:
-1. Install imsg: brew install phamson02/imsg/imsg
-2. Grant Full Disk Access to Terminal in System Settings → Privacy & Security
-3. Test: run "imsg chats --json" — should list your chats
-
-Done? (y/n):
-```
-
-### WhatsApp
-```
-WhatsApp setup requires QR code pairing:
-1. We'll set this up after the service starts
-2. You'll run: npx tsx src/whatsapp-login.ts
-3. Scan the QR code with WhatsApp → Settings → Linked Devices → Link a Device
-
-We'll come back to this. Moving on.
-```
-
-## Step 3b: Create MyAIforOne Drive
-
-Create the personal data folder structure outside the repo. This keeps user data separate from the downloaded codebase:
+Create the personal data folder structure outside the repo:
 
 ```bash
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalAgents"
@@ -145,92 +55,50 @@ mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/skills/personal"
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/prompts/personal"
 ```
 
-This folder is the user's personal data root — all agents, registry items, and MCP keys live here, never in the repo.
+## Step 3: Generate config.json
 
-## Step 4: Generate config.json
+Read `config.example.json` as the template. Generate a MINIMAL config:
 
-Read `config.example.json` as the template. Fill in the user's credentials:
+1. **No channels enabled** — channels will be configured via the hub agent in the browser
+2. Set `webUI.enabled = true`, port = 4888
+3. Generate a random webhook secret: `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`
+4. Add `defaultMcps: []`
+5. Add `defaultSkills: ["op_devbrowser"]` (if the skill file exists)
+6. Add the `myaiforone-local` MCP entry pointing to the local MCP server:
+   ```json
+   "myaiforone-local": {
+     "type": "stdio",
+     "command": "node",
+     "args": ["<PROJECT_PATH>/server/mcp-server/dist/index.js"],
+     "env": { "MYAGENT_API_URL": "http://localhost:4888" }
+   }
+   ```
+7. Write to config.json
 
-```javascript
-// Pseudocode for what to do:
-// 1. Read config.example.json
-// 2. Set each channel's enabled flag based on user choices
-// 3. Fill in tokens for enabled channels
-// 4. Set webUI.enabled = true, port = 4888
-// 5. Set a random webhookSecret
-// 6. Add defaultSkills: ["op_devbrowser"] (if the skill file exists)
-// 7. Add defaultMcps: []
-// 8. Add the "myaiforone" MCP entry pointing to the local MCP server:
-//    "myaiforone": { "type": "stdio", "command": "node", "args": ["<PROJECT_PATH>/server/mcp-server/dist/index.js"], "env": { "MYAGENT_API_URL": "http://localhost:4888" } }
-// 9. Write to config.json
-```
+**Important:** config.json is in .gitignore — never commit it.
 
-Generate a random webhook secret: use `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`.
+## Step 4: Register Platform Agents (silent — do NOT ask)
 
-**Important:** Make sure config.json is NOT committed (it's in .gitignore).
+Register these agents in config.json. Do NOT ask the user — just do it silently.
 
-## Step 5: Create First Agent
+### Hub Agent
+The hub is the default group/router agent. Register it with:
+- `agentId`: `hub`
+- `name`: `Hub`
+- `description`: "The primary AI interface — handles all platform operations through natural conversation."
+- `agentHome`: `<PROJECT_PATH>/agents/platform/hub`
+- `claudeMd`: `<PROJECT_PATH>/agents/platform/hub/CLAUDE.md`
+- `workspace`: `<PROJECT_PATH>`
+- `persistent`: true, `streaming`: true
+- `subAgents`: `"*"` (routes to all agents)
+- `mcps`: `["myaiforone-local"]`
+- `allowedTools`: all tools
+- `routes`: web route only
+- `agentClass`: `"platform"`
 
-Every setup gets a general-purpose agent. Just ask for a name and alias — everything else is pre-configured.
+Set `"defaultAgent": "hub"` at the top level of config.json.
 
-```
-Let's create your agent — this is the Claude you'll chat with from your phone.
-
-What do you want to call it? (default: "My Agent"):
-What @mention should trigger it? (default: "@agent"):
-```
-
-That's it — just those two questions. Use defaults if they press enter.
-
-Pre-configured settings (don't ask, just set):
-- **Persistent:** true (remembers conversations)
-- **Streaming:** true (live output in web UI)
-- **Advanced Memory:** true (automatic daily memory journals + semantic search — set `advancedMemory: true` by default for the general agent)
-- **Autonomous Capable:** true (agent can be assigned autonomous goals with heartbeat schedules — set `autonomousCapable: true` by default)
-- **Workspace:** ~ (full home directory access)
-- **Tools:** all (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch)
-- **MCPs:** none initially (they can add later from the web UI)
-- **Description:** "General-purpose Claude agent accessible from phone. Helps with coding, research, file management, and anything else."
-
-## Step 6: Create Agent Folder
-
-Create the folder structure (this is the agent's **home** — separate from the **workspace** which is the project they work on):
-```
-~/Desktop/MyAIforOne Drive/PersonalAgents/<agentId>/    ← agentHome
-├── CLAUDE.md          # System prompt (generated from their description)
-├── memory/
-│   ├── context.md     # Initial context
-├── mcp-keys/          # Per-agent API keys (override shared keys)
-├── skills/            # Per-agent skills
-└── FileStorage/
-    ├── Temp/          # Temporary file uploads (per-message)
-    └── Permanent/     # Permanent file storage
-    └── (conversation_log.jsonl created automatically)
-```
-
-Write the CLAUDE.md with:
-```markdown
-# <Agent Name>
-
-<Description expanded to 2-3 sentences>
-
-## Identity
-- Mention alias: <alias>
-- Respond when mentioned with <alias>
-
-## Guidelines
-- Keep responses concise — you're replying to phone messages
-- If a task requires multiple steps, summarize what you did
-- If you need clarification, ask
-```
-
-Add the agent to config.json with routes for each enabled channel.
-
-## Step 6b: Register Platform Creator Agents (automatic — do NOT ask)
-
-The repo ships with 4 platform agents in `agents/platform/`. Register all 4 in config.json silently. These power the Lab UI (agent builder, skill builder, app builder, prompt builder).
-
-For each agent below, add an entry to config.json `agents`:
+### 4 Creator Agents
 
 | agentId | name | skills | CLAUDE.md |
 |---------|------|--------|-----------|
@@ -245,11 +113,11 @@ All 4 share these settings:
   "agentClass": "platform",
   "persistent": true,
   "streaming": true,
-  "mcps": ["myaiforone"],
-  "workspace": "GATEWAY_PROJECT_PATH",
-  "agentHome": "GATEWAY_PROJECT_PATH/agents/platform/AGENT_ID",
-  "claudeMd": "GATEWAY_PROJECT_PATH/agents/platform/AGENT_ID/CLAUDE.md",
-  "memoryDir": "GATEWAY_PROJECT_PATH/agents/platform/AGENT_ID/memory",
+  "mcps": ["myaiforone-local"],
+  "workspace": "PROJECT_PATH",
+  "agentHome": "PROJECT_PATH/agents/platform/AGENT_ID",
+  "claudeMd": "PROJECT_PATH/agents/platform/AGENT_ID/CLAUDE.md",
+  "memoryDir": "PROJECT_PATH/agents/platform/AGENT_ID/memory",
   "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
   "timeout": 14400000,
   "autoCommit": false,
@@ -258,93 +126,24 @@ All 4 share these settings:
 }
 ```
 
-Replace `GATEWAY_PROJECT_PATH` with the actual project directory path. Create `memory/` directories for each: `mkdir -p agents/platform/{agentcreator,skillcreator,appcreator,promptcreator}/memory`
+Create memory directories: `mkdir -p agents/platform/{hub,agentcreator,skillcreator,appcreator,promptcreator}/memory`
 
-**Do not ask the user anything.** Register all 4 silently and mention them in the summary.
-
-## Step 7: Discover Chat IDs
-
-For channels that need chat IDs:
-
-### Telegram
-```
-To find your Telegram chat ID:
-1. I'll start the service temporarily
-2. Send any message to your bot (or in the group with the bot)
-3. Check the logs for the chat ID
-4. I'll update the config with the real chat ID
-```
-
-Start the service, wait for a message, grep the log for the chat ID, update config.json, restart.
-
-### Slack
-```
-To find your Slack channel ID:
-Right-click the channel → View channel details → scroll to the bottom
-The Channel ID looks like: C0ABC123DEF
-
-Paste the channel ID:
-```
-
-### Discord
-```
-Enable Developer Mode in Discord: Settings → Advanced → Developer Mode
-Right-click the channel → Copy Channel ID
-
-Paste the channel ID:
-```
-
-### iMessage
-```
-Run: imsg chats --json
-Find your chat and note the chat_id number.
-
-Paste the chat ID:
-```
-
-## Step 8: Build & Start
+## Step 5: Validate & Build
 
 ```bash
+node -e "JSON.parse(require('fs').readFileSync('config.json','utf8')); console.log('Config OK')"
 npm run build
 ```
 
-If build fails, read the error and fix it. Common issues:
-- Missing dependencies → `npm install`
-- TypeScript errors → usually a config.json issue
+## Step 6: Start the Service
 
-Start the service:
 ```bash
-npm start
+npm start &
 ```
 
-Watch the logs for successful channel connections. Expected output:
-```
-channelToAgentToClaude starting...
-Telegram bot authenticated as @botname (12345)
-channelToAgentToClaude running — 1 agent(s), N channel(s)
-Web UI running on http://localhost:4888/ui
-```
+Wait for the log: `channelToAgentToClaude running — X agent(s), 0 channel(s)`
 
-## Step 9: Test
-
-Ask the user to send a test message to their bot from their phone.
-
-Check the logs for the message. If it works:
-```
-Your agent is live! Send "@alias hello" from your phone and you should get a response.
-
-Web UI: http://localhost:4888/ui
-Org Chart: http://localhost:4888/org
-```
-
-If it doesn't work, troubleshoot:
-- Channel not connecting → check token
-- Message received but no route match → check chat ID in config
-- Agent errors → check Claude Code CLI works (`claude -p "hi" --output-format text`)
-
-## Step 10: Create Desktop Shortcut (automatic — do NOT ask)
-
-Silently create a desktop shortcut to open the Web UI. Do not ask the user — just create it.
+## Step 7: Create Desktop Shortcut (silent — do NOT ask)
 
 ### macOS
 ```bash
@@ -370,7 +169,7 @@ EOF
 
 cat > "$APP_PATH/Contents/MacOS/MyAgent" << 'EOF'
 #!/bin/bash
-open "http://localhost:4888/ui"
+open "http://localhost:4888"
 EOF
 
 chmod +x "$APP_PATH/Contents/MacOS/MyAgent"
@@ -380,47 +179,41 @@ chmod +x "$APP_PATH/Contents/MacOS/MyAgent"
 ```powershell
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut("$env:USERPROFILE\Desktop\MyAgent.lnk")
-$Shortcut.TargetPath = "http://localhost:4888/ui"
+$Shortcut.TargetPath = "http://localhost:4888"
 $Shortcut.Description = "Open MyAgent Web UI"
 $Shortcut.Save()
 ```
 
-**Do not ask.** Just create the shortcut and mention it in the summary. Auto-start service and status indicator scripts are available from the Settings page if the user wants them later.
+## Step 8: Open Browser & Summary
 
-## Step 11: Summary
+Open the web UI:
+- macOS: `open http://localhost:4888`
+- Windows: `start http://localhost:4888`
 
-Print a summary of everything that was set up:
+Print the summary:
 
 ```
 Setup Complete!
 
 Platform: [macOS/Windows]
-Channels: [Telegram, Slack, ...]
-Agent: <name> (<alias>)
-Web UI: http://localhost:4888/ui
-Org Chart: http://localhost:4888/org
-Desktop shortcut: Created (MyAgent.app / MyAgent.lnk)
+Web UI: http://localhost:4888
+
+The browser should have opened to your MyAgent home page.
+You'll see a welcome screen — click "Let's get started" and the hub agent
+will walk you through connecting messaging channels and creating your first agent.
 
 Quick commands:
   npm start              — start manually
   npm run dev            — dev mode with auto-reload
-  npm test               — run tests
   http://localhost:4888   — web dashboard
 
-Your agent:
-  <name> (<alias>) — your general-purpose agent
-
-Next steps:
-  - Send "@alias hello" from your phone to test
-  - Visit http://localhost:4888/org to see your agent
-  - Use the Lab at http://localhost:4888/lab to create more agents, skills, apps, and prompts
-  - See docs/Architecture.md for the full feature reference
+The Settings page (http://localhost:4888/admin) has options
+for auto-starting the service on login.
 ```
 
 ## Error Handling
 
 - If any step fails, explain what went wrong clearly
 - Offer to retry or skip
-- Never leave config.json in a broken state — validate JSON after every write
-- If the user gets stuck on credentials, offer to skip that channel and come back later
-- Always verify with `node -e "JSON.parse(require('fs').readFileSync('config.json','utf8')); console.log('Config OK')"` after modifying config
+- Never leave config.json in a broken state
+- Always validate JSON after every write

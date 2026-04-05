@@ -64,6 +64,67 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   transition:all 0.5s ease;padding:20px;
 }
 .landing.hidden{opacity:0;pointer-events:none;position:absolute;top:0;left:0;right:0;bottom:0}
+
+/* ─── Welcome / Onboarding State ─────────────────────── */
+.welcome{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;transition:all 0.5s ease;overflow-y:auto;
+}
+.welcome.hidden{display:none}
+.welcome-card{
+  max-width:560px;width:100%;text-align:center;
+}
+.welcome-logo{font-family:var(--font-display);font-size:32px;font-weight:800;color:var(--accent);margin-bottom:4px}
+.welcome-tagline{font-size:15px;color:var(--text-secondary);margin-bottom:32px;line-height:1.6}
+.welcome-features{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  margin-bottom:32px;text-align:left;
+}
+.welcome-feature{
+  padding:14px 16px;border-radius:12px;
+  background:var(--bg-card);border:1px solid var(--border-dim);
+  transition:border-color .2s;
+}
+.welcome-feature-icon{font-size:20px;margin-bottom:6px}
+.welcome-feature-title{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:3px}
+.welcome-feature-desc{font-size:11px;color:var(--text-muted);line-height:1.4}
+.welcome-checklist{
+  text-align:left;margin-bottom:28px;
+  background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:12px;
+  padding:16px 20px;
+}
+.welcome-checklist-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px}
+.welcome-check-item{
+  display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--border-dim);
+  font-size:13px;color:var(--text-secondary);
+}
+.welcome-check-item:last-child{border-bottom:none}
+.welcome-check-dot{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  border:2px solid var(--border-glow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:transparent;transition:all .3s;
+}
+.welcome-check-dot.done{background:var(--accent);border-color:var(--accent);color:#000}
+.welcome-check-label{flex:1}
+.welcome-check-status{font-size:10px;font-family:var(--font-mono);color:var(--text-muted)}
+.welcome-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 32px;border-radius:14px;border:none;
+  background:var(--accent);color:#000;
+  font-family:var(--font-sans);font-size:15px;font-weight:700;
+  cursor:pointer;transition:all .2s;
+  box-shadow:0 4px 24px rgba(34,211,238,0.2);
+}
+.welcome-cta:hover{filter:brightness(1.1);transform:scale(1.03)}
+.welcome-skip{
+  display:block;margin-top:12px;
+  font-size:12px;color:var(--text-muted);cursor:pointer;
+  background:none;border:none;font-family:var(--font-sans);
+  transition:color .2s;
+}
+.welcome-skip:hover{color:var(--text-secondary)}
 .landing-logo{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--accent);margin-bottom:8px}
 .landing-sub{font-size:14px;color:var(--text-muted);margin-bottom:32px}
 .landing-input-wrap{width:100%;max-width:600px}
@@ -132,7 +193,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .tab-btn.active{color:var(--accent)}
 .tab-btn.active::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:2px;background:var(--accent);border-radius:1px}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.logo-mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:#fff}
+.logo-mark{width:28px;height:28px;border-radius:8px;object-fit:contain}
 .logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent)}
 /* Second-level bar for hub actions */
 .hub-actions-bar{
@@ -437,7 +498,7 @@ text-decoration:none;}
   <!-- Topbar (same as /ui) -->
   <div class="topbar" id="mainTopbar">
     <div style="display:flex;align-items:center;gap:10px;margin-right:28px">
-      <div class="logo-mark">A</div>
+      <a href="/"><img class="logo-mark" src="/MyAIforOne-logomark-transparent.svg" alt="MyAIforOne"></a>
       <span class="logo-text">MyAIforOne</span>
     </div>
     <nav class="tab-group">
@@ -453,6 +514,56 @@ text-decoration:none;}
       <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
       <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">&#x22A1;</button>
       <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtn">&#x1F319;</button>
+    </div>
+  </div>
+
+  <!-- Welcome state (fresh install) -->
+  <div class="welcome hidden" id="welcome">
+    <div class="welcome-card">
+      <div class="welcome-logo">MyAIforOne</div>
+      <div class="welcome-tagline">Your personal AI team. Chat with specialized agents from your phone, web, or any messaging app.</div>
+      <div class="welcome-features">
+        <div class="welcome-feature">
+          <div class="welcome-feature-icon">&#x1F4AC;</div>
+          <div class="welcome-feature-title">Chat from anywhere</div>
+          <div class="welcome-feature-desc">Telegram, WhatsApp, Slack, iMessage, or right here</div>
+        </div>
+        <div class="welcome-feature">
+          <div class="welcome-feature-icon">&#x1F916;</div>
+          <div class="welcome-feature-title">Specialized agents</div>
+          <div class="welcome-feature-desc">Each agent has its own skills, tools, and memory</div>
+        </div>
+        <div class="welcome-feature">
+          <div class="welcome-feature-icon">&#x1F517;</div>
+          <div class="welcome-feature-title">MCP integrations</div>
+          <div class="welcome-feature-desc">Connect Gmail, Sheets, Slack, GitHub, and 50+ services</div>
+        </div>
+        <div class="welcome-feature">
+          <div class="welcome-feature-icon">&#x1F512;</div>
+          <div class="welcome-feature-title">Private & local</div>
+          <div class="welcome-feature-desc">Everything runs on your machine. Your data stays yours.</div>
+        </div>
+      </div>
+      <div class="welcome-checklist">
+        <div class="welcome-checklist-title">Getting Started</div>
+        <div class="welcome-check-item" id="wc-channels">
+          <div class="welcome-check-dot" id="wc-channels-dot"></div>
+          <span class="welcome-check-label">Connect a messaging channel</span>
+          <span class="welcome-check-status" id="wc-channels-status">not started</span>
+        </div>
+        <div class="welcome-check-item" id="wc-agent">
+          <div class="welcome-check-dot" id="wc-agent-dot"></div>
+          <span class="welcome-check-label">Create your first agent</span>
+          <span class="welcome-check-status" id="wc-agent-status">not started</span>
+        </div>
+        <div class="welcome-check-item" id="wc-test">
+          <div class="welcome-check-dot" id="wc-test-dot"></div>
+          <span class="welcome-check-label">Send a test message</span>
+          <span class="welcome-check-status" id="wc-test-status">not started</span>
+        </div>
+      </div>
+      <button class="welcome-cta" onclick="startOnboarding()">Let's get started &#x2192;</button>
+      <button class="welcome-skip" onclick="skipOnboarding()">Skip — I'll explore on my own</button>
     </div>
   </div>
 
@@ -748,6 +859,19 @@ async function init() {
           `<option value="${a}">${a}</option>`
         ).join('');
       sel.style.display = '';
+    }
+
+    // ─── Fresh install detection ─────────────────────────
+    const personalAgents = agents.filter(a => a.agentClass !== 'platform' && !a.subAgents);
+    const channelList = data.channels || [];
+    const hasChannels = channelList.length > 0;
+    const hasPersonalAgents = personalAgents.length > 0;
+    const onboardingDismissed = localStorage.getItem('onboardingDismissed');
+
+    if (!hasPersonalAgents && !onboardingDismissed) {
+      // Fresh install — show welcome page
+      showWelcome(hasChannels, hasPersonalAgents);
+      return; // skip normal landing
     }
 
     // Agent count
@@ -1767,8 +1891,58 @@ window.addEventListener('message', (e) => {
   if (e.data?.type === 'configModalClosed') closeConfigOverlay();
 });
 
+// ─── Welcome / Onboarding ──────────────────────────────────
+function showWelcome(hasChannels, hasPersonalAgents) {
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('welcome').classList.remove('hidden');
+
+  // Update checklist dots
+  if (hasChannels) {
+    document.getElementById('wc-channels-dot').classList.add('done');
+    document.getElementById('wc-channels-dot').innerHTML = '&#x2713;';
+    document.getElementById('wc-channels-status').textContent = 'connected';
+  }
+  if (hasPersonalAgents) {
+    document.getElementById('wc-agent-dot').classList.add('done');
+    document.getElementById('wc-agent-dot').innerHTML = '&#x2713;';
+    document.getElementById('wc-agent-status').textContent = 'created';
+  }
+}
+
+function startOnboarding() {
+  // Hide welcome, transition to chat with a pre-written onboarding prompt
+  document.getElementById('welcome').classList.add('hidden');
+  document.getElementById('landing').classList.remove('hidden');
+
+  // Pre-populate agent count and tiles for the normal landing
+  document.getElementById('agentCount').textContent =
+    `Powered by ${agents.length} agents`;
+  renderTiles();
+
+  // Transition directly to chat with the hub agent
+  transitionToChat();
+  const onboardingPrompt = "I just set up MyAIforOne for the first time. Walk me through connecting a messaging channel (like Telegram, WhatsApp, Slack, or iMessage) and creating my first personal agent. Keep it conversational — one step at a time.";
+  addMessage('user', onboardingPrompt);
+  syncToActiveTab();
+  executeHub(onboardingPrompt, homeActiveTabId);
+}
+
+function skipOnboarding() {
+  localStorage.setItem('onboardingDismissed', 'true');
+  document.getElementById('welcome').classList.add('hidden');
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('agentCount').textContent =
+    `Powered by ${agents.length} agents`;
+  renderTiles();
+  setTimeout(() => document.getElementById('landingInput')?.focus(), 100);
+}
+
 init();
-setTimeout(() => document.getElementById('landingInput').focus(), 100);
+setTimeout(() => {
+  const li = document.getElementById('landingInput');
+  if (li && !document.getElementById('welcome').classList.contains('hidden')) return; // don't focus if welcome is showing
+  if (li) li.focus();
+}, 100);
 </script>
 
 <!-- Config Overlay -->

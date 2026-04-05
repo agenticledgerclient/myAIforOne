@@ -50,6 +50,12 @@ export function startWebUI(opts: WebUIOptions): void {
   const app = express();
   app.use(express.json());
 
+  // ─── Serve static assets (SVGs, images, etc.) from public/ ─────
+  app.use(express.static(join(opts.baseDir, "public"), {
+    maxAge: "1h",
+    extensions: ["svg", "png", "ico", "jpg", "jpeg", "gif", "webp"],
+  }));
+
   // ─── Serve the Home page ─────────────────────────────────────────
   const serveHome = (_req: any, res: any) => {
     const htmlPath = join(opts.baseDir, "public", "home.html");
