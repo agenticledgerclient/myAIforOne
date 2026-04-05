@@ -80,6 +80,8 @@ server.tool("create_agent", "Create a new agent with full configuration", {
   timeout: z.number().optional().describe("Timeout in ms"),
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
   agentClass: z.enum(["standard", "platform", "builder"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents)"),
+  wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
+  wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
 }, async (args) => {
   const body: any = { ...args };
   if (args.organization) {
@@ -108,6 +110,8 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   instructions: z.string().optional().describe("Update CLAUDE.md content"),
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
   agentClass: z.enum(["standard", "platform", "builder"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents)"),
+  wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
+  wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
 }, async ({ agentId, ...body }) => {
   const r = await api.updateAgent(agentId, body);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
@@ -892,6 +896,26 @@ server.tool("get_heartbeat_history", "Get recent heartbeat run history for an ag
   limit: z.number().optional().describe("Max entries (default 20)"),
 }, async ({ agentId, limit }) => {
   const r = await api.heartbeatHistory(agentId, limit);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  WIKI SYNC
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("trigger_wiki_sync", "Trigger a wiki sync for an agent (runs async, returns immediately)", {
+  agentId: z.string().describe("Agent ID"),
+  triggeredBy: z.string().optional().describe("Label for trigger source (default: manual)"),
+}, async ({ agentId, triggeredBy }) => {
+  const r = await api.triggerWikiSync(agentId, triggeredBy);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_wiki_sync_history", "Get recent wiki sync run history for an agent", {
+  agentId: z.string().describe("Agent ID"),
+  limit: z.number().optional().describe("Max entries (default 20)"),
+}, async ({ agentId, limit }) => {
+  const r = await api.wikiSyncHistory(agentId, limit);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 

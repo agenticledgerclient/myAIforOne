@@ -50,6 +50,8 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 | `persistent` | no | `true` | Remember conversations across messages |
 | `streaming` | no | `true` | Real-time output in web UI |
 | `advancedMemory` | no | `true` | Semantic search + daily logs + auto-compaction |
+| `wiki` | no | `false` | Wiki learning — agent saves learned facts to learned.md after conversations. **Default OFF — uses extra tokens per conversation.** |
+| `wikiSync` | no | `{ enabled: false }` | Scheduled sync of learned.md → context.md. Only relevant if `wiki: true`. |
 | `autonomousCapable` | no | `true` | Can have autonomous goals |
 | `claudeAccount` | no | — | Which Anthropic account to use (from service.claudeAccounts) |
 | `skills` | no | `[]` | Shared skills from ~/.claude/commands/ |
@@ -80,7 +82,8 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 9. Ask about `claudeAccount` — show available accounts if configured
 10. Ask about scheduled tasks (cron) — any recurring messages? E.g., "check deployment status every morning at 9am". Collect: frequency, time, message text, which channel to send on.
 11. Ask about autonomous goals — any ongoing responsibilities? E.g., "monitor uptime and alert if down". Collect: description, success criteria, instructions, heartbeat schedule, daily budget, reporting channel.
-12. Confirm all values before proceeding
+12. Ask about wiki learning — should this agent learn from conversations? **Default is OFF.** Warn: "Wiki learning adds token usage per conversation as the agent evaluates what it learned. Only enable if the agent accumulates knowledge over time (e.g., concierge, project manager, research agent)." If yes, ask if they want wiki sync on a schedule too.
+13. Confirm all values before proceeding
 
 ## Folder Structure Created
 
@@ -114,6 +117,7 @@ If no organization specified, use `~/Desktop/MyAIforOne Drive/PersonalAgents/<ag
   "persistent": true,
   "streaming": true,
   "advancedMemory": true,
+  "wiki": false,
   "autonomousCapable": true,
   "claudeAccount": "<claudeAccount>",
   "mcps": [<mcps>],

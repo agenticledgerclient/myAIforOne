@@ -846,11 +846,13 @@ export async function executeAgent(
   const claudeMdPath = resolve(baseDir, expandTilde(agentConfig.claudeMd));
   const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
+  const learnedPath = join(memoryDir, "learned.md");
   const logPath = join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
   const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
+  const useWiki = agentConfig.wiki ?? false;
 
   // ── Resolve Claude account config dir ──
   const home = homedir();
@@ -1056,6 +1058,26 @@ export async function executeAgent(
     systemPrompt += `\n\n## Session Commands
 - When the user sends \`/opcompact\` followed by instructions, save the specified information to \`${contextPath}\` using the Write tool. This context survives session resets. Preserve any existing content that is still relevant — append or merge, don't overwrite blindly.
 - \`/opreset\` is handled automatically by the gateway (you won't see it).
+`;
+  }
+
+  // ── Wiki learning mode ──
+  if (useWiki) {
+    systemPrompt += `\n\n## Wiki Learning Mode
+After each conversation exchange, evaluate whether you learned any NEW facts, corrections, or important insights from this interaction. If you did, append them to \`${learnedPath}\` using the Write tool (read the file first and append — do not overwrite).
+
+Format for each entry:
+\`\`\`
+### [YYYY-MM-DD] — [Brief topic]
+- Fact or correction learned
+- Source: [who said it / where it came from]
+\`\`\`
+
+Rules:
+- Only save genuinely NEW information not already in \`${contextPath}\` or \`${learnedPath}\`
+- Include the source (who told you, which conversation)
+- Do NOT save opinions, small talk, or ephemeral info
+- When the user says "update context from learned", read \`${learnedPath}\`, cross-check against \`${contextPath}\`, merge verified facts into context.md, and note what was merged
 `;
   }
 
@@ -1379,11 +1401,13 @@ export async function* executeAgentStreaming(
   const claudeMdPath = resolve(baseDir, expandTilde(agentConfig.claudeMd));
   const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
+  const learnedPath = join(memoryDir, "learned.md");
   const logPath = join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
   const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
+  const useWiki = agentConfig.wiki ?? false;
 
   // ── Resolve Claude account config dir ──
   const home = homedir();
@@ -1579,6 +1603,11 @@ export async function* executeAgentStreaming(
 
   if (isPersistent) {
     systemPrompt += `\n\n## Session Commands\n- When the user sends \`/opcompact\` followed by instructions, save the specified information to \`${contextPath}\` using the Write tool.\n- \`/opreset\` is handled automatically by the gateway.\n`;
+  }
+
+  // ── Wiki learning mode ──
+  if (useWiki) {
+    systemPrompt += `\n\n## Wiki Learning Mode\nAfter each conversation exchange, evaluate whether you learned any NEW facts, corrections, or important insights. If you did, append them to \`${learnedPath}\` using the Write tool (read first, then append — do not overwrite).\n\nFormat: \`### [YYYY-MM-DD] — [Brief topic]\` followed by bullet points with facts and source.\n\nRules:\n- Only save genuinely NEW information not already in \`${contextPath}\` or \`${learnedPath}\`\n- Include the source (who said it)\n- Do NOT save opinions, small talk, or ephemeral info\n- When user says "update context from learned", merge verified facts from \`${learnedPath}\` into \`${contextPath}\`\n`;
   }
 
   // ── Resolve prompt template trigger ──

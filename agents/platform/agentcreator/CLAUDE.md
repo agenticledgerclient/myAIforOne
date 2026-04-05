@@ -61,6 +61,8 @@ Every agent in `config.json` has these fields:
 - `persistent` — if true, maintains a Claude session across messages (remembers context)
 - `streaming` — if true, uses real-time streaming output (recommended for web UI)
 - `advancedMemory` — if true, enables semantic memory with daily journals + vector search
+- `wiki` — if true, enables wiki learning. The agent saves learned facts to `learned.md` after conversations. Use with `wikiSync` for automatic merging into `context.md`
+- `wikiSync` — `{ enabled: true, schedule: "0 0 * * *" }` — scheduled sync that merges `learned.md` into `context.md` on a cron schedule
 - `autonomousCapable` — if true, agent can run without user approval for tool calls
 - `allowedTools` — which Claude tools the agent can use (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, etc.)
 - `mentionAliases` — how users address the agent in group chats (e.g., `@financer`)
@@ -265,6 +267,25 @@ Pass `heartbeatInstructions` when creating an agent via `create_agent`. This wri
 
 Ask the user: "Should this agent have a heartbeat? For example, should it periodically check its tasks or monitor something on a schedule?"
 
+## Wiki Learning
+
+Agents can have **wiki learning** enabled — the agent automatically saves facts and corrections it learns from conversations into a `learned.md` file. This knowledge accumulates over time.
+
+### How it works:
+- **`wiki: true`** — after each conversation, the agent evaluates if it learned anything new and appends it to `{memoryDir}/learned.md`
+- **Manual merge** — the user can tell the agent "update context from learned" to merge verified facts from `learned.md` into `context.md`
+- **WikiSync (scheduled)** — optionally, a cron job runs periodically to automatically merge `learned.md` → `context.md`, flag contradictions, and clean up
+
+### When to enable wiki:
+- If the agent accumulates knowledge from conversations (e.g., a concierge agent, a project manager, a research agent)
+- If the agent interacts with many people who provide different pieces of information
+- If the user wants the agent to "remember what it learns" beyond just conversation logs
+
+### How to configure:
+Pass `wiki: true` when creating an agent. Optionally add `wikiSync: { enabled: true, schedule: "0 0 * * *" }` for automatic daily sync.
+
+Ask the user: "Should this agent learn from conversations? If it will accumulate knowledge over time (e.g., from user corrections or new info), wiki learning can help it build its knowledge base automatically."
+
 ## Rules
 - **Always use the `create_agent` MCP tool** — it handles folder creation, system prompt, config, heartbeat.md, and rebuild all in one call. Never manually edit config.json.
 - **NEVER create agent folders inside the platform repo** (`agents/` in this workspace is for platform agents only). User agents MUST go in `~/Desktop/MyAIforOne Drive/PersonalAgents/`. The `create_agent` MCP tool handles this automatically — if you bypass it and create folders manually, you will put agents in the wrong location.
@@ -276,3 +297,4 @@ Ask the user: "Should this agent have a heartbeat? For example, should it period
 - Always suggest sensible defaults for tools, streaming, persistence
 - If the user doesn't specify a workspace, ask — every agent needs one
 - Ask about heartbeat if the agent has recurring or autonomous work
+- Ask about wiki learning if the agent accumulates knowledge from conversations

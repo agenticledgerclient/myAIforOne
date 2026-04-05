@@ -18,6 +18,7 @@ After setup, create purpose-built agents for specific projects or roles:
   - **Tools** — limit to read-only (Read, Glob, Grep) for monitoring agents, or full access for builders
   - **MCPs** — give it only the API integrations it needs (e.g., a finance agent gets Stripe + QuickBooks)
   - **Advanced memory** — set `advancedMemory: true` for agents that need long-term semantic recall across sessions (daily journals + vector search)
+  - **Wiki learning** — set `wiki: true` for agents that should learn from conversations. Facts are saved to `learned.md` and can be synced to `context.md` manually or on a schedule via `wikiSync`
   - **Org placement** — assign it an organization, department, title, and reporting chain
 
 See [docs/Architecture.md](docs/Architecture.md) for full config reference.

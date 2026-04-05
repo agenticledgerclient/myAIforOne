@@ -11,6 +11,7 @@ import { DiscordDriver } from "./channels/discord.js";
 import { startWebUI } from "./web-ui.js";
 import { startCronJobs, stopCronJobs } from "./cron.js";
 import { startGoals, stopGoals } from "./goals.js";
+import { startWikiSync, stopWikiSync } from "./wiki-sync.js";
 import type { ChannelDriver, InboundMessage } from "./channels/types.js";
 
 const isMac = process.platform === "darwin";
@@ -244,6 +245,9 @@ async function main(): Promise<void> {
   // ─── Feature 8: Autonomous Goals ──────────────────────────────────
   startGoals(config, driverMap, baseDir, config.mcps);
 
+  // ─── Feature: Wiki Sync ──────────────────────────────────────────
+  startWikiSync(config, baseDir, config.mcps);
+
   const agentCount = Object.keys(config.agents).length;
   log.info(
     `channelToAgentToClaude running — ${agentCount} agent(s), ${drivers.length} channel(s)`
@@ -254,6 +258,7 @@ async function main(): Promise<void> {
     log.info(`Received ${signal}, shutting down...`);
     stopCronJobs();
     stopGoals();
+    stopWikiSync();
     for (const driver of drivers) {
       await driver.stop();
     }

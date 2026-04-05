@@ -317,6 +317,58 @@ text-decoration:none;}
 .header-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .header-btn.danger:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
 
+/* ─── Session Tabs ──────────────────────────────────────────── */
+.session-tabs{
+  display:flex;align-items:center;gap:0;
+  padding:0 16px;
+  border-bottom:1px solid var(--border-dim);
+  background:var(--bg-surface);
+  min-height:32px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.session-tabs::-webkit-scrollbar{display:none}
+.session-tab{
+  display:flex;align-items:center;gap:4px;
+  padding:6px 10px;
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--text-muted);cursor:pointer;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;transition:all .15s;
+  position:relative;
+}
+.session-tab:hover{color:var(--text-secondary);background:rgba(255,255,255,.03)}
+.session-tab.active{
+  color:var(--accent);border-bottom-color:var(--accent);
+  background:rgba(var(--amber-rgb,245,158,11),.05);
+}
+.session-tab .tab-label{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.session-tab .tab-close{
+  display:none;font-size:13px;line-height:1;
+  padding:0 2px;border-radius:3px;color:var(--text-muted);
+  cursor:pointer;margin-left:2px;
+}
+.session-tab:hover .tab-close{display:inline}
+.session-tab .tab-close:hover{color:#ef4444;background:rgba(239,68,68,.15)}
+.session-tab .tab-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--accent);display:none;
+}
+.session-tab.has-activity .tab-dot{display:inline-block}
+.session-tab-add{
+  padding:4px 8px;font-size:14px;line-height:1;
+  color:var(--text-muted);cursor:pointer;
+  border-radius:4px;transition:all .15s;
+  flex-shrink:0;
+}
+.session-tab-add:hover{color:var(--accent);background:rgba(255,255,255,.05)}
+.tab-rename-input{
+  font-family:var(--font-mono);font-size:11px;
+  background:transparent;border:1px solid var(--accent);
+  color:var(--text-primary);padding:1px 4px;border-radius:3px;
+  outline:none;width:90px;
+}
+
 .chat-messages{
   flex:1;overflow-y:auto;padding:20px 24px;
   display:flex;flex-direction:column;gap:12px;
@@ -1093,6 +1145,141 @@ function speakText(text){
 let availableAccounts = [];
 let accountOverrides = {}; // agentId -> account name (in-memory only)
 
+// ─── Session Tabs ──────────────────────────────────────────────
+// Each agent has its own set of tabs. Tabs are stored in localStorage.
+// chatHistory and streamState are keyed by "agentId::tabId" when tabs are active.
+let sessionTabs = {}; // agentId -> [{id, label, createdAt}]
+let activeTab = {};   // agentId -> tabId
+
+function tabKey(agentId, tabId) { return agentId + '::' + tabId; }
+function activeTabKey(agentId) { return tabKey(agentId, activeTab[agentId] || getAgentTabs(agentId)[0]?.id); }
+
+function getAgentTabs(agentId) {
+  if (!sessionTabs[agentId] || !sessionTabs[agentId].length) {
+    sessionTabs[agentId] = [{ id: 'default', label: 'Session 1', createdAt: Date.now() }];
+    activeTab[agentId] = 'default';
+  }
+  return sessionTabs[agentId];
+}
+
+function saveTabs() {
+  try { localStorage.setItem('sessionTabs', JSON.stringify(sessionTabs)); localStorage.setItem('activeTabs', JSON.stringify(activeTab)); } catch {}
+}
+function loadTabs() {
+  try {
+    const t = localStorage.getItem('sessionTabs');
+    const a = localStorage.getItem('activeTabs');
+    if (t) sessionTabs = JSON.parse(t);
+    if (a) activeTab = JSON.parse(a);
+  } catch {}
+}
+loadTabs();
+
+function createTab(agentId) {
+  const tabs = getAgentTabs(agentId);
+  const num = tabs.length + 1;
+  const id = 'tab-' + Date.now().toString(36);
+  tabs.push({ id, label: 'Session ' + num, createdAt: Date.now() });
+  activeTab[agentId] = id;
+  saveTabs();
+  renderedFrameAgent = null; // force full re-render
+  renderChat();
+  scrollChat();
+}
+
+function closeTab(agentId, tabId) {
+  const tabs = getAgentTabs(agentId);
+  if (tabs.length <= 1) return; // can't close last tab
+  const idx = tabs.findIndex(t => t.id === tabId);
+  if (idx < 0) return;
+  // Check if streaming is active on this tab
+  const key = tabKey(agentId, tabId);
+  const ss = streamState[key];
+  if (ss && (ss.isThinking || ss.jobId)) {
+    if (!confirm('This session has an active stream. Close anyway?')) return;
+  }
+  tabs.splice(idx, 1);
+  // Clean up state
+  delete chatHistory[key];
+  delete streamState[key];
+  // Switch to neighbor
+  if (activeTab[agentId] === tabId) {
+    activeTab[agentId] = tabs[Math.min(idx, tabs.length - 1)].id;
+  }
+  saveTabs();
+  renderedFrameAgent = null;
+  renderChat();
+  scrollChat();
+}
+
+function switchTab(agentId, tabId) {
+  if (activeTab[agentId] === tabId) return;
+  activeTab[agentId] = tabId;
+  saveTabs();
+  updateMessages();
+  scrollChat();
+  // Update tab bar active state
+  document.querySelectorAll('.session-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tabId === tabId);
+  });
+  // Refocus input
+  const inp = document.getElementById('chatInput');
+  if (inp) {
+    const agent = agents.find(a => a.id === agentId);
+    inp.placeholder = 'Message ' + (agent?.aliases[0] || agent?.name || '') + '...';
+    inp.focus();
+  }
+  // Update input buttons for this tab's stream state
+  const ss = getStream(activeTabKey(agentId));
+  updateInputButtons(ss);
+}
+
+function startRenameTab(agentId, tabId) {
+  const el = document.querySelector(`.session-tab[data-tab-id="${tabId}"] .tab-label`);
+  if (!el) return;
+  const tab = getAgentTabs(agentId).find(t => t.id === tabId);
+  if (!tab) return;
+  const input = document.createElement('input');
+  input.className = 'tab-rename-input';
+  input.value = tab.label;
+  input.onblur = () => finishRenameTab(agentId, tabId, input.value);
+  input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = tab.label; input.blur(); } };
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function finishRenameTab(agentId, tabId, newLabel) {
+  const tab = getAgentTabs(agentId).find(t => t.id === tabId);
+  if (tab && newLabel.trim()) {
+    tab.label = newLabel.trim();
+    saveTabs();
+  }
+  renderTabBar(agentId);
+}
+
+function renderTabBar(agentId) {
+  const container = document.getElementById('sessionTabBar');
+  if (!container) return;
+  const tabs = getAgentTabs(agentId);
+  const curTab = activeTab[agentId] || tabs[0]?.id;
+  let html = tabs.map(t => {
+    const isActive = t.id === curTab;
+    const key = tabKey(agentId, t.id);
+    const ss = streamState[key];
+    const hasActivity = !isActive && ss && (ss.isThinking || ss.jobId);
+    return `<div class="session-tab${isActive ? ' active' : ''}${hasActivity ? ' has-activity' : ''}" data-tab-id="${t.id}"
+      onclick="switchTab('${agentId}','${t.id}')"
+      ondblclick="startRenameTab('${agentId}','${t.id}')">
+      <span class="tab-dot"></span>
+      <span class="tab-label">${escapeHtml(t.label)}</span>
+      ${tabs.length > 1 ? `<span class="tab-close" onclick="event.stopPropagation();closeTab('${agentId}','${t.id}')">&times;</span>` : ''}
+    </div>`;
+  }).join('');
+  html += `<div class="session-tab-add" onclick="createTab('${agentId}')" title="New session">+</div>`;
+  container.innerHTML = html;
+}
+
 // Canvas state (ephemeral, never persisted)
 let canvasOpen = false;
 let canvasFile = null; // {path, name, ext, content, type}
@@ -1143,7 +1330,7 @@ function toggleRawLogs() {
 }
 
 function connectRawLogs() {
-  const ss = getStream(selectedAgent);
+  const ss = getStream(activeTabKey(selectedAgent));
   if (!ss.jobId) {
     const el = document.getElementById('rawLogsContent');
     if (el) el.textContent = 'No active job. Send a message to start streaming logs.\n';
@@ -1351,7 +1538,7 @@ function getFilteredAgents() {
 }
 
 // Recover latest exchange from server log when streaming disconnects
-async function recoverFromLog(agentId) {
+async function recoverFromLog(agentId, tk) {
   try {
     // Wait a moment for the executor to finish writing
     await new Promise(r => setTimeout(r, 3000));
@@ -1361,9 +1548,10 @@ async function recoverFromLog(agentId) {
       const latest = data.recentMessages[data.recentMessages.length - 1];
       if (latest.response) {
         // Check if we already have this response (avoid duplicates)
-        const lastInHistory = chatHistory[agentId]?.[chatHistory[agentId].length - 1];
+        const _hist = chatHistory[tk || agentId] || [];
+        const lastInHistory = _hist[_hist.length - 1];
         if (lastInHistory?.role === 'agent' && lastInHistory.text === latest.response) return true;
-        chatHistory[agentId].push({ role: 'agent', text: latest.response, time: latest.ts, channel: latest.channel || 'unknown' });
+        _hist.push({ role: 'agent', text: latest.response, time: latest.ts, channel: latest.channel || 'unknown' });
         return true;
       }
     }
@@ -1376,7 +1564,9 @@ async function fetchAgentMessages(agentId) {
     const res = await fetch(`/api/agents/${agentId}`);
     const data = await res.json();
     if (data.recentMessages && data.recentMessages.length > 0) {
-      chatHistory[agentId] = data.recentMessages.map(m => ([
+      // Load server history into the default tab only (other tabs are local-only)
+      const defaultKey = tabKey(agentId, 'default');
+      chatHistory[defaultKey] = data.recentMessages.map(m => ([
         { role: 'user', text: m.text, time: m.ts, channel: m.channel || 'unknown' },
         { role: 'agent', text: m.response, time: m.ts, channel: m.channel || 'unknown' },
       ])).flat().filter(m => m.text);
@@ -1384,9 +1574,11 @@ async function fetchAgentMessages(agentId) {
   } catch { /* ignore */ }
 }
 
-async function sendMessage(agentId, text) {
-  if (!chatHistory[agentId]) chatHistory[agentId] = [];
-  chatHistory[agentId].push({ role: 'user', text, time: new Date().toISOString() });
+async function sendMessage(agentId, text, _tabKeyOverride) {
+  // Capture the tab key at send time so it stays stable even if user switches tabs during streaming
+  const tk = _tabKeyOverride || activeTabKey(agentId);
+  if (!chatHistory[tk]) chatHistory[tk] = [];
+  chatHistory[tk].push({ role: 'user', text, time: new Date().toISOString() });
   renderChat();
   scrollChat();
 
@@ -1394,13 +1586,13 @@ async function sendMessage(agentId, text) {
   const useStreaming = agent?.streaming;
 
   if (useStreaming) {
-    // SSE streaming mode — use per-agent state so switching agents doesn't bleed
-    const ss = getStream(agentId);
+    // SSE streaming mode — use per-tab state so switching tabs doesn't bleed
+    const ss = getStream(tk);
     ss.isThinking = true;
     ss.text = '';
     ss.status = '';
     ss.tools = [];
-    const isViewing = () => selectedAgent === agentId;
+    const isViewing = () => selectedAgent === agentId && activeTabKey(agentId) === tk;
     if (isViewing()) renderChat();
     scrollChat();
 
@@ -1456,7 +1648,7 @@ async function sendMessage(agentId, text) {
                 });
               } catch { /* best effort */ }
               if (ss.text) {
-                chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+                chatHistory[tk].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
                 ss.text = '';
               }
               isDone = true;
@@ -1542,7 +1734,7 @@ async function sendMessage(agentId, text) {
                   ss.isThinking = false;
                   ss.text = '';
                   ss.status = '';
-                  chatHistory[agentId].push({ role: 'agent', text: `Error: ${event.data}`, time: new Date().toISOString() });
+                  chatHistory[tk].push({ role: 'agent', text: `Error: ${event.data}`, time: new Date().toISOString() });
                   if (isViewing()) { renderChat(); scrollChat(); }
                   isDone = true;
                 }
@@ -1583,11 +1775,11 @@ async function sendMessage(agentId, text) {
       ss.jobId = null;
       if (ss.text) {
         speakText(ss.text);
-        chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+        chatHistory[tk].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
       } else if (!isDone) {
         // Stream disconnected without completing — reload from server log
         // The executor runs to completion regardless, so the log should have the response
-        await recoverFromLog(agentId);
+        await recoverFromLog(agentId, tk);
       }
       ss.text = '';
       ss.status = '';
@@ -1597,12 +1789,12 @@ async function sendMessage(agentId, text) {
       ss.jobId = null;
       // Save partial response if any text was streamed before disconnect
       if (ss.text) {
-        chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+        chatHistory[tk].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
       } else {
         // Try to recover from server log before falling back to error
-        const recovered = await recoverFromLog(agentId);
+        const recovered = await recoverFromLog(agentId, tk);
         if (!recovered) {
-          chatHistory[agentId].push({ role: 'agent', text: `Connection lost. The agent may still be running — check back shortly.`, time: new Date().toISOString() });
+          chatHistory[tk].push({ role: 'agent', text: `Connection lost. The agent may still be running — check back shortly.`, time: new Date().toISOString() });
         }
       }
       ss.text = '';
@@ -1613,7 +1805,7 @@ async function sendMessage(agentId, text) {
     // Auto-send next queued message if any
     if (ss.queue.length > 0) {
       const next = ss.queue.shift();
-      sendMessage(agentId, next);
+      sendMessage(agentId, next, tk);
     }
   } else {
     // Regular non-streaming mode
@@ -1631,13 +1823,13 @@ async function sendMessage(agentId, text) {
       isThinking = false;
 
       if (data.ok) {
-        chatHistory[agentId].push({ role: 'agent', text: data.response, time: new Date().toISOString() });
+        chatHistory[tk].push({ role: 'agent', text: data.response, time: new Date().toISOString() });
       } else {
-        chatHistory[agentId].push({ role: 'agent', text: `Error: ${data.error}`, time: new Date().toISOString() });
+        chatHistory[tk].push({ role: 'agent', text: `Error: ${data.error}`, time: new Date().toISOString() });
       }
     } catch (err) {
       isThinking = false;
-      chatHistory[agentId].push({ role: 'agent', text: `Connection error: ${err.message}`, time: new Date().toISOString() });
+      chatHistory[tk].push({ role: 'agent', text: `Connection error: ${err.message}`, time: new Date().toISOString() });
     }
   }
 
@@ -1717,8 +1909,8 @@ function renderChat() {
   const agent = agents.find(a => a.id === selectedAgent);
   if (!agent) return;
 
-  // Sync globals from selected agent's stream state
-  const ss = getStream(selectedAgent);
+  // Sync globals from selected agent's active tab stream state
+  const ss = getStream(activeTabKey(selectedAgent));
   isThinking = ss.isThinking;
   streamingText = ss.text;
   streamingStatus = ss.status;
@@ -1746,6 +1938,7 @@ function renderChat() {
           ${agent.persistent ? `<button class="header-btn danger" onclick="confirmResetSession('${agent.id}')">&#x21BA; Reset session</button>` : ''}
         </div>
       </div>
+      <div class="session-tabs" id="sessionTabBar"></div>
       <div class="chat-body-wrap${canvasOpen ? ' canvas-open' : ''}" id="chatBodyWrap">
       <div class="chat-messages" id="chatMessages"></div>
       <div class="canvas-panel" id="canvasPanel">
@@ -1808,7 +2001,11 @@ function renderChat() {
       const inp = document.getElementById('chatInput');
       if (inp) inp.focus();
       renderQueueUI();
+      renderTabBar(selectedAgent);
     }, 50);
+  } else {
+    // Even on message-only updates, refresh tab bar for activity dots
+    renderTabBar(selectedAgent);
   }
 
   // Update only the messages area — leaves header, input, and canvas untouched
@@ -1822,8 +2019,9 @@ function updateMessages() {
   const agent = agents.find(a => a.id === selectedAgent);
   if (!agent) return;
 
-  const messages = chatHistory[selectedAgent] || [];
-  const ss = getStream(selectedAgent);
+  const key = activeTabKey(selectedAgent);
+  const messages = chatHistory[key] || [];
+  const ss = getStream(key);
   isThinking = ss.isThinking;
   streamingText = ss.text;
   streamingStatus = ss.status;
@@ -1899,9 +2097,10 @@ async function doSend() {
   autoResize(input);
 
   // Handle /whoami command locally
+  const _tk = activeTabKey(selectedAgent);
   if (text.trim().toLowerCase() === '/whoami') {
-    if (!chatHistory[selectedAgent]) chatHistory[selectedAgent] = [];
-    chatHistory[selectedAgent].push({ role: 'user', text, time: new Date().toISOString() });
+    if (!chatHistory[_tk]) chatHistory[_tk] = [];
+    chatHistory[_tk].push({ role: 'user', text, time: new Date().toISOString() });
     updateMessages(); scrollChat();
     try {
       const r = await fetch('/api/whoami/' + encodeURIComponent(selectedAgent));
@@ -1926,23 +2125,23 @@ async function doSend() {
       } else {
         info += 'Unexpected response: ```\n' + JSON.stringify(d, null, 2) + '\n```';
       }
-      chatHistory[selectedAgent].push({ role: 'agent', text: info, time: new Date().toISOString() });
+      chatHistory[_tk].push({ role: 'agent', text: info, time: new Date().toISOString() });
     } catch (e) {
-      chatHistory[selectedAgent].push({ role: 'agent', text: 'Error: ' + e.message, time: new Date().toISOString() });
+      chatHistory[_tk].push({ role: 'agent', text: 'Error: ' + e.message, time: new Date().toISOString() });
     }
     updateMessages(); scrollChat();
     return;
   }
 
   // If streaming is active, queue the message instead of sending
-  const ss = getStream(selectedAgent);
+  const ss = getStream(_tk);
   if (ss.isThinking || ss.jobId || ss.text) {
     ss.queue.push(text);
     renderQueueUI();
     return;
   }
 
-  sendMessage(selectedAgent, text);
+  sendMessage(selectedAgent, text, _tk);
 }
 
 function updateInputButtons(ss) {
@@ -1979,7 +2178,7 @@ function updateInputButtons(ss) {
 function renderQueueUI() {
   const container = document.getElementById('queueContainer');
   if (!container || !selectedAgent) return;
-  const ss = getStream(selectedAgent);
+  const ss = getStream(activeTabKey(selectedAgent));
   if (!ss.queue.length) {
     container.innerHTML = '';
     return;
@@ -1999,7 +2198,7 @@ function renderQueueUI() {
 
 function editQueueItem(idx) {
   if (!selectedAgent) return;
-  const ss = getStream(selectedAgent);
+  const ss = getStream(activeTabKey(selectedAgent));
   if (idx < 0 || idx >= ss.queue.length) return;
   const text = ss.queue.splice(idx, 1)[0];
   const input = document.getElementById('chatInput');
@@ -2013,7 +2212,7 @@ function editQueueItem(idx) {
 
 function deleteQueueItem(idx) {
   if (!selectedAgent) return;
-  const ss = getStream(selectedAgent);
+  const ss = getStream(activeTabKey(selectedAgent));
   if (idx < 0 || idx >= ss.queue.length) return;
   ss.queue.splice(idx, 1);
   renderQueueUI();
@@ -2022,7 +2221,8 @@ function deleteQueueItem(idx) {
 async function stopStreaming() {
   if (!selectedAgent) return;
   const agentId = selectedAgent;
-  const ss = getStream(agentId);
+  const tk = activeTabKey(agentId);
+  const ss = getStream(tk);
   if (ss.jobId) {
     try {
       await fetch(`/api/chat/jobs/${ss.jobId}/stop`, { method: 'POST' });
@@ -2035,7 +2235,7 @@ async function stopStreaming() {
     ss.isThinking = false;
     ss.jobId = null;
     if (ss.text) {
-      chatHistory[agentId].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
+      chatHistory[tk].push({ role: 'agent', text: ss.text, time: new Date().toISOString(), tools: ss.tools.length ? [...ss.tools] : undefined });
     }
     ss.text = '';
     ss.status = '';
@@ -2046,7 +2246,7 @@ async function stopStreaming() {
   if (ss.queue.length > 0) {
     const next = ss.queue.shift();
     renderQueueUI();
-    sendMessage(agentId, next);
+    sendMessage(agentId, next, tk);
   }
 }
 
@@ -2234,8 +2434,9 @@ function viewConfig(agentId) {
     routes: agent.routes,
   }, null, 2);
 
-  if (!chatHistory[agentId]) chatHistory[agentId] = [];
-  chatHistory[agentId].push({
+  const _vk = activeTabKey(agentId);
+  if (!chatHistory[_vk]) chatHistory[_vk] = [];
+  chatHistory[_vk].push({
     role: 'agent',
     text: '```json\n' + configStr + '\n```',
     time: new Date().toISOString()
@@ -3116,7 +3317,7 @@ setInterval(fetchDashboard, 30000);
 // ─── Scroll to specific message by timestamp ───────────
 function scrollToMessage(ts) {
   if (!selectedAgent) return;
-  const messages = chatHistory[selectedAgent] || [];
+  const messages = chatHistory[activeTabKey(selectedAgent)] || [];
   // Find the message index matching this timestamp
   const idx = messages.findIndex(m => m.time === ts);
   if (idx < 0) return;

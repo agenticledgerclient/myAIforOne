@@ -233,6 +233,12 @@ export const triggerHeartbeat = (agentId: string, triggeredBy?: string) =>
 export const heartbeatHistory = (agentId: string, limit?: number) =>
   api(`/api/agents/${agentId}/heartbeat-history`, { query: { limit } });
 
+// ─── Wiki Sync ──────────────────────────────────────────────────
+export const triggerWikiSync = (agentId: string, triggeredBy?: string) =>
+  api(`/api/agents/${agentId}/wiki-sync`, { method: "POST", body: { triggeredBy } });
+export const wikiSyncHistory = (agentId: string, limit?: number) =>
+  api(`/api/agents/${agentId}/wiki-sync-history`, { query: { limit } });
+
 // ─── Whoami ─────────────────────────────────────────────────────
 export const whoami = (agentId: string) => api(`/api/whoami/${agentId}`);
 

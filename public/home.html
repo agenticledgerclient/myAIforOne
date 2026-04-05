@@ -242,6 +242,59 @@ text-decoration:none;}
 .home-queue-item .q-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .home-queue-item .q-btn.danger:hover{border-color:rgba(239,68,68,.3);color:#ef4444}
 
+/* ─── Session Tabs ──────────────────────────────────────────── */
+.session-tabs{
+  display:flex;align-items:center;gap:0;
+  padding:0 16px;
+  border-bottom:1px solid var(--border-dim);
+  background:var(--bg-surface);
+  min-height:32px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  flex-shrink:0;
+}
+.session-tabs::-webkit-scrollbar{display:none}
+.session-tab{
+  display:flex;align-items:center;gap:4px;
+  padding:6px 10px;
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--text-muted);cursor:pointer;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;transition:all .15s;
+  position:relative;
+}
+.session-tab:hover{color:var(--text-secondary);background:rgba(255,255,255,.03)}
+.session-tab.active{
+  color:var(--accent);border-bottom-color:var(--accent);
+  background:rgba(34,211,238,.05);
+}
+.session-tab .tab-label{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.session-tab .tab-close{
+  display:none;font-size:13px;line-height:1;
+  padding:0 2px;border-radius:3px;color:var(--text-muted);
+  cursor:pointer;margin-left:2px;
+}
+.session-tab:hover .tab-close{display:inline}
+.session-tab .tab-close:hover{color:#ef4444;background:rgba(239,68,68,.15)}
+.session-tab .tab-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--accent);display:none;
+}
+.session-tab.has-activity .tab-dot{display:inline-block}
+.session-tab-add{
+  padding:4px 8px;font-size:14px;line-height:1;
+  color:var(--text-muted);cursor:pointer;
+  border-radius:4px;transition:all .15s;
+  flex-shrink:0;
+}
+.session-tab-add:hover{color:var(--accent);background:rgba(255,255,255,.05)}
+.tab-rename-input{
+  font-family:var(--font-mono);font-size:11px;
+  background:transparent;border:1px solid var(--accent);
+  color:var(--text-primary);padding:1px 4px;border-radius:3px;
+  outline:none;width:90px;
+}
+
 /* Bottom agent bar in chat mode */
 .chat-agent-bar{
   display:flex;align-items:center;gap:8px;max-width:800px;margin:8px auto 0;flex-wrap:wrap;
@@ -430,6 +483,7 @@ text-decoration:none;}
       <button class="header-btn danger" onclick="confirmResetSession()" title="Reset hub session">&#x21BA; Reset session</button>
       <button class="header-btn" id="configureHubLink" onclick="openConfigOverlay()" title="Configure hub agent">&#x2699; Configure</button>
     </div>
+    <div class="session-tabs" id="homeSessionTabBar"></div>
     <div class="chat-messages-home" id="chatMessages"></div>
     <div class="logs-drawer" id="logsDrawer">
       <div class="logs-header">
@@ -495,6 +549,152 @@ let currentJobId = null;
 let availableAccounts = [];
 let accountOverride = undefined;
 
+// ─── Session Tabs ──────────────────────────────────────────────
+// Home page tabs — each tab has its own message list, streaming state, and queue.
+let homeTabs = []; // [{id, label, createdAt}]
+let homeActiveTabId = null;
+let tabMessages = {};    // tabId -> messages[]
+let tabStreaming = {};   // tabId -> {text, isThinking, jobId, queue}
+
+function loadHomeTabs() {
+  try {
+    const t = localStorage.getItem('homeTabs');
+    const a = localStorage.getItem('homeActiveTab');
+    if (t) homeTabs = JSON.parse(t);
+    if (a) homeActiveTabId = JSON.parse(a);
+  } catch {}
+  if (!homeTabs.length) {
+    homeTabs = [{ id: 'default', label: 'Session 1', createdAt: Date.now() }];
+    homeActiveTabId = 'default';
+  }
+  if (!homeActiveTabId) homeActiveTabId = homeTabs[0]?.id;
+}
+function saveHomeTabs() {
+  try {
+    localStorage.setItem('homeTabs', JSON.stringify(homeTabs));
+    localStorage.setItem('homeActiveTab', JSON.stringify(homeActiveTabId));
+  } catch {}
+}
+loadHomeTabs();
+
+function getTabState(tabId) {
+  if (!tabStreaming[tabId]) tabStreaming[tabId] = { text: '', isThinking: false, jobId: null, queue: [] };
+  return tabStreaming[tabId];
+}
+
+function syncFromActiveTab() {
+  const ts = getTabState(homeActiveTabId);
+  messages = tabMessages[homeActiveTabId] || [];
+  isThinking = ts.isThinking;
+  streamingText = ts.text;
+  currentJobId = ts.jobId;
+  homeQueue = ts.queue;
+}
+function syncToActiveTab() {
+  tabMessages[homeActiveTabId] = messages;
+  const ts = getTabState(homeActiveTabId);
+  ts.isThinking = isThinking;
+  ts.text = streamingText;
+  ts.jobId = currentJobId;
+  ts.queue = homeQueue;
+}
+
+function createHomeTab() {
+  syncToActiveTab();
+  const num = homeTabs.length + 1;
+  const id = 'htab-' + Date.now().toString(36);
+  homeTabs.push({ id, label: 'Session ' + num, createdAt: Date.now() });
+  homeActiveTabId = id;
+  tabMessages[id] = [];
+  tabStreaming[id] = { text: '', isThinking: false, jobId: null, queue: [] };
+  saveHomeTabs();
+  syncFromActiveTab();
+  renderMessages();
+  scrollChat();
+  renderHomeTabBar();
+  updateHomeInputButtons();
+}
+
+function closeHomeTab(tabId) {
+  if (homeTabs.length <= 1) return;
+  const ts = getTabState(tabId);
+  if (ts.isThinking || ts.jobId) {
+    if (!confirm('This session has an active stream. Close anyway?')) return;
+  }
+  const idx = homeTabs.findIndex(t => t.id === tabId);
+  if (idx < 0) return;
+  homeTabs.splice(idx, 1);
+  delete tabMessages[tabId];
+  delete tabStreaming[tabId];
+  if (homeActiveTabId === tabId) {
+    homeActiveTabId = homeTabs[Math.min(idx, homeTabs.length - 1)].id;
+  }
+  saveHomeTabs();
+  syncFromActiveTab();
+  renderMessages();
+  scrollChat();
+  renderHomeTabBar();
+  updateHomeInputButtons();
+}
+
+function switchHomeTab(tabId) {
+  if (homeActiveTabId === tabId) return;
+  syncToActiveTab();
+  homeActiveTabId = tabId;
+  saveHomeTabs();
+  syncFromActiveTab();
+  renderMessages();
+  scrollChat();
+  renderHomeTabBar();
+  updateHomeInputButtons();
+  renderHomeQueue();
+  const inp = document.getElementById('chatInput');
+  if (inp) inp.focus();
+}
+
+function startRenameHomeTab(tabId) {
+  const el = document.querySelector(`.session-tab[data-tab-id="${tabId}"] .tab-label`);
+  if (!el) return;
+  const tab = homeTabs.find(t => t.id === tabId);
+  if (!tab) return;
+  const input = document.createElement('input');
+  input.className = 'tab-rename-input';
+  input.value = tab.label;
+  input.onblur = () => finishRenameHomeTab(tabId, input.value);
+  input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = tab.label; input.blur(); } };
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function finishRenameHomeTab(tabId, newLabel) {
+  const tab = homeTabs.find(t => t.id === tabId);
+  if (tab && newLabel.trim()) {
+    tab.label = newLabel.trim();
+    saveHomeTabs();
+  }
+  renderHomeTabBar();
+}
+
+function renderHomeTabBar() {
+  const container = document.getElementById('homeSessionTabBar');
+  if (!container) return;
+  let html = homeTabs.map(t => {
+    const isActive = t.id === homeActiveTabId;
+    const ts = tabStreaming[t.id];
+    const hasActivity = !isActive && ts && (ts.isThinking || ts.jobId);
+    return `<div class="session-tab${isActive ? ' active' : ''}${hasActivity ? ' has-activity' : ''}" data-tab-id="${t.id}"
+      onclick="switchHomeTab('${t.id}')"
+      ondblclick="startRenameHomeTab('${t.id}')">
+      <span class="tab-dot"></span>
+      <span class="tab-label">${escapeHtml(t.label)}</span>
+      ${homeTabs.length > 1 ? `<span class="tab-close" onclick="event.stopPropagation();closeHomeTab('${t.id}')">&times;</span>` : ''}
+    </div>`;
+  }).join('');
+  html += `<div class="session-tab-add" onclick="createHomeTab()" title="New session">+</div>`;
+  container.innerHTML = html;
+}
+
 function toggleVoiceMode() {
   voiceModeOn = !voiceModeOn;
   const btn = document.getElementById('voiceModeBtn');
@@ -557,16 +757,22 @@ async function init() {
     // Render recent agent tiles
     renderTiles();
 
-    // Load previous messages from hub's conversation log
+    // Load previous messages from hub's conversation log into the default tab
     if (hubAgentId) {
       try {
         const msgRes = await fetch(`/api/agents/${hubAgentId}`);
         const msgData = await msgRes.json();
         if (msgData.recentMessages && msgData.recentMessages.length > 0) {
-          messages = msgData.recentMessages.map(m => ([
+          const loaded = msgData.recentMessages.map(m => ([
             { role: 'user', text: m.text, time: m.ts },
             { role: 'agent', text: m.response, time: m.ts },
           ])).flat().filter(m => m.text);
+          // Put into default tab if it has no messages yet
+          const defId = homeTabs[0]?.id || 'default';
+          if (!tabMessages[defId] || !tabMessages[defId].length) {
+            tabMessages[defId] = loaded;
+          }
+          syncFromActiveTab();
           if (messages.length > 0) {
             transitionToChat();
             renderMessages();
@@ -575,6 +781,7 @@ async function init() {
         }
       } catch { /* ignore */ }
     }
+    renderHomeTabBar();
   } catch { /* ignore */ }
 
   // Check for ?agent= param (e.g. from Apps registry "@ Dev" button)
@@ -668,6 +875,7 @@ function transitionToChat() {
   setTimeout(() => {
     document.getElementById('chatInput').focus();
     scrollChat();
+    renderHomeTabBar();
   }, 100);
 }
 
@@ -689,11 +897,12 @@ function sendFirst() {
   input.value = '';
   transitionToChat();
   addMessage('user', text);
+  syncToActiveTab();
   const direct = parseDirectAgent(text);
   if (direct) {
-    executeDirectAgent(direct.agentId, direct.message);
+    executeDirectAgent(direct.agentId, direct.message, homeActiveTabId);
   } else {
-    executeHub(text);
+    executeHub(text, homeActiveTabId);
   }
 }
 
@@ -702,10 +911,13 @@ async function sendMessage(queuedText) {
   const input = document.getElementById('chatInput');
   let text = queuedText || input.value.trim();
   if ((!text && !homeFiles.length) || !hubAgentId) return;
+  const tabId = homeActiveTabId;
+  const ts = getTabState(tabId);
 
   // Queue if already streaming or job active
-  if ((isThinking || currentJobId) && !queuedText) {
-    homeQueue.push(text);
+  if ((ts.isThinking || ts.jobId) && !queuedText) {
+    ts.queue.push(text);
+    homeQueue = ts.queue;
     input.value = '';
     autoResize(input);
     hideAutocomplete();
@@ -728,13 +940,14 @@ async function sendMessage(queuedText) {
     if (zone) zone.classList.remove('visible');
   }
 
-  addMessage('user', text);
+  addMessage('user', text, tabId);
+  syncToActiveTab();
   updateHomeInputButtons();
   const direct = parseDirectAgent(text);
   if (direct) {
-    executeDirectAgent(direct.agentId, direct.message);
+    executeDirectAgent(direct.agentId, direct.message, tabId);
   } else {
-    executeHub(text);
+    executeHub(text, tabId);
   }
 }
 
@@ -756,8 +969,11 @@ async function uploadHomeFiles(agentId) {
 }
 
 // ─── Direct agent execution (bypasses hub) ─────────────
-async function executeDirectAgent(agentId, text) {
-  isThinking = true;
+async function executeDirectAgent(agentId, text, tabId) {
+  const tid = tabId || homeActiveTabId;
+  const ts = getTabState(tid);
+  ts.isThinking = true;
+  if (tid === homeActiveTabId) { isThinking = true; }
   renderMessages();
   scrollChat();
 
@@ -768,21 +984,26 @@ async function executeDirectAgent(agentId, text) {
       body: JSON.stringify({ agentId, text }),
     });
     const data = await res.json();
-    isThinking = false;
+    ts.isThinking = false;
+    if (tid === homeActiveTabId) isThinking = false;
     if (data.ok) {
-      addMessage('agent', data.response + ` [via:${agentId}]`);
+      addMessage('agent', data.response + ` [via:${agentId}]`, tid);
     } else {
-      addMessage('agent', 'Error: ' + (data.error || 'Unknown error'));
+      addMessage('agent', 'Error: ' + (data.error || 'Unknown error'), tid);
     }
   } catch (err) {
-    isThinking = false;
-    addMessage('agent', 'Connection error: ' + err.message);
+    ts.isThinking = false;
+    if (tid === homeActiveTabId) isThinking = false;
+    addMessage('agent', 'Connection error: ' + err.message, tid);
   }
   renderMessages();
   scrollChat();
+  renderHomeTabBar();
+  updateHomeInputButtons();
   // Drain queue: auto-send next queued message
-  if (homeQueue.length > 0) {
-    const next = homeQueue.shift();
+  if (ts.queue.length > 0) {
+    const next = ts.queue.shift();
+    if (tid === homeActiveTabId) { homeQueue = ts.queue; }
     renderHomeQueue();
     sendMessage(next);
   }
@@ -894,15 +1115,22 @@ function handleChatKeydown(event) {
 }
 
 // ─── Execute via hub agent (streaming) ─────────────────
-async function executeHub(text) {
+async function executeHub(text, tabId) {
+  const tid = tabId || homeActiveTabId;
+  const ts = getTabState(tid);
+  const isActive = () => tid === homeActiveTabId;
+
   // Safety: save any leftover streaming text from a prior run
-  if (streamingText) {
-    messages.push({ role: 'agent', text: streamingText, time: new Date().toISOString() });
-    streamingText = '';
+  if (ts.text) {
+    addMessage('agent', ts.text, tid);
+    ts.text = '';
+    if (isActive()) streamingText = '';
   }
-  isThinking = true;
+  ts.isThinking = true;
+  if (isActive()) isThinking = true;
   renderMessages();
   scrollChat();
+  renderHomeTabBar();
 
   try {
     const startRes = await fetch(`/api/chat/${hubAgentId}/stream`, {
@@ -914,13 +1142,15 @@ async function executeHub(text) {
     if (!jobId) throw new Error('No jobId');
 
     // Track job for stop + raw logs
-    currentJobId = jobId;
+    ts.jobId = jobId;
+    if (isActive()) { currentJobId = jobId; }
     currentRawJobId = jobId;
     updateHomeInputButtons();
     if (logsOpen) streamRawLogs(jobId);
 
     // Stream events using fetch+reader with reconnect (no EventSource)
-    streamingText = '';
+    ts.text = '';
+    if (isActive()) streamingText = '';
     let lastEventId = 0;
     let isDone = false;
     let retries = 0;
@@ -931,15 +1161,14 @@ async function executeHub(text) {
         const streamRes = await fetch(`/api/chat/jobs/${jobId}/stream?after=${lastEventId}`);
         if (!streamRes.ok) {
           if (streamRes.status === 404) {
-            // Service restarted — recover by posting exchange to new server
             try {
               await fetch(`/api/agents/${hubAgentId}/recover`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userText: text, response: streamingText }),
+                body: JSON.stringify({ userText: text, response: ts.text }),
               });
             } catch { /* best effort */ }
-            if (streamingText) { addMessage('agent', streamingText); streamingText = ''; }
+            if (ts.text) { addMessage('agent', ts.text, tid); ts.text = ''; if (isActive()) streamingText = ''; }
             isDone = true;
             break;
           }
@@ -972,16 +1201,19 @@ async function executeHub(text) {
             try {
               const event = JSON.parse(data);
               if (event.type === 'text') {
-                streamingText += event.data;
-                isThinking = false;
+                ts.text += event.data;
+                ts.isThinking = false;
+                if (isActive()) { streamingText = ts.text; isThinking = false; }
                 renderMessages();
                 scrollChat();
               } else if (event.type === 'status' || event.type === 'tool') {
                 renderMessages();
               } else if (event.type === 'error') {
-                isThinking = false;
-                addMessage('agent', 'Error: ' + event.data);
-                streamingText = '';
+                ts.isThinking = false;
+                if (isActive()) isThinking = false;
+                addMessage('agent', 'Error: ' + event.data, tid);
+                ts.text = '';
+                if (isActive()) streamingText = '';
                 renderMessages();
                 isDone = true;
               }
@@ -989,7 +1221,6 @@ async function executeHub(text) {
           }
         }
 
-        // Stream ended — if not done, reconnect silently
         if (!isDone) {
           retries++;
           await new Promise(r => setTimeout(r, 1000));
@@ -1003,40 +1234,52 @@ async function executeHub(text) {
     }
 
     // Finalize
-    isThinking = false;
-    currentJobId = null;
+    ts.isThinking = false;
+    ts.jobId = null;
+    if (isActive()) { isThinking = false; currentJobId = null; }
     updateHomeInputButtons();
-    if (streamingText) {
-      speakText(streamingText);
-      addMessage('agent', streamingText);
-      streamingText = '';
+    renderHomeTabBar();
+    if (ts.text) {
+      speakText(ts.text);
+      addMessage('agent', ts.text, tid);
+      ts.text = '';
+      if (isActive()) streamingText = '';
     } else if (retries >= MAX_RETRIES) {
-      addMessage('agent', 'Connection lost after multiple retries.');
+      addMessage('agent', 'Connection lost after multiple retries.', tid);
     }
   } catch (err) {
-    isThinking = false;
-    currentJobId = null;
+    ts.isThinking = false;
+    ts.jobId = null;
+    if (isActive()) { isThinking = false; currentJobId = null; }
     updateHomeInputButtons();
-    if (streamingText) {
-      addMessage('agent', streamingText);
-      streamingText = '';
+    renderHomeTabBar();
+    if (ts.text) {
+      addMessage('agent', ts.text, tid);
+      ts.text = '';
+      if (isActive()) streamingText = '';
     } else {
-      addMessage('agent', 'Connection error: ' + err.message);
+      addMessage('agent', 'Connection error: ' + err.message, tid);
     }
   }
   renderMessages();
   scrollChat();
   // Drain queue: auto-send next queued message
-  if (homeQueue.length > 0) {
-    const next = homeQueue.shift();
+  if (ts.queue.length > 0) {
+    const next = ts.queue.shift();
+    if (isActive()) homeQueue = ts.queue;
     renderHomeQueue();
     sendMessage(next);
   }
 }
 
 // ─── Messages ──────────────────────────────────────────
-function addMessage(role, text) {
-  messages.push({ role, text, time: new Date().toISOString() });
+function addMessage(role, text, tabId) {
+  const tid = tabId || homeActiveTabId;
+  if (!tabMessages[tid]) tabMessages[tid] = [];
+  tabMessages[tid].push({ role, text, time: new Date().toISOString() });
+  if (tid === homeActiveTabId) {
+    messages = tabMessages[tid];
+  }
   renderMessages();
   scrollChat();
 }
@@ -1141,7 +1384,18 @@ async function confirmResetSession() {
   try {
     await fetch(`/api/agents/${hubAgentId}/session`, { method: 'DELETE' });
     messages = [];
+    tabMessages[homeActiveTabId] = [];
+    const ts = getTabState(homeActiveTabId);
+    ts.text = '';
+    ts.isThinking = false;
+    ts.jobId = null;
+    ts.queue = [];
+    streamingText = '';
+    isThinking = false;
+    currentJobId = null;
+    homeQueue = [];
     renderMessages();
+    updateHomeInputButtons();
   } catch (err) {
     alert('Failed to reset session: ' + err.message);
   }
@@ -1305,21 +1559,27 @@ function stopHomeVoice() {
 
 // ─── Stop & Queue ─────────────────────────────────────
 async function stopHomeStreaming() {
-  if (currentJobId) {
-    try { await fetch(`/api/chat/jobs/${currentJobId}/stop`, { method: 'POST' }); } catch {}
+  const ts = getTabState(homeActiveTabId);
+  if (ts.jobId) {
+    try { await fetch(`/api/chat/jobs/${ts.jobId}/stop`, { method: 'POST' }); } catch {}
   }
+  ts.isThinking = false;
+  ts.jobId = null;
   isThinking = false;
   currentJobId = null;
-  if (streamingText) {
-    addMessage('agent', streamingText);
+  if (ts.text) {
+    addMessage('agent', ts.text);
+    ts.text = '';
     streamingText = '';
   }
   renderMessages();
   scrollChat();
   updateHomeInputButtons();
+  renderHomeTabBar();
   // Drain queue
-  if (homeQueue.length > 0) {
-    const next = homeQueue.shift();
+  if (ts.queue.length > 0) {
+    const next = ts.queue.shift();
+    homeQueue = ts.queue;
     renderHomeQueue();
     sendMessage(next);
   }
@@ -1330,8 +1590,9 @@ function updateHomeInputButtons() {
   if (!box) return;
   const sendBtn = document.getElementById('homeSendBtn');
   const existingStop = box.querySelector('.home-stop-btn');
+  const ts = getTabState(homeActiveTabId);
 
-  if (isThinking || currentJobId) {
+  if (ts.isThinking || ts.jobId) {
     // Show stop button
     if (!existingStop) {
       const stopBtn = document.createElement('button');

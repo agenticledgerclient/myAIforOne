@@ -35,6 +35,8 @@ export class WhatsAppDriver implements ChannelDriver {
   private retryCount = 0;
   private maxRetries = 5;
   private stopping = false;
+  /** Track message IDs sent by this socket so we don't echo agent replies */
+  private sentIds = new Set<string>();
 
   constructor(config: Record<string, unknown>) {
     const baseAuthDir = (config.authDir as string) ?? "./data/whatsapp-auth";
@@ -64,7 +66,8 @@ export class WhatsAppDriver implements ChannelDriver {
 
   async send(msg: OutboundMessage): Promise<void> {
     if (!this.sock) throw new Error("WhatsApp not connected");
-    await this.sock.sendMessage(msg.chatId, { text: msg.text });
+    const sent = await this.sock.sendMessage(msg.chatId, { text: msg.text });
+    if (sent?.key?.id) this.sentIds.add(sent.key.id);
   }
 
   private async connect(): Promise<void> {
@@ -160,8 +163,14 @@ export class WhatsAppDriver implements ChannelDriver {
       // Skip status broadcasts
       if (msg.key.remoteJid === "status@broadcast") continue;
 
-      // Skip own messages
-      if (msg.key.fromMe) continue;
+      // Skip messages sent by this socket (agent replies) to avoid echo loops.
+      // But do NOT skip all fromMe — the user's phone shares the same WhatsApp
+      // account as this linked device, so user messages also appear as fromMe.
+      const msgId = msg.key.id || "";
+      if (this.sentIds.has(msgId)) {
+        this.sentIds.delete(msgId);
+        continue;
+      }
 
       // Extract text from various message types
       const text =

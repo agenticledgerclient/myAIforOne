@@ -594,6 +594,20 @@
         }
       ],
       "oauth": true
+    },
+    "linkedin": {
+      "name": "LinkedIn",
+      "description": "Post updates, manage profile, search people and companies, and engage with your LinkedIn network",
+      "category": "productivity",
+      "url": "https://linkedinmcp.agenticledger.ai/mcp",
+      "requiredKeys": [
+        {
+          "env": "LINKEDIN_ACCESS_TOKEN",
+          "label": "LinkedIn Access Token",
+          "hint": "Click Authorize to connect your LinkedIn account"
+        }
+      ],
+      "oauth": true
     }
   },
   "categories": {

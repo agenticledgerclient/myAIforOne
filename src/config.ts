@@ -92,6 +92,11 @@ export interface AgentConfig {
   timeout?: number;
   cron?: CronJobConfig[];
   goals?: GoalConfig[];
+  wiki?: boolean;                     // Enable wiki learning — agent saves learned facts to learned.md
+  wikiSync?: {
+    enabled: boolean;
+    schedule: string;                 // cron expression (e.g., "0 0 * * *" = daily midnight)
+  };
   subAgents?: string[] | "*";  // Group agent: list of agent IDs to delegate to, or "*" for all
   platformAgent?: boolean;     // DEPRECATED — use agentClass instead
   agentClass?: "standard" | "platform" | "builder";  // standard (default), platform (Lab creators), builder (app developer agents)

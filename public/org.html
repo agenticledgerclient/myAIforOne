@@ -162,6 +162,7 @@ text-decoration:none;}
 .sub-nav .agent-controls .topbar-control{height:26px;font-size:10px;padding:4px 8px}
 .sub-nav .agent-controls .class-dropdown-btn{font-size:10px;padding:4px 8px;height:26px}
 .sub-nav .agent-controls .org-select{height:26px;font-size:10px;padding:2px 8px}
+.sub-nav .agent-controls .account-select{height:26px;font-size:10px;padding:2px 8px}
 .sub-nav .agent-controls .add-agent-btn-top{font-size:10px;padding:4px 10px}
 .sub-nav .agent-controls button{font-size:10px;padding:3px 8px}
 
@@ -461,6 +462,44 @@ text-decoration:none;}
 }
 .hide-names-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .hide-names-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-bg)}
+
+/* ─── Account Badge ──────────────────────────────────────────── */
+.account-badge{
+  display:inline-block;font-family:var(--font-mono);font-size:9px;font-weight:600;
+  padding:1px 6px;border-radius:4px;white-space:nowrap;line-height:1.4;
+  border:1px solid;opacity:.85;
+}
+.agent-node > .account-badge,
+.compact-node > .account-badge{
+  position:absolute;top:6px;right:6px;font-size:8px;padding:0 5px;opacity:.7;
+}
+.agent-node:hover > .account-badge,
+.compact-node:hover > .account-badge{opacity:1}
+.account-badge-0{color:#22d3ee;border-color:rgba(34,211,238,0.3);background:rgba(34,211,238,0.1)}
+.account-badge-1{color:#a78bfa;border-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.1)}
+.account-badge-2{color:#4ade80;border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.1)}
+.account-badge-3{color:#fb923c;border-color:rgba(251,146,60,0.3);background:rgba(251,146,60,0.1)}
+.account-badge-4{color:#f472b6;border-color:rgba(244,114,182,0.3);background:rgba(244,114,182,0.1)}
+.account-badge-5{color:#fbbf24;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.1)}
+[data-theme="light"] .account-badge-0{color:#0891b2;border-color:rgba(8,145,178,0.3);background:rgba(8,145,178,0.08)}
+[data-theme="light"] .account-badge-1{color:#7c3aed;border-color:rgba(124,58,237,0.3);background:rgba(124,58,237,0.08)}
+[data-theme="light"] .account-badge-2{color:#16a34a;border-color:rgba(22,163,74,0.3);background:rgba(22,163,74,0.08)}
+[data-theme="light"] .account-badge-3{color:#ea580c;border-color:rgba(234,88,12,0.3);background:rgba(234,88,12,0.08)}
+[data-theme="light"] .account-badge-4{color:#db2777;border-color:rgba(219,39,119,0.3);background:rgba(219,39,119,0.08)}
+[data-theme="light"] .account-badge-5{color:#d97706;border-color:rgba(217,119,6,0.3);background:rgba(217,119,6,0.08)}
+.account-select{
+  height:32px;font-family:var(--font-sans);font-size:11px;font-weight:500;
+  padding:2px 8px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);cursor:pointer;
+  box-sizing:border-box;transition:border-color .2s;
+}
+.account-select:hover{border-color:var(--border-glow)}
+.account-group-banner{
+  padding:8px 24px;font-family:var(--font-display);font-size:14px;font-weight:700;
+  color:var(--text-secondary);display:flex;align-items:center;gap:10px;
+  margin-top:16px;
+}
+.account-group-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 
 /* ─── Modal ───────────────────────────────────────────────────── */
 .modal-overlay{
@@ -1128,6 +1167,60 @@ text-decoration:none;}
           <div class="form-hint">Leave "Off" for manual-only heartbeats via the Dashboard.</div>
         </div>
       </div>
+
+      <!-- Wiki Sync (collapsed by default) -->
+      <div class="form-section" style="margin-top:24px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px" onclick="document.getElementById('wikisync-collapse').classList.toggle('hidden');this.querySelector('.collapse-arrow').textContent=document.getElementById('wikisync-collapse').classList.contains('hidden')?'▸':'▾'">
+        <span class="collapse-arrow" style="font-size:11px;color:var(--text-muted)">▸</span>Wiki Sync
+        <div class="checkbox-pill" id="f-wikiSyncEnabled" onclick="event.stopPropagation();togglePill(this)" style="margin-left:auto;font-size:10px">Enabled</div>
+      </div>
+      <div id="wikisync-collapse" class="hidden">
+        <div class="form-group">
+          <label class="form-label">Wiki Sync Instructions</label>
+          <textarea class="form-input" id="f-wikiSyncInstructions" rows="4" style="font-family:var(--font-mono);font-size:12px;resize:vertical;min-height:80px">Review learned.md for new facts. Cross-check against context.md. Merge verified facts. Flag contradictions but don't overwrite — leave a note for human review.</textarea>
+          <div class="form-hint">What the agent does during a wiki sync (merging learned.md → context.md).</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Schedule</label>
+          <div id="wikiSyncScheduleWrap" class="schedule-entry" style="border:none;padding:0;margin:0;background:none">
+            <div class="schedule-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="schedule-label">Every</span>
+              <select class="schedule-select" id="ws-frequency" onchange="updateWikiSyncFields()">
+                <option value="">Off (manual only)</option>
+                <option value="15min">15 Minutes</option>
+                <option value="30min">30 Minutes</option>
+                <option value="hour">Hour</option>
+                <option value="day" selected>Day</option>
+                <option value="weekdays">Weekday (Mon-Fri)</option>
+                <option value="week">Week</option>
+              </select>
+              <span class="schedule-label" id="ws-day-label" style="display:none">on</span>
+              <select class="schedule-select" id="ws-days" style="display:none" onchange="updateWikiSyncFields()">
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+                <option value="0">Sunday</option>
+              </select>
+              <span class="schedule-label" id="ws-time-label">at</span>
+              <select class="schedule-select" id="ws-hour">
+                <option value="12">12</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                <option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option>
+              </select>
+              <span class="schedule-label" id="ws-colon">:</span>
+              <select class="schedule-select" id="ws-min">
+                <option value="0" selected>00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+              </select>
+              <select class="schedule-select" id="ws-ampm">
+                <option value="AM" selected>AM</option><option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-hint">Leave "Off" for manual-only wiki sync via the Dashboard.</div>
+        </div>
+      </div>
     </div>
     </div>
 
@@ -1216,6 +1309,7 @@ text-decoration:none;}
           <div class="checkbox-pill checked" id="f-persistent" onclick="togglePill(this)">Persistent Session</div>
           <div class="checkbox-pill" id="f-streaming" onclick="togglePill(this)">Streaming</div>
           <div class="checkbox-pill checked" id="f-advancedMemory" onclick="togglePill(this)">Advanced Memory</div>
+          <div class="checkbox-pill" id="f-wiki" onclick="toggleWikiPill(this)">Wiki Learning</div>
           <div class="checkbox-pill checked" id="f-autonomousCapable" onclick="togglePill(this)">Autonomous Capable</div>
           <div class="checkbox-pill" id="f-autoCommit" onclick="togglePill(this)">Auto Commit</div>
         </div>
@@ -1422,11 +1516,14 @@ async function fetchData() {
   }
   orgs = [...orgSet];
 
-  // Populate dropdown
+  // Populate dropdown — add "By Account" grouping option
   const select = document.getElementById('orgSelect');
   const prev = select.value;
-  select.innerHTML = orgs.map(o => `<option value="${o}">${o}</option>`).join('');
-  if (prev && orgs.includes(prev)) select.value = prev;
+  select.innerHTML = orgs.map(o => `<option value="${o}">${o}</option>`).join('') + '<option value="__byAccount__">── By Account ──</option>';
+  if (prev && (orgs.includes(prev) || prev === '__byAccount__')) select.value = prev;
+
+  // Populate account filter
+  populateAccountFilter();
 
   // Build datalists
   buildDataLists();
@@ -1455,6 +1552,39 @@ function buildDataLists() {
 
 // ─── Render ────────────────────────────────────────────────────
 let searchQuery = '';
+let accountFilter = 'all'; // 'all' or account name
+
+// ─── Account helpers ────────────────────────────────────────────
+const ACCOUNT_COLORS = ['0','1','2','3','4','5'];
+function accountColorClass(accountName) {
+  if (!accountName) return 'account-badge-0';
+  let hash = 0;
+  for (let i = 0; i < accountName.length; i++) hash = ((hash << 5) - hash) + accountName.charCodeAt(i);
+  return 'account-badge-' + ACCOUNT_COLORS[Math.abs(hash) % ACCOUNT_COLORS.length];
+}
+function renderAccountBadge(agent) {
+  const acct = agent.claudeAccount || 'default';
+  return `<span class="account-badge ${accountColorClass(acct)}">${escapeHtml(acct)}</span>`;
+}
+function matchesAccountFilter(agent) {
+  if (accountFilter === 'all') return true;
+  const acct = agent.claudeAccount || 'default';
+  return acct === accountFilter;
+}
+function setAccountFilter(val) {
+  accountFilter = val;
+  renderOrg();
+}
+function populateAccountFilter() {
+  const sel = document.getElementById('accountFilter');
+  if (!sel) return;
+  const accts = new Set(['default']);
+  for (const a of agents) { if (a.claudeAccount) accts.add(a.claudeAccount); }
+  const sorted = [...accts].sort();
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">All Accounts</option>' + sorted.map(a => `<option value="${a}">${escapeHtml(a)}</option>`).join('');
+  if (prev && (prev === 'all' || sorted.includes(prev))) sel.value = prev;
+}
 
 function toggleClassDropdown() {
   document.getElementById('classDropdownMenu').classList.toggle('open');
@@ -1520,12 +1650,18 @@ function renderOrg() {
     return;
   }
 
+  if (selected === '__byAccount__') {
+    renderByAccount(canvas);
+    return;
+  }
+
   // Find agents in this org
   const nodesInOrg = [];
   for (const a of agents) {
     const ac = a.agentClass || 'standard';
     if (!visibleClasses.has(ac)) continue;
     if (!matchesSearch(a)) continue;
+    if (!matchesAccountFilter(a)) continue;
     const orgEntry = (a.org || []).find(o => o.organization === selected);
     if (orgEntry) {
       nodesInOrg.push({ ...a, orgData: orgEntry });
@@ -1653,6 +1789,7 @@ function renderNode(a, dimmed, isLead, blurNames) {
 
   return `<div class="agent-node${leadClass}" style="${opacity};width:300px" data-agent-id="${a.id}" data-agent-alias="${a.aliases?.[0] || a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}">
     <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
+    ${renderAccountBadge(a)}
     <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}${hasAutomation ? ' automated' : ''}">${initials}</div>
     <div class="node-info">
       ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
@@ -1687,6 +1824,7 @@ function renderCompactNode(a, blurNames) {
   const blurClass = blurNames ? ' name-blurred' : '';
   return `<div class="compact-node" data-agent-id="${a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}openModal('${a.id}')">
     <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
+    ${renderAccountBadge(a)}
     <div class="node-avatar ${isActive ? 'active' : ''}" style="width:28px;height:28px;border-radius:8px;font-size:10px">${initials}</div>
     <div class="compact-info">
       <div class="compact-name${blurClass}">${escapeHtml(a.name)}</div>
@@ -1736,6 +1874,54 @@ function renderCompactGrid(canvas) {
   canvas.innerHTML = html;
 }
 
+// ─── Group by Account Render ────────────────────────────────────
+function renderByAccount(canvas) {
+  // Group agents by account
+  const accountGroups = {};
+  for (const a of agents) {
+    const ac = a.agentClass || 'standard';
+    if (!visibleClasses.has(ac)) continue;
+    if (!matchesSearch(a)) continue;
+    if (!matchesAccountFilter(a)) continue;
+    const acct = a.claudeAccount || 'default';
+    if (!accountGroups[acct]) accountGroups[acct] = [];
+    accountGroups[acct].push(a);
+  }
+
+  if (viewMode === 'list') {
+    // For list view, just render the standard list (already filtered)
+    renderListView(canvas);
+    return;
+  }
+
+  let html = '';
+  for (const acctName of Object.keys(accountGroups).sort()) {
+    const colorCls = accountColorClass(acctName);
+    const dotColor = document.querySelector(`.${colorCls}`)?.style?.color || 'var(--accent)';
+    html += `<div class="account-group-banner"><span class="account-badge ${colorCls}" style="font-size:11px;padding:2px 10px">${escapeHtml(acctName)}</span><span style="font-size:12px;color:var(--text-muted)">${accountGroups[acctName].length} agent${accountGroups[acctName].length !== 1 ? 's' : ''}</span></div>`;
+
+    if (viewMode === 'compact') {
+      html += '<div class="compact-grid">';
+      for (const a of accountGroups[acctName].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+        html += renderCompactNode(a, false);
+      }
+      html += '</div>';
+    } else {
+      html += '<div class="flat-grid">';
+      for (const a of accountGroups[acctName].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+        html += renderNode(a, false, false, false);
+      }
+      html += '</div>';
+    }
+  }
+
+  if (Object.keys(accountGroups).length === 0) {
+    html = '<div class="empty-org"><div class="empty-org-icon">&#9671;</div><div class="empty-org-text">No agents match current filters</div></div>';
+  }
+
+  canvas.innerHTML = html;
+}
+
 // ─── Relative Time Helper ───────────────────────────────────────
 function formatRelativeTime(ts) {
   if (!ts || ts === 'never') return 'never';
@@ -1782,6 +1968,7 @@ function renderListView(canvas) {
       case 'dept': va = (a.orgData?.function||a.org?.[0]?.function||'').toLowerCase(); vb = (b.orgData?.function||b.org?.[0]?.function||'').toLowerCase(); break;
       case 'title': va = (a.orgData?.title||a.org?.[0]?.title||'').toLowerCase(); vb = (b.orgData?.title||b.org?.[0]?.title||'').toLowerCase(); break;
       case 'class': va = (a.agentClass||'standard').toLowerCase(); vb = (b.agentClass||'standard').toLowerCase(); break;
+      case 'account': va = (a.claudeAccount||'default').toLowerCase(); vb = (b.claudeAccount||'default').toLowerCase(); break;
       case 'status': va = a.sessionActive ? 0 : 1; vb = b.sessionActive ? 0 : 1; break;
       case 'msgs': va = a.messageCount||0; vb = b.messageCount||0; break;
       case 'lastActive': va = a.lastMessage === 'never' ? 0 : new Date(a.lastMessage).getTime(); vb = b.lastMessage === 'never' ? 0 : new Date(b.lastMessage).getTime(); break;
@@ -1802,6 +1989,7 @@ function renderListView(canvas) {
   html += `<th class="${sorted('dept')}" onclick="sortList('dept')">Dept ${arrow('dept')}</th>`;
   html += `<th class="${sorted('title')}" onclick="sortList('title')">Title ${arrow('title')}</th>`;
   html += `<th class="${sorted('class')}" onclick="sortList('class')">Class ${arrow('class')}</th>`;
+  html += `<th class="${sorted('account')}" onclick="sortList('account')">Account ${arrow('account')}</th>`;
   html += `<th class="${sorted('status')}" onclick="sortList('status')">Status ${arrow('status')}</th>`;
   html += `<th class="${sorted('lastActive')}" onclick="sortList('lastActive')">Last Active ${arrow('lastActive')}</th>`;
   html += `<th class="${sorted('msgs')}" onclick="sortList('msgs')">Msgs ${arrow('msgs')}</th>`;
@@ -1820,6 +2008,7 @@ function renderListView(canvas) {
     html += `<td>${escapeHtml(dept)}</td>`;
     html += `<td>${escapeHtml(title)}</td>`;
     html += `<td><span style="font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:4px;background:var(--accent-bg);color:var(--accent)">${cls}</span></td>`;
+    html += `<td>${renderAccountBadge(a)}</td>`;
     html += `<td><span class="row-status ${isActive ? 'active' : 'inactive'}"></span> ${isActive ? 'Active' : 'Idle'}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${formatRelativeTime(a.lastMessage)}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px">${a.messageCount||0}</td>`;
@@ -1837,6 +2026,7 @@ function getFilteredAgents() {
     const ac = a.agentClass || 'standard';
     if (!visibleClasses.has(ac)) continue;
     if (!matchesSearch(a)) continue;
+    if (!matchesAccountFilter(a)) continue;
     if (!a.org || a.org.length === 0) {
       noOrg.push(a);
     } else {
@@ -1965,6 +2155,12 @@ async function openModal(agentId) {
     if (a.persistent) persistPill.classList.add('checked'); else persistPill.classList.remove('checked');
     if (a.streaming) streamPill.classList.add('checked'); else streamPill.classList.remove('checked');
     if (a.advancedMemory) memPill.classList.add('checked'); else memPill.classList.remove('checked');
+    const wikiPill = document.getElementById('f-wiki');
+    if (a.wiki) wikiPill.classList.add('checked'); else wikiPill.classList.remove('checked');
+    const wikiSyncEnabledPill = document.getElementById('f-wikiSyncEnabled');
+    if (a.wikiSync?.enabled) wikiSyncEnabledPill.classList.add('checked'); else wikiSyncEnabledPill.classList.remove('checked');
+    if (a.wikiSync?.instructions) document.getElementById('f-wikiSyncInstructions').value = a.wikiSync.instructions;
+    setWikiSyncFromCron(a.wikiSync?.schedule || '0 0 * * *');
     if (a.autonomousCapable !== false) autoPill.classList.add('checked'); else autoPill.classList.remove('checked');
 
     // Claude Account
@@ -2055,6 +2251,7 @@ async function openModal(agentId) {
     persistPill.classList.add('checked');
     streamPill.classList.remove('checked');
     document.getElementById('f-advancedMemory')?.classList.add('checked');
+    document.getElementById('f-wiki')?.classList.remove('checked');
     document.getElementById('f-autonomousCapable')?.classList.add('checked');
     document.getElementById('f-autoCommit')?.classList.remove('checked');
     document.getElementById('f-timeout').value = '14400';
@@ -2063,6 +2260,10 @@ async function openModal(agentId) {
     loadHeartbeatSchedule('');
     document.getElementById('f-heartbeatEnabled').classList.remove('checked');
     document.getElementById('heartbeat-collapse')?.classList.add('hidden');
+    document.getElementById('f-wikiSyncEnabled')?.classList.remove('checked');
+    document.getElementById('f-wikiSyncInstructions').value = 'Review learned.md for new facts. Cross-check against context.md. Merge verified facts. Flag contradictions but don\'t overwrite — leave a note for human review.';
+    setWikiSyncFromCron('0 0 * * *');
+    document.getElementById('wikisync-collapse')?.classList.add('hidden');
 
     // Reset tools
     document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
@@ -2332,7 +2533,8 @@ function showAddAccount(agentId, baseMcp, isOAuth) {
   const isOAuthBool = isOAuth === 'true' || isOAuth === true;
   const keyLabel = cat?.requiredKeys?.[0]?.label || 'API Key';
   const hint = cat?.requiredKeys?.[0]?.hint || '';
-  const mcpUrl = isOAuthBool ? (cat?.url?.replace('/mcp', '') || '') : '';
+  const mcpBaseUrl = isOAuthBool ? (cat?.url?.replace('/mcp', '') || '') : '';
+  const authUrl = isOAuthBool ? (cat?.authUrl || (mcpBaseUrl ? mcpBaseUrl + '/authorize' : '')) : '';
   const displayName = cat?.name || baseMcp;
 
   let bodyHtml = `
@@ -2344,10 +2546,10 @@ function showAddAccount(agentId, baseMcp, isOAuth) {
       <label class="form-label">Description</label>
       <input class="form-input" id="mcpAuthDesc" placeholder="e.g. email address or account name">
     </div>`;
-  if (isOAuthBool && mcpUrl) {
+  if (isOAuthBool && authUrl) {
     bodyHtml += `
     <div class="form-group">
-      <a class="mcp-oauth-link" href="${escapeHtml(mcpUrl)}/authorize" target="_blank" rel="noopener">Authorize ${escapeHtml(displayName)} &rarr;</a>
+      <a class="mcp-oauth-link" href="${escapeHtml(authUrl)}" target="_blank" rel="noopener">Authorize ${escapeHtml(displayName)} &rarr;</a>
       <div class="mcp-auth-hint">Click above to authorize, then paste the refresh token below.</div>
     </div>`;
   }
@@ -2734,6 +2936,72 @@ function setHeartbeatFromCron(cron) {
   updateHeartbeatFields();
 }
 
+// ─── Wiki Learning toggle with cost warning ────────────────────
+function toggleWikiPill(el) {
+  const isCurrentlyOn = el.classList.contains('checked');
+  if (isCurrentlyOn) {
+    // Turning off — no warning needed
+    el.classList.remove('checked');
+    return;
+  }
+  // Turning on — show cost warning
+  if (confirm('Wiki Learning adds extra token usage to every conversation as the agent evaluates what it learned and writes to learned.md.\n\nThis increases API costs per message. Only enable for agents that accumulate knowledge over time (e.g., concierge, project manager, research agent).\n\nEnable Wiki Learning?')) {
+    el.classList.add('checked');
+  }
+}
+
+// ─── Wiki Sync schedule picker ──────────────────────────────────
+function updateWikiSyncFields() {
+  const freq = document.getElementById('ws-frequency').value;
+  const showDay = freq === 'week';
+  const showTime = !['', 'hour', '30min', '15min'].includes(freq);
+  document.getElementById('ws-day-label').style.display = showDay ? '' : 'none';
+  document.getElementById('ws-days').style.display = showDay ? '' : 'none';
+  document.getElementById('ws-time-label').style.display = showTime ? '' : 'none';
+  document.getElementById('ws-hour').style.display = showTime ? '' : 'none';
+  document.getElementById('ws-colon').style.display = showTime ? '' : 'none';
+  document.getElementById('ws-min').style.display = showTime ? '' : 'none';
+  document.getElementById('ws-ampm').style.display = showTime ? '' : 'none';
+}
+
+function buildWikiSyncCron() {
+  const freq = document.getElementById('ws-frequency').value;
+  if (!freq) return '';
+  const day = document.getElementById('ws-days').value || '1';
+  let hr = parseInt(document.getElementById('ws-hour').value || '12');
+  const min = document.getElementById('ws-min').value || '0';
+  const ampm = document.getElementById('ws-ampm').value || 'AM';
+  if (ampm === 'PM' && hr !== 12) hr += 12;
+  if (ampm === 'AM' && hr === 12) hr = 0;
+  switch (freq) {
+    case 'day': return `${min} ${hr} * * *`;
+    case 'weekdays': return `${min} ${hr} * * 1-5`;
+    case 'week': return `${min} ${hr} * * ${day}`;
+    case 'hour': return '0 * * * *';
+    case '30min': return '*/30 * * * *';
+    case '15min': return '*/15 * * * *';
+    default: return '';
+  }
+}
+
+function setWikiSyncFromCron(cron) {
+  if (!cron) {
+    document.getElementById('ws-frequency').value = '';
+    updateWikiSyncFields();
+    return;
+  }
+  const parsed = cronToHuman(cron);
+  document.getElementById('ws-frequency').value = parsed.frequency;
+  document.getElementById('ws-days').value = parsed.days || '1';
+  const h24 = parseInt(parsed.time || '12');
+  const isPM = h24 >= 12;
+  const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+  document.getElementById('ws-hour').value = String(h12);
+  document.getElementById('ws-min').value = parsed.min || '0';
+  document.getElementById('ws-ampm').value = isPM ? 'PM' : 'AM';
+  updateWikiSyncFields();
+}
+
 function cronToHuman(cron) {
   const parts = cron.split(' ');
   if (parts.length !== 5) return { frequency: 'day', days: '1', time: '9' };
@@ -3103,6 +3371,11 @@ async function saveAgent() {
   const persistent = document.getElementById('f-persistent')?.classList.contains('checked');
   const streaming = document.getElementById('f-streaming')?.classList.contains('checked');
   const advancedMemory = document.getElementById('f-advancedMemory')?.classList?.contains('checked') ?? true;
+  const wiki = document.getElementById('f-wiki')?.classList?.contains('checked') ?? false;
+  const wikiSyncEnabled = document.getElementById('f-wikiSyncEnabled')?.classList?.contains('checked') ?? false;
+  const wikiSyncSchedule = buildWikiSyncCron() || '0 0 * * *';
+  const wikiSyncInstructions = document.getElementById('f-wikiSyncInstructions')?.value?.trim() || '';
+  const wikiSync = { enabled: wikiSyncEnabled, schedule: wikiSyncSchedule, instructions: wikiSyncInstructions };
   const autonomousCapable = document.getElementById('f-autonomousCapable')?.classList?.contains('checked') ?? true;
   const autoCommit = document.getElementById('f-autoCommit')?.classList?.contains('checked') ?? false;
   const timeoutSec = parseInt(document.getElementById('f-timeout')?.value || '14400') || 14400;
@@ -3171,7 +3444,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, heartbeatInstructions, heartbeatCron, heartbeatEnabled }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, heartbeatInstructions, heartbeatCron, heartbeatEnabled }),
     });
     const data = await res.json();
 
@@ -3622,6 +3895,7 @@ const agentsSubNav = `
       </div>
     </div>
     <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
+    <select class="account-select" id="accountFilter" onchange="setAccountFilter(this.value)"><option value="all">All Accounts</option></select>
     <button class="hide-names-btn" id="hideAllBtn" onclick="toggleHideAll()" title="Hide/show all agent names" style="font-size:10px;padding:3px 8px">&#128065; Hide</button>
     <button class="select-mode-btn" id="selectModeBtn" onclick="toggleSelectMode()" title="Multi-select agents" style="font-size:10px;padding:3px 8px;background:transparent;color:var(--text-dim);border:1px solid var(--border-dim);border-radius:5px;cursor:pointer">&#9745; Select</button>
     <button class="add-agent-btn-top" id="newAgentBtn" onclick="openModal(null)">+ New Agent</button>

@@ -247,10 +247,17 @@ Each agent can belong to multiple organizations. Per entry:
 - **Time inputs** — hour (0-23), minute (0-59), AM/PM
 - **Cron preview** — read-only display of the generated cron expression
 
+#### Wiki Learning Section (Collapsible)
+- **Wiki Learning toggle** — enable/disable Wiki Learning (`wiki` field)
+  - When enabled, the agent captures facts and corrections from conversations into `learned.md`
+- **Wiki Sync toggle** — enable/disable scheduled Wiki Sync (`wikiSync.enabled`)
+  - Automatically merges `learned.md` into `context.md` on a schedule
+- **Schedule** — cron expression for sync frequency (`wikiSync.schedule`, default: `0 0 * * *`)
+
 | Action | API | MCP |
 |--------|-----|-----|
 | Create agent | `POST /api/agents` | `create_agent` |
-| | **Body:** `{ agentId, alias, name, description, instructions, agentClass, orgs[], heartbeat{}, ... }` | **Params:** `agentId`, `alias`, `name`, `description`, `instructions`, `agentClass`, `orgs`, `heartbeat`, `workspace`, `allowedTools`, `mcps`, `routes`, `persistent`, `streaming`, `advancedMemory`, `autonomousCapable`, `autoCommit`, `timeout`, `claudeAccount` |
+| | **Body:** `{ agentId, alias, name, description, instructions, agentClass, orgs[], heartbeat{}, wiki, wikiSync{}, ... }` | **Params:** `agentId`, `alias`, `name`, `description`, `instructions`, `agentClass`, `orgs`, `heartbeat`, `workspace`, `allowedTools`, `mcps`, `routes`, `persistent`, `streaming`, `advancedMemory`, `autonomousCapable`, `autoCommit`, `timeout`, `claudeAccount`, `wiki`, `wikiSync` |
 | Update agent | `PUT /api/agents/:id` | `update_agent` |
 | | **Body:** same fields as create | **Params:** `agentId`, plus any fields to update |
 | Get agent instructions | `GET /api/agents/:id/instructions` | `get_agent_instructions` |
@@ -536,6 +543,28 @@ Which channels can invoke this agent.
 | Action | API | MCP |
 |--------|-----|-----|
 | Get heartbeat history | `GET /api/agents/:id/heartbeat-history` | `get_heartbeat_history` |
+| | **Query:** `?limit=N` | **Params:** `agentId`, `limit?` |
+
+### Wiki Learning
+
+Wiki Learning lets agents automatically capture facts and corrections from conversations into a `learned.md` file. This knowledge accumulates over time and can be merged into the agent's main knowledge base (`context.md`).
+
+**How it works:**
+1. Enable "Wiki Learning" on any agent's config page
+2. The agent will evaluate each conversation and save new facts to `learned.md` in its memory directory
+3. You can manually ask the agent to "update context from learned" to merge verified facts into `context.md`
+
+**Wiki Sync (scheduled):**
+- Optionally enable Wiki Sync to automatically merge learned facts on a schedule
+- Configure via the Schedule tab on the agent config page (same UI as Heartbeat)
+- Default schedule: daily at midnight (`0 0 * * *`)
+- The sync reviews `learned.md`, cross-checks against `context.md`, merges verified facts, and flags contradictions
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Trigger wiki sync | `POST /api/agents/:id/wiki-sync` | `trigger_wiki_sync` |
+| | | **Params:** `agentId` |
+| Get wiki sync history | `GET /api/agents/:id/wiki-sync-history` | `get_wiki_sync_history` |
 | | **Query:** `?limit=N` | **Params:** `agentId`, `limit?` |
 
 ---
@@ -1283,7 +1312,7 @@ External systems can trigger agent messages via webhook:
 
 # Appendix D: Complete MCP Tool Index
 
-Quick reference — all 105 MCP tools alphabetically:
+Quick reference — all 107 MCP tools alphabetically:
 
 | # | Tool | Category |
 |---|------|----------|
@@ -1343,52 +1372,54 @@ Quick reference — all 105 MCP tools alphabetically:
 | 54 | `get_service_config` | Config |
 | 55 | `get_sticky_routing` | Channels |
 | 56 | `get_task_stats` | Tasks |
-| 57 | `health_check` | Dashboard |
-| 58 | `import_skills` | Marketplace |
-| 59 | `install_registry_item` | Marketplace |
-| 60 | `install_xbar` | Utilities |
-| 61 | `list_agents` | Agents |
-| 62 | `list_agent_files` | Files |
-| 63 | `list_apps` | Apps |
-| 64 | `list_automations` | Automations |
-| 65 | `list_channels` | Channels |
-| 66 | `list_mcp_connections` | MCPs |
-| 67 | `list_mcp_keys` | MCPs |
-| 68 | `list_mcps` | MCPs |
-| 69 | `list_paired_senders` | Pairing |
-| 70 | `list_sessions` | Sessions |
-| 71 | `list_tasks` | Tasks |
-| 72 | `list_accounts` | Accounts |
-| 73 | `pair_sender` | Pairing |
-| 74 | `publish_to_saas` | SaaS |
-| 75 | `recover_agent` | Agents |
-| 76 | `remove_agent_route` | Channels |
-| 77 | `remove_monitored_chat` | Channels |
-| 78 | `reset_session` | Sessions |
-| 79 | `save_mcp_key` | MCPs |
-| 80 | `scan_skills` | Marketplace |
-| 81 | `search_memory` | Memory |
-| 82 | `send_message` | Chat |
-| 83 | `send_webhook` | Webhook |
-| 84 | `set_model` | Model |
-| 85 | `set_platform_default` | Marketplace |
-| 86 | `set_prompt_trigger` | Marketplace |
-| 87 | `start_account_login` | Accounts |
-| 88 | `start_stream` | Chat |
-| 89 | `stop_chat_job` | Chat |
-| 90 | `submit_login_code` | Accounts |
-| 91 | `test_saas_connection` | SaaS |
-| 92 | `toggle_cron` | Cron |
-| 93 | `toggle_goal` | Goals |
-| 94 | `trigger_cron` | Cron |
-| 95 | `trigger_goal` | Goals |
-| 96 | `trigger_heartbeat` | Heartbeat |
-| 97 | `unpair_sender` | Pairing |
-| 98 | `update_agent` | Agents |
-| 99 | `update_app` | Apps |
-| 100 | `update_channel` | Channels |
-| 101 | `update_saas_config` | SaaS |
-| 102 | `update_service_config` | Config |
-| 103 | `update_task` | Tasks |
-| 104 | `upload_file` | Files |
-| 105 | `whoami` | Accounts |
+| 57 | `get_wiki_sync_history` | Wiki |
+| 58 | `health_check` | Dashboard |
+| 59 | `import_skills` | Marketplace |
+| 60 | `install_registry_item` | Marketplace |
+| 61 | `install_xbar` | Utilities |
+| 62 | `list_agents` | Agents |
+| 63 | `list_agent_files` | Files |
+| 64 | `list_apps` | Apps |
+| 65 | `list_automations` | Automations |
+| 66 | `list_channels` | Channels |
+| 67 | `list_mcp_connections` | MCPs |
+| 68 | `list_mcp_keys` | MCPs |
+| 69 | `list_mcps` | MCPs |
+| 70 | `list_paired_senders` | Pairing |
+| 71 | `list_sessions` | Sessions |
+| 72 | `list_tasks` | Tasks |
+| 73 | `list_accounts` | Accounts |
+| 74 | `pair_sender` | Pairing |
+| 75 | `publish_to_saas` | SaaS |
+| 76 | `recover_agent` | Agents |
+| 77 | `remove_agent_route` | Channels |
+| 78 | `remove_monitored_chat` | Channels |
+| 79 | `reset_session` | Sessions |
+| 80 | `save_mcp_key` | MCPs |
+| 81 | `scan_skills` | Marketplace |
+| 82 | `search_memory` | Memory |
+| 83 | `send_message` | Chat |
+| 84 | `send_webhook` | Webhook |
+| 85 | `set_model` | Model |
+| 86 | `set_platform_default` | Marketplace |
+| 87 | `set_prompt_trigger` | Marketplace |
+| 88 | `start_account_login` | Accounts |
+| 89 | `start_stream` | Chat |
+| 90 | `stop_chat_job` | Chat |
+| 91 | `submit_login_code` | Accounts |
+| 92 | `test_saas_connection` | SaaS |
+| 93 | `toggle_cron` | Cron |
+| 94 | `toggle_goal` | Goals |
+| 95 | `trigger_cron` | Cron |
+| 96 | `trigger_goal` | Goals |
+| 97 | `trigger_heartbeat` | Heartbeat |
+| 98 | `trigger_wiki_sync` | Wiki |
+| 99 | `unpair_sender` | Pairing |
+| 100 | `update_agent` | Agents |
+| 101 | `update_app` | Apps |
+| 102 | `update_channel` | Channels |
+| 103 | `update_saas_config` | SaaS |
+| 104 | `update_service_config` | Config |
+| 105 | `update_task` | Tasks |
+| 106 | `upload_file` | Files |
+| 107 | `whoami` | Accounts |

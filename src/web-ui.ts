@@ -10,6 +10,7 @@ import type { ResolvedRoute } from "./router.js";
 import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.js";
 import { executeGoal } from "./goals.js";
 import { executeHeartbeat, loadHeartbeatHistory } from "./heartbeat.js";
+import { executeWikiSync, getWikiSyncHistory } from "./wiki-sync.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
 
@@ -2365,7 +2366,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, wiki, wikiSync } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -2382,6 +2383,8 @@ export function startWebUI(opts: WebUIOptions): void {
       heartbeatCron?: string;
       heartbeatEnabled?: boolean;
       agentClass?: "standard" | "platform" | "builder";
+      wiki?: boolean;
+      wikiSync?: { enabled?: boolean; schedule?: string };
     };
 
     if (!agentId || !name || !alias) {
@@ -2468,6 +2471,8 @@ export function startWebUI(opts: WebUIOptions): void {
       if (org && org.length > 0) agentConfig.org = org;
       if (cron && cron.length > 0) agentConfig.cron = cron;
       if (goals && goals.length > 0) agentConfig.goals = goals;
+      if (wiki) agentConfig.wiki = true;
+      if (wikiSync) agentConfig.wikiSync = { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" };
 
       // Build routes
       agentConfig.routes = (routes || []).map(r => ({
@@ -2528,7 +2533,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, wiki, wikiSync } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -2545,6 +2550,8 @@ export function startWebUI(opts: WebUIOptions): void {
       heartbeatCron?: string;
       heartbeatEnabled?: boolean;
       agentClass?: "standard" | "platform" | "builder";
+      wiki?: boolean;
+      wikiSync?: { enabled?: boolean; schedule?: string };
     };
 
     if (!name || !alias) {
@@ -2588,6 +2595,8 @@ export function startWebUI(opts: WebUIOptions): void {
       if (org !== undefined) existing.org = org;
       if (cron !== undefined) existing.cron = cron;
       if (goals !== undefined) existing.goals = goals;
+      if (wiki !== undefined) existing.wiki = wiki;
+      if (wikiSync !== undefined) existing.wikiSync = wikiSync ? { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" } : undefined;
 
       // Build routes if provided
       if (routes !== undefined) {
@@ -3346,6 +3355,45 @@ export function startWebUI(opts: WebUIOptions): void {
     const agentHome = agent.agentHome || resolve(opts.baseDir, agent.memoryDir, "..");
     const limit = parseInt(req.query.limit as string) || 20;
     const history = loadHeartbeatHistory(agentHome, limit);
+    res.json({ history });
+  });
+
+  // ─── API: Wiki Sync — trigger ──────────────────────────────────────
+  app.post("/api/agents/:id/wiki-sync", async (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    if (!agent.wiki) return res.json({ ok: false, error: "Wiki not enabled for this agent" });
+
+    const triggeredBy = (req.body as any)?.triggeredBy || "manual";
+    log.info(`[WikiSync] Triggered for ${agentId} (${triggeredBy})`);
+
+    // Respond immediately — execution happens async
+    res.json({ ok: true, message: `Wiki sync triggered for ${agentId}. Running in background...` });
+
+    // Execute in background
+    try {
+      const result = await executeWikiSync(
+        agentId, agent, opts.baseDir,
+        opts.config.mcps, opts.config.service?.claudeAccounts,
+        { skills: opts.config.defaultSkills, mcps: opts.config.defaultMcps, prompts: opts.config.defaultPrompts, promptTrigger: opts.config.promptTrigger },
+        triggeredBy,
+      );
+      log.info(`[WikiSync] Completed: ${agentId} — ${result.status} (${result.durationMs}ms)`);
+    } catch (err) {
+      log.error(`[WikiSync] Failed: ${agentId} — ${err}`);
+    }
+  });
+
+  // ─── API: Wiki Sync — history ─────────────────────────────────────
+  app.get("/api/agents/:id/wiki-sync-history", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+    const agentHome = agent.agentHome || resolve(opts.baseDir, agent.memoryDir, "..");
+    const limit = parseInt(req.query.limit as string) || 20;
+    const history = getWikiSyncHistory(agentHome, limit);
     res.json({ history });
   });
 

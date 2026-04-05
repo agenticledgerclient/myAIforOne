@@ -193,6 +193,7 @@ export function resolveRoute(
     }
   }
 
+  log.debug(`No route for ${msg.channel}:${msg.chatId} from ${msg.senderName || msg.sender}`);
   return null;
 }
 

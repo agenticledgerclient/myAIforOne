@@ -34,8 +34,8 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 | `list_agents` | List all agents, optionally by org | `org` (optional) |
 | `get_agent` | Full details for one agent | `agentId` |
 | `get_agent_instructions` | Read an agent's CLAUDE.md system prompt | `agentId` |
-| `create_agent` | Create a new agent with full config | `agentId`, `name`, `alias` (required); `description`, `workspace`, `organization`, `function`, `title`, `persistent`, `streaming`, `advancedMemory`, `tools[]`, `skills[]`, `mcps[]`, `prompts[]`, `timeout`, `agentClass` |
-| `update_agent` | Update an existing agent's config | `agentId` (required); any field to change |
+| `create_agent` | Create a new agent with full config | `agentId`, `name`, `alias` (required); `description`, `workspace`, `organization`, `function`, `title`, `persistent`, `streaming`, `advancedMemory`, `wiki`, `wikiSync`, `tools[]`, `skills[]`, `mcps[]`, `prompts[]`, `timeout`, `agentClass` |
+| `update_agent` | Update an existing agent's config | `agentId` (required); any field to change (including `wiki`, `wikiSync`) |
 | `delete_agent` | Delete an agent permanently | `agentId` |
 | `recover_agent` | Fix agent with corrupted session | `agentId` |
 | `get_agent_registry` | Get agent registry with delegation keywords | — |
@@ -197,6 +197,13 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 | `trigger_heartbeat` | Run heartbeat check for an agent | `agentId`; `triggeredBy` |
 | `get_heartbeat_history` | Recent heartbeat runs | `agentId`; `limit` (default 20) |
 
+### Wiki Sync
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `trigger_wiki_sync` | Merge learned.md → context.md for an agent | `agentId` |
+| `get_wiki_sync_history` | Recent wiki sync runs | `agentId`; `limit` (default 20) |
+
 ### Files & Drive
 
 | Tool | What it does | Key params |
@@ -279,3 +286,6 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 - Call `list_capabilities` for a structured overview
 - Call `get_user_guide` for the complete reference
 - Never say "I can't do that" without checking first
+
+## LinkedIn Post URLs
+When you create a LinkedIn post via the LinkedIn MCP, the response includes a URN like `urn:li:share:1234567890`. Always construct and return the post URL to the user: `https://www.linkedin.com/feed/update/{urn}` (e.g. `https://www.linkedin.com/feed/update/urn:li:share:1234567890`).
