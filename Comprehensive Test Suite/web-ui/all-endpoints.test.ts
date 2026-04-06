@@ -282,6 +282,141 @@ describe("Tasks", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  PROJECTS (cross-agent initiatives)
+// ═══════════════════════════════════════════════════════════════════
+
+describe("Projects", () => {
+  let projectId = "";
+
+  it("GET /api/projects returns project list", async () => {
+    const { status, body } = await json("/api/projects");
+    assert.equal(status, 200);
+    assert.ok("projects" in (body as any));
+    assert.ok(Array.isArray((body as any).projects));
+  });
+
+  it("POST /api/projects creates a project", async () => {
+    const { status, body } = await json("/api/projects", {
+      method: "POST",
+      body: { name: "Test Project", description: "Created by test suite", owner: testAgentId, teamMembers: [] }
+    });
+    assert.equal(status, 200);
+    assert.ok((body as any).ok);
+    assert.ok((body as any).project);
+    projectId = (body as any).project.id;
+    assert.ok(projectId);
+    assert.equal((body as any).project.name, "Test Project");
+    assert.equal((body as any).project.status, "active");
+  });
+
+  it("POST /api/projects requires name", async () => {
+    const { status } = await json("/api/projects", {
+      method: "POST", body: { description: "no name" }
+    });
+    assert.equal(status, 400);
+  });
+
+  it("GET /api/projects/:id returns project detail", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}`);
+    assert.equal(status, 200);
+    assert.ok((body as any).project);
+    assert.equal((body as any).project.id, projectId);
+    assert.ok("taskRollup" in (body as any));
+  });
+
+  it("GET /api/projects/:id returns 404 for missing project", async () => {
+    const { status } = await json("/api/projects/nonexistent_999");
+    assert.equal(status, 404);
+  });
+
+  it("PUT /api/projects/:id updates project", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}`, {
+      method: "PUT",
+      body: { status: "paused", plan: "## Phase 1\n- Step A\n- Step B", notes: "Test notes" }
+    });
+    assert.equal(status, 200);
+    assert.ok((body as any).ok);
+    assert.equal((body as any).project.status, "paused");
+    assert.ok((body as any).project.plan.includes("Phase 1"));
+  });
+
+  it("POST /api/projects/:id/link links an agent", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}/link`, {
+      method: "POST",
+      body: { type: "agent", value: testAgentId }
+    });
+    assert.equal(status, 200);
+    assert.ok((body as any).ok);
+    assert.ok((body as any).project.linkedAgents.includes(testAgentId));
+  });
+
+  it("POST /api/projects/:id/link rejects unknown type", async () => {
+    if (!projectId) return;
+    const { status } = await json(`/api/projects/${projectId}/link`, {
+      method: "POST",
+      body: { type: "unknown", value: "test" }
+    });
+    assert.equal(status, 400);
+  });
+
+  it("POST /api/projects/:id/unlink removes linked agent", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}/unlink`, {
+      method: "POST",
+      body: { type: "agent", value: testAgentId }
+    });
+    assert.equal(status, 200);
+    assert.ok((body as any).ok);
+    assert.ok(!(body as any).project.linkedAgents.includes(testAgentId));
+  });
+
+  it("GET /api/projects/:id/status returns status report", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}/status`);
+    assert.equal(status, 200);
+    assert.ok((body as any).project);
+    assert.ok("progress" in (body as any));
+    assert.ok("taskRollup" in (body as any));
+  });
+
+  it("POST /api/projects/:id/execute starts autonomous execution", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}/execute`, {
+      method: "POST",
+      body: { schedule: "*/30 * * * *" }
+    });
+    assert.equal(status, 200);
+    assert.ok((body as any).ok);
+    assert.ok((body as any).goalId);
+  });
+
+  it("POST /api/projects/:id/pause pauses execution", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}/pause`, {
+      method: "POST"
+    });
+    assert.equal(status, 200);
+    assert.ok((body as any).ok);
+  });
+
+  it("DELETE /api/projects/:id deletes project", async () => {
+    if (!projectId) return;
+    const { status, body } = await json(`/api/projects/${projectId}`, { method: "DELETE" });
+    assert.equal(status, 200);
+    assert.ok((body as any).ok);
+  });
+
+  it("GET /api/projects/:id returns 404 after deletion", async () => {
+    if (!projectId) return;
+    const { status } = await json(`/api/projects/${projectId}`);
+    assert.equal(status, 404);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  AUTOMATIONS (Goals + Crons)
 // ═══════════════════════════════════════════════════════════════════
 

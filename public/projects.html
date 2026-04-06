@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — Projects</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;
+  --bg-surface:rgba(12,18,33,0.92);
+  --bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);
+  --border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;
+  --accent-soft:#38bdf8;
+  --accent-bg:rgba(6,182,212,0.15);
+  --accent-glow:rgba(34,211,238,0.12);
+  --purple:rgba(139,92,246,0.7);
+  --purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;
+  --green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;
+  --amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;
+  --red-bg:rgba(248,113,113,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);
+  --shadow-glow:0 0 20px rgba(34,211,238,0.08);
+  --radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;
+  --bg-surface:rgba(255,255,255,0.95);
+  --bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);
+  --border-dim:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);
+  --text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);
+  --text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;
+  --accent-soft:#0e7490;
+  --accent-bg:rgba(14,116,144,0.08);
+  --accent-glow:rgba(14,116,144,0.06);
+  --purple:rgba(109,40,217,0.75);
+  --purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;
+  --green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;
+  --amber-bg:rgba(217,119,6,0.08);
+  --red:#dc2626;
+  --red-bg:rgba(220,38,38,0.08);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+  --shadow-glow:none;
+}
+html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+/* ── Topbar ── */
+.topbar{height:56px;display:flex;align-items:center;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;z-index:100;overflow:hidden;max-width:100vw}
+.logo-mark{width:28px;height:28px;border-radius:8px;object-fit:contain}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent)}
+.tab-group{display:flex;gap:0;flex-shrink:1;min-width:0;overflow-x:auto}
+.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;padding:16px 14px;cursor:pointer;position:relative;transition:color .2s;text-decoration:none;display:block;white-space:nowrap;flex-shrink:0}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.theme-toggle,.gear-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;text-decoration:none}
+.theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* ── Sub Nav ── */
+.sub-nav{position:fixed;top:56px;left:0;right:0;z-index:99;height:36px;display:flex;align-items:center;gap:2px;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.sub-nav-link{font-family:var(--font-sans);font-size:12px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:4px 10px;border-radius:5px;transition:color .2s}
+.sub-nav-link:hover{color:var(--text-secondary)}
+.sub-nav-link.active{color:var(--accent)}
+
+/* ── Canvas ── */
+.canvas{position:fixed;top:92px;left:0;right:0;bottom:0;overflow:auto;padding:32px 40px}
+
+/* ── Page Header ── */
+.page-header{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.page-title{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--text-primary)}
+.header-stats{display:flex;gap:10px;margin-left:8px}
+.stat-chip{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;letter-spacing:.03em}
+.stat-active{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.25)}
+.stat-paused{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.25)}
+.stat-completed{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.25)}
+.btn-new{margin-left:auto;font-family:var(--font-sans);font-size:12px;font-weight:600;padding:8px 18px;border-radius:8px;border:2px dashed var(--border-glow);background:transparent;color:var(--accent);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn-new:hover{border-color:var(--accent);background:var(--accent-bg)}
+
+/* ── Search bar ── */
+.search-bar{margin-bottom:24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.search-wrap{flex:1;max-width:360px;position:relative}
+.search-input{width:100%;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:8px 12px 8px 34px;font-family:var(--font-sans);font-size:13px;color:var(--text-primary);outline:none;transition:border-color .2s}
+.search-input::placeholder{color:var(--text-muted)}
+.search-input:focus{border-color:var(--border-active)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text-muted);pointer-events:none}
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s;white-space:nowrap}
+.pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.pill.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+/* ── Grid ── */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.canvas{padding:20px 16px}.page-header{gap:10px}}
+
+/* ── Project Card ── */
+.proj-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:10px;transition:all .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer}
+.proj-card:hover{border-color:var(--border-glow);box-shadow:var(--shadow),var(--shadow-glow);transform:translateY(-1px)}
+.proj-card-top{display:flex;align-items:flex-start;gap:10px}
+.proj-name{font-family:var(--font-display);font-size:15px;font-weight:700;line-height:1.25;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-badges{display:flex;gap:6px;flex-shrink:0;align-items:center}
+.status-badge{font-family:var(--font-mono);font-size:9px;font-weight:600;padding:3px 8px;border-radius:5px;white-space:nowrap;letter-spacing:.03em}
+.status-active{background:var(--green-bg);color:var(--green);border:1px solid rgba(74,222,128,0.3)}
+.status-paused{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.3)}
+.status-completed{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.3)}
+.status-archived{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim)}
+.owner-badge{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,0.2)}
+.proj-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:36px}
+.progress-wrap{display:flex;align-items:center;gap:10px}
+.progress-bar{flex:1;height:4px;border-radius:2px;background:var(--bg-input);overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .4s ease}
+.progress-text{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);white-space:nowrap}
+.proj-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.meta-chip{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim)}
+.proj-date{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-left:auto}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state-icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.empty-state-text{font-size:14px;margin-bottom:16px}
+
+/* ── Modal / Overlay ── */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-start;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal-panel{width:580px;max-width:100vw;height:100vh;background:var(--bg-surface);border-left:1px solid var(--border-dim);overflow-y:auto;transform:translateX(100%);transition:transform .3s ease;display:flex;flex-direction:column}
+.modal-overlay.open .modal-panel{transform:translateX(0)}
+.modal-header{display:flex;align-items:center;gap:12px;padding:20px 24px;border-bottom:1px solid var(--border-dim);position:sticky;top:0;background:var(--bg-surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:1}
+.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700;flex:1}
+.modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+.modal-close:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.modal-body{flex:1;padding:24px;display:flex;flex-direction:column;gap:20px}
+.modal-footer{display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--border-dim);position:sticky;bottom:0;background:var(--bg-surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+/* ── Form controls ── */
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:8px 12px;font-family:var(--font-sans);font-size:13px;color:var(--text-primary);outline:none;transition:border-color .2s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--border-active)}
+.form-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.form-select option{background:var(--bg-deep);color:var(--text-primary)}
+.form-textarea{min-height:80px;resize:vertical;font-family:var(--font-sans)}
+.form-textarea.mono{font-family:var(--font-mono);font-size:12px}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer}
+.checkbox-item input[type="checkbox"]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+
+/* ── Buttons ── */
+.btn{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{opacity:.85}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.3)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border-dim)}
+.btn-ghost:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.btn-sm{font-size:11px;padding:5px 12px;border-radius:6px}
+
+/* ── Linked entities section ── */
+.linked-section{border:1px solid var(--border-dim);border-radius:8px;overflow:hidden}
+.linked-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-input);border-bottom:1px solid var(--border-dim);cursor:pointer;transition:background .2s}
+.linked-header:hover{background:var(--accent-bg)}
+.linked-title{font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.linked-count{font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:4px;background:var(--bg-card);color:var(--text-muted);border:1px solid var(--border-dim)}
+.linked-body{padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.linked-body.collapsed{display:none}
+.linked-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;transition:background .15s}
+.linked-item:hover{background:var(--bg-input)}
+.linked-item-name{font-size:12px;color:var(--text-secondary);flex:1}
+.linked-item-type{font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}
+.linked-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-proposed{background:var(--text-muted)}
+.dot-approved{background:var(--accent)}
+.dot-in_progress{background:var(--amber)}
+.dot-review{background:var(--purple)}
+.dot-done{background:var(--green)}
+.dot-todo{background:var(--text-muted)}
+.dot-blocked{background:var(--red)}
+.unlink-btn{width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.unlink-btn:hover{background:var(--red-bg);color:var(--red)}
+.link-row{display:flex;gap:8px;align-items:center;padding-top:8px;border-top:1px solid var(--border-dim);margin-top:4px}
+.link-type-select{width:110px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:300;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1;pointer-events:auto}
+.toast-success{background:var(--green);color:#000}
+.toast-error{background:var(--red);color:#fff}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-dim);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-glow)}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <a href="/" style="display:flex;align-items:center;gap:10px;margin-right:28px;text-decoration:none">
+    <img class="logo-mark" src="/MyAIforOne-logomark-transparent.svg" alt="MyAIforOne">
+    <span class="logo-text">MyAIforOne</span>
+  </a>
+  <nav class="tab-group">
+    <a class="tab-btn" href="/">Home</a>
+    <a class="tab-btn active" href="/org">Agents</a>
+    <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn" href="/library">Library</a>
+    <a class="tab-btn" href="/lab">Lab</a>
+  </nav>
+  <div class="topbar-right">
+    <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
+    <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
+    <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
+    <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtn">&#x1F319;</button>
+  </div>
+</div>
+
+<!-- Sub Nav -->
+<div class="sub-nav">
+  <a class="sub-nav-link" href="/org">Teams</a>
+  <a class="sub-nav-link" href="/tasks">Tasks</a>
+  <a class="sub-nav-link active" href="/projects">Projects</a>
+  <a class="sub-nav-link" href="/automations">Automations</a>
+</div>
+
+<!-- Canvas -->
+<div class="canvas">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-title">Projects</h1>
+    <div class="header-stats" id="headerStats"></div>
+    <button class="btn-new" onclick="openCreateModal()">+ New Project</button>
+  </div>
+
+  <!-- Search & Filters -->
+  <div class="search-bar">
+    <div class="search-wrap">
+      <span class="search-icon">&#x1F50D;</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search projects...">
+    </div>
+    <div class="filter-pills">
+      <button class="pill active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="pill" data-filter="active" onclick="setFilter('active',this)">Active</button>
+      <button class="pill" data-filter="paused" onclick="setFilter('paused',this)">Paused</button>
+      <button class="pill" data-filter="completed" onclick="setFilter('completed',this)">Completed</button>
+      <button class="pill" data-filter="archived" onclick="setFilter('archived',this)">Archived</button>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid" id="projectGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <div class="empty-state-icon">&#x1F4C2;</div>
+    <div class="empty-state-text">No projects yet. Create one to get started.</div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title" id="detailTitle">Project Details</span>
+      <button class="modal-close" onclick="closeDetail()">&times;</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveProject()">Save</button>
+      <button class="btn btn-danger" onclick="deleteProject()">Delete</button>
+      <button class="btn btn-ghost" onclick="closeDetail()" style="margin-left:auto">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="createOverlay" onclick="if(event.target===this)closeCreateModal()">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title">New Project</span>
+      <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="createBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="createProject()">Create</button>
+      <button class="btn btn-ghost" onclick="closeCreateModal()" style="margin-left:auto">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── State ── */
+let projects = [];
+let agents = [];
+let currentFilter = 'all';
+let currentProject = null;
+
+/* ── Theme ── */
+function toggleTheme(){
+  const html=document.documentElement;
+  const cur=html.getAttribute('data-theme');
+  const next=cur==='light'?'dark':'light';
+  html.setAttribute('data-theme',next);
+  localStorage.setItem('theme',next);
+  document.getElementById('themeBtn').textContent=next==='light'?'\u2600':'\uD83C\uDF19';
+}
+(function(){
+  const saved=localStorage.getItem('theme')||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent=saved==='light'?'\u2600':'\uD83C\uDF19';
+})();
+
+/* ── Toast ── */
+function showToast(msg, type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast toast-'+type+' show';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+/* ── API helpers ── */
+async function api(url, opts={}){
+  try{
+    const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});
+    if(!r.ok) throw new Error(await r.text()||r.statusText);
+    return r.json();
+  }catch(e){showToast(e.message,'error');throw e;}
+}
+
+/* ── Load data ── */
+async function loadAll(){
+  try{
+    const [projRes, agentRes] = await Promise.all([
+      api('/api/projects'),
+      api('/api/agents')
+    ]);
+    projects = Array.isArray(projRes) ? projRes : (projRes.projects||[]);
+    agents = Array.isArray(agentRes) ? agentRes : (agentRes.agents||[]);
+  }catch(e){
+    projects=[];agents=[];
+  }
+  render();
+}
+
+/* ── Render ── */
+function render(){
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = projects.filter(p=>{
+    if(currentFilter!=='all' && (p.status||'active')!==currentFilter) return false;
+    if(search && !(p.name||'').toLowerCase().includes(search) && !(p.description||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Stats
+  const counts={active:0,paused:0,completed:0,archived:0};
+  projects.forEach(p=>counts[p.status||'active']=(counts[p.status||'active']||0)+1);
+  document.getElementById('headerStats').innerHTML=
+    `<span class="stat-chip stat-active">${counts.active} active</span>`+
+    `<span class="stat-chip stat-paused">${counts.paused} paused</span>`+
+    `<span class="stat-chip stat-completed">${counts.completed} completed</span>`;
+
+  // Grid
+  const grid=document.getElementById('projectGrid');
+  const empty=document.getElementById('emptyState');
+  if(!filtered.length){
+    grid.innerHTML='';
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+
+  grid.innerHTML=filtered.map(p=>{
+    const done=p.doneTasks||0;
+    const total=p.totalTasks||0;
+    const pct=total?Math.round(done/total*100):0;
+    const agentCount=(p.linkedAgents||[]).length;
+    const appCount=(p.linkedApps||[]).length;
+    const artifactCount=(p.linkedArtifacts||[]).length;
+    const teamCount=(p.teamMembers||[]).length;
+    const statusCls='status-'+(p.status||'active');
+    const ownerAgent=agents.find(a=>a.id===p.owner);
+    const ownerName=ownerAgent?ownerAgent.name:p.owner||'unassigned';
+    const created=p.created?new Date(p.created).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+
+    return `<div class="proj-card" onclick="openDetail('${p.id}')">
+      <div class="proj-card-top">
+        <span class="proj-name">${esc(p.name||'Untitled')}</span>
+        <div class="proj-badges">
+          <span class="status-badge ${statusCls}">${esc(p.status||'active')}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span class="owner-badge">@${esc(ownerName)}</span>
+        ${teamCount?`<span class="meta-chip">${teamCount} member${teamCount!==1?'s':''}</span>`:''}
+      </div>
+      <div class="proj-desc">${esc(p.description||'No description')}</div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span class="progress-text">${done}/${total} tasks</span>
+      </div>
+      <div class="proj-meta">
+        ${agentCount?`<span class="meta-chip">${agentCount} agent${agentCount!==1?'s':''}</span>`:''}
+        ${appCount?`<span class="meta-chip">${appCount} app${appCount!==1?'s':''}</span>`:''}
+        ${artifactCount?`<span class="meta-chip">${artifactCount} artifact${artifactCount!==1?'s':''}</span>`:''}
+        <span class="proj-date">${created}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+/* ── Filters ── */
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-pills .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+document.getElementById('searchInput').addEventListener('input',render);
+
+/* ── Detail modal ── */
+function openDetail(id){
+  currentProject=projects.find(p=>p.id===id);
+  if(!currentProject) return;
+  document.getElementById('detailTitle').textContent=currentProject.name||'Project';
+  renderDetailBody();
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function closeDetail(){
+  document.getElementById('detailOverlay').classList.remove('open');
+  currentProject=null;
+}
+
+function renderDetailBody(){
+  const p=currentProject;
+  const body=document.getElementById('detailBody');
+  const agentOpts=agents.map(a=>`<option value="${esc(a.id)}" ${a.id===p.owner?'selected':''}>${esc(a.name||a.id)}</option>`).join('');
+  const teamChecks=agents.map(a=>{
+    const checked=(p.team||[]).includes(a.id)?'checked':'';
+    return `<label class="checkbox-item"><input type="checkbox" name="team" value="${esc(a.id)}" ${checked}>${esc(a.name||a.id)}</label>`;
+  }).join('');
+
+  const statusOpts=['active','paused','completed','archived'].map(s=>
+    `<option value="${s}" ${(p.status||'active')===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
+  ).join('');
+
+  // Linked entities — map section names to API field names
+  const fieldMap={tasks:'linkedTasks',agents:'linkedAgents',orgs:'linkedOrgs',apps:'linkedApps',artifacts:'linkedArtifacts'};
+  const sections=['tasks','agents','orgs','apps','artifacts'];
+
+  let linkedHtml=sections.map(sec=>{
+    const isTask=sec==='tasks';
+    const items=isTask?(p.resolvedTasks||[]):(p[fieldMap[sec]]||[]);
+    const rawItems=p[fieldMap[sec]]||[];
+    const label=sec.charAt(0).toUpperCase()+sec.slice(1);
+    const itemsHtml=items.map((it,i)=>{
+      let name, dotCls='', typeLabel='', priorityLabel='', href='', linkTarget='';
+      if(isTask){
+        name=it.title||it.id||'Task';
+        dotCls='dot-'+(it.status||'proposed');
+        const statusText=(it.status||'proposed').replace('_',' ');
+        typeLabel=`<span class="linked-item-type">${esc(statusText)}</span>`;
+        if(it.priority){
+          const pColors={high:'#f87171',critical:'#ef4444',medium:'#fbbf24',low:'rgba(148,163,184,0.55)'};
+          priorityLabel=`<span style="width:6px;height:6px;border-radius:50%;background:${pColors[it.priority]||pColors.medium};flex-shrink:0" title="${it.priority}"></span>`;
+        }
+        href=`/agent-dashboard?id=${encodeURIComponent(it.agentId||'')}`;
+      } else if(sec==='agents'){
+        name=it.name||it.id||it;
+        const agentId=typeof it==='string'?it:it.id||it;
+        const ag=agents.find(a=>a.id===agentId);
+        name=ag?ag.name:agentId;
+        href=`/agent-dashboard?id=${encodeURIComponent(agentId)}`;
+      } else if(sec==='apps'){
+        name=it.name||it.id||it;
+        href=it.url||'';
+        linkTarget='_blank';
+      } else if(sec==='artifacts'){
+        name=it.name||it.id||it;
+        typeLabel=it.type?`<span class="linked-item-type">${esc(it.type)}</span>`:'';
+        href=it.url||'';
+        if(href) linkTarget='_blank';
+      } else if(sec==='orgs'){
+        name=typeof it==='string'?it:(it.name||it.id||it);
+        href='/org';
+      } else {
+        name=it.name||it.id||it;
+        typeLabel=it.type?`<span class="linked-item-type">${esc(it.type)}</span>`:'';
+      }
+      const nameHtml=href
+        ?`<a href="${esc(href)}" ${linkTarget?'target="_blank" rel="noopener"':''} class="linked-item-name" style="color:var(--accent);text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(typeof name==='string'?name:JSON.stringify(name))}</a>`
+        :`<span class="linked-item-name">${esc(typeof name==='string'?name:JSON.stringify(name))}</span>`;
+      return `<div class="linked-item">
+        ${isTask?`<span class="linked-dot ${dotCls}"></span>`:''}
+        ${priorityLabel}
+        ${nameHtml}
+        ${typeLabel}
+        <button class="unlink-btn" onclick="event.preventDefault();event.stopPropagation();unlinkEntity('${sec}',${i})" title="Unlink">&times;</button>
+      </div>`;
+    }).join('');
+    return `<div class="linked-section">
+      <div class="linked-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+        <span class="linked-title">${label}</span>
+        <span class="linked-count">${items.length}</span>
+      </div>
+      <div class="linked-body${items.length?'':' collapsed'}">
+        ${itemsHtml||'<div style="font-size:11px;color:var(--text-muted);padding:4px 0">None linked</div>'}
+        <div class="link-row">
+          <input class="form-input link-type-select" placeholder="id or name" id="linkVal_${sec}" style="flex:1;font-size:11px">
+          ${sec==='artifacts'?`<input class="form-input" placeholder="type" id="linkType_${sec}" style="width:80px;font-size:11px">`:''}
+          <button class="btn btn-sm btn-ghost" onclick="linkEntity('${sec}')">+ Link</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML=`
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="dName" value="${esc(p.name||'')}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="dDesc">${esc(p.description||'')}</textarea>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="dStatus">${statusOpts}</select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Owner</label>
+        <select class="form-select" id="dOwner"><option value="">Unassigned</option>${agentOpts}</select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Team Members</label>
+      <div class="checkbox-group" id="dTeam">${teamChecks||'<span style="font-size:11px;color:var(--text-muted)">No agents available</span>'}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Plan</label>
+      <textarea class="form-textarea mono" id="dPlan" rows="5">${esc(p.plan||'')}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-textarea" id="dNotes" rows="3">${esc(p.notes||'')}</textarea>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Linked Entities</div>
+      ${linkedHtml}
+    </div>
+  `;
+}
+
+/* ── Save project ── */
+async function saveProject(){
+  if(!currentProject) return;
+  const team=Array.from(document.querySelectorAll('#dTeam input[name="team"]:checked')).map(c=>c.value);
+  const data={
+    name:document.getElementById('dName').value,
+    description:document.getElementById('dDesc').value,
+    status:document.getElementById('dStatus').value,
+    owner:document.getElementById('dOwner').value,
+    team,
+    plan:document.getElementById('dPlan').value,
+    notes:document.getElementById('dNotes').value
+  };
+  try{
+    await api('/api/projects/'+currentProject.id,{method:'PUT',body:JSON.stringify(data)});
+    showToast('Project saved');
+    closeDetail();
+    await loadAll();
+  }catch(e){}
+}
+
+/* ── Delete project ── */
+async function deleteProject(){
+  if(!currentProject) return;
+  if(!confirm('Delete project "'+currentProject.name+'"?')) return;
+  try{
+    await api('/api/projects/'+currentProject.id,{method:'DELETE'});
+    showToast('Project deleted');
+    closeDetail();
+    await loadAll();
+  }catch(e){}
+}
+
+/* ── Link/Unlink ── */
+async function linkEntity(type){
+  if(!currentProject) return;
+  const val=document.getElementById('linkVal_'+type).value.trim();
+  if(!val) return;
+  const singularType=type.replace(/s$/,'');
+  let value=val;
+  if(type==='artifacts'){
+    const artType=(document.getElementById('linkType_'+type)||{}).value||'';
+    value={name:val,type:artType};
+  } else if(type==='tasks'){
+    const parts=val.split(':');
+    value=parts.length===2?{agentId:parts[0],taskId:parts[1]}:val;
+  }
+  try{
+    await api('/api/projects/'+currentProject.id+'/link',{method:'POST',body:JSON.stringify({type:singularType,value})});
+    showToast('Linked '+type);
+    // Refresh project data
+    const updated=await api('/api/projects');
+    projects=Array.isArray(updated)?updated:(updated.projects||[]);
+    currentProject=projects.find(p=>p.id===currentProject.id);
+    renderDetailBody();
+    render();
+  }catch(e){}
+}
+
+async function unlinkEntity(type,index){
+  if(!currentProject) return;
+  const fMap={tasks:'linkedTasks',agents:'linkedAgents',orgs:'linkedOrgs',apps:'linkedApps',artifacts:'linkedArtifacts'};
+  const items=currentProject[fMap[type]]||[];
+  const item=items[index];
+  if(!item) return;
+  const singularType=type.replace(/s$/,'');
+  const value=typeof item==='string'?item:item;
+  try{
+    await api('/api/projects/'+currentProject.id+'/unlink',{method:'POST',body:JSON.stringify({type:singularType,value})});
+    showToast('Unlinked');
+    const updated=await api('/api/projects');
+    projects=Array.isArray(updated)?updated:(updated.projects||[]);
+    currentProject=projects.find(p=>p.id===currentProject.id);
+    renderDetailBody();
+    render();
+  }catch(e){}
+}
+
+/* ── Create modal ── */
+function openCreateModal(){
+  const body=document.getElementById('createBody');
+  const agentOpts=agents.map(a=>`<option value="${esc(a.id)}">${esc(a.name||a.id)}</option>`).join('');
+  const teamChecks=agents.map(a=>`<label class="checkbox-item"><input type="checkbox" name="cTeam" value="${esc(a.id)}">${esc(a.name||a.id)}</label>`).join('');
+
+  body.innerHTML=`
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="cName" placeholder="Project name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="cDesc" placeholder="What is this project about?"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Owner</label>
+      <select class="form-select" id="cOwner"><option value="">Unassigned</option>${agentOpts}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Team Members</label>
+      <div class="checkbox-group" id="cTeamGroup">${teamChecks||'<span style="font-size:11px;color:var(--text-muted)">No agents available</span>'}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Plan</label>
+      <textarea class="form-textarea mono" id="cPlan" rows="4" placeholder="Markdown plan..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-textarea" id="cNotes" rows="3" placeholder="Additional notes..."></textarea>
+    </div>
+  `;
+  document.getElementById('createOverlay').classList.add('open');
+}
+function closeCreateModal(){
+  document.getElementById('createOverlay').classList.remove('open');
+}
+
+async function createProject(){
+  const name=document.getElementById('cName').value.trim();
+  if(!name){showToast('Name is required','error');return;}
+  const team=Array.from(document.querySelectorAll('#cTeamGroup input[name="cTeam"]:checked')).map(c=>c.value);
+  const data={
+    name,
+    description:document.getElementById('cDesc').value,
+    owner:document.getElementById('cOwner').value,
+    team,
+    plan:document.getElementById('cPlan').value,
+    notes:document.getElementById('cNotes').value,
+    status:'active'
+  };
+  try{
+    await api('/api/projects',{method:'POST',body:JSON.stringify(data)});
+    showToast('Project created');
+    closeCreateModal();
+    await loadAll();
+  }catch(e){}
+}
+
+/* ── Keyboard shortcuts ── */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('detailOverlay').classList.contains('open')) closeDetail();
+    else if(document.getElementById('createOverlay').classList.contains('open')) closeCreateModal();
+  }
+});
+
+/* ── Init ── */
+loadAll();
+</script>
+</body>
+</html>

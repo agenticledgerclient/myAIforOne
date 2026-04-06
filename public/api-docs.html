@@ -292,6 +292,18 @@ const CATALOG = [
   { cat: "Tasks", method: "POST", path: "/api/agents/:id/projects", summary: "Create a project", params: [{ name: "id", in: "path", type: "string", required: true }], body: { name: { type: "string", required: true } } },
   { cat: "Tasks", method: "GET", path: "/api/tasks/all", summary: "Get all tasks across all agents" },
 
+  // -- Projects --
+  { cat: "Projects", method: "GET", path: "/api/projects", summary: "List all projects" },
+  { cat: "Projects", method: "GET", path: "/api/projects/:id", summary: "Get project detail with task rollup", params: [{ name: "id", in: "path", type: "string", required: true }] },
+  { cat: "Projects", method: "POST", path: "/api/projects", summary: "Create a new project", body: { name: { type: "string", required: true }, description: { type: "string" }, owner: { type: "string" }, teamMembers: { type: "string[]" }, plan: { type: "string" }, notes: { type: "string" } } },
+  { cat: "Projects", method: "PUT", path: "/api/projects/:id", summary: "Update a project", params: [{ name: "id", in: "path", type: "string", required: true }], body: { name: { type: "string" }, description: { type: "string" }, status: { type: "string" }, owner: { type: "string" }, teamMembers: { type: "string[]" }, plan: { type: "string" }, notes: { type: "string" }, linkedTasks: { type: "string[]" }, linkedAgents: { type: "string[]" }, linkedOrgs: { type: "string[]" }, linkedApps: { type: "string[]" }, linkedArtifacts: { type: "string[]" } } },
+  { cat: "Projects", method: "DELETE", path: "/api/projects/:id", summary: "Delete a project", params: [{ name: "id", in: "path", type: "string", required: true }] },
+  { cat: "Projects", method: "POST", path: "/api/projects/:id/link", summary: "Link entity to project", params: [{ name: "id", in: "path", type: "string", required: true }], body: { type: { type: "string", required: true, desc: "task | agent | org | app | artifact" }, value: { type: "any", required: true } } },
+  { cat: "Projects", method: "POST", path: "/api/projects/:id/unlink", summary: "Unlink entity from project", params: [{ name: "id", in: "path", type: "string", required: true }], body: { type: { type: "string", required: true, desc: "task | agent | org | app | artifact" }, value: { type: "any", required: true } } },
+  { cat: "Projects", method: "GET", path: "/api/projects/:id/status", summary: "Get project status report", params: [{ name: "id", in: "path", type: "string", required: true }] },
+  { cat: "Projects", method: "POST", path: "/api/projects/:id/execute", summary: "Start autonomous execution — creates a scheduled goal on the owner agent", params: [{ name: "id", in: "path", type: "string", required: true }], body: { schedule: { type: "string", desc: "Cron expression (default \"*/15 * * * *\")" }, reportTo: { type: "string", desc: "channel:chatId" }, budget: { type: "object", desc: "{ maxDailyUsd: number }" } } },
+  { cat: "Projects", method: "POST", path: "/api/projects/:id/pause", summary: "Pause autonomous project execution — disables the execution goal", params: [{ name: "id", in: "path", type: "string", required: true }] },
+
   // -- Automations --
   { cat: "Automations", method: "GET", path: "/api/automations", summary: "List all goals and crons across agents" },
   { cat: "Automations", method: "POST", path: "/api/agents/:id/goals", summary: "Create goal for agent", params: [{ name: "id", in: "path", type: "string", required: true }], body: { description: { type: "string", required: true }, heartbeat: { type: "string", required: true, desc: "Cron expression" }, successCriteria: { type: "string" }, instructions: { type: "string" } } },

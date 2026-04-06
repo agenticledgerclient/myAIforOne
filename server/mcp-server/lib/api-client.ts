@@ -193,6 +193,25 @@ export const downloadFile = (agentId: string, path: string) =>
 // ─── Additional ──────────────────────────────────────────────────
 export const createProject = (agentId: string, name: string) =>
   api(`/api/agents/${agentId}/projects`, { method: "POST", body: { id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"), name } });
+
+// ─── Projects (cross-agent initiatives) ─────────────────────────
+export const listProjects = () => api("/api/projects");
+export const getProject = (id: string) => api(`/api/projects/${id}`);
+export const createInitiative = (body: any) =>
+  api("/api/projects", { method: "POST", body });
+export const updateProject = (id: string, body: any) =>
+  api(`/api/projects/${id}`, { method: "PUT", body });
+export const deleteProject = (id: string) =>
+  api(`/api/projects/${id}`, { method: "DELETE" });
+export const linkToProject = (id: string, type: string, value: any) =>
+  api(`/api/projects/${id}/link`, { method: "POST", body: { type, value } });
+export const unlinkFromProject = (id: string, type: string, value: any) =>
+  api(`/api/projects/${id}/unlink`, { method: "POST", body: { type, value } });
+export const getProjectStatus = (id: string) => api(`/api/projects/${id}/status`);
+export const executeProject = (id: string, body?: any) =>
+  api(`/api/projects/${id}/execute`, { method: "POST", body: body || {} });
+export const pauseProject = (id: string) =>
+  api(`/api/projects/${id}/pause`, { method: "POST" });
 export const addMonitoredChat = (channelName: string, chatId: string) =>
   api(`/api/channels/${channelName}/monitored`, { method: "POST", body: { chatId: Number(chatId) } });
 export const removeMonitoredChat = (channelName: string, chatId: string) =>

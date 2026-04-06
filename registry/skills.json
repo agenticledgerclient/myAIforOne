@@ -1,6 +1,18 @@
 {
   "skills": [
     {
+      "id": "opProjectCreate",
+      "name": "Project Create & Execute",
+      "provider": "AgenticLedger",
+      "description": "Create and execute a cross-agent project from a high-level description. Plans tasks, creates the project entity, links agents/artifacts, and optionally kicks off autonomous background execution.",
+      "category": "projects",
+      "verified": true,
+      "source": "agenticledger/platform",
+      "tags": ["projects", "planning", "automation"],
+      "localPath": "registry/skills/platform/opProjectCreate.md",
+      "fetch": { "type": "file" }
+    },
+    {
       "id": "sop_brandguidelines",
       "name": "Sop Brandguidelines",
       "provider": "AgenticLedger",

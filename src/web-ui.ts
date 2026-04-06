@@ -1,5 +1,5 @@
 import express from "express";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync, chmodSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync, chmodSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, basename, dirname, extname, relative, isAbsolute } from "node:path";
 import { execSync, spawn as cpSpawn } from "node:child_process";
@@ -152,6 +152,17 @@ export function startWebUI(opts: WebUIOptions): void {
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("Tasks page not found.");
+    }
+  });
+
+  // ─── Serve the Projects page ──────────────────────────────────
+  app.get("/projects", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "projects.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Projects page not found.");
     }
   });
 
@@ -3564,7 +3575,10 @@ export function startWebUI(opts: WebUIOptions): void {
     const p = getTasksPath(agent);
     if (existsSync(p)) {
       try {
-        return JSON.parse(readFileSync(p, "utf-8"));
+        const raw = JSON.parse(readFileSync(p, "utf-8"));
+        if (!raw.projects) raw.projects = [{ id: "general", name: "General", color: "#6b7280" }];
+        if (!raw.tasks) raw.tasks = [];
+        return raw;
       } catch { /* ignore */ }
     }
     // Create default
@@ -3785,6 +3799,445 @@ export function startWebUI(opts: WebUIOptions): void {
       } catch { /* skip */ }
     }
     res.json({ tasks: allTasks });
+  });
+
+  // ─── API: Projects (cross-agent initiative tracking) ─────────────
+
+  const projectsBaseDir = join(getPersonalAgentsDir(opts.config), "projects");
+
+  interface ProjectEntity {
+    id: string;
+    name: string;
+    description: string;
+    status: "active" | "paused" | "completed" | "archived";
+    owner: string;           // agent ID that owns the project
+    teamMembers: string[];   // agent IDs
+    plan: string;            // markdown plan text
+    notes: string;           // freeform notes
+    linkedTasks: Array<{ agentId: string; taskId: string }>;
+    linkedAgents: string[];
+    linkedOrgs: string[];
+    linkedApps: string[];
+    linkedArtifacts: Array<{ name: string; path?: string; url?: string; type?: string }>;
+    executing?: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  function loadProjects(): ProjectEntity[] {
+    if (!existsSync(projectsBaseDir)) return [];
+    const projects: ProjectEntity[] = [];
+    try {
+      const dirs = readdirSync(projectsBaseDir, { withFileTypes: true })
+        .filter(d => d.isDirectory())
+        .map(d => d.name);
+      for (const dir of dirs) {
+        const projFile = join(projectsBaseDir, dir, "project.json");
+        if (!existsSync(projFile)) continue;
+        try {
+          const proj = JSON.parse(readFileSync(projFile, "utf-8"));
+          // Read plan.md and context.md if they exist
+          const planPath = join(projectsBaseDir, dir, "plan.md");
+          const contextPath = join(projectsBaseDir, dir, "context.md");
+          if (existsSync(planPath)) proj.plan = readFileSync(planPath, "utf-8");
+          if (existsSync(contextPath)) proj.notes = readFileSync(contextPath, "utf-8");
+          projects.push(proj);
+        } catch { /* skip corrupt */ }
+      }
+    } catch { /* dir read error */ }
+    return projects;
+  }
+
+  function saveProject(project: ProjectEntity): void {
+    const projDir = join(projectsBaseDir, project.id);
+    if (!existsSync(projDir)) mkdirSync(projDir, { recursive: true });
+    // Extract plan and notes to separate files
+    const { plan, notes, ...metadata } = project;
+    writeFileSync(join(projDir, "project.json"), JSON.stringify({ ...metadata, plan: undefined, notes: undefined }, null, 2));
+    if (plan !== undefined) writeFileSync(join(projDir, "plan.md"), plan);
+    if (notes !== undefined) writeFileSync(join(projDir, "context.md"), notes);
+    // Ensure credentials.json exists
+    const credPath = join(projDir, "credentials.json");
+    if (!existsSync(credPath)) writeFileSync(credPath, "{}");
+  }
+
+  function deleteProjectFolder(projectId: string): void {
+    const projDir = join(projectsBaseDir, projectId);
+    if (existsSync(projDir)) {
+      rmSync(projDir, { recursive: true });
+    }
+  }
+
+  // GET /api/projects — list all projects (with task rollup per project)
+  app.get("/api/projects", (_req, res) => {
+    const projects = loadProjects();
+    const enriched = projects.map(project => {
+      const taskRollup: Record<string, number> = { proposed: 0, approved: 0, in_progress: 0, review: 0, done: 0 };
+      const resolvedTasks: any[] = [];
+      for (const ref of project.linkedTasks) {
+        try {
+          const agent = opts.config.agents[ref.agentId];
+          if (!agent) continue;
+          const data = loadTasksFile(agent, ref.agentId);
+          const task = data.tasks.find((t: any) => t.id === ref.taskId);
+          if (task) {
+            if (taskRollup[task.status] !== undefined) taskRollup[task.status]++;
+            resolvedTasks.push({ ...task, agentId: ref.agentId });
+          }
+        } catch { /* skip */ }
+      }
+      const totalTasks = project.linkedTasks.length;
+      const doneTasks = taskRollup.done;
+      return { ...project, taskRollup, totalTasks, doneTasks, resolvedTasks };
+    });
+    res.json({ projects: enriched });
+  });
+
+  // GET /api/projects/:id — get single project with status rollup
+  app.get("/api/projects/:id", (req, res) => {
+    const projects = loadProjects();
+    const project = projects.find(p => p.id === req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    // Build task status rollup from linked tasks
+    const taskRollup: Record<string, number> = { proposed: 0, approved: 0, in_progress: 0, review: 0, done: 0 };
+    for (const ref of project.linkedTasks) {
+      try {
+        const agent = opts.config.agents[ref.agentId];
+        if (!agent) continue;
+        const data = loadTasksFile(agent, ref.agentId);
+        const task = data.tasks.find((t: any) => t.id === ref.taskId);
+        if (task && taskRollup[task.status] !== undefined) {
+          taskRollup[task.status]++;
+        }
+      } catch { /* skip */ }
+    }
+
+    res.json({ project, taskRollup });
+  });
+
+  // POST /api/projects — create a new project
+  app.post("/api/projects", (req, res) => {
+    const { name, description, owner, teamMembers, plan, notes } = req.body as {
+      name?: string; description?: string; owner?: string;
+      teamMembers?: string[]; plan?: string; notes?: string;
+    };
+    if (!name) return res.status(400).json({ error: "Missing name" });
+
+    const id = `proj_${Date.now()}`;
+    const now = new Date().toISOString();
+    const project: ProjectEntity = {
+      id,
+      name,
+      description: description || "",
+      status: "active",
+      owner: owner || "hub",
+      teamMembers: teamMembers || [],
+      plan: plan || "",
+      notes: notes || "",
+      linkedTasks: [],
+      linkedAgents: [],
+      linkedOrgs: [],
+      linkedApps: [],
+      linkedArtifacts: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    saveProject(project);
+    log.info(`[Projects] Created project "${name}" (${id}) owned by ${project.owner}`);
+    res.json({ ok: true, project });
+  });
+
+  // PUT /api/projects/:id — update a project
+  app.put("/api/projects/:id", (req, res) => {
+    const projects = loadProjects();
+    const idx = projects.findIndex(p => p.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: "Project not found" });
+
+    const updatable = ["name", "description", "status", "owner", "teamMembers", "plan", "notes",
+      "linkedTasks", "linkedAgents", "linkedOrgs", "linkedApps", "linkedArtifacts"] as const;
+    for (const key of updatable) {
+      if (req.body[key] !== undefined) {
+        (projects[idx] as any)[key] = req.body[key];
+      }
+    }
+    projects[idx].updatedAt = new Date().toISOString();
+    saveProject(projects[idx]);
+    log.info(`[Projects] Updated project ${req.params.id}`);
+    res.json({ ok: true, project: projects[idx] });
+  });
+
+  // DELETE /api/projects/:id — delete a project
+  app.delete("/api/projects/:id", (req, res) => {
+    const projects = loadProjects();
+    const idx = projects.findIndex(p => p.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: "Project not found" });
+
+    deleteProjectFolder(req.params.id);
+    log.info(`[Projects] Deleted project ${req.params.id}`);
+    res.json({ ok: true });
+  });
+
+  // POST /api/projects/:id/link — link entities to a project
+  app.post("/api/projects/:id/link", (req, res) => {
+    const projects = loadProjects();
+    const idx = projects.findIndex(p => p.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: "Project not found" });
+
+    const { type, value } = req.body as { type?: string; value?: any };
+    if (!type || value === undefined) return res.status(400).json({ error: "Missing type or value" });
+
+    const project = projects[idx];
+    switch (type) {
+      case "task": {
+        const ref = value as { agentId: string; taskId: string };
+        if (!ref.agentId || !ref.taskId) return res.status(400).json({ error: "Task link needs agentId and taskId" });
+        if (!project.linkedTasks.some(t => t.agentId === ref.agentId && t.taskId === ref.taskId)) {
+          project.linkedTasks.push(ref);
+        }
+        break;
+      }
+      case "agent":
+        if (!project.linkedAgents.includes(value)) project.linkedAgents.push(value);
+        break;
+      case "org":
+        if (!project.linkedOrgs.includes(value)) project.linkedOrgs.push(value);
+        break;
+      case "app":
+        if (!project.linkedApps.includes(value)) project.linkedApps.push(value);
+        break;
+      case "artifact":
+        project.linkedArtifacts.push(value);
+        break;
+      default:
+        return res.status(400).json({ error: `Unknown link type: ${type}` });
+    }
+
+    project.updatedAt = new Date().toISOString();
+    saveProject(project);
+    log.info(`[Projects] Linked ${type} to project ${req.params.id}`);
+    res.json({ ok: true, project });
+  });
+
+  // POST /api/projects/:id/unlink — remove a linked entity
+  app.post("/api/projects/:id/unlink", (req, res) => {
+    const projects = loadProjects();
+    const idx = projects.findIndex(p => p.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: "Project not found" });
+
+    const { type, value } = req.body as { type?: string; value?: any };
+    if (!type || value === undefined) return res.status(400).json({ error: "Missing type or value" });
+
+    const project = projects[idx];
+    switch (type) {
+      case "task":
+        project.linkedTasks = project.linkedTasks.filter(
+          t => !(t.agentId === value.agentId && t.taskId === value.taskId)
+        );
+        break;
+      case "agent":
+        project.linkedAgents = project.linkedAgents.filter(a => a !== value);
+        break;
+      case "org":
+        project.linkedOrgs = project.linkedOrgs.filter(o => o !== value);
+        break;
+      case "app":
+        project.linkedApps = project.linkedApps.filter(a => a !== value);
+        break;
+      case "artifact":
+        project.linkedArtifacts = project.linkedArtifacts.filter(
+          (a: any) => a.name !== value.name || a.path !== value.path
+        );
+        break;
+      default:
+        return res.status(400).json({ error: `Unknown link type: ${type}` });
+    }
+
+    project.updatedAt = new Date().toISOString();
+    saveProject(project);
+    log.info(`[Projects] Unlinked ${type} from project ${req.params.id}`);
+    res.json({ ok: true, project });
+  });
+
+  // GET /api/projects/:id/status — formatted status report
+  app.get("/api/projects/:id/status", (req, res) => {
+    const projects = loadProjects();
+    const project = projects.find(p => p.id === req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    const taskRollup: Record<string, number> = { proposed: 0, approved: 0, in_progress: 0, review: 0, done: 0 };
+    const taskDetails: any[] = [];
+    for (const ref of project.linkedTasks) {
+      try {
+        const agent = opts.config.agents[ref.agentId];
+        if (!agent) continue;
+        const data = loadTasksFile(agent, ref.agentId);
+        const task = data.tasks.find((t: any) => t.id === ref.taskId);
+        if (task) {
+          if (taskRollup[task.status] !== undefined) taskRollup[task.status]++;
+          taskDetails.push({ ...task, agentId: ref.agentId });
+        }
+      } catch { /* skip */ }
+    }
+
+    const totalTasks = project.linkedTasks.length;
+    const doneTasks = taskRollup.done;
+    const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+    res.json({
+      project: {
+        id: project.id,
+        name: project.name,
+        status: project.status,
+        owner: project.owner,
+        teamMembers: project.teamMembers,
+      },
+      progress: `${progress}%`,
+      taskRollup,
+      taskDetails,
+      linkedAgents: project.linkedAgents,
+      linkedOrgs: project.linkedOrgs,
+      linkedApps: project.linkedApps,
+      linkedArtifacts: project.linkedArtifacts,
+    });
+  });
+
+  // POST /api/projects/:id/execute — kick off autonomous project execution
+  app.post("/api/projects/:id/execute", (req, res) => {
+    const projectId = req.params.id;
+    const projects = loadProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    const ownerAgentId = project.owner;
+    if (!ownerAgentId) return res.status(400).json({ error: "Project has no owner agent" });
+
+    const ownerAgent = opts.config.agents[ownerAgentId];
+    if (!ownerAgent) return res.status(404).json({ error: `Owner agent "${ownerAgentId}" not found` });
+
+    const { schedule, reportTo, budget } = req.body || {};
+    const goalId = "project-exec-" + projectId;
+    const heartbeat = schedule || "*/15 * * * *";
+    const projectDir = join(getPersonalAgentsDir(opts.config), "projects", projectId);
+
+    // Determine reportTo — use provided value, or auto-detect first Slack route
+    let resolvedReportTo = reportTo;
+    if (!resolvedReportTo) {
+      const slackRoute = ownerAgent.routes.find((r: any) => r.channel === "slack");
+      if (slackRoute) {
+        resolvedReportTo = "slack:" + String(slackRoute.match.value);
+      }
+    }
+
+    const instructions = `You are executing project "${project.name}" (${project.id}).
+
+Read the project status: use the get_project_status MCP tool with projectId "${project.id}".
+
+Find the next task that has status "approved" or "in_progress". Skip tasks with status "done" or "blocked".
+
+For the next undone task:
+1. Update its status to "in_progress" using update_task
+2. Execute the task based on its title and description
+3. When complete, update its status to "done" using update_task
+4. If you cannot complete it (missing credentials, need human input, external blocker), update its status to "blocked" and explain why
+
+After completing a task, check if there are more undone tasks. If yes, continue to the next one.
+
+If ALL tasks are done, update the project status to "completed" using update_project, and report: "Project '${project.name}' is complete. All tasks finished."
+
+If a task is blocked, report: "Project '${project.name}' is blocked on task: [task title]. Reason: [why]"
+
+Project context and credentials are at: ${projectDir}/context.md and ${projectDir}/credentials.json`;
+
+    const goal = {
+      id: goalId,
+      description: "Execute project: " + project.name,
+      heartbeat,
+      enabled: true,
+      instructions,
+      ...(resolvedReportTo ? { reportTo: resolvedReportTo } : {}),
+      budget: budget || { maxDailyUsd: 5 },
+    };
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[ownerAgentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found in config" });
+
+      if (!agent.goals) agent.goals = [];
+      // Replace existing goal if present, otherwise push
+      const existingIdx = agent.goals.findIndex((g: any) => g.id === goalId);
+      if (existingIdx >= 0) {
+        agent.goals[existingIdx] = goal;
+      } else {
+        agent.goals.push(goal);
+      }
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[ownerAgentId];
+      if (!memAgent.goals) memAgent.goals = [];
+      const memIdx = memAgent.goals.findIndex((g: any) => g.id === goalId);
+      if (memIdx >= 0) {
+        memAgent.goals[memIdx] = goal;
+      } else {
+        memAgent.goals.push(goal);
+      }
+
+      // Update project status
+      project.status = "active";
+      (project as any).executing = true;
+      project.updatedAt = new Date().toISOString();
+      saveProject(project);
+
+      log.info(`[Project Execute] ${projectId} — goal ${goalId} created on agent ${ownerAgentId}`);
+      res.json({ ok: true, goalId, message: `Execution started for project "${project.name}" with schedule "${heartbeat}"` });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/projects/:id/pause — pause autonomous project execution
+  app.post("/api/projects/:id/pause", (req, res) => {
+    const projectId = req.params.id;
+    const projects = loadProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    const ownerAgentId = project.owner;
+    if (!ownerAgentId) return res.status(400).json({ error: "Project has no owner agent" });
+
+    const goalId = "project-exec-" + projectId;
+
+    try {
+      const configPath = join(opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      const agent = rawConfig.agents[ownerAgentId];
+      if (!agent) return res.status(404).json({ error: "Agent not found in config" });
+
+      const goal = agent.goals?.find((g: any) => g.id === goalId);
+      if (!goal) return res.status(404).json({ error: `Goal "${goalId}" not found on agent "${ownerAgentId}"` });
+
+      goal.enabled = false;
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory
+      const memAgent = opts.config.agents[ownerAgentId];
+      const memGoal = memAgent.goals?.find((g: any) => g.id === goalId);
+      if (memGoal) memGoal.enabled = false;
+
+      // Update project
+      (project as any).executing = false;
+      project.updatedAt = new Date().toISOString();
+      saveProject(project);
+
+      log.info(`[Project Pause] ${projectId} — goal ${goalId} disabled`);
+      res.json({ ok: true, message: `Execution paused for project "${project.name}"` });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
   });
 
   // ─── API: Channels ───────────────────────────────────────────────

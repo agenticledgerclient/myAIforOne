@@ -66,6 +66,18 @@ powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1  
 - **Channels**: Independent drivers for iMessage (`imsg` CLI), Slack (Socket Mode), Telegram (grammY), Discord (discord.js), WhatsApp (Baileys)
 - **Web UI** (`src/web-ui.ts`): Dashboard + webhook endpoints on localhost:8080
 - **Cron** (`src/cron.ts`): Scheduled message triggers via node-cron
+- **Projects** (Drive: `PersonalAgents/projects/<id>/`): Cross-agent initiatives that bundle tasks, agents, orgs, apps, and artifacts under a single trackable entity. Each project has an owner agent and team member agents. Each project folder contains `project.json`, `plan.md`, `context.md`, and `credentials.json`.
+
+## Projects
+
+Projects are long-running, multi-faceted initiatives that span multiple agents. Unlike tasks (finite, single-agent), projects are containers that group related work.
+
+- **Data**: Stored in Drive at `PersonalAgents/projects/<id>/` — each project is a folder with `project.json` (metadata), `plan.md` (plan), `context.md` (notes), `credentials.json`
+- **Web UI**: `/projects` page with card grid + detail panel
+- **MCP Tools**: `list_projects`, `get_project`, `create_initiative`, `update_project`, `delete_project`, `link_to_project`, `unlink_from_project`, `get_project_status`, `execute_project`, `pause_project`
+- **API**: `GET/POST /api/projects`, `GET/PUT/DELETE /api/projects/:id`, `POST /api/projects/:id/link`, `POST /api/projects/:id/unlink`, `GET /api/projects/:id/status`, `POST /api/projects/:id/execute`, `POST /api/projects/:id/pause`
+- **Key fields**: owner (agent), teamMembers (agents[]), plan (markdown), linkedTasks, linkedAgents, linkedOrgs, linkedApps, linkedArtifacts
+- **Autonomous execution**: `execute_project` creates a scheduled goal on the owner agent that works through tasks. `pause_project` disables it. Notifications go to the owner agent's Slack channel.
 
 ## After Every Feature
 1. Add tests to `Comprehensive Test Suite/{domain}/`

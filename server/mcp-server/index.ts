@@ -541,6 +541,96 @@ server.tool("create_project", "Create a project for organizing tasks", {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  PROJECTS (cross-agent initiatives)
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_projects", "List all projects (cross-agent initiatives)", {}, async () => {
+  const r = await api.listProjects();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_project", "Get a project's full details and task rollup", {
+  projectId: z.string().describe("Project ID"),
+}, async ({ projectId }) => {
+  const r = await api.getProject(projectId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_initiative", "Create a new cross-agent project/initiative", {
+  name: z.string().describe("Project name"),
+  description: z.string().optional().describe("What this project is about"),
+  owner: z.string().optional().describe("Agent ID that owns the project (defaults to caller)"),
+  teamMembers: z.array(z.string()).optional().describe("Agent IDs participating in the project"),
+  plan: z.string().optional().describe("Markdown plan for the project"),
+  notes: z.string().optional().describe("Additional notes"),
+}, async ({ name, description, owner, teamMembers, plan, notes }) => {
+  const r = await api.createInitiative({ name, description, owner, teamMembers, plan, notes });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_project", "Update a project's details, plan, status, or notes", {
+  projectId: z.string().describe("Project ID"),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  status: z.enum(["active", "paused", "completed", "archived"]).optional(),
+  owner: z.string().optional(),
+  teamMembers: z.array(z.string()).optional(),
+  plan: z.string().optional(),
+  notes: z.string().optional(),
+}, async ({ projectId, ...body }) => {
+  const r = await api.updateProject(projectId, body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_project", "Delete a project", {
+  projectId: z.string().describe("Project ID"),
+}, async ({ projectId }) => {
+  const r = await api.deleteProject(projectId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("link_to_project", "Link an entity (task, agent, org, app, artifact) to a project", {
+  projectId: z.string().describe("Project ID"),
+  type: z.enum(["task", "agent", "org", "app", "artifact"]).describe("Entity type to link"),
+  value: z.any().describe("Entity value — for task: {agentId, taskId}; for agent/org/app: string ID; for artifact: {name, path?, url?, type?}"),
+}, async ({ projectId, type, value }) => {
+  const r = await api.linkToProject(projectId, type, value);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("unlink_from_project", "Remove a linked entity from a project", {
+  projectId: z.string().describe("Project ID"),
+  type: z.enum(["task", "agent", "org", "app", "artifact"]).describe("Entity type to unlink"),
+  value: z.any().describe("Entity value to unlink"),
+}, async ({ projectId, type, value }) => {
+  const r = await api.unlinkFromProject(projectId, type, value);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_project_status", "Get a formatted status report for a project with progress and task details", {
+  projectId: z.string().describe("Project ID"),
+}, async ({ projectId }) => {
+  const r = await api.getProjectStatus(projectId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("execute_project", "Start autonomous execution of a project — creates a scheduled goal that works through tasks", {
+  projectId: z.string().describe("Project ID"),
+  schedule: z.string().optional().describe("Cron schedule for execution checks (default: every 15 min)"),
+  reportTo: z.string().optional().describe("Channel:chatId for notifications (e.g. slack:C0ALHTDD6JF)"),
+}, async ({ projectId, schedule, reportTo }) => {
+  const r = await api.executeProject(projectId, { schedule, reportTo });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("pause_project", "Pause autonomous execution of a project", {
+  projectId: z.string().describe("Project ID"),
+}, async ({ projectId }) => {
+  const r = await api.pauseProject(projectId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  ADDITIONAL AUTOMATIONS
 // ═══════════════════════════════════════════════════════════════════
 

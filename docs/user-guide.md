@@ -1346,6 +1346,102 @@ Only appears when cost data is available from `GET /api/costs`.
 
 ---
 
+# 9. Projects
+
+Cross-agent initiatives that bundle tasks, agents, orgs, apps, and artifacts under a single trackable entity. Unlike tasks (finite, single-agent), projects are long-running containers that group related work across your entire platform.
+
+**Route:** `/projects`
+
+## 9.1 Projects List
+
+A responsive card grid showing all projects. Header displays active/paused/completed counts with a **+ New Project** button.
+
+### Filter Bar
+
+| Element | Description |
+|---------|-------------|
+| **Search** | Text search filtering by project name or description |
+| **Status pills** | Filter by All, Active, Paused, Completed, Archived |
+
+### Project Cards
+
+| Element | Description |
+|---------|-------------|
+| **Name** | Project name (display font) |
+| **Status badge** | Color-coded: active (green), paused (amber), completed (accent), archived (muted) |
+| **Owner badge** | Agent ID that owns the project |
+| **Team count** | Number of team member agents |
+| **Description** | Truncated to 2 lines |
+| **Progress bar** | Based on linked task completion percentage |
+| **Task stats** | "X/Y tasks done" |
+| **Linked counts** | Agents, apps, artifacts counts |
+| **Created date** | When the project was created |
+| **Click** | Opens the project detail panel |
+
+## 9.2 Project Detail Panel
+
+Slide-in panel showing full project details with editable fields.
+
+| Element | Description |
+|---------|-------------|
+| **Name** | Editable project name |
+| **Description** | Editable description |
+| **Status** | Dropdown: active, paused, completed, archived |
+| **Owner** | Dropdown of all agents |
+| **Team Members** | Multi-select checkboxes of agents |
+| **Plan** | Editable markdown textarea |
+| **Notes** | Editable freeform textarea |
+| **Linked Tasks** | List with status dots, link/unlink controls |
+| **Linked Agents** | List with unlink controls |
+| **Linked Orgs** | List with unlink controls |
+| **Linked Apps** | List with unlink controls |
+| **Linked Artifacts** | List with name + type, unlink controls |
+| **Save button** | Saves all changes |
+| **Delete button** | Deletes the project |
+| **Link entity** | Type selector + value input to add new links |
+
+## 9.3 Create Project Modal
+
+Form for creating a new project.
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Required — project name |
+| **Description** | What this project is about |
+| **Owner** | Agent dropdown (defaults to hub) |
+| **Team Members** | Checkboxes for team agent selection |
+| **Plan** | Markdown textarea for the project plan |
+| **Notes** | Additional notes |
+
+## 9.4 API & MCP Reference
+
+| Action | API | MCP |
+|--------|-----|-----|
+| List all projects | `GET /api/projects` | `list_projects` |
+| Get project detail | `GET /api/projects/:id` | `get_project` |
+| Create project | `POST /api/projects` | `create_initiative` |
+| Update project | `PUT /api/projects/:id` | `update_project` |
+| Delete project | `DELETE /api/projects/:id` | `delete_project` |
+| Link entity to project | `POST /api/projects/:id/link` | `link_to_project` |
+| Unlink entity from project | `POST /api/projects/:id/unlink` | `unlink_from_project` |
+| Get project status report | `GET /api/projects/:id/status` | `get_project_status` |
+| Start autonomous execution | `POST /api/projects/:id/execute` | `execute_project` |
+| Pause autonomous execution | `POST /api/projects/:id/pause` | `pause_project` |
+
+### Autonomous Execution
+
+Projects can execute autonomously in the background. When you call `execute_project`, it creates a scheduled goal on the owner agent that:
+1. Reads the project status and finds the next undone task
+2. Marks it in-progress, executes it, marks it done
+3. Continues to the next task
+4. Reports to the owner agent's Slack channel when complete or blocked
+
+Options: `schedule` (cron, default every 15 min), `reportTo` (channel:chatId), `budget` (maxDailyUsd, default $5).
+
+Use `pause_project` to stop execution. The goal is disabled but preserved.
+
+---
+
 # Appendix A: Global Navigation
 
 Present on every page:
@@ -1356,6 +1452,7 @@ Present on every page:
 | **Agents tab** | → `/org` |
 | **Chat tab** | → `/ui` |
 | **Library tab** | → `/library` |
+| **Projects tab** | → `/projects` |
 | **Lab tab** | → `/lab` |
 | **Marketplace link** | → `/marketplace` |
 | **Admin button (⚙)** | → `/admin` |
@@ -1391,7 +1488,7 @@ External systems can trigger agent messages via webhook:
 
 # Appendix D: Complete MCP Tool Index
 
-Quick reference — all 107 MCP tools alphabetically:
+Quick reference — all 117 MCP tools alphabetically:
 
 | # | Tool | Category |
 |---|------|----------|
@@ -1411,8 +1508,9 @@ Quick reference — all 107 MCP tools alphabetically:
 | 14 | `create_cron` | Cron |
 | 15 | `create_goal` | Goals |
 | 16 | `create_mcp_connection` | MCPs |
-| 17 | `create_project` | Tasks |
-| 18 | `create_prompt` | Marketplace |
+| 17 | `create_initiative` | Projects |
+| 18 | `create_project` | Tasks |
+| 19 | `create_prompt` | Marketplace |
 | 19 | `create_skill` | Skills |
 | 20 | `create_task` | Tasks |
 | 21 | `delegate_message` | Chat |
@@ -1422,9 +1520,11 @@ Quick reference — all 107 MCP tools alphabetically:
 | 25 | `delete_cron` | Cron |
 | 26 | `delete_goal` | Goals |
 | 27 | `delete_mcp_connection` | MCPs |
+| -- | `delete_project` | Projects |
 | 28 | `delete_mcp_key` | MCPs |
 | 29 | `delete_session` | Sessions |
 | 30 | `delete_task` | Tasks |
+| -- | `execute_project` | Projects |
 | 31 | `download_agent_file` | Files |
 | 32 | `get_activity` | Activity |
 | 33 | `get_agent` | Agents |
@@ -1441,12 +1541,14 @@ Quick reference — all 107 MCP tools alphabetically:
 | 44 | `get_cron_history` | Cron |
 | 45 | `get_dashboard` | Dashboard |
 | 46 | `get_goal_history` | Goals |
-| 47 | `get_heartbeat_history` | Heartbeat |
-| 48 | `get_mcp_catalog` | MCPs |
+| -- | `get_heartbeat_history` | Heartbeat |
+| -- | `get_mcp_catalog` | MCPs |
 | 49 | `get_model` | Model |
-| 50 | `get_org_skills` | Skills |
-| 51 | `get_platform_agents` | Lab |
-| 52 | `get_prompt_trigger` | Marketplace |
+| -- | `get_org_skills` | Skills |
+| -- | `get_platform_agents` | Lab |
+| -- | `get_project` | Projects |
+| -- | `get_project_status` | Projects |
+| -- | `get_prompt_trigger` | Marketplace |
 | 53 | `get_saas_config` | SaaS |
 | 54 | `get_service_config` | Config |
 | 55 | `get_sticky_routing` | Channels |
@@ -1456,6 +1558,7 @@ Quick reference — all 107 MCP tools alphabetically:
 | 59 | `import_skills` | Marketplace |
 | 60 | `install_registry_item` | Marketplace |
 | 61 | `install_xbar` | Utilities |
+| -- | `link_to_project` | Projects |
 | 62 | `list_agents` | Agents |
 | 63 | `list_agent_files` | Files |
 | 64 | `list_apps` | Apps |
@@ -1465,10 +1568,12 @@ Quick reference — all 107 MCP tools alphabetically:
 | 68 | `list_mcp_keys` | MCPs |
 | 69 | `list_mcps` | MCPs |
 | 70 | `list_paired_senders` | Pairing |
+| -- | `list_projects` | Projects |
 | 71 | `list_sessions` | Sessions |
 | 72 | `list_tasks` | Tasks |
 | 73 | `list_accounts` | Accounts |
 | 74 | `pair_sender` | Pairing |
+| -- | `pause_project` | Projects |
 | 75 | `publish_to_saas` | SaaS |
 | 76 | `recover_agent` | Agents |
 | 77 | `remove_agent_route` | Channels |
@@ -1494,9 +1599,11 @@ Quick reference — all 107 MCP tools alphabetically:
 | 97 | `trigger_heartbeat` | Heartbeat |
 | 98 | `trigger_wiki_sync` | Wiki |
 | 99 | `unpair_sender` | Pairing |
+| -- | `unlink_from_project` | Projects |
 | 100 | `update_agent` | Agents |
 | 101 | `update_app` | Apps |
 | 102 | `update_channel` | Channels |
+| -- | `update_project` | Projects |
 | 103 | `update_saas_config` | SaaS |
 | 104 | `update_service_config` | Config |
 | 105 | `update_task` | Tasks |

@@ -72,6 +72,21 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 | `delete_task` | Delete a task | `agentId`, `taskId` |
 | `create_project` | Create a project for organizing tasks | `agentId`, `name` |
 
+### Projects (Cross-Agent Initiatives)
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `list_projects` | List all projects with task rollup | — |
+| `get_project` | Full project detail + task rollup | `projectId` |
+| `create_initiative` | Create a cross-agent project | `name`; `description`, `owner`, `teamMembers`, `plan`, `notes` |
+| `update_project` | Update project details/status/plan | `projectId`; fields to change |
+| `delete_project` | Delete a project | `projectId` |
+| `link_to_project` | Link task/agent/org/app/artifact | `projectId`, `type`, `value` |
+| `unlink_from_project` | Remove a linked entity | `projectId`, `type`, `value` |
+| `get_project_status` | Formatted status report with progress | `projectId` |
+| `execute_project` | Start autonomous background execution | `projectId`; `schedule`, `reportTo` |
+| `pause_project` | Pause autonomous execution | `projectId` |
+
 ### Automations — Goals
 
 | Tool | What it does | Key params |
