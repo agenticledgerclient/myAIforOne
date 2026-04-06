@@ -1235,9 +1235,35 @@ Rules:
 
   try {
     rawOutput = await spawnClaude(args, workspace, timeout, stdinPayload, claudeConfigDir);
-  } catch (err) {
-    log.error(`Agent ${agentId} execution failed: ${err}`);
-    return `Sorry, I ran into an error processing that request.`;
+  } catch (err: any) {
+    const errStr = String(err);
+    // Detect stale session — retry with a fresh session
+    if (session && isPersistent && (errStr.includes("No conversation found") || errStr.includes("exited with code 1"))) {
+      log.warn(`Stale session for ${agentId} (${session.sessionId}) — retrying with fresh session`);
+      try { unlinkSync(join(memoryDir, senderSessionKey ? `session-${senderSessionKey}.json` : "session.json")); } catch { /* ignore */ }
+      const newId = randomUUID();
+      session = { sessionId: newId, createdAt: new Date().toISOString(), messageCount: 0 };
+      const retryArgs = args.filter(a => a !== "--resume" && a !== session!.sessionId)
+        .filter((a, i, arr) => !(a === "--resume" && i + 1 < arr.length));
+      // Remove old --resume and its value, add --session-id + --system-prompt
+      const cleanArgs: string[] = [];
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === "--resume") { i++; continue; } // skip --resume and its value
+        cleanArgs.push(args[i]);
+      }
+      cleanArgs.push("--session-id", newId, "--system-prompt", systemPrompt);
+      try {
+        rawOutput = await spawnClaude(cleanArgs, workspace, timeout, stdinPayload, claudeConfigDir);
+        saveSession(memoryDir, session, senderSessionKey);
+        log.info(`Fresh session ${newId} created for ${agentId}`);
+      } catch (retryErr) {
+        log.error(`Agent ${agentId} execution failed on retry: ${retryErr}`);
+        return `Sorry, I ran into an error processing that request.`;
+      }
+    } else {
+      log.error(`Agent ${agentId} execution failed: ${err}`);
+      return `Sorry, I ran into an error processing that request.`;
+    }
   } finally {
     if (mcpConfigPath) {
       try { unlinkSync(mcpConfigPath); } catch { /* ignore */ }
@@ -1891,6 +1917,17 @@ export async function* executeAgentStreaming(
       combinedErr.includes("expired") ||
       combinedErr.includes("auth") ||
       combinedErr.includes("login required");
+    const isStaleSession = combinedErr.includes("no conversation found") ||
+      (isPersistent && session && stderrBuf.includes("exited with code 1"));
+
+    if (isStaleSession && session) {
+      // Stale session — clear it so next message creates a fresh one
+      log.warn(`Stale session for ${agentId} (${session.sessionId}) — clearing for next retry`);
+      try { unlinkSync(join(memoryDir, senderSessionKey ? `session-${senderSessionKey}.json` : "session.json")); } catch { /* ignore */ }
+      yield { type: "error", data: "Session expired — please send your message again." };
+      return;
+    }
+
     if (isAuthError) {
       yield { type: "error", data: `Account "${accountName}" session has expired. Go to /settings to re-authorize this account.` };
     } else {
