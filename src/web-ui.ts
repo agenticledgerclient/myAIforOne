@@ -118,6 +118,17 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── Serve the Monitor page ────────────────────────────────────
+  app.get("/monitor", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "monitor.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Monitor page not found.");
+    }
+  });
+
   // ─── Serve the Admin page ──────────────────────────────────────
   app.get("/admin", (_req, res) => {
     const htmlPath = join(opts.baseDir, "public", "admin.html");

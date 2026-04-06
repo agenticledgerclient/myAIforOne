@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;--bg-surface:rgba(12,18,33,0.92);--bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);--border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);--border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);--text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);--accent:#22d3ee;--accent-soft:#38bdf8;
+  --accent-bg:rgba(6,182,212,0.15);
+  --purple:rgba(139,92,246,0.7);--purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);--shadow-glow:0 0 20px rgba(34,211,238,0.08);--radius:12px;
+  --font-sans:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;--bg-surface:rgba(255,255,255,0.95);--bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);--border-dim:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.18);--border-active:rgba(14,116,144,0.45);
+  --text-primary:rgba(15,23,42,0.92);--text-secondary:rgba(51,65,85,0.8);
+  --text-muted:rgba(100,116,139,0.6);--accent:#0891b2;--accent-soft:#0e7490;
+  --accent-bg:rgba(14,116,144,0.08);
+  --purple:rgba(109,40,217,0.75);--purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,0.08);--red:#dc2626;--red-bg:rgba(220,38,38,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);--shadow:0 1px 8px rgba(0,0,0,0.06);--shadow-glow:none;
+}
+html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+/* ── Topbar ── */
+.topbar{height:56px;display:flex;align-items:center;padding:0 24px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;z-index:100;overflow:hidden;max-width:100vw}
+.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:32px;flex-shrink:0}
+.logo-mark{width:28px;height:28px;border-radius:8px;object-fit:contain}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent)}
+.tab-group{display:flex;gap:0;flex-shrink:1;min-width:0;overflow-x:auto}
+.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;padding:16px 14px;cursor:pointer;position:relative;transition:color .2s;text-decoration:none;display:block;white-space:nowrap;flex-shrink:0}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.theme-toggle{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.gear-btn{height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;letter-spacing:.03em;padding:0 10px;transition:all .2s;text-decoration:none;white-space:nowrap}
+.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* ── Canvas ── */
+.canvas{position:fixed;top:56px;left:0;right:0;bottom:0;overflow-y:auto;padding:24px 40px 60px}
+.canvas::-webkit-scrollbar{width:6px}
+.canvas::-webkit-scrollbar-track{background:transparent}
+.canvas::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:3px}
+
+/* ── Setup Checklist ── */
+.setup-card{background:var(--bg-card);border:1px solid var(--border-glow);border-radius:var(--radius);margin-bottom:24px;overflow:hidden;max-width:800px;margin-left:auto;margin-right:auto;transition:all .3s}
+.setup-card.collapsed .setup-body{display:none}
+.setup-header{padding:16px 20px;border-bottom:1px solid var(--border-dim);display:flex;align-items:center;gap:10px}
+.setup-icon{width:28px;height:28px;border-radius:7px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--accent);flex-shrink:0}
+.setup-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent)}
+.setup-complete-badge{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--green);margin-left:auto}
+.setup-body{padding:16px 20px}
+.checklist-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-dim)}
+.checklist-item:last-child{border-bottom:none}
+.check-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:all .3s}
+.check-dot.done{background:var(--green);box-shadow:0 0 6px rgba(74,222,128,0.5)}
+.check-dot.pending{background:var(--text-muted)}
+.check-label{font-size:13px;color:var(--text-primary);font-weight:500}
+.check-label.done{color:var(--text-muted);text-decoration:line-through}
+.setup-btn{display:inline-block;margin-top:16px;padding:8px 20px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s}
+.setup-btn:hover{background:var(--accent);color:#000}
+
+/* ── Dashboard Grid ── */
+.dashboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1100px;margin:0 auto}
+@media(max-width:820px){.dashboard-grid{grid-template-columns:1fr}}
+.dash-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);overflow:hidden;transition:all .3s}
+.dash-card:hover{border-color:var(--border-glow)}
+.dash-card-header{padding:14px 20px;border-bottom:1px solid var(--border-dim);display:flex;align-items:center;gap:10px}
+.dash-card-icon{width:28px;height:28px;border-radius:7px;background:var(--accent-bg);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--accent);flex-shrink:0}
+.dash-card-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent)}
+.dash-card-body{padding:16px 20px}
+
+/* ── Stat rows ── */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-dim)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-family:var(--font-mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+.stat-value{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-primary)}
+.stat-value .channel-pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;background:var(--purple-bg);color:var(--purple);margin:2px 3px;font-weight:500}
+
+/* ── Agent rows ── */
+.agent-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border-dim);cursor:pointer;border-radius:6px;transition:background .15s}
+.agent-row:hover{background:var(--bg-card)}
+.agent-row:last-child{border-bottom:none}
+.agent-avatar{width:26px;height:26px;border-radius:6px;background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);flex-shrink:0}
+.agent-info{flex:1;min-width:0}
+.agent-name{font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agent-alias{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.agent-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.agent-badge{font-family:var(--font-mono);font-size:9px;padding:1px 6px;border-radius:3px;background:var(--bg-card);border:1px solid var(--border-dim);color:var(--text-muted);white-space:nowrap}
+.agent-badge.has-value{color:var(--text-secondary)}
+.agent-badge.active{background:var(--accent-bg);border-color:rgba(34,211,238,0.2);color:var(--accent)}
+.agent-badge.tasks{background:var(--amber-bg);border-color:rgba(251,191,36,0.2);color:var(--amber)}
+.agent-filter-bar{display:flex;align-items:center;gap:6px;padding:0 4px 10px;flex-wrap:wrap}
+.agent-search{font-family:var(--font-mono);font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);outline:none;width:120px;transition:border-color .2s}
+.agent-search::placeholder{color:var(--text-muted)}
+.agent-search:focus{border-color:var(--border-active)}
+.filter-pill{font-family:var(--font-mono);font-size:9px;padding:2px 8px;border-radius:3px;background:var(--bg-card);border:1px solid var(--border-dim);color:var(--text-muted);cursor:pointer;user-select:none;transition:all .15s;white-space:nowrap}
+.filter-pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.filter-pill.active{background:var(--accent-bg);border-color:rgba(34,211,238,0.25);color:var(--accent)}
+.agent-stats{text-align:right;flex-shrink:0}
+.agent-msg-count{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary)}
+.agent-last-msg{font-size:10px;color:var(--text-muted)}
+
+/* ── Activity feed ── */
+.feed-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-dim);font-size:12px}
+.feed-row:last-child{border-bottom:none}
+.feed-time{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);flex-shrink:0;min-width:60px;padding-top:2px}
+.feed-agent{font-weight:600;color:var(--accent);flex-shrink:0;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed-text{color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed-text.user-msg{color:var(--accent-soft)}
+.feed-text.agent-msg{color:var(--purple)}
+.no-data{text-align:center;padding:20px;color:var(--text-muted);font-size:12px}
+
+/* ── Cost card ── */
+.cost-row{display:flex;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-dim)}
+.cost-row:last-child{border-bottom:none}
+.cost-period{font-family:var(--font-mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);min-width:100px}
+.cost-amount{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--text-primary)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:var(--green-bg);border:1px solid var(--green);color:var(--green)}
+.toast.err{background:var(--red-bg);border:1px solid var(--red);color:var(--red)}
+.toast.info{background:var(--accent-bg);border:1px solid var(--accent);color:var(--accent)}
+
+/* ── Refresh indicator ── */
+.refresh-indicator{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-align:center;padding:12px;opacity:.6}
+
+@media(max-width:600px){
+  .canvas{padding:16px 16px 40px}
+  .topbar{padding:0 12px}
+  .topbar-logo{margin-right:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <a href="/" style="display:flex;align-items:center;gap:10px;margin-right:28px;text-decoration:none">
+    <img class="logo-mark" src="/MyAIforOne-logomark-transparent.svg" alt="MyAIforOne">
+    <span class="logo-text">MyAIforOne</span>
+  </a>
+  <nav class="tab-group">
+    <a class="tab-btn" href="/">Home</a>
+    <a class="tab-btn" href="/org">Agents</a>
+    <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn" href="/library">Library</a>
+    <a class="tab-btn" href="/lab">Lab</a>
+  </nav>
+  <div class="topbar-right">
+    <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
+    <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
+    <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
+    <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
+    <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">&#8865;</button>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">&#9728;</button>
+  </div>
+</div>
+
+<!-- ── Canvas ── -->
+<div class="canvas">
+
+  <!-- ═══ Setup Checklist ═══ -->
+  <div class="setup-card" id="setupCard">
+    <div class="setup-header">
+      <div class="setup-icon">&#9745;</div>
+      <div class="setup-title">Getting Started</div>
+      <span class="setup-complete-badge" id="setupBadge" style="display:none">Setup complete!</span>
+    </div>
+    <div class="setup-body" id="setupBody">
+      <div class="checklist-item" id="check-channel">
+        <div class="check-dot pending" id="dot-channel"></div>
+        <span class="check-label" id="label-channel">Connect a messaging channel</span>
+      </div>
+      <div class="checklist-item" id="check-agent">
+        <div class="check-dot pending" id="dot-agent"></div>
+        <span class="check-label" id="label-agent">Create your first agent</span>
+      </div>
+      <div class="checklist-item" id="check-message">
+        <div class="check-dot pending" id="dot-message"></div>
+        <span class="check-label" id="label-message">Send a test message</span>
+      </div>
+      <a class="setup-btn" id="setupBtn" href="/?setup=true">Start Setup</a>
+    </div>
+  </div>
+
+  <!-- ═══ Dashboard Grid ═══ -->
+  <div class="dashboard-grid">
+
+    <!-- Card 1: Platform Status -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <div class="dash-card-icon">&#9889;</div>
+        <div class="dash-card-title">Platform Status</div>
+      </div>
+      <div class="dash-card-body" id="statusBody">
+        <div class="no-data">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Card 2: Agent Activity -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <div class="dash-card-icon">&#9670;</div>
+        <div class="dash-card-title">Agent Activity</div>
+      </div>
+      <div class="agent-filter-bar" id="agentFilterBar">
+        <input class="agent-search" id="agentSearch" type="text" placeholder="Search..." oninput="applyAgentFilters()">
+        <span class="filter-pill" data-filter="mcps" onclick="toggleAgentFilter(this)">MCPs</span>
+        <span class="filter-pill" data-filter="skills" onclick="toggleAgentFilter(this)">Skills</span>
+        <span class="filter-pill" data-filter="automations" onclick="toggleAgentFilter(this)">Automations</span>
+        <span class="filter-pill" data-filter="tasks" onclick="toggleAgentFilter(this)">Open Tasks</span>
+      </div>
+      <div class="dash-card-body" id="agentsBody">
+        <div class="no-data">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Card 3: Recent Activity Feed -->
+    <div class="dash-card" style="grid-column:1/-1">
+      <div class="dash-card-header">
+        <div class="dash-card-icon">&#9656;</div>
+        <div class="dash-card-title">Recent Activity</div>
+      </div>
+      <div class="dash-card-body" id="feedBody" style="max-height:400px;overflow-y:auto">
+        <div class="no-data">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Card 4: Costs (hidden until data available) -->
+    <div class="dash-card" id="costsCard" style="display:none;grid-column:1/-1">
+      <div class="dash-card-header">
+        <div class="dash-card-icon">&#36;</div>
+        <div class="dash-card-title">Costs</div>
+      </div>
+      <div class="dash-card-body" id="costsBody"></div>
+    </div>
+
+  </div>
+
+  <div class="refresh-indicator" id="refreshIndicator"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Theme ──
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  localStorage.setItem('theme',t);
+  document.getElementById('themeBtn').textContent = t === 'light' ? '\u{1F319}' : '\u2600\uFE0F';
+}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')}
+(function(){
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  setTimeout(() => { document.getElementById('themeBtn').textContent = saved === 'light' ? '\u{1F319}' : '\u2600\uFE0F'; }, 0);
+})();
+
+// ── Helpers ──
+function relativeTime(ts) {
+  if (!ts) return 'never';
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  return days + 'd ago';
+}
+
+function formatUptime(seconds) {
+  if (!seconds) return '-';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return h + 'h ' + m + 'm';
+}
+
+function shortTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function initials(name) {
+  if (!name) return '??';
+  return name.split(/[\s_-]+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+}
+
+// ── State ──
+let dashboardData = null;
+let activityData = [];
+const activeAgentFilters = new Set();
+
+function toggleAgentFilter(el) {
+  const f = el.getAttribute('data-filter');
+  if (activeAgentFilters.has(f)) { activeAgentFilters.delete(f); el.classList.remove('active'); }
+  else { activeAgentFilters.add(f); el.classList.add('active'); }
+  applyAgentFilters();
+}
+
+function applyAgentFilters() {
+  renderAgents();
+}
+
+// ── Fetch & Render ──
+async function fetchAll() {
+  try {
+    const [dashRes, actRes] = await Promise.all([
+      fetch('/api/dashboard'),
+      fetch('/api/activity?limit=15')
+    ]);
+    if (dashRes.ok) dashboardData = await dashRes.json();
+    if (actRes.ok) { const ad = await actRes.json(); activityData = ad.entries || ad || []; }
+  } catch (e) {
+    console.error('Fetch error:', e);
+  }
+
+  // Try costs separately (may not exist)
+  try {
+    const costsRes = await fetch('/api/costs');
+    if (costsRes.ok) {
+      const costsData = await costsRes.json();
+      renderCosts(costsData);
+    }
+  } catch (_) {}
+
+  renderSetup();
+  renderStatus();
+  renderAgents();
+  renderFeed();
+  updateRefreshTime();
+}
+
+function renderSetup() {
+  if (!dashboardData) return;
+  const agents = dashboardData.agents || [];
+  const channels = dashboardData.channels || [];
+
+  // Check 1: channels connected
+  const hasChannel = channels.length > 0;
+  // Check 2: personal agents (not platform, no subAgents)
+  const personalAgents = agents.filter(a => a.agentClass !== 'platform' && !a.subAgents);
+  const hasAgent = personalAgents.length > 0;
+  // Check 3: any personal agent has messages
+  const hasMessage = personalAgents.some(a => (a.messageCount || 0) > 0);
+
+  setCheck('channel', hasChannel);
+  setCheck('agent', hasAgent);
+  setCheck('message', hasMessage);
+
+  const allDone = hasChannel && hasAgent && hasMessage;
+  const badge = document.getElementById('setupBadge');
+  const btn = document.getElementById('setupBtn');
+  const card = document.getElementById('setupCard');
+
+  if (allDone) {
+    badge.style.display = '';
+    btn.style.display = 'none';
+    card.classList.add('collapsed');
+  } else {
+    badge.style.display = 'none';
+    btn.style.display = '';
+    card.classList.remove('collapsed');
+  }
+}
+
+function setCheck(id, done) {
+  const dot = document.getElementById('dot-' + id);
+  const label = document.getElementById('label-' + id);
+  dot.className = 'check-dot ' + (done ? 'done' : 'pending');
+  if (done) label.classList.add('done');
+  else label.classList.remove('done');
+}
+
+function renderStatus() {
+  if (!dashboardData) return;
+  const d = dashboardData;
+  const agents = d.agents || [];
+  const channels = d.channels || [];
+  const personalAgents = agents.filter(a => a.agentClass !== 'platform' && !a.subAgents);
+
+  const channelPills = channels.length > 0
+    ? channels.map(c => '<span class="channel-pill">' + (c.name || c.type || c) + '</span>').join('')
+    : '<span style="color:var(--text-muted);font-size:11px">None</span>';
+
+  // Compute platform stats
+  const orgs = [...new Set(agents.flatMap(a => (a.org || []).map(o => o.organization).filter(Boolean)))];
+  const totalAutomations = personalAgents.reduce((sum, a) => sum + (a.activeGoals || 0) + (a.activeCron || 0), 0);
+  const totalOpenTasks = personalAgents.reduce((sum, a) => sum + (a.taskCounts?.approved || 0) + (a.taskCounts?.in_progress || 0) + (a.taskCounts?.review || 0), 0);
+
+  document.getElementById('statusBody').innerHTML = ''
+    + '<div class="stat-row"><span class="stat-label">Uptime</span><span class="stat-value">' + formatUptime(d.uptime) + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">Total Agents</span><span class="stat-value">' + agents.length + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">Personal Agents</span><span class="stat-value">' + personalAgents.length + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">Organizations</span><span class="stat-value">' + orgs.length + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">Channels</span><span class="stat-value">' + channelPills + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">MCPs</span><span class="stat-value">' + (d.mcpCount || 0) + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">Active Automations</span><span class="stat-value">' + totalAutomations + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">Open Tasks</span><span class="stat-value">' + totalOpenTasks + '</span></div>';
+
+  // Fetch skills/apps/prompts counts
+  fetchPlatformCounts();
+}
+
+function renderAgents() {
+  if (!dashboardData) return;
+  const searchQuery = (document.getElementById('agentSearch')?.value || '').toLowerCase().trim();
+  let agents = (dashboardData.agents || [])
+    .filter(a => a.agentClass !== 'platform' && !a.subAgents)
+    .sort((a, b) => {
+      const ta = a.lastMessage ? new Date(a.lastMessage).getTime() : 0;
+      const tb = b.lastMessage ? new Date(b.lastMessage).getTime() : 0;
+      return tb - ta;
+    });
+
+  // Apply search
+  if (searchQuery) {
+    agents = agents.filter(a => {
+      const name = (a.name || a.id || '').toLowerCase();
+      const alias = ((a.aliases && a.aliases[0]) || a.alias || a.id || '').toLowerCase();
+      return name.includes(searchQuery) || alias.includes(searchQuery);
+    });
+  }
+
+  // Apply filter pills (AND-combined)
+  if (activeAgentFilters.has('mcps')) agents = agents.filter(a => (a.mcps || []).length > 0);
+  if (activeAgentFilters.has('skills')) agents = agents.filter(a => ((a.skills || []).length + (a.agentSkills || []).length) > 0);
+  if (activeAgentFilters.has('automations')) agents = agents.filter(a => ((a.activeGoals || 0) + (a.activeCron || 0)) > 0);
+  if (activeAgentFilters.has('tasks')) agents = agents.filter(a => ((a.taskCounts?.approved || 0) + (a.taskCounts?.in_progress || 0) + (a.taskCounts?.review || 0)) > 0);
+
+  if (agents.length === 0) {
+    document.getElementById('agentsBody').innerHTML = '<div class="no-data">' + (searchQuery || activeAgentFilters.size > 0 ? 'No matching agents' : 'No personal agents yet') + '</div>';
+    return;
+  }
+
+  document.getElementById('agentsBody').innerHTML = agents.map(a => {
+    const mcpCount = (a.mcps || []).length;
+    const automations = (a.activeGoals || 0) + (a.activeCron || 0);
+    const openTasks = (a.taskCounts?.approved || 0) + (a.taskCounts?.in_progress || 0) + (a.taskCounts?.review || 0);
+    const skillCount = ((a.skills || []).length) + ((a.agentSkills || []).length);
+    const alias = (a.aliases && a.aliases[0]) || a.alias || ('@' + a.id);
+
+    let badges = '';
+    if (mcpCount > 0) badges += '<span class="agent-badge has-value">' + mcpCount + ' MCP' + (mcpCount > 1 ? 's' : '') + '</span>';
+    if (skillCount > 0) badges += '<span class="agent-badge has-value">' + skillCount + ' skill' + (skillCount > 1 ? 's' : '') + '</span>';
+    if (automations > 0) badges += '<span class="agent-badge active">' + automations + ' auto</span>';
+    if (openTasks > 0) badges += '<span class="agent-badge tasks">' + openTasks + ' task' + (openTasks > 1 ? 's' : '') + '</span>';
+
+    return ''
+      + '<div class="agent-row" onclick="window.location.href=\'/ui?agent=' + a.id + '\'">'
+      + '  <div class="agent-avatar">' + initials(a.name) + '</div>'
+      + '  <div class="agent-info">'
+      + '    <div class="agent-name">' + (a.name || a.id) + '</div>'
+      + '    <div class="agent-alias">' + alias + '</div>'
+      + (badges ? '    <div class="agent-badges">' + badges + '</div>' : '')
+      + '  </div>'
+      + '  <div class="agent-stats">'
+      + '    <div class="agent-msg-count">' + (a.messageCount || 0) + ' msgs</div>'
+      + '    <div class="agent-last-msg">' + relativeTime(a.lastMessage) + '</div>'
+      + '  </div>'
+      + '</div>';
+  }).join('');
+}
+
+function renderFeed() {
+  const items = Array.isArray(activityData) ? activityData : [];
+  if (items.length === 0) {
+    document.getElementById('feedBody').innerHTML = '<div class="no-data">No recent activity</div>';
+    return;
+  }
+
+  document.getElementById('feedBody').innerHTML = items.map(e => {
+    const isUser = e.from === 'web-user' || e.from?.includes('@') || e.role === 'user';
+    const cls = isUser ? 'user-msg' : 'agent-msg';
+    const text = (e.text || e.query || e.response || e.message || '').slice(0, 80);
+    const agentName = e.agentId || e.agent || e.agentName || '-';
+    return '<div class="feed-row">'
+      + '<span class="feed-time">' + shortTime(e.ts || e.timestamp || e.time) + '</span>'
+      + '<span class="feed-agent">' + escapeHtml(agentName) + '</span>'
+      + '<span class="feed-text ' + cls + '">' + escapeHtml(text) + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function renderCosts(data) {
+  if (!data) return;
+  const card = document.getElementById('costsCard');
+  const body = document.getElementById('costsBody');
+  const today = data.today != null ? '$' + Number(data.today).toFixed(2) : null;
+  const week = data.week != null ? '$' + Number(data.week).toFixed(2) : null;
+
+  if (today == null && week == null) return;
+
+  card.style.display = '';
+  let html = '';
+  if (today != null) html += '<div class="cost-row"><span class="cost-period">Today</span><span class="cost-amount">' + today + '</span></div>';
+  if (week != null) html += '<div class="cost-row"><span class="cost-period">This Week</span><span class="cost-amount">' + week + '</span></div>';
+  if (data.month != null) html += '<div class="cost-row"><span class="cost-period">This Month</span><span class="cost-amount">$' + Number(data.month).toFixed(2) + '</span></div>';
+  body.innerHTML = html;
+}
+
+function updateRefreshTime() {
+  const el = document.getElementById('refreshIndicator');
+  const now = new Date();
+  el.textContent = 'Last updated ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function fetchPlatformCounts() {
+  try {
+    const [appsRes, skillsRes] = await Promise.allSettled([
+      fetch('/api/apps').then(r => r.json()),
+      fetch('/api/skills').then(r => r.json()),
+    ]);
+
+    const statusEl = document.getElementById('statusBody');
+    if (!statusEl) return;
+
+    const apps = appsRes.status === 'fulfilled' ? (appsRes.value.apps || appsRes.value || []) : [];
+    const skills = skillsRes.status === 'fulfilled' ? (skillsRes.value.skills || skillsRes.value || []) : [];
+
+    const appCount = Array.isArray(apps) ? apps.length : 0;
+    const skillCount = Array.isArray(skills) ? skills.length : 0;
+
+    if (appCount > 0) statusEl.innerHTML += '<div class="stat-row"><span class="stat-label">Apps</span><span class="stat-value">' + appCount + '</span></div>';
+    if (skillCount > 0) statusEl.innerHTML += '<div class="stat-row"><span class="stat-label">Skills</span><span class="stat-value">' + skillCount + '</span></div>';
+  } catch { /* ignore */ }
+}
+
+// ── Init ──
+fetchAll();
+setInterval(fetchAll, 30000);
+</script>
+</body>
+</html>

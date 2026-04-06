@@ -130,7 +130,7 @@ html,body{
 }
 .logo-group{display:flex;align-items:center;gap:10px}
 .logo-mark{width:28px;height:28px;border-radius:8px;object-fit:contain}
-.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent)}
 /* Docs dropdown */
 .docs-dropdown{position:relative;display:inline-block}
 .docs-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:14px;transition:all .2s}
@@ -965,10 +965,10 @@ text-decoration:none;}
 <body>
 
 <div class="topbar">
-  <div style="display:flex;align-items:center;gap:10px;margin-right:28px">
-    <a href="/"><img class="logo-mark" src="/MyAIforOne-logomark-transparent.svg" alt="MyAIforOne"></a>
+  <a href="/" style="display:flex;align-items:center;gap:10px;margin-right:28px;text-decoration:none">
+    <img class="logo-mark" src="/MyAIforOne-logomark-transparent.svg" alt="MyAIforOne">
     <span class="logo-text">MyAIforOne</span>
-  </div>
+  </a>
   <nav class="tab-group">
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/org">Agents</a>
@@ -977,7 +977,8 @@ text-decoration:none;}
     <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
-    <a href="/marketplace" style="font-size:11px;font-weight:500;color:var(--text-muted);text-decoration:none;letter-spacing:.03em;transition:color .2s" onmouseover="this.style.color='var(--text-secondary)'" onmouseout="this.style.color='var(--text-muted)'">Marketplace</a>
+    <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
+    <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
     <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
     <button onclick="window.open('/mini','minibar','width=440,height=460,resizable=yes,scrollbars=no')" title="Open Mini Bar" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">⊡</button>

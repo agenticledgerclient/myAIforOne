@@ -67,6 +67,7 @@ server.tool("create_agent", "Create a new agent with full configuration", {
   organization: z.string().optional().describe("Organization name"),
   function: z.string().optional().describe("Org function/department"),
   title: z.string().optional().describe("Org title/role"),
+  reportsTo: z.string().optional().describe("Alias of the agent this one reports to (e.g. @pricingstrat)"),
   persistent: z.boolean().optional().describe("Keep conversation history"),
   streaming: z.boolean().optional().describe("Enable streaming responses"),
   advancedMemory: z.boolean().optional().describe("Enable semantic memory"),
@@ -85,8 +86,8 @@ server.tool("create_agent", "Create a new agent with full configuration", {
 }, async (args) => {
   const body: any = { ...args };
   if (args.organization) {
-    body.org = [{ organization: args.organization, function: args.function || "", title: args.title || "", reportsTo: "" }];
-    delete body.organization; delete body.function; delete body.title;
+    body.org = [{ organization: args.organization, function: args.function || "", title: args.title || "", reportsTo: args.reportsTo || "" }];
+    delete body.organization; delete body.function; delete body.title; delete body.reportsTo;
   }
   const r = await api.createAgent(body);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };

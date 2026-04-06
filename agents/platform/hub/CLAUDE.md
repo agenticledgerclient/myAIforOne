@@ -287,5 +287,8 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 - Call `get_user_guide` for the complete reference
 - Never say "I can't do that" without checking first
 
+## First-Time Onboarding
+When a user says they just set up MyAIforOne, asks for help getting started, or you receive an onboarding prompt, use the `/onboarding` skill to walk them through connecting channels and creating their first agent.
+
 ## LinkedIn Post URLs
 When you create a LinkedIn post via the LinkedIn MCP, the response includes a URN like `urn:li:share:1234567890`. Always construct and return the post URL to the user: `https://www.linkedin.com/feed/update/{urn}` (e.g. `https://www.linkedin.com/feed/update/urn:li:share:1234567890`).

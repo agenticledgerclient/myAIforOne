@@ -39,7 +39,7 @@ Detected: [macOS / Windows / Linux]
 Node.js: [version]
 Claude Code: [version]
 
-This will take about 30 seconds.
+This will take a couple of minutes.
 ```
 
 If on Windows, note that iMessage won't be available.
@@ -147,7 +147,7 @@ Wait for the log: `channelToAgentToClaude running — X agent(s), 0 channel(s)`
 
 ### macOS
 ```bash
-APP_PATH="$HOME/Desktop/MyAgent.app"
+APP_PATH="$HOME/Desktop/AIforOne.app"
 mkdir -p "$APP_PATH/Contents/MacOS"
 
 cat > "$APP_PATH/Contents/Info.plist" << 'EOF'
@@ -156,39 +156,39 @@ cat > "$APP_PATH/Contents/Info.plist" << 'EOF'
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
-  <string>MyAgent</string>
+  <string>AIforOne</string>
   <key>CFBundleName</key>
-  <string>MyAgent</string>
+  <string>AIforOne</string>
   <key>CFBundleIdentifier</key>
-  <string>com.myagent.launcher</string>
+  <string>com.aiforone.launcher</string>
   <key>CFBundleVersion</key>
   <string>1.0</string>
 </dict>
 </plist>
 EOF
 
-cat > "$APP_PATH/Contents/MacOS/MyAgent" << 'EOF'
+cat > "$APP_PATH/Contents/MacOS/AIforOne" << 'EOF'
 #!/bin/bash
 open "http://localhost:4888"
 EOF
 
-chmod +x "$APP_PATH/Contents/MacOS/MyAgent"
+chmod +x "$APP_PATH/Contents/MacOS/AIforOne"
 ```
 
 ### Windows
 ```powershell
 $WScriptShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WScriptShell.CreateShortcut("$env:USERPROFILE\Desktop\MyAgent.lnk")
+$Shortcut = $WScriptShell.CreateShortcut("$env:USERPROFILE\Desktop\AIforOne.lnk")
 $Shortcut.TargetPath = "http://localhost:4888"
-$Shortcut.Description = "Open MyAgent Web UI"
+$Shortcut.Description = "Open AIforOne Web UI"
 $Shortcut.Save()
 ```
 
 ## Step 8: Open Browser & Summary
 
-Open the web UI:
-- macOS: `open http://localhost:4888`
-- Windows: `start http://localhost:4888`
+Open the monitor page directly:
+- macOS: `open http://localhost:4888/monitor`
+- Windows: `start http://localhost:4888/monitor`
 
 Print the summary:
 
@@ -198,8 +198,8 @@ Setup Complete!
 Platform: [macOS/Windows]
 Web UI: http://localhost:4888
 
-The browser should have opened to your MyAgent home page.
-You'll see a welcome screen — click "Let's get started" and the hub agent
+The browser should have opened to the Monitor page.
+It shows your setup checklist — click "Start Setup" and the hub agent
 will walk you through connecting messaging channels and creating your first agent.
 
 Quick commands:

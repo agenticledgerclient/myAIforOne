@@ -47,13 +47,6 @@
         "stickyTimeoutMs": 300000
       }
     },
-    "discord": {
-      "enabled": false,
-      "driver": "discord",
-      "config": {
-        "botToken": "YOUR_DISCORD_BOT_TOKEN"
-      }
-    },
     "whatsapp": {
       "enabled": false,
       "driver": "whatsapp",
