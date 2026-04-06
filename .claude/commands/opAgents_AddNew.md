@@ -63,6 +63,7 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 | `imessageChatId` | no | — | iMessage chat ID |
 | `discordChannelId` | no | — | Discord channel ID |
 | `requireMention` | no | `true` | Require @mention to trigger |
+| `executor` | no | — | Executor override: `"claude"` (default) or `"ollama:<model>"` (e.g. `"ollama:gemma2"`). Requires `multiModelEnabled: true` in service config. |
 | `autoCommit` | no | `false` | Auto-commit git changes after agent runs |
 | `timeout` | no | `14400000` | Max execution time in ms (default 240 min) |
 | `instructions` | no | auto | Custom CLAUDE.md content. If provided, use this verbatim instead of the template. If not provided, generate from name/description using the template below. |
@@ -79,11 +80,12 @@ Collect these parameters. Ask **one question at a time** with defaults shown in 
 6. Ask about tools — full access, read-only, or custom?
 7. Ask about skills — any shared skills to attach?
 8. Ask about routes — which channels? Show current channel options with existing IDs for reference.
-9. Ask about `claudeAccount` — show available accounts if configured
-10. Ask about scheduled tasks (cron) — any recurring messages? E.g., "check deployment status every morning at 9am". Collect: frequency, time, message text, which channel to send on.
-11. Ask about autonomous goals — any ongoing responsibilities? E.g., "monitor uptime and alert if down". Collect: description, success criteria, instructions, heartbeat schedule, daily budget, reporting channel.
-12. Ask about wiki learning — should this agent learn from conversations? **Default is OFF.** Warn: "Wiki learning adds token usage per conversation as the agent evaluates what it learned. Only enable if the agent accumulates knowledge over time (e.g., concierge, project manager, research agent)." If yes, ask if they want wiki sync on a schedule too.
-13. Confirm all values before proceeding
+9. Ask about `executor` — should this agent use a specific model? Default is "Platform Default" (uses service-level setting). Options: `"claude"` or `"ollama:<model>"` (requires multi-model enabled). Skip if multi-model is not enabled.
+10. Ask about `claudeAccount` — show available accounts if configured
+11. Ask about scheduled tasks (cron) — any recurring messages? E.g., "check deployment status every morning at 9am". Collect: frequency, time, message text, which channel to send on.
+12. Ask about autonomous goals — any ongoing responsibilities? E.g., "monitor uptime and alert if down". Collect: description, success criteria, instructions, heartbeat schedule, daily budget, reporting channel.
+13. Ask about wiki learning — should this agent learn from conversations? **Default is OFF.** Warn: "Wiki learning adds token usage per conversation as the agent evaluates what it learned. Only enable if the agent accumulates knowledge over time (e.g., concierge, project manager, research agent)." If yes, ask if they want wiki sync on a schedule too.
+14. Confirm all values before proceeding
 
 ## Folder Structure Created
 
@@ -119,6 +121,7 @@ If no organization specified, use `~/Desktop/MyAIforOne Drive/PersonalAgents/<ag
   "advancedMemory": true,
   "wiki": false,
   "autonomousCapable": true,
+  "executor": "<executor>",
   "claudeAccount": "<claudeAccount>",
   "mcps": [<mcps>],
   "skills": [<skills>],
@@ -169,7 +172,7 @@ If no organization specified, use `~/Desktop/MyAIforOne Drive/PersonalAgents/<ag
 }
 ```
 
-Omit optional fields if not set: `claudeAccount`, `mcps`, `skills`, `org`. Use empty arrays `[]` for `goals` and `cron` if none configured.
+Omit optional fields if not set: `executor`, `claudeAccount`, `mcps`, `skills`, `org`. Use empty arrays `[]` for `goals` and `cron` if none configured.
 
 ### Cron Schedule Reference
 

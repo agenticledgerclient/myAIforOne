@@ -68,6 +68,7 @@ Edit `agents/my-agent/CLAUDE.md` with:
 | `autoCommit` | If `true`, auto-commits and pushes any workspace changes after each response. |
 | `allowedTools` | Claude Code tools the agent can use. Add MCPs separately (see below). |
 | `mcps` | Optional. Array of MCP server names from the top-level `mcps` registry. See [AddNewMcpGuide.md](./AddNewMcpGuide.md). |
+| `executor` | Optional. Override the platform default executor for this agent: `"claude"` (default) or `"ollama:<model>"` (e.g. `"ollama:gemma2"`). Requires `multiModelEnabled: true` in service config. |
 | `routes` | Which channels + chat IDs this agent listens on. Multiple agents can share a channel if they have different `mentionAliases`. |
 
 ### Route matching

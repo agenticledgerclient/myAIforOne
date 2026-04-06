@@ -1106,6 +1106,15 @@ text-decoration:none;}
         <div class="form-hint">Standard (default), Builder (app developer agents), Platform (Lab creators).</div>
       </div>
 
+      <div class="form-group">
+        <label class="form-label">Executor</label>
+        <select class="form-input" id="f-executor">
+          <option value="">Platform Default</option>
+          <option value="claude">Claude</option>
+        </select>
+        <div class="form-hint">Override the platform default executor for this agent. "Platform Default" uses the service-level setting. Ollama models appear when multi-model is enabled.</div>
+      </div>
+
       <div class="form-section">Organization</div>
       <div id="orgEntries"></div>
       <button class="add-entry-btn" onclick="addOrgEntry()">+ Add Org Entry</button>
@@ -2065,6 +2074,41 @@ function togglePill(el) {
   el.classList.toggle('checked');
 }
 
+async function loadExecutorOptions(currentValue) {
+  const sel = document.getElementById('f-executor');
+  if (!sel) return;
+  // Keep first two static options (Platform Default, Claude)
+  while (sel.options.length > 2) sel.remove(2);
+  try {
+    const r = await fetch('/api/config/service');
+    const svc = await r.json();
+    if (svc.multiModelEnabled) {
+      // Fetch available Ollama models
+      try {
+        const ollamaUrl = (svc.ollamaBaseUrl || 'http://localhost:11434') + '/api/tags';
+        const mr = await fetch('/api/ollama-proxy?url=' + encodeURIComponent(ollamaUrl));
+        if (mr.ok) {
+          const data = await mr.json();
+          (data.models || []).forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = 'ollama:' + m.name;
+            opt.textContent = 'Ollama: ' + m.name;
+            sel.appendChild(opt);
+          });
+        }
+      } catch(e) { /* Ollama not reachable — just show static options */ }
+    }
+  } catch(e) { /* service config fetch failed */ }
+  // If current value is an ollama model not in the list, add it
+  if (currentValue && currentValue.startsWith('ollama:') && !sel.querySelector(`option[value="${currentValue}"]`)) {
+    const opt = document.createElement('option');
+    opt.value = currentValue;
+    opt.textContent = 'Ollama: ' + currentValue.slice(7);
+    sel.appendChild(opt);
+  }
+  sel.value = currentValue || '';
+}
+
 function autoAlias() {
   if (editingAgentId) return; // don't auto-alias in edit mode
   const id = document.getElementById('f-agentId')?.value || ''.trim();
@@ -2166,6 +2210,9 @@ async function openModal(agentId) {
     const agentClassEl = document.getElementById('f-agentClass');
     if (agentClassEl) agentClassEl.value = a.agentClass || 'standard';
 
+    // Executor
+    loadExecutorOptions(a.executor || '');
+
     // Auto Commit
     const commitPill = document.getElementById('f-autoCommit');
     if (a.autoCommit) commitPill.classList.add('checked'); else commitPill.classList.remove('checked');
@@ -2260,6 +2307,9 @@ async function openModal(agentId) {
     document.getElementById('f-wikiSyncInstructions').value = 'Review learned.md for new facts. Cross-check against context.md. Merge verified facts. Flag contradictions but don\'t overwrite — leave a note for human review.';
     setWikiSyncFromCron('0 0 * * *');
     document.getElementById('wikisync-collapse')?.classList.add('hidden');
+
+    // Executor
+    loadExecutorOptions('');
 
     // Reset tools
     document.querySelectorAll('#f-tools .checkbox-pill').forEach(p => p.classList.add('checked'));
@@ -3378,6 +3428,7 @@ async function saveAgent() {
   const timeout = timeoutSec * 1000;
   const claudeAccount = document.getElementById('f-claudeAccount')?.value || undefined;
   const agentClass = document.getElementById('f-agentClass')?.value || 'standard';
+  const executor = document.getElementById('f-executor')?.value || undefined;
   const skills = getSelectedSkills();
   const agentSkills = [];
   const heartbeatInstructions = document.getElementById('f-heartbeatInstructions')?.value?.trim() || undefined;
@@ -3440,7 +3491,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, heartbeatInstructions, heartbeatCron, heartbeatEnabled }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled }),
     });
     const data = await res.json();
 

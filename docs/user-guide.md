@@ -232,6 +232,7 @@ Opened by **+ New Agent** button or clicking an agent's Config button. Has 6 tab
 | **Description** | Short description of the agent's purpose. |
 | **Instructions (CLAUDE.md)** | System prompt written to the agent's CLAUDE.md file. Multi-line textarea. |
 | **Agent Class** | Dropdown: Standard, Builder, Platform. |
+| **Executor** | Dropdown: Platform Default, Claude, or any Ollama model (when multi-model is enabled). Overrides the service-level default executor for this agent. |
 
 #### Organization Entries
 Each agent can belong to multiple organizations. Per entry:
@@ -260,7 +261,7 @@ Each agent can belong to multiple organizations. Per entry:
 | Action | API | MCP |
 |--------|-----|-----|
 | Create agent | `POST /api/agents` | `create_agent` |
-| | **Body:** `{ agentId, alias, name, description, instructions, agentClass, orgs[], heartbeat{}, wiki, wikiSync{}, ... }` | **Params:** `agentId`, `alias`, `name`, `description`, `instructions`, `agentClass`, `orgs`, `heartbeat`, `workspace`, `allowedTools`, `mcps`, `routes`, `persistent`, `streaming`, `advancedMemory`, `autonomousCapable`, `autoCommit`, `timeout`, `claudeAccount`, `wiki`, `wikiSync` |
+| | **Body:** `{ agentId, alias, name, description, instructions, agentClass, executor, orgs[], heartbeat{}, wiki, wikiSync{}, ... }` | **Params:** `agentId`, `alias`, `name`, `description`, `instructions`, `agentClass`, `executor`, `orgs`, `heartbeat`, `workspace`, `allowedTools`, `mcps`, `routes`, `persistent`, `streaming`, `advancedMemory`, `autonomousCapable`, `autoCommit`, `timeout`, `claudeAccount`, `wiki`, `wikiSync` |
 | Update agent | `PUT /api/agents/:id` | `update_agent` |
 | | **Body:** same fields as create | **Params:** `agentId`, plus any fields to update |
 | Get agent instructions | `GET /api/agents/:id/instructions` | `get_agent_instructions` |

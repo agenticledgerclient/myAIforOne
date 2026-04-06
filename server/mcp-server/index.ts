@@ -81,6 +81,7 @@ server.tool("create_agent", "Create a new agent with full configuration", {
   timeout: z.number().optional().describe("Timeout in ms"),
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
   agentClass: z.enum(["standard", "platform", "builder"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents)"),
+  executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
 }, async (args) => {
@@ -111,6 +112,7 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   instructions: z.string().optional().describe("Update CLAUDE.md content"),
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
   agentClass: z.enum(["standard", "platform", "builder"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents)"),
+  executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
 }, async ({ agentId, ...body }) => {

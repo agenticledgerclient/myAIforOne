@@ -436,6 +436,21 @@ export function startWebUI(opts: WebUIOptions): void {
     });
   });
 
+  // Proxy for Ollama API (avoids CORS when browser fetches model list)
+  app.get("/api/ollama-proxy", async (req, res) => {
+    const url = req.query.url as string;
+    if (!url || !url.includes("/api/tags")) {
+      return res.status(400).json({ error: "Only /api/tags proxy is allowed" });
+    }
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      const data = await r.json();
+      res.json(data);
+    } catch (err) {
+      res.status(502).json({ error: "Could not reach Ollama", detail: String(err) });
+    }
+  });
+
   app.put("/api/config/service", (req, res) => {
     const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl } = req.body as any;
     try {
@@ -465,6 +480,15 @@ export function startWebUI(opts: WebUIOptions): void {
         if (deployment.githubToken && deployment.githubToken !== "••••••••") raw.deployment.githubToken = deployment.githubToken;
       }
       writeFileSync(configFilePath(), JSON.stringify(raw, null, 2));
+      // Sync in-memory config so GET reflects changes immediately
+      if (multiModelEnabled !== undefined) (opts.config.service as any).multiModelEnabled = multiModelEnabled;
+      if (platformDefaultExecutor !== undefined) (opts.config.service as any).platformDefaultExecutor = platformDefaultExecutor;
+      if (ollamaBaseUrl !== undefined) (opts.config.service as any).ollamaBaseUrl = ollamaBaseUrl;
+      if (logLevel !== undefined) opts.config.service.logLevel = logLevel;
+      if (logFile !== undefined) opts.config.service.logFile = logFile;
+      if (pairingCode !== undefined) opts.config.service.pairingCode = pairingCode || undefined;
+      if (personalAgentsDir !== undefined) opts.config.service.personalAgentsDir = personalAgentsDir;
+      if (personalRegistryDir !== undefined) opts.config.service.personalRegistryDir = personalRegistryDir;
       res.json({ ok: true, note: "Restart required for port/dir changes to take effect" });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -2401,7 +2425,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, wiki, wikiSync } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -2418,6 +2442,7 @@ export function startWebUI(opts: WebUIOptions): void {
       heartbeatCron?: string;
       heartbeatEnabled?: boolean;
       agentClass?: "standard" | "platform" | "builder";
+      executor?: string;
       wiki?: boolean;
       wikiSync?: { enabled?: boolean; schedule?: string };
     };
@@ -2506,6 +2531,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (org && org.length > 0) agentConfig.org = org;
       if (cron && cron.length > 0) agentConfig.cron = cron;
       if (goals && goals.length > 0) agentConfig.goals = goals;
+      if (executor) agentConfig.executor = executor;
       if (wiki) agentConfig.wiki = true;
       if (wikiSync) agentConfig.wikiSync = { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" };
 
@@ -2568,7 +2594,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, wiki, wikiSync } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -2585,6 +2611,7 @@ export function startWebUI(opts: WebUIOptions): void {
       heartbeatCron?: string;
       heartbeatEnabled?: boolean;
       agentClass?: "standard" | "platform" | "builder";
+      executor?: string;
       wiki?: boolean;
       wikiSync?: { enabled?: boolean; schedule?: string };
     };
@@ -2627,6 +2654,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (prompts !== undefined) existing.prompts = prompts.length > 0 ? prompts : undefined;
       if (subAgents !== undefined) existing.subAgents = subAgents;
       if (agentClass !== undefined) existing.agentClass = agentClass;
+      if (executor !== undefined) existing.executor = executor || undefined;
       if (org !== undefined) existing.org = org;
       if (cron !== undefined) existing.cron = cron;
       if (goals !== undefined) existing.goals = goals;
