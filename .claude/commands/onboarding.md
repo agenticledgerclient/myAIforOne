@@ -33,7 +33,7 @@ Which messaging apps do you want to use with your agents?
 1. Telegram (easiest — just need a bot token)
 2. WhatsApp (QR code pairing)
 3. Slack (needs a Slack App)
-4. iMessage (macOS only)
+4. iMessage (macOS only — skip this option on Windows)
 
 Pick one or more, or type "skip" to set up channels later.
 ```
@@ -48,7 +48,9 @@ Pick one or more, or type "skip" to set up channels later.
 3. Call `restart_service` to pick up the change.
 4. Tell them: "Telegram connected! Now send any message to your bot — I'll grab the chat ID."
 5. Wait for them to confirm they sent a message.
-6. Check logs for "No route for telegram:" to find the chat ID. Use Bash to run: `grep "No route for telegram:" logs/service.log | tail -5`
+6. Check logs for "No route for telegram:" to find the chat ID. Use Bash:
+   - **macOS / Linux:** `grep "No route for telegram:" logs/service.log | tail -5`
+   - **Windows:** `Select-String "No route for telegram:" logs\service.log | Select-Object -Last 5`
 7. Save the chat ID for Step 5.
 
 ### Slack
@@ -73,7 +75,9 @@ Pick one or more, or type "skip" to set up channels later.
 3. Call `restart_service`.
 4. Tell them: "Check your terminal — there should be a QR code. Open WhatsApp → Settings → Linked Devices → Link a Device → scan it."
 5. Once connected, tell them: "Send a message in the WhatsApp chat you want to use. I'll find the chat ID."
-6. Check logs for "No route for whatsapp:" to find the chat ID. Use Bash to run: `grep "No route for whatsapp:" logs/service.log | tail -5`
+6. Check logs for "No route for whatsapp:" to find the chat ID. Use Bash:
+   - **macOS / Linux:** `grep "No route for whatsapp:" logs/service.log | tail -5`
+   - **Windows:** `Select-String "No route for whatsapp:" logs\service.log | Select-Object -Last 5`
 
 ### iMessage (macOS only)
 1. Tell them:

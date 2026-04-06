@@ -48,11 +48,23 @@ If on Windows, note that iMessage won't be available.
 
 Create the personal data folder structure outside the repo:
 
+### macOS / Linux
 ```bash
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalAgents"
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry"
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/skills/personal"
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/prompts/personal"
+```
+
+### Windows
+```powershell
+$dirs = @(
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PersonalAgents",
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PersonalRegistry",
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PersonalRegistry\skills\personal",
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PersonalRegistry\prompts\personal"
+)
+$dirs | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 ```
 
 ## Step 3: Generate config.json
@@ -126,7 +138,9 @@ All 4 share these settings:
 }
 ```
 
-Create memory directories: `mkdir -p agents/platform/{hub,agentcreator,skillcreator,appcreator,promptcreator}/memory`
+Create memory directories:
+- **macOS / Linux:** `mkdir -p agents/platform/{hub,agentcreator,skillcreator,appcreator,promptcreator}/memory`
+- **Windows:** `@("hub","agentcreator","skillcreator","appcreator","promptcreator") | ForEach-Object { New-Item -ItemType Directory -Force -Path "agents\platform\$_\memory" | Out-Null }`
 
 ## Step 5: Validate & Build
 
@@ -137,8 +151,14 @@ npm run build
 
 ## Step 6: Start the Service
 
+### macOS / Linux
 ```bash
 npm start &
+```
+
+### Windows
+```powershell
+Start-Process -NoNewWindow npm -ArgumentList "start"
 ```
 
 Wait for the log: `channelToAgentToClaude running — X agent(s), 0 channel(s)`
