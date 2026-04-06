@@ -430,11 +430,14 @@ export function startWebUI(opts: WebUIOptions): void {
         githubOrg: deploy.githubOrg || "",
         githubToken: deploy.githubToken ? "••••••••" : "",
       },
+      multiModelEnabled: (s as any).multiModelEnabled ?? false,
+      platformDefaultExecutor: (s as any).platformDefaultExecutor || "claude",
+      ollamaBaseUrl: (s as any).ollamaBaseUrl || "http://localhost:11434",
     });
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
@@ -443,6 +446,9 @@ export function startWebUI(opts: WebUIOptions): void {
       if (logLevel !== undefined) raw.service.logLevel = logLevel;
       if (logFile !== undefined) raw.service.logFile = logFile;
       if (pairingCode !== undefined) raw.service.pairingCode = pairingCode || undefined;
+      if (multiModelEnabled !== undefined) raw.service.multiModelEnabled = multiModelEnabled;
+      if (platformDefaultExecutor !== undefined) raw.service.platformDefaultExecutor = platformDefaultExecutor;
+      if (ollamaBaseUrl !== undefined) raw.service.ollamaBaseUrl = ollamaBaseUrl;
       if (webUIPort !== undefined || webhookSecret !== undefined || webUIEnabled !== undefined) {
         if (!raw.service.webUI) raw.service.webUI = {};
         if (webUIPort !== undefined) raw.service.webUI.port = Number(webUIPort);

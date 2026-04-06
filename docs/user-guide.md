@@ -1183,7 +1183,30 @@ Each account row shows:
 | Get service config | `GET /api/config/service` | `get_service_config` |
 | | | *(no params)* |
 | Update service config | `PUT /api/config/service` | `update_service_config` |
-| | **Body:** `{ personalAgentsDir?, personalRegistryDir?, port?, logLevel? }` | **Params:** `body` (object) |
+| | **Body:** `{ personalAgentsDir?, personalRegistryDir?, port?, logLevel?, multiModelEnabled?, platformDefaultExecutor?, ollamaBaseUrl? }` | **Params:** `body` (object) |
+
+### AI Models Section
+- **Section label:** "AI Models" (amber highlight)
+- **Toggle:** Enable Multi-Model — enables/disables Ollama-based model routing
+- **Setup guide** (shown when enabled): Platform-specific install instructions for Ollama (macOS, Windows, Linux), model pull commands, and a "Test Connection" button that checks Ollama availability and lists downloaded models
+- **Settings grid:**
+
+| Field | Description |
+|-------|-------------|
+| **Platform Default Executor** | Default executor for all agents: `claude` (default) or `ollama:<model>` |
+| **Ollama Base URL** | Ollama API endpoint (default: `http://localhost:11434`) |
+
+- **Save button** — saves AI model settings
+- **Limitations:** Ollama agents get text-in/text-out only — no tool use (Read, Write, Bash), no MCP tools, no persistent sessions
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Enable multi-model | `PUT /api/config/service` | `update_service_config` |
+| | **Body:** `{ multiModelEnabled: true }` | **Params:** `{ multiModelEnabled: true }` |
+| Set platform default | `PUT /api/config/service` | `update_service_config` |
+| | **Body:** `{ platformDefaultExecutor: "ollama:gemma2" }` | **Params:** `{ platformDefaultExecutor: "ollama:gemma2" }` |
+| Set Ollama URL | `PUT /api/config/service` | `update_service_config` |
+| | **Body:** `{ ollamaBaseUrl: "http://host:11434" }` | **Params:** `{ ollamaBaseUrl: "http://host:11434" }` |
 
 ### Deployment Section
 - **Section label:** "Deployment" (green highlight)

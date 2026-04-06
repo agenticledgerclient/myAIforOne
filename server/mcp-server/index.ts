@@ -451,6 +451,9 @@ server.tool("update_service_config", "Update service settings (restart required)
   logFile: z.string().optional(),
   pairingCode: z.string().optional(),
   webhookSecret: z.string().optional(),
+  multiModelEnabled: z.boolean().optional().describe("Enable/disable multi-model support via Ollama"),
+  platformDefaultExecutor: z.string().optional().describe("Default executor for all agents (e.g. 'claude' or 'ollama:gemma2')"),
+  ollamaBaseUrl: z.string().optional().describe("Ollama API base URL (default: http://localhost:11434)"),
 }, async (body) => {
   const r = await api.updateServiceConfig(body);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
