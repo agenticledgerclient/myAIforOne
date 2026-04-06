@@ -22,6 +22,9 @@
    - [Activity](#72-activity)
    - [Settings](#73-settings)
    - [Docs](#74-docs)
+8. [Monitor](#8-monitor)
+   - [Setup Checklist](#81-setup-checklist)
+   - [Dashboard](#82-dashboard)
 
 ---
 
@@ -1268,6 +1271,81 @@ Documentation cards:
 
 ---
 
+# 8. Monitor
+
+**URL:** `/monitor`
+**Purpose:** At-a-glance platform health and first-time setup checklist. This is the first page new users see after running `/setup`.
+
+## 8.1 Setup Checklist
+
+The **Getting Started** card appears at the top of the page. It tracks three onboarding milestones and auto-updates as you complete them.
+
+| Element | Description |
+|---------|-------------|
+| **Connect a messaging channel** | Turns green when at least one channel (Telegram, Slack, WhatsApp, iMessage) is connected |
+| **Create your first agent** | Turns green when at least one personal (non-platform) agent exists |
+| **Send a test message** | Turns green when any personal agent has received at least one message |
+| **Start Setup button** | Navigates to `/?setup=true`, which opens the hub chat and auto-triggers the `/onboarding` skill to walk through channel + agent setup |
+| **"Setup complete!" badge** | Appears and the checklist collapses once all three items are done |
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Get dashboard data (drives checklist) | `GET /api/dashboard` | `get_dashboard` |
+
+## 8.2 Dashboard
+
+Below the setup checklist, a 2-column dashboard grid shows live platform metrics. Data auto-refreshes every 30 seconds.
+
+### Platform Status Card
+
+| Stat | Description |
+|------|-------------|
+| **Uptime** | How long the service has been running (hours + minutes) |
+| **Total Agents** | Count of all registered agents (platform + personal) |
+| **Personal Agents** | Count of non-platform agents (excludes hub, creators) |
+| **Organizations** | Distinct organizations across all agents |
+| **Channels** | Pills showing each connected channel name |
+| **MCPs** | Number of MCP servers in the registry |
+| **Active Automations** | Sum of active goals + active cron jobs across personal agents |
+| **Open Tasks** | Sum of approved + in-progress + review tasks across personal agents |
+
+### Agent Activity Card
+
+Shows personal agents sorted by most recent activity.
+
+| Element | Description |
+|---------|-------------|
+| **Search input** | Filter agents by name or alias |
+| **Filter pills** | Toggle filters: MCPs, Skills, Automations, Open Tasks. Filters combine with AND logic. |
+| **Agent rows** | Each row shows: avatar (initials), name, @alias, badge counts (MCPs, skills, automations, tasks), message count, and time since last message |
+| **Click an agent row** | Navigates to `/ui?agent={agentId}` to chat with that agent |
+
+### Recent Activity Card (full width)
+
+A chronological feed of the last 15 messages across all agents.
+
+| Element | Description |
+|---------|-------------|
+| **Time column** | Timestamp (HH:MM) |
+| **Agent column** | Agent that handled the message |
+| **Message column** | First 80 characters of the message. User messages shown in accent blue, agent responses in purple. |
+
+### Costs Card (full width, conditional)
+
+Only appears when cost data is available from `GET /api/costs`.
+
+| Element | Description |
+|---------|-------------|
+| **Period rows** | Shows cost per time period (today, this week, this month) with dollar amounts |
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Get dashboard data | `GET /api/dashboard` | `get_dashboard` |
+| Get recent activity | `GET /api/activity?limit=15` | `get_activity` |
+| Get cost data | `GET /api/costs` | `get_all_costs` |
+
+---
+
 # Appendix A: Global Navigation
 
 Present on every page:
@@ -1281,9 +1359,10 @@ Present on every page:
 | **Lab tab** | → `/lab` |
 | **Marketplace link** | → `/marketplace` |
 | **Admin button (⚙)** | → `/admin` |
+| **User Guide button** | → `/user-guide` — this document |
+| **Monitor button** | → `/monitor` — setup checklist + live dashboard |
 | **Mini Bar button** | Opens a compact floating popup window (440×460) at `/mini`. A lightweight chat interface you can keep open while working — has agent selection, @mention, send, and basic chat. Useful as a quick-access sidebar. |
-| **Theme toggle (☀/🌙)** | Switches between light and dark mode. Persists across sessions via localStorage. |
-| **User Guide button** | → `/docs/user-guide` — this document (to be added to nav) |
+| **Theme toggle** | Switches between light and dark mode. Persists across sessions via localStorage. |
 
 ---
 
