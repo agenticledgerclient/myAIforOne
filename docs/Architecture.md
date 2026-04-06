@@ -243,6 +243,78 @@ If an account's session expires mid-conversation, send `/relogin` in chat. The g
 | **Isolate billing** | Give each team or project its own account for clean cost attribution |
 | **Different plan tiers** | Use a Pro account for lightweight agents, Max for heavy autonomous ones |
 
+## Multi-Model Executor
+
+When `multiModelEnabled: true` is set in the service config, agents can use open-source models via Ollama instead of Claude Code.
+
+### Executor Dispatch
+
+The executor resolves which backend to use via a four-step fallback chain:
+
+1. **`multiModelEnabled`** — if `false` (default), all agents use Claude. Full stop.
+2. **Per-agent `executor` field** — e.g., `"executor": "ollama:gemma2"` overrides everything for that agent.
+3. **`platformDefaultExecutor`** — service-level default (e.g., `"ollama:llama3"`) applied when an agent has no `executor` field.
+4. **Hard default** — if none of the above are set, the agent uses `claude -p`.
+
+### Two Executor Paths
+
+| | Claude | Ollama |
+|--|--------|--------|
+| **Trigger** | `executor` is unset or `"claude"` | `executor` starts with `"ollama:"` |
+| **How it runs** | Spawns `claude -p` with system prompt, workspace, allowed tools, MCP config, and session flags | HTTP POST to Ollama API (`/api/chat`) at `service.ollamaBaseUrl` (default `http://localhost:11434`) |
+| **Tool use** | Full — Read, Write, Bash, Glob, Grep, etc. | None |
+| **MCP access** | Yes — temp `.mcp.json` generated and passed via `--mcp-config` | None |
+| **Sessions** | Persistent via `--session-id` / `--resume` | None — each message is stateless |
+| **Streaming** | Yes — `--output-format stream-json` | Text response only |
+
+### Ollama Limitations
+
+Ollama-backed agents are **text-in / text-out only**. They cannot use tools (Read, Write, Bash), MCP servers, persistent sessions, or streaming. This makes them suitable for Q&A, content generation, and advisory roles — not for agents that need to read files, run commands, or call APIs.
+
+### Health Check
+
+Before dispatching to Ollama, the executor calls `checkOllamaHealth()` which:
+
+1. Hits `GET /api/tags` on the Ollama server to confirm it is reachable
+2. Checks that the requested model (e.g., `gemma2`) is in the list of locally available models
+3. Returns an error message to the user if either check fails, rather than silently failing
+
+### Model Override API
+
+Agents can have their executor model changed at runtime without editing `config.json`:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/agents/:agentId/model` | GET | Returns the agent's current executor model |
+| `/api/agents/:agentId/model` | PUT | Sets the executor model (e.g., `{ "executor": "ollama:gemma2" }`) |
+| `/api/agents/:agentId/model` | DELETE | Clears the per-agent override, reverting to platform default |
+
+MCP tools provide the same functionality for agent-to-agent use:
+
+| Tool | Description |
+|------|-------------|
+| `get_model` | Read the current executor for an agent |
+| `set_model` | Set an agent's executor (e.g., `"ollama:gemma2"` or `"claude"`) |
+| `clear_model` | Remove the per-agent override |
+
+### Config
+
+Service-level settings:
+```json
+"service": {
+  "multiModelEnabled": true,
+  "platformDefaultExecutor": "claude",
+  "ollamaBaseUrl": "http://localhost:11434"
+}
+```
+
+Per-agent override:
+```json
+"executor": "ollama:gemma2"
+```
+
+When `multiModelEnabled` is `false` (the default), the entire Ollama path is disabled. All agents use `claude -p` regardless of their `executor` field.
+
 ## Skills
 
 Skills are markdown instruction files in `~/.claude/commands/`. In an interactive terminal session, Claude loads these via the `Skill` tool. Since `claude -p` doesn't have the `Skill` tool, the gateway uses a workaround:

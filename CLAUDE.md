@@ -61,7 +61,7 @@ powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1  
 ## Key Architecture
 
 - **Router** (`src/router.ts`): Matches messages by channel + chat ID + mention alias
-- **Executor** (`src/executor.ts`): Spawns `claude -p` with system prompt, workspace, allowed tools, and MCP config
+- **Executor** (`src/executor.ts`): Multi-model executor. Default: spawns `claude -p` with system prompt, workspace, allowed tools, and MCP config. When `multiModelEnabled: true`, supports alternative models via Ollama (`src/ollama-executor.ts`)
 - **MCP Hub** (`config.json` → `mcps`): Registry of MCP servers. Agents reference them by name. Executor auto-generates temp `.mcp.json` and passes `--mcp-config --strict-mcp-config` to claude.
 - **Channels**: Independent drivers for iMessage (`imsg` CLI), Slack (Socket Mode), Telegram (grammY), Discord (discord.js), WhatsApp (Baileys)
 - **Web UI** (`src/web-ui.ts`): Dashboard + webhook endpoints on localhost:8080
@@ -78,6 +78,16 @@ Projects are long-running, multi-faceted initiatives that span multiple agents. 
 - **API**: `GET/POST /api/projects`, `GET/PUT/DELETE /api/projects/:id`, `POST /api/projects/:id/link`, `POST /api/projects/:id/unlink`, `GET /api/projects/:id/status`, `POST /api/projects/:id/execute`, `POST /api/projects/:id/pause`
 - **Key fields**: owner (agent), teamMembers (agents[]), plan (markdown), linkedTasks, linkedAgents, linkedOrgs, linkedApps, linkedArtifacts
 - **Autonomous execution**: `execute_project` creates a scheduled goal on the owner agent that works through tasks. `pause_project` disables it. Notifications go to the owner agent's Slack channel.
+
+## Multi-Model Support
+
+When `multiModelEnabled: true` in service config, agents can use open-source models via Ollama instead of Claude.
+
+- **Config**: `service.multiModelEnabled` (default: false), `service.platformDefaultExecutor` (default: "claude"), `service.ollamaBaseUrl` (default: "http://localhost:11434")
+- **Per-agent**: `agent.executor` field overrides the platform default (e.g., "ollama:gemma2")
+- **When disabled** (default): All agents use `claude -p` exactly as before. Zero impact on existing behavior.
+- **When enabled**: Agents with `executor: "ollama:modelname"` use the Ollama HTTP API. Agents without an executor field use the platform default.
+- **Limitations**: Ollama agents get text-in/text-out only — no tool use (Read, Write, Bash), no MCP tools, no sessions. Good for Q&A, content generation, advisory.
 
 ## After Every Feature
 1. Add tests to `Comprehensive Test Suite/{domain}/`

@@ -350,6 +350,78 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
+      <!-- ── AI Models ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:var(--amber-bg);border-color:var(--amber);color:var(--amber)">&#9883;</div>
+          <div>
+            <div class="section-title" style="color:var(--amber)">AI Models</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Multi-model support via Ollama for open-source models</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field" style="margin-bottom:14px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="checkbox" id="svcMultiModelEnabled" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" />
+              <span>Enable Multi-Model</span>
+            </label>
+            <div class="hint" style="margin-top:4px">When enabled, agents can use alternative models via Ollama. When disabled, all agents use Claude.</div>
+          </div>
+          <!-- Setup guide — shown when toggle is ON -->
+          <div id="ollamaSetupGuide" style="display:none;margin-bottom:16px;padding:14px 16px;border-radius:10px;background:rgba(255,191,0,0.06);border:1px solid rgba(255,191,0,0.18)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:18px">&#9888;</span>
+              <span style="font-weight:600;font-size:13px;color:var(--amber)">Requires Ollama + a downloaded model</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+              <div style="margin-bottom:10px"><strong style="color:var(--text)">Step 1 — Install Ollama</strong></div>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:14px">&#63743;</span>
+                  <span><strong>macOS:</strong></span>
+                  <code style="background:var(--bg-secondary);padding:2px 8px;border-radius:4px;font-size:11px;user-select:all">curl -fsSL https://ollama.com/install.sh | sh</code>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:14px">&#8862;</span>
+                  <span><strong>Windows:</strong></span>
+                  <span>Download from <a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com/download</a></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:14px">&#128039;</span>
+                  <span><strong>Linux:</strong></span>
+                  <code style="background:var(--bg-secondary);padding:2px 8px;border-radius:4px;font-size:11px;user-select:all">curl -fsSL https://ollama.com/install.sh | sh</code>
+                </div>
+              </div>
+              <div style="margin-bottom:10px"><strong style="color:var(--text)">Step 2 — Pull a model</strong></div>
+              <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+                <code style="background:var(--bg-secondary);padding:4px 10px;border-radius:4px;font-size:11px;user-select:all">ollama pull gemma2</code>
+                <code style="background:var(--bg-secondary);padding:4px 10px;border-radius:4px;font-size:11px;user-select:all">ollama pull llama3.1</code>
+                <code style="background:var(--bg-secondary);padding:4px 10px;border-radius:4px;font-size:11px;user-select:all">ollama pull mistral</code>
+              </div>
+              <div style="margin-bottom:8px"><strong style="color:var(--text)">Step 3 — Set executor on an agent</strong></div>
+              <div style="font-size:11px;color:var(--text-muted)">
+                In the agent's config, set <code style="background:var(--bg-secondary);padding:1px 6px;border-radius:3px">executor</code> to <code style="background:var(--bg-secondary);padding:1px 6px;border-radius:3px">ollama:gemma2</code> (or whichever model you pulled).
+                Agents without an executor field will use the Platform Default below.
+              </div>
+            </div>
+            <div id="ollamaHealthStatus" style="margin-top:8px;padding:8px 12px;border-radius:6px;font-size:11px;display:none"></div>
+            <button class="btn-save" style="margin-top:6px;background:transparent;border:1px solid var(--amber);color:var(--amber);font-size:11px;padding:4px 12px" onclick="checkOllamaConnection()">Test Connection</button>
+          </div>
+
+          <div class="service-grid" id="multiModelFields">
+            <div class="field">
+              <label>Platform Default Executor</label>
+              <input id="svcPlatformDefaultExecutor" placeholder="claude" />
+            </div>
+            <div class="field">
+              <label>Ollama Base URL</label>
+              <input id="svcOllamaBaseUrl" placeholder="http://localhost:11434" />
+            </div>
+          </div>
+          <button class="btn-save" onclick="saveMultiModel()">Save</button>
+        </div>
+      </div>
+
       <!-- ── Deployment ── -->
       <div class="section">
         <div class="section-header">
@@ -1078,6 +1150,11 @@ async function loadService() {
   document.getElementById('depToken').value = d.deployToken || '';
   document.getElementById('depGithubOrg').value = d.githubOrg || '';
   document.getElementById('depGithubToken').value = d.githubToken || '';
+  // Multi-model
+  document.getElementById('svcMultiModelEnabled').checked = !!s.multiModelEnabled;
+  document.getElementById('svcPlatformDefaultExecutor').value = s.platformDefaultExecutor || '';
+  document.getElementById('svcOllamaBaseUrl').value = s.ollamaBaseUrl || '';
+  updateMultiModelFieldsVisibility();
 }
 
 async function saveService() {
@@ -1092,6 +1169,58 @@ async function saveService() {
   const data = await res.json();
   if (!res.ok) { showToast(data.error, 'err'); return; }
   showToast(data.note || 'Saved');
+}
+
+function updateMultiModelFieldsVisibility() {
+  const on = document.getElementById('svcMultiModelEnabled').checked;
+  document.getElementById('multiModelFields').style.opacity = on ? '1' : '0.4';
+  document.getElementById('multiModelFields').style.pointerEvents = on ? 'auto' : 'none';
+  document.getElementById('ollamaSetupGuide').style.display = on ? 'block' : 'none';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const cb = document.getElementById('svcMultiModelEnabled');
+  if (cb) cb.addEventListener('change', updateMultiModelFieldsVisibility);
+});
+
+async function checkOllamaConnection() {
+  const statusEl = document.getElementById('ollamaHealthStatus');
+  statusEl.style.display = 'block';
+  statusEl.style.background = 'rgba(255,255,255,0.04)';
+  statusEl.style.color = 'var(--text-muted)';
+  statusEl.textContent = 'Checking connection...';
+  const baseUrl = document.getElementById('svcOllamaBaseUrl').value.trim() || 'http://localhost:11434';
+  try {
+    const res = await fetch(baseUrl + '/api/tags');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const models = (data.models || []).map(m => m.name);
+    if (models.length === 0) {
+      statusEl.style.background = 'rgba(255,191,0,0.1)';
+      statusEl.style.color = 'var(--amber)';
+      statusEl.innerHTML = '&#9888; Connected to Ollama but no models found. Run <code style="background:var(--bg-secondary);padding:1px 6px;border-radius:3px">ollama pull gemma2</code> to get started.';
+    } else {
+      statusEl.style.background = 'rgba(0,200,100,0.08)';
+      statusEl.style.color = 'var(--green)';
+      statusEl.innerHTML = '&#10003; Connected — available models: <strong>' + models.join(', ') + '</strong>';
+    }
+  } catch (e) {
+    statusEl.style.background = 'rgba(255,80,80,0.08)';
+    statusEl.style.color = 'var(--red, #f55)';
+    statusEl.innerHTML = '&#10007; Cannot reach Ollama at <strong>' + baseUrl + '</strong>. Is it running?';
+  }
+}
+
+async function saveMultiModel() {
+  const multiModelEnabled = document.getElementById('svcMultiModelEnabled').checked;
+  const platformDefaultExecutor = document.getElementById('svcPlatformDefaultExecutor').value.trim() || 'claude';
+  const ollamaBaseUrl = document.getElementById('svcOllamaBaseUrl').value.trim() || 'http://localhost:11434';
+  const res = await fetch('/api/config/service', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast('AI Models settings saved');
 }
 
 async function saveDeployment() {

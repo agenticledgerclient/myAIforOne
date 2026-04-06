@@ -306,6 +306,7 @@ function initials(name) {
 
 // ── State ──
 let dashboardData = null;
+let projectsData = [];
 let activityData = [];
 const activeAgentFilters = new Set();
 
@@ -323,12 +324,14 @@ function applyAgentFilters() {
 // ── Fetch & Render ──
 async function fetchAll() {
   try {
-    const [dashRes, actRes] = await Promise.all([
+    const [dashRes, actRes, projRes] = await Promise.all([
       fetch('/api/dashboard'),
-      fetch('/api/activity?limit=15')
+      fetch('/api/activity?limit=15'),
+      fetch('/api/projects')
     ]);
     if (dashRes.ok) dashboardData = await dashRes.json();
     if (actRes.ok) { const ad = await actRes.json(); activityData = ad.entries || ad || []; }
+    if (projRes.ok) { const pd = await projRes.json(); projectsData = pd.projects || []; }
   } catch (e) {
     console.error('Fetch error:', e);
   }
@@ -390,6 +393,24 @@ function setCheck(id, done) {
   else label.classList.remove('done');
 }
 
+function renderProjectStats() {
+  if (!projectsData.length) return '';
+  const active = projectsData.filter(p => p.status === 'active').length;
+  const paused = projectsData.filter(p => p.status === 'paused').length;
+  const completed = projectsData.filter(p => p.status === 'completed').length;
+  const executing = projectsData.filter(p => p.executing).length;
+  const totalTasks = projectsData.reduce((s, p) => s + (p.totalTasks || 0), 0);
+  const doneTasks = projectsData.reduce((s, p) => s + (p.doneTasks || 0), 0);
+  const pct = totalTasks > 0 ? Math.round(doneTasks / totalTasks * 100) : 0;
+  let pills = '';
+  if (active) pills += '<span class="channel-pill" style="color:#4ade80;border-color:rgba(74,222,128,0.3)">' + active + ' active</span>';
+  if (executing) pills += '<span class="channel-pill" style="color:#fbbf24;border-color:rgba(251,191,36,0.3)">' + executing + ' executing</span>';
+  if (paused) pills += '<span class="channel-pill" style="color:#94a3b8;border-color:rgba(148,163,184,0.3)">' + paused + ' paused</span>';
+  if (completed) pills += '<span class="channel-pill" style="color:#22d3ee;border-color:rgba(34,211,238,0.3)">' + completed + ' done</span>';
+  return '<div class="stat-row"><span class="stat-label">Projects</span><span class="stat-value">' + pills + '</span></div>'
+    + '<div class="stat-row"><span class="stat-label">Project Tasks</span><span class="stat-value">' + doneTasks + '/' + totalTasks + ' (' + pct + '%)</span></div>';
+}
+
 function renderStatus() {
   if (!dashboardData) return;
   const d = dashboardData;
@@ -414,7 +435,8 @@ function renderStatus() {
     + '<div class="stat-row"><span class="stat-label">Channels</span><span class="stat-value">' + channelPills + '</span></div>'
     + '<div class="stat-row"><span class="stat-label">MCPs</span><span class="stat-value">' + (d.mcpCount || 0) + '</span></div>'
     + '<div class="stat-row"><span class="stat-label">Active Automations</span><span class="stat-value">' + totalAutomations + '</span></div>'
-    + '<div class="stat-row"><span class="stat-label">Open Tasks</span><span class="stat-value">' + totalOpenTasks + '</span></div>';
+    + '<div class="stat-row"><span class="stat-label">Open Tasks</span><span class="stat-value">' + totalOpenTasks + '</span></div>'
+    + renderProjectStats();
 
   // Fetch skills/apps/prompts counts
   fetchPlatformCounts();

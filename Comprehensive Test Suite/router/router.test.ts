@@ -90,11 +90,23 @@ describe("resolveRoute", () => {
     assert.ok(result);
   });
 
-  it("falls back to defaultAgent", () => {
+  it("falls back to defaultAgent for web channel", () => {
     const config = makeConfig({ defaultAgent: "test-agent" });
-    const result = resolveRoute(makeMsg({ chatId: "NOMATCH" }), config);
+    // defaultAgent fallback only applies to the web channel
+    config.agents["test-agent"].routes.push({
+      channel: "web",
+      match: { type: "channel_id", value: "web-default" },
+      permissions: { allowFrom: ["*"], requireMention: false },
+    });
+    const result = resolveRoute(makeMsg({ channel: "web", chatId: "NOMATCH" }), config);
     assert.ok(result);
     assert.equal(result.agentId, "test-agent");
+  });
+
+  it("does NOT fall back to defaultAgent for non-web channels", () => {
+    const config = makeConfig({ defaultAgent: "test-agent" });
+    const result = resolveRoute(makeMsg({ chatId: "NOMATCH" }), config);
+    assert.equal(result, null);
   });
 
   it("mention matching is case-insensitive", () => {

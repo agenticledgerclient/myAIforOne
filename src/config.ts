@@ -100,6 +100,7 @@ export interface AgentConfig {
   subAgents?: string[] | "*";  // Group agent: list of agent IDs to delegate to, or "*" for all
   platformAgent?: boolean;     // DEPRECATED — use agentClass instead
   agentClass?: "standard" | "platform" | "builder";  // standard (default), platform (Lab creators), builder (app developer agents)
+  executor?: string;  // "claude" (default) or "ollama:modelname" (e.g., "ollama:gemma2")
 }
 
 export interface ChannelConfig {
@@ -124,6 +125,9 @@ export interface ServiceConfig {
   personalRegistryDir?: string; // Override path to PersonalRegistry dir (default: ~/Desktop/MyAIforOne Drive/PersonalRegistry)
   webUI?: WebUIConfig;
   claudeAccounts?: Record<string, string>;  // name → config dir path, e.g. {"main": "~/.claude"}
+  multiModelEnabled?: boolean;      // false = claude only, true = enables alternative models
+  platformDefaultExecutor?: string; // "claude" (default) or "ollama:gemma2" etc.
+  ollamaBaseUrl?: string;           // default: "http://localhost:11434"
 }
 
 export interface AppConfig {

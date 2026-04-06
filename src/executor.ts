@@ -1229,6 +1229,51 @@ Rules:
     args.push("--permission-mode", effectiveMcps.length ? "bypassPermissions" : "acceptEdits");
   }
 
+  // ── Multi-model dispatch ──
+  const multiModelEnabled = _appConfig?.service?.multiModelEnabled ?? false;
+  const effectiveExecutor = agentConfig.executor
+    || (multiModelEnabled ? (_appConfig?.service?.platformDefaultExecutor || "claude") : "claude");
+
+  if (multiModelEnabled && effectiveExecutor.startsWith("ollama:")) {
+    const ollamaModel = effectiveExecutor.slice("ollama:".length);
+    const ollamaBaseUrl = _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434";
+
+    try {
+      const { executeOllama } = await import("./ollama-executor.js");
+      const ollamaResponse = await executeOllama({
+        model: ollamaModel,
+        systemPrompt,
+        message: formattedMessage,
+        baseUrl: ollamaBaseUrl,
+        timeout: agentConfig.timeout ?? 300_000,
+      });
+
+      // Log to conversation history
+      try {
+        const entry = {
+          ts: new Date().toISOString(),
+          from: msg.sender,
+          text: msg.text,
+          response: ollamaResponse.slice(0, 2000),
+          agentId,
+          channel: msg.channel,
+          executor: effectiveExecutor,
+        };
+        appendFileSync(logPath, JSON.stringify(entry) + "\n");
+      } catch { /* ignore */ }
+
+      // Advanced memory: save to daily journal
+      if (useAdvancedMemory && memoryMgr) {
+        try { await memoryMgr.indexExchange(msg.text, ollamaResponse, msg.sender); } catch { /* ignore */ }
+      }
+
+      return ollamaResponse;
+    } catch (err) {
+      log.error(`[Ollama] Agent ${agentId} execution failed: ${err}`);
+      return `Sorry, I ran into an error with the ${ollamaModel} model. Is Ollama running?`;
+    }
+  }
+
   // ── Spawn claude ──
   const timeout = agentConfig.timeout ?? 14_400_000;
   let rawOutput: string;
@@ -1730,6 +1775,46 @@ export async function* executeAgentStreaming(
   if (isPersistent) args.push("--permission-mode", effectiveMcps.length ? "bypassPermissions" : "acceptEdits");
 
   const timeout = agentConfig.timeout ?? 14_400_000;
+
+  // ── Multi-model dispatch (streaming) ──
+  const multiModelEnabled = _appConfig?.service?.multiModelEnabled ?? false;
+  const effectiveExecutor = agentConfig.executor
+    || (multiModelEnabled ? (_appConfig?.service?.platformDefaultExecutor || "claude") : "claude");
+
+  if (multiModelEnabled && effectiveExecutor.startsWith("ollama:")) {
+    const ollamaModel = effectiveExecutor.slice("ollama:".length);
+    const ollamaBaseUrl = _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434";
+
+    try {
+      const { streamOllama } = await import("./ollama-executor.js");
+      let fullResponse = "";
+      for await (const chunk of streamOllama({
+        model: ollamaModel,
+        systemPrompt,
+        message: formattedMessage,
+        baseUrl: ollamaBaseUrl,
+        timeout: agentConfig.timeout ?? 300_000,
+      })) {
+        fullResponse += chunk;
+        yield { type: "text", data: chunk } as StreamEvent;
+      }
+      yield { type: "done", data: fullResponse } as StreamEvent;
+
+      // Log
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+          response: fullResponse.slice(0, 2000), agentId, channel: msg.channel, executor: effectiveExecutor,
+        }) + "\n");
+      } catch { /* ignore */ }
+
+      return;
+    } catch (err) {
+      log.error(`[Ollama] Streaming failed for ${agentId}: ${err}`);
+      yield { type: "done", data: `Sorry, error with ${ollamaModel}. Is Ollama running?` } as StreamEvent;
+      return;
+    }
+  }
 
   // Spawn claude and stream output
   yield { type: "status", data: "Starting..." };

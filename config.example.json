@@ -13,7 +13,10 @@
     },
     "claudeAccounts": {
       "main": "~/.claude"
-    }
+    },
+    "multiModelEnabled": false,
+    "platformDefaultExecutor": "claude",
+    "ollamaBaseUrl": "http://localhost:11434"
   },
 
   "channels": {
