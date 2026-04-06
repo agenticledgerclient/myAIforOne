@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
 import type { LogLevel } from "./logger.js";
 
 export interface RouteMatch {
@@ -173,10 +173,10 @@ export function loadConfig(configPath: string): AppConfig {
       agent.agentHome = resolveTilde(agent.agentHome);
       // Auto-derive claudeMd and memoryDir from agentHome if not explicitly set differently
       if (!agent.claudeMd || agent.claudeMd.includes(id)) {
-        agent.claudeMd = `${agent.agentHome}/CLAUDE.md`;
+        agent.claudeMd = join(agent.agentHome, "CLAUDE.md");
       }
       if (!agent.memoryDir || agent.memoryDir.includes(id)) {
-        agent.memoryDir = `${agent.agentHome}/memory`;
+        agent.memoryDir = join(agent.agentHome, "memory");
       }
     }
     agent.claudeMd = resolveTilde(agent.claudeMd);

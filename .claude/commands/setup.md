@@ -75,7 +75,7 @@ Read `config.example.json` as the template. Generate a MINIMAL config:
 2. Set `webUI.enabled = true`, port = 4888
 3. Generate a random webhook secret: `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`
 4. Add `defaultMcps: []`
-5. Add `defaultSkills: ["op_devbrowser"]` (if the skill file exists)
+5. Add `defaultSkills` with all platform skills from `registry/skills/platform/` — scan the directory and include every `.md` filename (without extension). This gives every agent access to all platform skills automatically.
 6. Add the `myaiforone-local` MCP entry pointing to the local MCP server:
    ```json
    "myaiforone-local": {
