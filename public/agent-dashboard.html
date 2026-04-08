@@ -151,6 +151,37 @@ html,body{
 .section-body::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
 .section-empty{padding:24px;text-align:center;color:var(--text-muted);font-size:12px}
 
+/* ── File Browser ── */
+.file-row{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;
+  border:1px solid var(--border-dim);background:var(--bg-input);margin-bottom:6px;
+  cursor:pointer;transition:all .15s;font-size:12px;
+}
+.file-row:hover{border-color:var(--border-glow);background:rgba(56,189,248,0.04)}
+.file-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.file-info{flex:1;min-width:0}
+.file-name{font-family:var(--font-mono);font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:2px;display:flex;gap:10px}
+.file-source{font-size:9px;font-weight:600;padding:1px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em}
+.file-source.temp{color:var(--amber);background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2)}
+.file-source.permanent{color:var(--green);background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2)}
+.file-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.file-row:hover .file-actions{opacity:1}
+.file-action-btn{
+  width:26px;height:26px;border-radius:6px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.file-action-btn:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.file-filter-bar{display:flex;gap:6px;margin-bottom:10px}
+.file-filter-btn{
+  font-family:var(--font-mono);font-size:10px;font-weight:500;
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;
+}
+.file-filter-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.file-filter-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
 /* ── Task Cards ── */
 .task-card{
   padding:10px 14px;border-radius:8px;
@@ -306,6 +337,17 @@ html,body{
         <div class="section-empty">No heartbeats yet. Trigger one above.</div>
       </div>
     </div>
+
+    <!-- File Storage -->
+    <div class="section" style="grid-column:1/-1">
+      <div class="section-header">
+        <span class="section-title">File Storage</span>
+        <span class="section-count" id="fileCount">0</span>
+      </div>
+      <div class="section-body" id="fileList" style="max-height:500px">
+        <div class="section-empty">Loading files...</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -340,11 +382,12 @@ async function loadDashboard(){
   document.getElementById('chatBtn').href=`/ui#${agentId}`;
   document.getElementById('openChatLink').href=`/ui#${agentId}`;
 
-  const [agentRes,tasksRes,costRes,hbRes]=await Promise.all([
+  const [agentRes,tasksRes,costRes,hbRes,filesRes]=await Promise.all([
     fetch(`/api/agents/${agentId}`).catch(()=>null),
     fetch(`/api/agents/${agentId}/tasks`).catch(()=>null),
     fetch(`/api/agents/${agentId}/cost`).catch(()=>null),
     fetch(`/api/agents/${agentId}/heartbeat-history`).catch(()=>null),
+    fetch(`/api/agents/${agentId}/files`).catch(()=>null),
   ]);
 
   // Agent info
@@ -384,6 +427,14 @@ async function loadDashboard(){
   if(hbRes?.ok){
     const data=await hbRes.json();
     renderHeartbeats(data.history||[]);
+  }
+
+  // Files
+  if(filesRes?.ok){
+    const data=await filesRes.json();
+    renderFiles(data.files||[]);
+  }else{
+    document.getElementById('fileList').innerHTML='<div class="section-empty">No files</div>';
   }
 }
 
@@ -522,6 +573,86 @@ async function triggerHeartbeat(){
     btn.textContent='Failed';
     setTimeout(()=>{btn.disabled=false;btn.textContent='♥ Heartbeat'},3000);
   }
+}
+
+// ── File Browser ──
+let allFiles = [];
+let fileFilter = 'all'; // 'all' | 'temp' | 'permanent'
+
+const FILE_ICONS = {
+  pdf:'📄',csv:'📊',tsv:'📊',xlsx:'📊',xls:'📊',json:'📋',md:'📝',txt:'📝',
+  png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',svg:'🖼️',webp:'🖼️',
+  html:'🌐',htm:'🌐',docx:'📃',doc:'📃',pptx:'📽️',ppt:'📽️',zip:'📦',
+  js:'⚡',ts:'⚡',py:'🐍',css:'🎨',
+};
+
+function fileIcon(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  return FILE_ICONS[ext] || '📁';
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function setFileFilter(f) {
+  fileFilter = f;
+  renderFileList();
+}
+
+function renderFiles(files) {
+  allFiles = files;
+  document.getElementById('fileCount').textContent = files.length;
+  renderFileList();
+}
+
+function renderFileList() {
+  const el = document.getElementById('fileList');
+  const filtered = fileFilter === 'all' ? allFiles : allFiles.filter(f => f.source === fileFilter);
+  const tempCount = allFiles.filter(f => f.source === 'temp').length;
+  const permCount = allFiles.filter(f => f.source === 'permanent').length;
+
+  let html = `<div class="file-filter-bar">
+    <button class="file-filter-btn${fileFilter==='all'?' active':''}" onclick="setFileFilter('all')">All (${allFiles.length})</button>
+    <button class="file-filter-btn${fileFilter==='permanent'?' active':''}" onclick="setFileFilter('permanent')">Permanent (${permCount})</button>
+    <button class="file-filter-btn${fileFilter==='temp'?' active':''}" onclick="setFileFilter('temp')">Temp (${tempCount})</button>
+  </div>`;
+
+  if (filtered.length === 0) {
+    html += '<div class="section-empty">No files in this category</div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  for (const f of filtered) {
+    const enc = encodeURIComponent(f.path);
+    html += `<div class="file-row" onclick="downloadAgentFile('${enc}')">
+      <span class="file-icon">${fileIcon(f.name)}</span>
+      <div class="file-info">
+        <div class="file-name" title="${esc(f.path)}">${esc(f.name)}</div>
+        <div class="file-meta">
+          <span>${fmtSize(f.size)}</span>
+          <span>${timeAgo(f.modified)}</span>
+          <span class="file-source ${f.source}">${f.source}</span>
+        </div>
+      </div>
+      <div class="file-actions">
+        <button class="file-action-btn" onclick="event.stopPropagation();downloadAgentFile('${enc}')" title="Download">⬇</button>
+      </div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function downloadAgentFile(encodedPath) {
+  const a = document.createElement('a');
+  a.href = `/api/agents/${agentId}/download?path=${encodedPath}`;
+  a.download = decodeURIComponent(encodedPath).split('/').pop() || 'file';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ── Init ──

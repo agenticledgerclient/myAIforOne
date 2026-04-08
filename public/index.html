@@ -510,6 +510,28 @@ text-decoration:none;}
   cursor:pointer;transition:all .2s;vertical-align:middle;
 }
 .download-btn:hover{background:var(--accent);color:#000;border-color:var(--accent)}
+/* ─── Recent Files Bar ────────────────────────────────────────── */
+.recent-files-bar{
+  display:flex;align-items:center;gap:6px;padding:4px 12px;
+  border-top:1px solid var(--border-dim);background:var(--bg-surface);
+  overflow-x:auto;flex-shrink:0;
+}
+.recent-files-bar:empty{display:none}
+.recent-files-label{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;
+  white-space:nowrap;flex-shrink:0;
+}
+.recent-file-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:5px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);
+  cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;
+}
+.recent-file-chip:hover{border-color:var(--border-glow);color:var(--text-primary);background:var(--accent-bg)}
+.recent-file-chip .chip-icon{font-size:12px}
+
 .tool-cards{margin-bottom:8px;display:flex;flex-direction:column;gap:4px}
 .tool-card{
   display:flex;align-items:center;gap:6px;
@@ -1068,6 +1090,51 @@ function renderTabBar(agentId) {
 
 // Canvas — shared module (canvas.js loaded in <head>)
 Canvas.init({ getAgentId: () => selectedAgent, escapeHtml });
+
+// ─── Recent Files Tracking ─────────────────────────────────────
+let recentFiles = []; // [{name, path, ts, tool}]
+const FILE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
+
+function trackFileFromTool(tool) {
+  if (!tool || !tool.input) return;
+  const name = tool.name;
+  let filePath = null;
+  if (FILE_TOOLS.has(name) && tool.input.file_path) {
+    filePath = tool.input.file_path;
+  } else if (name === 'Bash' && tool.input.command) {
+    // Try to detect file creation from bash commands (output redirection, etc.)
+    const m = tool.input.command.match(/>\s*["']?([^\s"'|&;]+\.\w+)/);
+    if (m) filePath = m[1];
+  }
+  if (!filePath) return;
+  const fileName = filePath.split('/').pop() || filePath;
+  // Deduplicate by path
+  const idx = recentFiles.findIndex(f => f.path === filePath);
+  if (idx >= 0) {
+    recentFiles[idx].ts = Date.now();
+    recentFiles[idx].tool = name;
+  } else {
+    recentFiles.unshift({ name: fileName, path: filePath, ts: Date.now(), tool: name });
+    if (recentFiles.length > 20) recentFiles.pop();
+  }
+  renderRecentFiles();
+}
+
+function renderRecentFiles() {
+  const bar = document.getElementById('recentFilesBar');
+  if (!bar || recentFiles.length === 0) { if (bar) bar.innerHTML = ''; return; }
+  const icons = {csv:'📊',json:'📋',md:'📝',txt:'📝',html:'🌐',js:'⚡',ts:'⚡',py:'🐍',css:'🎨',pdf:'📄',png:'🖼️',jpg:'🖼️',svg:'🖼️',xlsx:'📊',docx:'📃'};
+  let html = '<span class="recent-files-label">Recent Files</span>';
+  for (const f of recentFiles.slice(0, 10)) {
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    const icon = icons[ext] || '📁';
+    const enc = encodeURIComponent(f.path);
+    html += `<span class="recent-file-chip" onclick="Canvas.openFile('${enc}')" title="${escapeHtml(f.path)}">
+      <span class="chip-icon">${icon}</span>${escapeHtml(f.name)}
+    </span>`;
+  }
+  bar.innerHTML = html;
+}
 let rawLogsOpen = false;
 let rawLogsReader = null; // active fetch reader for raw stream
 let rawMode = false; // false = clean view, true = raw JSON
@@ -1488,6 +1555,8 @@ async function sendMessage(agentId, text, _tabKeyOverride) {
                     } else {
                       ss.tools.push({ name: event.tool.name, input: event.tool.input, ts: Date.now() });
                     }
+                    // Track file creation/modification for recent files bar
+                    if (hasInput) trackFileFromTool(event.tool);
                   }
                   if (isViewing()) {
                     const toolsWrap = document.getElementById('streamingToolsWrap');
@@ -1728,6 +1797,7 @@ function renderChat() {
       <div class="chat-messages" id="chatMessages"></div>
       ${Canvas.getPanelHtml()}
       </div>
+      <div class="recent-files-bar" id="recentFilesBar"></div>
       <div class="chat-input-wrap">
         <div class="file-drop-zone hidden" id="fileDropZone"
           onclick="document.getElementById('fileInput').click()"

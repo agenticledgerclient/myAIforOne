@@ -174,6 +174,28 @@ text-decoration:none;}
   display:flex;flex-direction:column;gap:12px;
 }
 .chat-body-wrap.canvas-open .chat-messages-home{flex:0 0 55%}
+
+/* ─── Recent Files Bar ─────────────────────────────────────── */
+.recent-files-bar{
+  display:flex;align-items:center;gap:6px;padding:4px 12px;
+  border-top:1px solid var(--border-dim);background:var(--bg-surface);
+  overflow-x:auto;flex-shrink:0;
+}
+.recent-files-bar:empty{display:none}
+.recent-files-label{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;
+  white-space:nowrap;flex-shrink:0;
+}
+.recent-file-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:5px;
+  border:1px solid var(--border-dim);background:var(--bg-input);
+  font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);
+  cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;
+}
+.recent-file-chip:hover{border-color:var(--border-glow);color:var(--text-primary);background:var(--accent-bg)}
+.recent-file-chip .chip-icon{font-size:12px}
 .chat-messages-home::-webkit-scrollbar{width:4px}
 .chat-messages-home::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
 
@@ -510,6 +532,7 @@ text-decoration:none;}
       </div>
     </div>
     </div>
+    <div class="recent-files-bar" id="recentFilesBar"></div>
     <div class="logs-drawer" id="logsDrawer">
       <div class="logs-header">
         <span class="drawer-header-title">Raw Logs</span>
@@ -569,6 +592,41 @@ let hubAgentId = null;
 
 // Initialize Canvas module — uses hubAgentId for file downloads
 Canvas.init({ getAgentId: () => hubAgentId, escapeHtml: s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') });
+
+// ─── Recent Files Tracking ─────────────────────────────────────
+let recentFiles = [];
+const FILE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
+
+function trackFileFromTool(tool) {
+  if (!tool || !tool.input) return;
+  let filePath = null;
+  if (FILE_TOOLS.has(tool.name) && tool.input.file_path) {
+    filePath = tool.input.file_path;
+  } else if (tool.name === 'Bash' && tool.input.command) {
+    const m = tool.input.command.match(/>\s*["']?([^\s"'|&;]+\.\w+)/);
+    if (m) filePath = m[1];
+  }
+  if (!filePath) return;
+  const fileName = filePath.split('/').pop() || filePath;
+  const idx = recentFiles.findIndex(f => f.path === filePath);
+  if (idx >= 0) { recentFiles[idx].ts = Date.now(); }
+  else { recentFiles.unshift({ name: fileName, path: filePath, ts: Date.now() }); if (recentFiles.length > 20) recentFiles.pop(); }
+  renderRecentFiles();
+}
+
+function renderRecentFiles() {
+  const bar = document.getElementById('recentFilesBar');
+  if (!bar || recentFiles.length === 0) { if (bar) bar.innerHTML = ''; return; }
+  const icons = {csv:'📊',json:'📋',md:'📝',txt:'📝',html:'🌐',js:'⚡',ts:'⚡',py:'🐍',css:'🎨',pdf:'📄',png:'🖼️',jpg:'🖼️',svg:'🖼️',xlsx:'📊',docx:'📃'};
+  let html = '<span class="recent-files-label">Recent Files</span>';
+  for (const f of recentFiles.slice(0, 10)) {
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    const icon = icons[ext] || '📁';
+    const enc = encodeURIComponent(f.path);
+    html += `<span class="recent-file-chip" onclick="Canvas.openFile('${enc}')" title="${escapeHtml(f.path)}"><span class="chip-icon">${icon}</span>${escapeHtml(f.name)}</span>`;
+  }
+  bar.innerHTML = html;
+}
 let isThinking = false;
 let streamingText = '';
 let voiceModeOn = false;
@@ -1260,6 +1318,9 @@ async function executeHub(text, tabId) {
                 renderMessages();
                 scrollChat();
               } else if (event.type === 'status' || event.type === 'tool') {
+                if (event.type === 'tool' && event.tool && event.tool.input && Object.keys(event.tool.input).length > 0) {
+                  trackFileFromTool(event.tool);
+                }
                 renderMessages();
               } else if (event.type === 'error') {
                 ts.isThinking = false;
