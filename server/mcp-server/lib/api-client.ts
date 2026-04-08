@@ -67,6 +67,15 @@ export const resetSession = (agentId: string, senderId?: string) =>
 export const deleteSession = (agentId: string, senderId: string) =>
   api(`/api/agents/${agentId}/sessions/${senderId}`, { method: "DELETE" });
 
+// ─── Named Session Tabs ────────────────────────────────────────────
+export const listSessionTabs = (agentId: string) => api(`/api/agents/${agentId}/session-tabs`);
+export const getSessionTabHistory = (agentId: string, tabId: string) =>
+  api(`/api/agents/${agentId}/session-tabs/${tabId}/history`);
+export const renameSessionTab = (agentId: string, tabId: string, label: string) =>
+  api(`/api/agents/${agentId}/session-tabs/${tabId}`, { method: "PUT", body: { label } });
+export const deleteSessionTab = (agentId: string, tabId: string) =>
+  api(`/api/agents/${agentId}/session-tabs/${tabId}`, { method: "DELETE" });
+
 // ─── Model ────────────────────────────────────────────────────────
 export const getModel = (agentId: string) => api(`/api/agents/${agentId}/model`);
 export const setModel = (agentId: string, model: string) =>

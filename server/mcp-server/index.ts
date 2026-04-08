@@ -527,6 +527,42 @@ server.tool("delete_session", "Delete a specific sender's session", {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  NAMED SESSION TABS
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_session_tabs", "List all named session tabs for an agent (includes closed/archived sessions with last message preview)", {
+  agentId: z.string().describe("Agent ID"),
+}, async ({ agentId }) => {
+  const r = await api.listSessionTabs(agentId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_session_tab_history", "Get the full conversation history for a specific named session tab", {
+  agentId: z.string().describe("Agent ID"),
+  tabId: z.string().describe("Tab ID (from list_session_tabs)"),
+}, async ({ agentId, tabId }) => {
+  const r = await api.getSessionTabHistory(agentId, tabId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("rename_session_tab", "Rename a named session tab", {
+  agentId: z.string().describe("Agent ID"),
+  tabId: z.string().describe("Tab ID (from list_session_tabs)"),
+  label: z.string().describe("New name for the session"),
+}, async ({ agentId, tabId, label }) => {
+  const r = await api.renameSessionTab(agentId, tabId, label);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_session_tab", "Permanently delete a named session tab and its Claude session state", {
+  agentId: z.string().describe("Agent ID"),
+  tabId: z.string().describe("Tab ID (from list_session_tabs)"),
+}, async ({ agentId, tabId }) => {
+  const r = await api.deleteSessionTab(agentId, tabId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  ADDITIONAL TASKS
 // ═══════════════════════════════════════════════════════════════════
 

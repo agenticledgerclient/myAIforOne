@@ -1092,7 +1092,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[agentId];
     if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
 
-    const { text, accountOverride } = req.body as { text?: string; accountOverride?: string };
+    const { text, accountOverride, senderId: senderIdBody } = req.body as { text?: string; accountOverride?: string; senderId?: string };
     if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
 
     const effectiveAgent = accountOverride
@@ -1106,7 +1106,7 @@ export function startWebUI(opts: WebUIOptions): void {
       channel: "web",
       chatId: "web-ui",
       chatType: "dm",
-      sender: "web-user",
+      sender: senderIdBody || "web-user",
       senderName: "Web UI",
       text,
       timestamp: Date.now(),
@@ -1154,7 +1154,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agent = opts.config.agents[agentId];
     if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
 
-    const { text, accountOverride } = req.body as { text?: string; accountOverride?: string };
+    const { text, accountOverride, senderId: senderIdStream } = req.body as { text?: string; accountOverride?: string; senderId?: string };
     if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
 
     // Apply account override from web UI dropdown.
@@ -1192,7 +1192,7 @@ export function startWebUI(opts: WebUIOptions): void {
       channel: "web",
       chatId: "web-ui",
       chatType: "dm",
-      sender: "web-user",
+      sender: senderIdStream || "web-user",
       senderName: "Web UI",
       text,
       timestamp: Date.now(),
@@ -4703,6 +4703,128 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     if (!existsSync(sessionPath)) return res.status(404).json({ error: "Session not found" });
     try { unlinkSync(sessionPath); res.json({ ok: true }); }
     catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ─── API: Named Session Tabs (server-side persistence) ─────────────────────
+
+  function sessionTabsPath(agentId: string): string | null {
+    const memDir = agentMemDir(agentId);
+    if (!memDir) return null;
+    return join(memDir, "session-tabs.json");
+  }
+
+  function readSessionTabs(agentId: string): { tabs: any[] } {
+    const p = sessionTabsPath(agentId);
+    if (!p || !existsSync(p)) return { tabs: [] };
+    try { return JSON.parse(readFileSync(p, "utf-8")); } catch { return { tabs: [] }; }
+  }
+
+  function writeSessionTabs(agentId: string, data: { tabs: any[] }): void {
+    const p = sessionTabsPath(agentId);
+    if (!p) return;
+    const memDir = agentMemDir(agentId)!;
+    if (!existsSync(memDir)) mkdirSync(memDir, { recursive: true });
+    writeFileSync(p, JSON.stringify(data, null, 2));
+  }
+
+  // GET /api/agents/:agentId/session-tabs — list all named sessions with last activity
+  app.get("/api/agents/:agentId/session-tabs", (req, res) => {
+    if (!agentMemDir(req.params.agentId)) return res.status(404).json({ error: "Agent not found" });
+    const data = readSessionTabs(req.params.agentId);
+    const memDir = agentMemDir(req.params.agentId)!;
+    const logPath = join(memDir, "conversation_log.jsonl");
+    // Enrich each tab with lastMessageAt + lastPreview from JSONL
+    if (existsSync(logPath)) {
+      try {
+        const lines = readFileSync(logPath, "utf-8").split("\n").filter(Boolean);
+        const lastByTab: Record<string, { ts: string; preview: string }> = {};
+        for (const line of lines) {
+          try {
+            const e = JSON.parse(line);
+            if (e.from && (!lastByTab[e.from] || e.ts > lastByTab[e.from].ts)) {
+              lastByTab[e.from] = { ts: e.ts, preview: (e.text || "").slice(0, 60) };
+            }
+          } catch { /* skip malformed */ }
+        }
+        data.tabs = data.tabs.map((t: any) => ({
+          ...t,
+          lastMessageAt: lastByTab[t.id]?.ts || t.createdAt,
+          lastPreview: lastByTab[t.id]?.preview || "",
+        }));
+      } catch { /* ignore, return tabs without enrichment */ }
+    }
+    // Sort newest first
+    data.tabs.sort((a: any, b: any) => (b.lastMessageAt || b.createdAt) > (a.lastMessageAt || a.createdAt) ? 1 : -1);
+    res.json({ tabs: data.tabs });
+  });
+
+  // POST /api/agents/:agentId/session-tabs — register/upsert a tab
+  app.post("/api/agents/:agentId/session-tabs", (req, res) => {
+    const { agentId } = req.params;
+    if (!agentMemDir(agentId)) return res.status(404).json({ error: "Agent not found" });
+    const { tabId, label } = req.body as { tabId?: string; label?: string };
+    if (!tabId) return res.status(400).json({ error: "tabId required" });
+    const data = readSessionTabs(agentId);
+    const idx = data.tabs.findIndex((t: any) => t.id === tabId);
+    if (idx >= 0) {
+      if (label) data.tabs[idx].label = label;
+      data.tabs[idx].updatedAt = new Date().toISOString();
+    } else {
+      data.tabs.push({ id: tabId, label: label || `Session ${data.tabs.length + 1}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    }
+    writeSessionTabs(agentId, data);
+    res.json({ ok: true, tab: data.tabs.find((t: any) => t.id === tabId) });
+  });
+
+  // PUT /api/agents/:agentId/session-tabs/:tabId — rename a tab
+  app.put("/api/agents/:agentId/session-tabs/:tabId", (req, res) => {
+    const { agentId, tabId } = req.params;
+    if (!agentMemDir(agentId)) return res.status(404).json({ error: "Agent not found" });
+    const { label } = req.body as { label?: string };
+    if (!label?.trim()) return res.status(400).json({ error: "label required" });
+    const data = readSessionTabs(agentId);
+    const tab = data.tabs.find((t: any) => t.id === tabId);
+    if (!tab) return res.status(404).json({ error: "Tab not found" });
+    tab.label = label.trim();
+    tab.updatedAt = new Date().toISOString();
+    writeSessionTabs(agentId, data);
+    res.json({ ok: true, tab });
+  });
+
+  // DELETE /api/agents/:agentId/session-tabs/:tabId — permanently delete a tab + its session
+  app.delete("/api/agents/:agentId/session-tabs/:tabId", (req, res) => {
+    const { agentId, tabId } = req.params;
+    const memDir = agentMemDir(agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const data = readSessionTabs(agentId);
+    data.tabs = data.tabs.filter((t: any) => t.id !== tabId);
+    writeSessionTabs(agentId, data);
+    // Also clear the Claude session file so if re-opened it starts fresh
+    const sessionFile = join(memDir, `session-${tabId}.json`);
+    if (existsSync(sessionFile)) { try { unlinkSync(sessionFile); } catch { /* ignore */ } }
+    res.json({ ok: true });
+  });
+
+  // GET /api/agents/:agentId/session-tabs/:tabId/history — replay chat from JSONL
+  app.get("/api/agents/:agentId/session-tabs/:tabId/history", (req, res) => {
+    const { agentId, tabId } = req.params;
+    const memDir = agentMemDir(agentId);
+    if (!memDir) return res.status(404).json({ error: "Agent not found" });
+    const logPath = join(memDir, "conversation_log.jsonl");
+    if (!existsSync(logPath)) return res.json({ messages: [] });
+    try {
+      const lines = readFileSync(logPath, "utf-8").split("\n").filter(Boolean);
+      const messages: any[] = [];
+      for (const line of lines) {
+        try {
+          const e = JSON.parse(line);
+          if (e.from !== tabId) continue;
+          if (e.text) messages.push({ role: "user", text: e.text, time: e.ts });
+          if (e.response) messages.push({ role: "agent", text: e.response, time: e.ts });
+        } catch { /* skip malformed */ }
+      }
+      res.json({ messages });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   // ─── API: Model Overrides ───────────────────────────────────────────

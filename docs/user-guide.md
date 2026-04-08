@@ -590,12 +590,31 @@ All chat actions, APIs, and MCP tools are identical to Home (see [Section 1.2](#
 
 | Action | API | MCP |
 |--------|-----|-----|
-| List sessions | `GET /api/agents/:agentId/sessions` | `list_sessions` |
+| List sessions (low-level) | `GET /api/agents/:agentId/sessions` | `list_sessions` |
 | | | **Params:** `agentId` |
 | Reset session | `POST /api/agents/:agentId/sessions/reset` | `reset_session` |
 | | **Body:** `{ senderId? }` | **Params:** `agentId`, `senderId?` |
 | Delete session | `DELETE /api/agents/:agentId/sessions/:senderId` | `delete_session` |
 | | | **Params:** `agentId`, `senderId` |
+
+### Named Session Tabs (server-side threads)
+
+Each agent supports named, persistent session threads visible in the Web UI tab bar. Sessions survive browser resets and are stored in `agents/<agentId>/memory/session-tabs.json`. Conversation history is replayed from `conversation_log.jsonl` by `tabId`.
+
+| Action | API | MCP |
+|--------|-----|-----|
+| List all session tabs | `GET /api/agents/:agentId/session-tabs` | `list_session_tabs` |
+| | Returns tabs sorted newest-first with `lastMessageAt` + `lastPreview` | **Params:** `agentId` |
+| Get conversation history | `GET /api/agents/:agentId/session-tabs/:tabId/history` | `get_session_tab_history` |
+| | Returns `{ messages: [{role, text, time}] }` filtered by tabId | **Params:** `agentId`, `tabId` |
+| Register/upsert tab | `POST /api/agents/:agentId/session-tabs` | — |
+| | **Body:** `{ tabId, label }` | |
+| Rename tab | `PUT /api/agents/:agentId/session-tabs/:tabId` | `rename_session_tab` |
+| | **Body:** `{ label }` | **Params:** `agentId`, `tabId`, `label` |
+| Delete tab (permanent) | `DELETE /api/agents/:agentId/session-tabs/:tabId` | `delete_session_tab` |
+| | Also clears Claude session file | **Params:** `agentId`, `tabId` |
+
+**Note:** `senderId` in messages sent from the Web UI is the `tabId`. This is what links JSONL log entries to a specific named thread. For agents to maintain separate memory per tab, set `persistent: true` and `perSenderSessions: true` in the agent config.
 
 ### Model Override (not visible in UI, API/MCP only)
 
@@ -1547,6 +1566,7 @@ Quick reference — all 117 MCP tools alphabetically:
 | -- | `delete_project` | Projects |
 | 28 | `delete_mcp_key` | MCPs |
 | 29 | `delete_session` | Sessions |
+| -- | `delete_session_tab` | Session Tabs |
 | 30 | `delete_task` | Tasks |
 | -- | `execute_project` | Projects |
 | 31 | `download_agent_file` | Files |
@@ -1556,6 +1576,7 @@ Quick reference — all 117 MCP tools alphabetically:
 | 35 | `get_agent_instructions` | Agents |
 | 36 | `get_agent_logs` | Activity |
 | 37 | `get_agent_memory` | Memory |
+| -- | `get_session_tab_history` | Session Tabs |
 | 38 | `get_agent_registry` | Agents |
 | 39 | `get_agent_skills` | Skills |
 | 40 | `get_all_costs` | Cost |
@@ -1594,12 +1615,14 @@ Quick reference — all 117 MCP tools alphabetically:
 | 70 | `list_paired_senders` | Pairing |
 | -- | `list_projects` | Projects |
 | 71 | `list_sessions` | Sessions |
+| -- | `list_session_tabs` | Session Tabs |
 | 72 | `list_tasks` | Tasks |
 | 73 | `list_accounts` | Accounts |
 | 74 | `pair_sender` | Pairing |
 | -- | `pause_project` | Projects |
 | 75 | `publish_to_saas` | SaaS |
 | 76 | `recover_agent` | Agents |
+| -- | `rename_session_tab` | Session Tabs |
 | 77 | `remove_agent_route` | Channels |
 | 78 | `remove_monitored_chat` | Channels |
 | 79 | `reset_session` | Sessions |
