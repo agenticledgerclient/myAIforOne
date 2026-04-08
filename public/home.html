@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyAIforOne</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="/canvas.css">
+<script src="/canvas.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -484,9 +489,26 @@ text-decoration:none;}
       <select class="header-btn" id="accountSelect" style="padding:2px 6px;cursor:pointer;display:none" onchange="setAccountOverride(this.value)" title="Claude Account override"></select>
       <button class="header-btn danger" onclick="confirmResetSession()" title="Reset hub session">&#x21BA; Reset session</button>
       <button class="header-btn" id="configureHubLink" onclick="openConfigOverlay()" title="Configure hub agent">&#x2699; Configure</button>
+      <button class="canvas-toggle-btn" onclick="Canvas.toggle()" title="Toggle preview panel">&#x25A8; Canvas</button>
     </div>
     <div class="session-tabs" id="homeSessionTabBar"></div>
-    <div class="chat-messages-home" id="chatMessages"></div>
+    <div class="chat-body-wrap" id="chatBodyWrap">
+    <div class="chat-messages-home chat-messages" id="chatMessages"></div>
+    <div class="canvas-panel" id="canvasPanel">
+      <div class="canvas-resize-handle" id="canvasResizeHandle"></div>
+      <div class="canvas-header">
+        <span class="canvas-file-icon">&#x25A8;</span>
+        <span class="canvas-filename" style="color:var(--text-muted)">No file open</span>
+        <button class="canvas-header-btn" onclick="Canvas.close()" title="Close">&#x2715;</button>
+      </div>
+      <div class="canvas-content" style="display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text-muted);font-size:13px">
+        <div style="text-align:center">
+          <div style="font-size:32px;opacity:.3;margin-bottom:8px">&#x25A8;</div>
+          <div>Click "Preview" on a file path to open it here</div>
+        </div>
+      </div>
+    </div>
+    </div>
     <div class="logs-drawer" id="logsDrawer">
       <div class="logs-header">
         <span class="drawer-header-title">Raw Logs</span>
@@ -543,6 +565,9 @@ text-decoration:none;}
 let agents = [];
 let messages = [];
 let hubAgentId = null;
+
+// Initialize Canvas module — uses hubAgentId for file downloads
+Canvas.init({ getAgentId: () => hubAgentId, escapeHtml: s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') });
 let isThinking = false;
 let streamingText = '';
 let voiceModeOn = false;
@@ -1366,6 +1391,8 @@ function formatMarkdown(text) {
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Detect file paths and add download/preview buttons (via Canvas module)
+  html = Canvas.injectFileButtons(html, escapeHtml);
   html = html.replace(/\n/g, '<br>');
   return html;
 }
