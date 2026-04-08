@@ -842,7 +842,7 @@ export async function executeAgent(
   const effectivePrompts = [...new Set([...(agentConfig.prompts || []), ...(globalDefaults?.prompts || [])])];
   const _home = homedir();
   const expandTilde = (p: string) => p.startsWith("~") ? p.replace("~", _home) : p;
-  const workspace = resolve(agentConfig.workspace);
+  const workspace = resolve(expandTilde(agentConfig.workspace));
   const claudeMdPath = resolve(baseDir, expandTilde(agentConfig.claudeMd));
   const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
@@ -1486,7 +1486,7 @@ export async function* executeAgentStreaming(
   const effectivePrompts = [...new Set([...(agentConfig.prompts || []), ...(globalDefaults?.prompts || [])])];
   const _home = homedir();
   const expandTilde = (p: string) => p.startsWith("~") ? p.replace("~", _home) : p;
-  const workspace = resolve(agentConfig.workspace);
+  const workspace = resolve(expandTilde(agentConfig.workspace));
   const claudeMdPath = resolve(baseDir, expandTilde(agentConfig.claudeMd));
   const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
