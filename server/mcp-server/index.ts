@@ -461,6 +461,13 @@ server.tool("update_service_config", "Update service settings (restart required)
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+server.tool("test_provider", "Test an API key for a cloud provider (OpenAI, Grok, Gemini, Groq, Together, Mistral)", {
+  provider: z.string().describe("Provider name: openai, grok, gemini, groq, together, or mistral"),
+}, async ({ provider }) => {
+  const r = await api.testProvider(provider);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 // ═══════════════════════════════════════════════════════════════════
 //  APPS
 // ═══════════════════════════════════════════════════════════════════

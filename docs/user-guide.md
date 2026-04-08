@@ -232,7 +232,7 @@ Opened by **+ New Agent** button or clicking an agent's Config button. Has 6 tab
 | **Description** | Short description of the agent's purpose. |
 | **Instructions (CLAUDE.md)** | System prompt written to the agent's CLAUDE.md file. Multi-line textarea. |
 | **Agent Class** | Dropdown: Standard, Builder, Platform. |
-| **Executor** | Dropdown: Platform Default, Claude, or any Ollama model (when multi-model is enabled). Overrides the service-level default executor for this agent. |
+| **Executor** | Dropdown: Platform Default, Claude, Ollama models, or cloud providers — OpenAI, Grok (xAI), Gemini, Groq, Together, Mistral (when multi-model is enabled). Format: `provider:model` (e.g., `openai:gpt-4o`, `gemini:gemini-2.5-flash`, `grok:grok-3`). Overrides the service-level default executor for this agent. |
 
 #### Organization Entries
 Each agent can belong to multiple organizations. Per entry:
@@ -1207,26 +1207,48 @@ Each account row shows:
 
 ### AI Models Section
 - **Section label:** "AI Models" (amber highlight)
-- **Toggle:** Enable Multi-Model — enables/disables Ollama-based model routing
+- **Toggle:** Enable Multi-Model — enables/disables alternative model routing (Ollama + cloud providers)
 - **Setup guide** (shown when enabled): Platform-specific install instructions for Ollama (macOS, Windows, Linux), model pull commands, and a "Test Connection" button that checks Ollama availability and lists downloaded models
 - **Settings grid:**
 
 | Field | Description |
 |-------|-------------|
-| **Platform Default Executor** | Default executor for all agents: `claude` (default) or `ollama:<model>` |
+| **Platform Default Executor** | Default executor for all agents: `claude` (default), `ollama:<model>`, or any supported provider:model combo |
 | **Ollama Base URL** | Ollama API endpoint (default: `http://localhost:11434`) |
 
 - **Save button** — saves AI model settings
-- **Limitations:** Ollama agents get text-in/text-out only — no tool use (Read, Write, Bash), no MCP tools, no persistent sessions
+
+#### Supported Providers
+
+| Provider | Executor format | API key field | Example |
+|----------|----------------|---------------|---------|
+| **Claude** | `claude` (default) | — (uses local CLI auth) | `claude` |
+| **Ollama** | `ollama:<model>` | — (local, no key) | `ollama:gemma2`, `ollama:llama3.1` |
+| **OpenAI** | `openai:<model>` | `openai` | `openai:gpt-4o`, `openai:gpt-4o-mini` |
+| **Grok (xAI)** | `grok:<model>` | `xai` | `grok:grok-3`, `grok:grok-3-mini` |
+| **Gemini** | `gemini:<model>` | `google` | `gemini:gemini-2.5-flash`, `gemini:gemini-2.5-pro` |
+| **Groq** | `groq:<model>` | `groq` | `groq:llama-3.3-70b-versatile` |
+| **Together** | `together:<model>` | `together` | `together:meta-llama/Llama-3.3-70B-Instruct` |
+| **Mistral** | `mistral:<model>` | `mistral` | `mistral:mistral-large-latest` |
+
+API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "openai": "sk-...", "xai": "xai-...", "google": "AIza..." }`). Set them in Admin → Settings → Provider Keys.
+
+- **Limitations:** Non-Claude agents (Ollama + cloud providers) get text-in/text-out only — no tool use (Read, Write, Bash), no MCP tools, no persistent sessions. Good for Q&A, content generation, and advisory roles.
 
 | Action | API | MCP |
 |--------|-----|-----|
 | Enable multi-model | `PUT /api/config/service` | `update_service_config` |
 | | **Body:** `{ multiModelEnabled: true }` | **Params:** `{ multiModelEnabled: true }` |
 | Set platform default | `PUT /api/config/service` | `update_service_config` |
-| | **Body:** `{ platformDefaultExecutor: "ollama:gemma2" }` | **Params:** `{ platformDefaultExecutor: "ollama:gemma2" }` |
+| | **Body:** `{ platformDefaultExecutor: "openai:gpt-4o" }` | **Params:** `{ platformDefaultExecutor: "openai:gpt-4o" }` |
 | Set Ollama URL | `PUT /api/config/service` | `update_service_config` |
 | | **Body:** `{ ollamaBaseUrl: "http://host:11434" }` | **Params:** `{ ollamaBaseUrl: "http://host:11434" }` |
+| Set provider API keys | `PUT /api/config/service` | `update_service_config` |
+| | **Body:** `{ providerKeys: { openai: "sk-...", xai: "xai-..." } }` | **Params:** `{ providerKeys: { ... } }` |
+| Test provider API key | `POST /api/config/provider-test` | `test_provider` |
+| | **Body:** `{ provider: "openai" }` — tests the configured key for that provider | **Params:** `provider` (string: openai, grok, gemini, groq, together, mistral) |
+| Proxy Ollama tag list | `GET /api/ollama-proxy?url=<ollamaUrl>/api/tags` | — (internal) |
+| | **Query:** `url` — only `/api/tags` proxy is allowed | N/A — used by the Settings UI to list local Ollama models |
 
 ### Deployment Section
 - **Section label:** "Deployment" (green highlight)
@@ -1638,8 +1660,9 @@ Quick reference — all 117 MCP tools alphabetically:
 | 89 | `start_stream` | Chat |
 | 90 | `stop_chat_job` | Chat |
 | 91 | `submit_login_code` | Accounts |
-| 92 | `test_saas_connection` | SaaS |
-| 93 | `toggle_cron` | Cron |
+| 92 | `test_provider` | Service Config / Multi-Provider |
+| 93 | `test_saas_connection` | SaaS |
+| 94 | `toggle_cron` | Cron |
 | 94 | `toggle_goal` | Goals |
 | 95 | `trigger_cron` | Cron |
 | 96 | `trigger_goal` | Goals |

@@ -259,6 +259,7 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 |------|-------------|------------|
 | `get_service_config` | Get service settings | — |
 | `update_service_config` | Update settings (restart required) | `personalAgentsDir`, `webUIPort`, `logLevel`, etc. |
+| `test_provider` | Test API key for a cloud provider | `provider` (openai, grok, gemini, groq, together, mistral) |
 | `restart_service` | Restart the gateway service | — |
 | `install_xbar` | Install macOS status bar plugin | — |
 
