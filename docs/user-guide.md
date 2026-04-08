@@ -1149,6 +1149,28 @@ Each entry shows:
 
 **Tab:** Settings (default)
 
+### Profile Section
+- **Section label:** "Profile" (cyan highlight)
+- **Description:** "Your identity — agents can use this to personalize responses"
+- **Fields:**
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Your name |
+| **Role / Title** | Your job role (e.g., product manager, developer, student) |
+| **Industry** | Your industry or domain (e.g., fintech, healthcare, education) |
+| **AI Experience** | Dropdown: Beginner, Intermediate, Advanced |
+| **Interests** | Comma-separated list of focus areas (e.g., automation, coding, writing) |
+
+- **Save button** — persists profile to `profile.json`
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Get profile | `GET /api/profile` | `get_profile` |
+| | | *(no params)* |
+| Update profile | `PUT /api/profile` | `update_profile` |
+| | **Body:** `{ name?, role?, industry?, aiExperience?, interests? }` | **Params:** `name?`, `role?`, `industry?`, `aiExperience?`, `interests?` |
+
 ### Claude Accounts Section
 
 #### Account List
@@ -1615,6 +1637,7 @@ Quick reference — all 117 MCP tools alphabetically:
 | -- | `get_platform_agents` | Lab |
 | -- | `get_project` | Projects |
 | -- | `get_project_status` | Projects |
+| -- | `get_profile` | Profile |
 | -- | `get_prompt_trigger` | Marketplace |
 | 53 | `get_saas_config` | SaaS |
 | 54 | `get_service_config` | Config |
@@ -1673,6 +1696,7 @@ Quick reference — all 117 MCP tools alphabetically:
 | 100 | `update_agent` | Agents |
 | 101 | `update_app` | Apps |
 | 102 | `update_channel` | Channels |
+| -- | `update_profile` | Profile |
 | -- | `update_project` | Projects |
 | 103 | `update_saas_config` | SaaS |
 | 104 | `update_service_config` | Config |

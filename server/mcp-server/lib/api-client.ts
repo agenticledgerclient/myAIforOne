@@ -196,6 +196,10 @@ export const updateServiceConfig = (body: any) =>
 export const testProvider = (provider: string) =>
   api("/api/config/provider-test", { method: "POST", body: { provider } });
 
+// ─── Profile ────────────────────────────────────────────────────────
+export const getProfile = () => api("/api/profile");
+export const updateProfile = (body: any) => api("/api/profile", { method: "PUT", body });
+
 // ─── Files ────────────────────────────────────────────────────────
 export const listFiles = (agentId: string) => api(`/api/agents/${agentId}/files`);
 export const downloadFile = (agentId: string, path: string) =>

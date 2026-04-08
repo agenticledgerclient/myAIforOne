@@ -293,6 +293,47 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
       <div class="page-title">Settings</div>
       <div class="page-subtitle">Manage Claude accounts, service options, and global defaults.</div>
 
+      <!-- ── Profile ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:var(--cyan-bg,rgba(0,188,212,.12));border-color:var(--cyan,#00bcd4);color:var(--cyan,#00bcd4)">&#9786;</div>
+          <div>
+            <div class="section-title" style="color:var(--cyan,#00bcd4)">Profile</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Your identity — agents can use this to personalize responses</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="service-grid">
+            <div class="field">
+              <label>Name</label>
+              <input id="profileName" placeholder="Your name" />
+            </div>
+            <div class="field">
+              <label>Role / Title</label>
+              <input id="profileRole" placeholder="Product manager, developer, student…" />
+            </div>
+            <div class="field">
+              <label>Industry</label>
+              <input id="profileIndustry" placeholder="Fintech, healthcare, education…" />
+            </div>
+            <div class="field">
+              <label>AI Experience</label>
+              <select id="profileAiExperience">
+                <option value="">— select —</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" style="margin-top:10px">
+            <label>Interests <span style="font-size:10px;color:var(--text-muted)">(comma-separated)</span></label>
+            <input id="profileInterests" placeholder="automation, coding, writing, research…" />
+          </div>
+          <button class="btn-save" onclick="saveProfile()">Save</button>
+        </div>
+      </div>
+
       <!-- ── Claude Accounts ── -->
       <div class="section">
         <div class="section-header">
@@ -617,7 +658,7 @@ function switchTab(name) {
   // Lazy-load tab data
   if (name === 'channels' && !channelsLoaded) loadChannels();
   if (name === 'activity' && !activityLoaded) initActivity();
-  if (name === 'settings' && !settingsLoaded) { loadAccounts(); loadService(); loadSaas(); settingsLoaded = true; }
+  if (name === 'settings' && !settingsLoaded) { loadProfile(); loadAccounts(); loadService(); loadSaas(); settingsLoaded = true; }
   // Update URL param
   const url = new URL(location.href);
   url.searchParams.set('tab', name);
@@ -1170,6 +1211,34 @@ async function saveAccount(name, path) {
   accounts[name] = path;
   renderAccounts();
   checkStatus(name);
+}
+
+async function loadProfile() {
+  try {
+    const res = await fetch('/api/profile');
+    const p = await res.json();
+    document.getElementById('profileName').value = p.name || '';
+    document.getElementById('profileRole').value = p.role || '';
+    document.getElementById('profileIndustry').value = p.industry || '';
+    document.getElementById('profileAiExperience').value = p.aiExperience || '';
+    document.getElementById('profileInterests').value = (p.interests || []).join(', ');
+  } catch {}
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profileName').value.trim();
+  const role = document.getElementById('profileRole').value.trim();
+  const industry = document.getElementById('profileIndustry').value.trim();
+  const aiExperience = document.getElementById('profileAiExperience').value;
+  const interestsRaw = document.getElementById('profileInterests').value.trim();
+  const interests = interestsRaw ? interestsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const res = await fetch('/api/profile', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name, role, industry, aiExperience: aiExperience || undefined, interests })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast('Profile saved');
 }
 
 async function loadService() {

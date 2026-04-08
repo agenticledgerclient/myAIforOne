@@ -469,6 +469,26 @@ server.tool("test_provider", "Test an API key for a cloud provider (OpenAI, Grok
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  PROFILE
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("get_profile", "Get the user's profile (name, role, industry, AI experience, interests)", {}, async () => {
+  const r = await api.getProfile();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_profile", "Update the user's profile", {
+  name: z.string().optional().describe("User's name"),
+  role: z.string().optional().describe("Role / job title"),
+  industry: z.string().optional().describe("Industry or domain"),
+  aiExperience: z.enum(["beginner", "intermediate", "advanced"]).optional().describe("AI experience level"),
+  interests: z.array(z.string()).optional().describe("List of interests or focus areas"),
+}, async (body) => {
+  const r = await api.updateProfile(body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  APPS
 // ═══════════════════════════════════════════════════════════════════
 

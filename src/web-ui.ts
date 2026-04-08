@@ -538,6 +538,41 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── API: Profile ────────────────────────────────────────────────────
+
+  function profilePath(): string {
+    return join(opts.baseDir, "profile.json");
+  }
+
+  function readProfile(): Record<string, any> {
+    const p = profilePath();
+    if (!existsSync(p)) return {};
+    try { return JSON.parse(readFileSync(p, "utf-8")); } catch { return {}; }
+  }
+
+  app.get("/api/profile", (_req, res) => {
+    res.json(readProfile());
+  });
+
+  app.put("/api/profile", (req, res) => {
+    const { name, role, industry, aiExperience, interests, avatar } = req.body as any;
+    try {
+      const current = readProfile();
+      if (name !== undefined) current.name = name;
+      if (role !== undefined) current.role = role;
+      if (industry !== undefined) current.industry = industry;
+      if (aiExperience !== undefined) current.aiExperience = aiExperience;
+      if (interests !== undefined) current.interests = interests;
+      if (avatar !== undefined) current.avatar = avatar;
+      if (!current.createdAt) current.createdAt = new Date().toISOString();
+      current.updatedAt = new Date().toISOString();
+      writeFileSync(profilePath(), JSON.stringify(current, null, 2));
+      res.json({ ok: true, profile: current });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── API: SaaS Publishing ──────────────────────────────────────────
 
   app.get("/api/saas/config", (_req, res) => {

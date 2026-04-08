@@ -253,6 +253,13 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 | `start_account_login` | Start OAuth login, returns URL | `name`, `path` |
 | `submit_login_code` | Submit auth code | `accountName`, `code` |
 
+### Profile
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `get_profile` | Get user's profile (name, role, industry, experience, interests) | — |
+| `update_profile` | Update user's profile | `name?`, `role?`, `industry?`, `aiExperience?`, `interests?` |
+
 ### Service Config
 
 | Tool | What it does | Key params |
