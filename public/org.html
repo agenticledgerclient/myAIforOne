@@ -1112,7 +1112,7 @@ text-decoration:none;}
           <option value="">Platform Default</option>
           <option value="claude">Claude</option>
         </select>
-        <div class="form-hint">Override the platform default executor for this agent. "Platform Default" uses the service-level setting. Ollama models appear when multi-model is enabled.</div>
+        <div class="form-hint">Override the platform default executor. Supports Claude, Ollama, OpenAI, Grok, Gemini, Groq, Together, Mistral. Requires multi-model enabled + API key in Admin → Settings.</div>
       </div>
 
       <div class="form-section">Organization</div>
@@ -2087,27 +2087,56 @@ async function loadExecutorOptions(currentValue) {
     const r = await fetch('/api/config/service');
     const svc = await r.json();
     if (svc.multiModelEnabled) {
+      // Cloud providers — add popular models for each configured provider
+      const pk = svc.providerKeys || {};
+      const cloudModels = [
+        { key: 'openai', prefix: 'openai', label: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'o3-mini'] },
+        { key: 'xai', prefix: 'grok', label: 'Grok', models: ['grok-3', 'grok-3-mini', 'grok-2'] },
+        { key: 'google', prefix: 'gemini', label: 'Gemini', models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'] },
+        { key: 'groq', prefix: 'groq', label: 'Groq', models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'] },
+        { key: 'together', prefix: 'together', label: 'Together', models: ['meta-llama/Llama-3.3-70B-Instruct', 'mistralai/Mixtral-8x22B-Instruct-v0.1'] },
+        { key: 'mistral', prefix: 'mistral', label: 'Mistral', models: ['mistral-large-latest', 'mistral-small-latest', 'codestral-latest'] },
+      ];
+      for (const provider of cloudModels) {
+        if (pk[provider.key]) {
+          const group = document.createElement('optgroup');
+          group.label = provider.label;
+          for (const model of provider.models) {
+            const opt = document.createElement('option');
+            opt.value = provider.prefix + ':' + model;
+            opt.textContent = model;
+            group.appendChild(opt);
+          }
+          sel.appendChild(group);
+        }
+      }
       // Fetch available Ollama models
       try {
         const ollamaUrl = (svc.ollamaBaseUrl || 'http://localhost:11434') + '/api/tags';
         const mr = await fetch('/api/ollama-proxy?url=' + encodeURIComponent(ollamaUrl));
         if (mr.ok) {
           const data = await mr.json();
-          (data.models || []).forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = 'ollama:' + m.name;
-            opt.textContent = 'Ollama: ' + m.name;
-            sel.appendChild(opt);
-          });
+          const models = data.models || [];
+          if (models.length > 0) {
+            const group = document.createElement('optgroup');
+            group.label = 'Ollama (local)';
+            models.forEach(m => {
+              const opt = document.createElement('option');
+              opt.value = 'ollama:' + m.name;
+              opt.textContent = m.name;
+              group.appendChild(opt);
+            });
+            sel.appendChild(group);
+          }
         }
-      } catch(e) { /* Ollama not reachable — just show static options */ }
+      } catch(e) { /* Ollama not reachable */ }
     }
   } catch(e) { /* service config fetch failed */ }
-  // If current value is an ollama model not in the list, add it
-  if (currentValue && currentValue.startsWith('ollama:') && !sel.querySelector(`option[value="${currentValue}"]`)) {
+  // If current value is not in the list, add it so it's not lost
+  if (currentValue && currentValue !== 'claude' && !sel.querySelector(`option[value="${currentValue}"]`)) {
     const opt = document.createElement('option');
     opt.value = currentValue;
-    opt.textContent = 'Ollama: ' + currentValue.slice(7);
+    opt.textContent = currentValue;
     sel.appendChild(opt);
   }
   sel.value = currentValue || '';

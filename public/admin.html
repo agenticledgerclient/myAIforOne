@@ -418,6 +418,40 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
               <input id="svcOllamaBaseUrl" placeholder="http://localhost:11434" />
             </div>
           </div>
+
+          <div style="margin:16px 0 8px;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Provider API Keys</div>
+          <div class="service-grid" id="providerKeyFields">
+            <div class="field">
+              <label>OpenAI <span style="font-size:9px;color:var(--text-muted)">(openai:gpt-4o)</span></label>
+              <input id="keyOpenai" type="password" placeholder="sk-..." autocomplete="off" />
+              <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('openai')">Test</button>
+            </div>
+            <div class="field">
+              <label>xAI / Grok <span style="font-size:9px;color:var(--text-muted)">(grok:grok-3)</span></label>
+              <input id="keyXai" type="password" placeholder="xai-..." autocomplete="off" />
+              <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('grok')">Test</button>
+            </div>
+            <div class="field">
+              <label>Google Gemini <span style="font-size:9px;color:var(--text-muted)">(gemini:gemini-2.5-flash)</span></label>
+              <input id="keyGoogle" type="password" placeholder="AIza..." autocomplete="off" />
+              <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('gemini')">Test</button>
+            </div>
+            <div class="field">
+              <label>Groq <span style="font-size:9px;color:var(--text-muted)">(groq:llama-3.3-70b-versatile)</span></label>
+              <input id="keyGroq" type="password" placeholder="gsk_..." autocomplete="off" />
+              <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('groq')">Test</button>
+            </div>
+            <div class="field">
+              <label>Together <span style="font-size:9px;color:var(--text-muted)">(together:meta-llama/...)</span></label>
+              <input id="keyTogether" type="password" placeholder="..." autocomplete="off" />
+              <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('together')">Test</button>
+            </div>
+            <div class="field">
+              <label>Mistral <span style="font-size:9px;color:var(--text-muted)">(mistral:mistral-large-latest)</span></label>
+              <input id="keyMistral" type="password" placeholder="..." autocomplete="off" />
+              <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('mistral')">Test</button>
+            </div>
+          </div>
           <button class="btn-save" onclick="saveMultiModel()">Save</button>
         </div>
       </div>
@@ -1154,6 +1188,14 @@ async function loadService() {
   document.getElementById('svcMultiModelEnabled').checked = !!s.multiModelEnabled;
   document.getElementById('svcPlatformDefaultExecutor').value = s.platformDefaultExecutor || '';
   document.getElementById('svcOllamaBaseUrl').value = s.ollamaBaseUrl || '';
+  // Provider keys (masked values from API)
+  const pk = s.providerKeys || {};
+  document.getElementById('keyOpenai').value = pk.openai || '';
+  document.getElementById('keyXai').value = pk.xai || '';
+  document.getElementById('keyGoogle').value = pk.google || '';
+  document.getElementById('keyGroq').value = pk.groq || '';
+  document.getElementById('keyTogether').value = pk.together || '';
+  document.getElementById('keyMistral').value = pk.mistral || '';
   updateMultiModelFieldsVisibility();
 }
 
@@ -1176,6 +1218,8 @@ function updateMultiModelFieldsVisibility() {
   document.getElementById('multiModelFields').style.opacity = on ? '1' : '0.4';
   document.getElementById('multiModelFields').style.pointerEvents = on ? 'auto' : 'none';
   document.getElementById('ollamaSetupGuide').style.display = on ? 'block' : 'none';
+  const pkf = document.getElementById('providerKeyFields');
+  if (pkf) { pkf.style.opacity = on ? '1' : '0.4'; pkf.style.pointerEvents = on ? 'auto' : 'none'; }
 }
 document.addEventListener('DOMContentLoaded', () => {
   const cb = document.getElementById('svcMultiModelEnabled');
@@ -1214,13 +1258,44 @@ async function saveMultiModel() {
   const multiModelEnabled = document.getElementById('svcMultiModelEnabled').checked;
   const platformDefaultExecutor = document.getElementById('svcPlatformDefaultExecutor').value.trim() || 'claude';
   const ollamaBaseUrl = document.getElementById('svcOllamaBaseUrl').value.trim() || 'http://localhost:11434';
+  // Collect provider keys — only send non-masked values
+  const providerKeys = {};
+  const keyMap = { keyOpenai: 'openai', keyXai: 'xai', keyGoogle: 'google', keyGroq: 'groq', keyTogether: 'together', keyMistral: 'mistral' };
+  for (const [elId, field] of Object.entries(keyMap)) {
+    const val = document.getElementById(elId).value.trim();
+    if (val && val !== '••••••••') providerKeys[field] = val;
+  }
   const res = await fetch('/api/config/service', {
     method: 'PUT', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl })
+    body: JSON.stringify({ multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys })
   });
   const data = await res.json();
   if (!res.ok) { showToast(data.error, 'err'); return; }
   showToast('AI Models settings saved');
+}
+
+async function testProvider(provider) {
+  const btn = event.target;
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  try {
+    const res = await fetch('/api/config/provider-test', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ provider })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`${provider}: Connected! ${data.models ? data.models.length + ' models available' : ''}`, 'ok');
+    } else {
+      showToast(`${provider}: ${data.error}`, 'err');
+    }
+  } catch (e) {
+    showToast(`${provider}: Connection failed`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 }
 
 async function saveDeployment() {

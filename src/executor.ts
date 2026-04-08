@@ -1234,43 +1234,61 @@ Rules:
   const effectiveExecutor = agentConfig.executor
     || (multiModelEnabled ? (_appConfig?.service?.platformDefaultExecutor || "claude") : "claude");
 
-  if (multiModelEnabled && effectiveExecutor.startsWith("ollama:")) {
-    const ollamaModel = effectiveExecutor.slice("ollama:".length);
-    const ollamaBaseUrl = _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434";
+  if (multiModelEnabled && effectiveExecutor !== "claude" && effectiveExecutor.includes(":")) {
+    const [prefix, ...rest] = effectiveExecutor.split(":");
+    const modelName = rest.join(":");
+
+    // Helper to log + memory for alternative model responses
+    const logAltResponse = (response: string) => {
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+          response: response.slice(0, 2000), agentId, channel: msg.channel, executor: effectiveExecutor,
+        }) + "\n");
+      } catch { /* ignore */ }
+      if (useAdvancedMemory && memoryMgr) {
+        memoryMgr.indexExchange(msg.text, response, msg.sender).catch(() => {});
+      }
+    };
 
     try {
-      const { executeOllama } = await import("./ollama-executor.js");
-      const ollamaResponse = await executeOllama({
-        model: ollamaModel,
-        systemPrompt,
-        message: formattedMessage,
-        baseUrl: ollamaBaseUrl,
-        timeout: agentConfig.timeout ?? 300_000,
-      });
+      let altResponse: string;
 
-      // Log to conversation history
-      try {
-        const entry = {
-          ts: new Date().toISOString(),
-          from: msg.sender,
-          text: msg.text,
-          response: ollamaResponse.slice(0, 2000),
-          agentId,
-          channel: msg.channel,
-          executor: effectiveExecutor,
-        };
-        appendFileSync(logPath, JSON.stringify(entry) + "\n");
-      } catch { /* ignore */ }
-
-      // Advanced memory: save to daily journal
-      if (useAdvancedMemory && memoryMgr) {
-        try { await memoryMgr.indexExchange(msg.text, ollamaResponse, msg.sender); } catch { /* ignore */ }
+      if (prefix === "ollama") {
+        const { executeOllama } = await import("./ollama-executor.js");
+        altResponse = await executeOllama({
+          model: modelName, systemPrompt, message: formattedMessage,
+          baseUrl: _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434",
+          timeout: agentConfig.timeout ?? 300_000,
+        });
+      } else if (prefix === "gemini") {
+        const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+        const apiKey = providerKeys.google;
+        if (!apiKey) return "Error: No Google API key configured. Add it in Admin → Settings → Provider Keys.";
+        const { executeGemini } = await import("./gemini-executor.js");
+        altResponse = await executeGemini({
+          model: modelName, apiKey, systemPrompt, message: formattedMessage,
+          timeout: agentConfig.timeout ?? 300_000,
+        });
+      } else {
+        // OpenAI-compatible providers (openai, grok, groq, together, mistral)
+        const { resolveProvider, executeOpenAICompat } = await import("./openai-executor.js");
+        const provider = resolveProvider(prefix);
+        if (!provider) return `Error: Unknown model provider "${prefix}". Supported: ollama, openai, grok, groq, together, mistral, gemini.`;
+        const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+        const apiKey = providerKeys[provider.keyField];
+        if (!apiKey) return `Error: No API key configured for ${provider.name}. Add it in Admin → Settings → Provider Keys.`;
+        altResponse = await executeOpenAICompat({
+          provider: prefix, model: modelName, apiKey, systemPrompt, message: formattedMessage,
+          timeout: agentConfig.timeout ?? 300_000,
+        });
       }
 
-      return ollamaResponse;
+      logAltResponse(altResponse);
+      return altResponse;
     } catch (err) {
-      log.error(`[Ollama] Agent ${agentId} execution failed: ${err}`);
-      return `Sorry, I ran into an error with the ${ollamaModel} model. Is Ollama running?`;
+      log.error(`[${prefix}] Agent ${agentId} execution failed: ${err}`);
+      return `Sorry, I ran into an error with ${effectiveExecutor}: ${err instanceof Error ? err.message : err}`;
     }
   }
 
@@ -1781,26 +1799,49 @@ export async function* executeAgentStreaming(
   const effectiveExecutor = agentConfig.executor
     || (multiModelEnabled ? (_appConfig?.service?.platformDefaultExecutor || "claude") : "claude");
 
-  if (multiModelEnabled && effectiveExecutor.startsWith("ollama:")) {
-    const ollamaModel = effectiveExecutor.slice("ollama:".length);
-    const ollamaBaseUrl = _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434";
+  if (multiModelEnabled && effectiveExecutor !== "claude" && effectiveExecutor.includes(":")) {
+    const [prefix, ...rest] = effectiveExecutor.split(":");
+    const modelName = rest.join(":");
 
     try {
-      const { streamOllama } = await import("./ollama-executor.js");
+      let streamGen: AsyncGenerator<string>;
+
+      if (prefix === "ollama") {
+        const { streamOllama } = await import("./ollama-executor.js");
+        streamGen = streamOllama({
+          model: modelName, systemPrompt, message: formattedMessage,
+          baseUrl: _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434",
+          timeout: agentConfig.timeout ?? 300_000,
+        });
+      } else if (prefix === "gemini") {
+        const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+        const apiKey = providerKeys.google;
+        if (!apiKey) { yield { type: "error", data: "No Google API key configured." } as StreamEvent; return; }
+        const { streamGemini } = await import("./gemini-executor.js");
+        streamGen = streamGemini({
+          model: modelName, apiKey, systemPrompt, message: formattedMessage,
+          timeout: agentConfig.timeout ?? 300_000,
+        });
+      } else {
+        const { resolveProvider, streamOpenAICompat } = await import("./openai-executor.js");
+        const provider = resolveProvider(prefix);
+        if (!provider) { yield { type: "error", data: `Unknown provider "${prefix}".` } as StreamEvent; return; }
+        const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+        const apiKey = providerKeys[provider.keyField];
+        if (!apiKey) { yield { type: "error", data: `No API key for ${provider.name}.` } as StreamEvent; return; }
+        streamGen = streamOpenAICompat({
+          provider: prefix, model: modelName, apiKey, systemPrompt, message: formattedMessage,
+          timeout: agentConfig.timeout ?? 300_000,
+        });
+      }
+
       let fullResponse = "";
-      for await (const chunk of streamOllama({
-        model: ollamaModel,
-        systemPrompt,
-        message: formattedMessage,
-        baseUrl: ollamaBaseUrl,
-        timeout: agentConfig.timeout ?? 300_000,
-      })) {
+      for await (const chunk of streamGen) {
         fullResponse += chunk;
         yield { type: "text", data: chunk } as StreamEvent;
       }
       yield { type: "done", data: fullResponse } as StreamEvent;
 
-      // Log
       try {
         appendFileSync(logPath, JSON.stringify({
           ts: new Date().toISOString(), from: msg.sender, text: msg.text,
@@ -1808,10 +1849,14 @@ export async function* executeAgentStreaming(
         }) + "\n");
       } catch { /* ignore */ }
 
+      if (useAdvancedMemory && memoryMgr) {
+        memoryMgr.indexExchange(msg.text, fullResponse, msg.sender).catch(() => {});
+      }
+
       return;
     } catch (err) {
-      log.error(`[Ollama] Streaming failed for ${agentId}: ${err}`);
-      yield { type: "done", data: `Sorry, error with ${ollamaModel}. Is Ollama running?` } as StreamEvent;
+      log.error(`[${prefix}] Streaming failed for ${agentId}: ${err}`);
+      yield { type: "error", data: `Error with ${effectiveExecutor}: ${err instanceof Error ? err.message : err}` } as StreamEvent;
       return;
     }
   }

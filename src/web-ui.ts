@@ -433,6 +433,9 @@ export function startWebUI(opts: WebUIOptions): void {
       multiModelEnabled: (s as any).multiModelEnabled ?? false,
       platformDefaultExecutor: (s as any).platformDefaultExecutor || "claude",
       ollamaBaseUrl: (s as any).ollamaBaseUrl || "http://localhost:11434",
+      providerKeys: Object.fromEntries(
+        Object.entries((s as any).providerKeys || {}).map(([k, v]) => [k, v ? "••••••••" : ""])
+      ),
     });
   });
 
@@ -451,8 +454,36 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // Test connection to a provider (OpenAI-compat or Gemini)
+  app.post("/api/config/provider-test", async (req, res) => {
+    const { provider } = req.body as { provider?: string };
+    if (!provider) return res.status(400).json({ error: "provider required" });
+
+    const keys = (opts.config.service as any).providerKeys || {};
+
+    if (provider === "gemini") {
+      const key = keys.google;
+      if (!key) return res.json({ ok: false, error: "No Google API key configured" });
+      try {
+        const { checkGeminiHealth } = await import("./gemini-executor.js");
+        const result = await checkGeminiHealth(key);
+        res.json(result);
+      } catch (e: any) { res.json({ ok: false, error: e.message }); }
+    } else {
+      const { resolveProvider, checkOpenAICompatHealth } = await import("./openai-executor.js");
+      const pc = resolveProvider(provider);
+      if (!pc) return res.json({ ok: false, error: `Unknown provider: ${provider}` });
+      const key = keys[pc.keyField];
+      if (!key) return res.json({ ok: false, error: `No API key configured for ${pc.name}` });
+      try {
+        const result = await checkOpenAICompatHealth(provider, key);
+        res.json(result);
+      } catch (e: any) { res.json({ ok: false, error: e.message }); }
+    }
+  });
+
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
@@ -464,6 +495,17 @@ export function startWebUI(opts: WebUIOptions): void {
       if (multiModelEnabled !== undefined) raw.service.multiModelEnabled = multiModelEnabled;
       if (platformDefaultExecutor !== undefined) raw.service.platformDefaultExecutor = platformDefaultExecutor;
       if (ollamaBaseUrl !== undefined) raw.service.ollamaBaseUrl = ollamaBaseUrl;
+      // Provider API keys — only update non-masked values
+      if (providerKeys && typeof providerKeys === 'object') {
+        if (!raw.service.providerKeys) raw.service.providerKeys = {};
+        for (const [provider, key] of Object.entries(providerKeys)) {
+          if (key && (key as string) !== "••••••••") {
+            raw.service.providerKeys[provider] = key;
+          } else if (key === "") {
+            delete raw.service.providerKeys[provider];
+          }
+        }
+      }
       if (webUIPort !== undefined || webhookSecret !== undefined || webUIEnabled !== undefined) {
         if (!raw.service.webUI) raw.service.webUI = {};
         if (webUIPort !== undefined) raw.service.webUI.port = Number(webUIPort);
@@ -484,6 +526,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (multiModelEnabled !== undefined) (opts.config.service as any).multiModelEnabled = multiModelEnabled;
       if (platformDefaultExecutor !== undefined) (opts.config.service as any).platformDefaultExecutor = platformDefaultExecutor;
       if (ollamaBaseUrl !== undefined) (opts.config.service as any).ollamaBaseUrl = ollamaBaseUrl;
+      if (providerKeys) (opts.config.service as any).providerKeys = raw.service.providerKeys;
       if (logLevel !== undefined) opts.config.service.logLevel = logLevel;
       if (logFile !== undefined) opts.config.service.logFile = logFile;
       if (pairingCode !== undefined) opts.config.service.pairingCode = pairingCode || undefined;

@@ -128,6 +128,7 @@ export interface ServiceConfig {
   multiModelEnabled?: boolean;      // false = claude only, true = enables alternative models
   platformDefaultExecutor?: string; // "claude" (default) or "ollama:gemma2" etc.
   ollamaBaseUrl?: string;           // default: "http://localhost:11434"
+  providerKeys?: Record<string, string>; // provider API keys: { openai: "sk-...", xai: "xai-...", google: "AIza...", groq: "gsk_...", together: "...", mistral: "..." }
 }
 
 export interface AppConfig {
