@@ -16,7 +16,15 @@
     },
     "multiModelEnabled": false,
     "platformDefaultExecutor": "claude",
-    "ollamaBaseUrl": "http://localhost:11434"
+    "ollamaBaseUrl": "http://localhost:11434",
+    "providerKeys": {
+      "openai": "",
+      "xai": "",
+      "google": "",
+      "groq": "",
+      "together": "",
+      "mistral": ""
+    }
   },
 
   "channels": {
