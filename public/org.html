@@ -1404,7 +1404,10 @@ text-decoration:none;}
 
 <script>
 let agents = [];
-let visibleClasses = new Set(['standard', 'platform']);
+let visibleClasses = (function() {
+  try { const s = JSON.parse(localStorage.getItem('orgVisibleClasses')); if (Array.isArray(s)) return new Set(s); } catch {}
+  return new Set(['standard', 'platform']);
+})();
 let viewMode = localStorage.getItem('orgViewMode') || 'grid'; // 'grid' | 'compact' | 'list'
 let orgs = [];
 let availableMcps = [];
@@ -1605,6 +1608,7 @@ document.addEventListener('click', e => {
 function toggleClassFilter(cls) {
   if (visibleClasses.has(cls)) visibleClasses.delete(cls);
   else visibleClasses.add(cls);
+  localStorage.setItem('orgVisibleClasses', JSON.stringify([...visibleClasses]));
   updateClassDropdownLabel();
   renderOrg();
 }
@@ -3935,11 +3939,11 @@ const agentsSubNav = `
     </div>
     <input type="text" id="agentSearch" class="topbar-control" placeholder="Search..." oninput="handleSearch()" style="width:120px">
     <div class="class-dropdown" id="classDropdown">
-      <button class="class-dropdown-btn" onclick="toggleClassDropdown()" id="classDropdownBtn">Standard + Platform ▾</button>
+      <button class="class-dropdown-btn" onclick="toggleClassDropdown()" id="classDropdownBtn">${[visibleClasses.has('standard')?'Standard':'',visibleClasses.has('builder')?'Builder':'',visibleClasses.has('platform')?'Platform':''].filter(Boolean).join(', ')||'None'} ▾</button>
       <div class="class-dropdown-menu" id="classDropdownMenu">
-        <div class="class-dropdown-item" onclick="toggleClassFilter('standard')"><span class="check" id="chk-standard">✓</span> Standard</div>
-        <div class="class-dropdown-item" onclick="toggleClassFilter('builder')"><span class="check" id="chk-builder">&nbsp;</span> Builder</div>
-        <div class="class-dropdown-item" onclick="toggleClassFilter('platform')"><span class="check" id="chk-platform">✓</span> Platform</div>
+        <div class="class-dropdown-item" onclick="toggleClassFilter('standard')"><span class="check" id="chk-standard">${visibleClasses.has('standard')?'✓':'&nbsp;'}</span> Standard</div>
+        <div class="class-dropdown-item" onclick="toggleClassFilter('builder')"><span class="check" id="chk-builder">${visibleClasses.has('builder')?'✓':'&nbsp;'}</span> Builder</div>
+        <div class="class-dropdown-item" onclick="toggleClassFilter('platform')"><span class="check" id="chk-platform">${visibleClasses.has('platform')?'✓':'&nbsp;'}</span> Platform</div>
       </div>
     </div>
     <select class="org-select" id="orgSelect" onchange="renderOrg()"></select>
