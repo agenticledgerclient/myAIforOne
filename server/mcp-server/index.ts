@@ -557,6 +557,16 @@ server.tool("delete_session", "Delete a specific sender's session", {
 //  NAMED SESSION TABS
 // ═══════════════════════════════════════════════════════════════════
 
+server.tool("create_session_tab", "Create a named session tab on an agent's chat page, optionally routing messages to a different agent. Use targetAgentId to make this tab talk directly to another agent (e.g. create an 'agentcreator' tab on hub that routes to agentcreator). Returns the tab object including the tabId to use as senderId.", {
+  agentId: z.string().describe("Agent ID whose chat page will host the tab (e.g. 'hub')"),
+  tabId: z.string().describe("Unique tab ID — use a short slug like 'agentcreator-1' or 'project-alpha'"),
+  label: z.string().describe("Human-readable tab label shown in the UI"),
+  targetAgentId: z.string().optional().describe("If set, messages sent in this tab route to this agent instead of agentId. Use this to create a dedicated channel to a specialist agent."),
+}, async ({ agentId, tabId, label, targetAgentId }) => {
+  const r = await api.createSessionTab(agentId, tabId, label, targetAgentId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 server.tool("list_session_tabs", "List all named session tabs for an agent (includes closed/archived sessions with last message preview)", {
   agentId: z.string().describe("Agent ID"),
 }, async ({ agentId }) => {

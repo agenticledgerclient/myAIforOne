@@ -68,6 +68,8 @@ export const deleteSession = (agentId: string, senderId: string) =>
   api(`/api/agents/${agentId}/sessions/${senderId}`, { method: "DELETE" });
 
 // ─── Named Session Tabs ────────────────────────────────────────────
+export const createSessionTab = (agentId: string, tabId: string, label: string, targetAgentId?: string) =>
+  api(`/api/agents/${agentId}/session-tabs`, { method: "POST", body: { tabId, label, ...(targetAgentId ? { targetAgentId } : {}) } });
 export const listSessionTabs = (agentId: string) => api(`/api/agents/${agentId}/session-tabs`);
 export const getSessionTabHistory = (agentId: string, tabId: string) =>
   api(`/api/agents/${agentId}/session-tabs/${tabId}/history`);

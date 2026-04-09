@@ -1201,19 +1201,31 @@ export function startWebUI(opts: WebUIOptions): void {
     const { text, accountOverride, senderId: senderIdStream } = req.body as { text?: string; accountOverride?: string; senderId?: string };
     if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
 
+    // If this tab has a targetAgentId, route to that agent instead
+    let routeAgentId = agentId;
+    if (senderIdStream) {
+      const tabData = readSessionTabs(agentId);
+      const tab = tabData.tabs.find((t: any) => t.id === senderIdStream);
+      if (tab?.targetAgentId && opts.config.agents[tab.targetAgentId]) {
+        routeAgentId = tab.targetAgentId;
+        log.info(`[WebUI Stream] Tab "${senderIdStream}" has targetAgentId="${routeAgentId}" — routing there instead of "${agentId}"`);
+      }
+    }
+    const routeAgent = opts.config.agents[routeAgentId];
+
     // Apply account override from web UI dropdown.
     // Track last-used account per agent so we only force a new session on the
     // actual transition, not on every subsequent message with the same override.
-    const effectiveAccount = accountOverride || agent.claudeAccount || "";
-    const lastAccount = agentLastAccount.get(agentId) || (agent.claudeAccount || "");
+    const effectiveAccount = accountOverride || routeAgent.claudeAccount || "";
+    const lastAccount = agentLastAccount.get(routeAgentId) || (routeAgent.claudeAccount || "");
     const accountChanged = effectiveAccount !== lastAccount;
-    if (effectiveAccount) agentLastAccount.set(agentId, effectiveAccount);
+    if (effectiveAccount) agentLastAccount.set(routeAgentId, effectiveAccount);
 
     const effectiveAgent = accountOverride
-      ? { ...agent, claudeAccount: accountOverride, ...(accountChanged ? { forceNewSession: true } : {}) }
-      : agent;
+      ? { ...routeAgent, claudeAccount: accountOverride, ...(accountChanged ? { forceNewSession: true } : {}) }
+      : routeAgent;
 
-    log.info(`[WebUI Stream] ${agentId} <- web: ${text.slice(0, 80)}${accountOverride ? ` (account: ${accountOverride})` : ''}`);
+    log.info(`[WebUI Stream] ${routeAgentId} <- web: ${text.slice(0, 80)}${accountOverride ? ` (account: ${accountOverride})` : ''}`);
 
     // Create job
     const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1246,7 +1258,7 @@ export function startWebUI(opts: WebUIOptions): void {
     };
 
     const route: ResolvedRoute = {
-      agentId,
+      agentId: routeAgentId,
       agentConfig: effectiveAgent,
       route: effectiveAgent.routes[0],
     };
@@ -4806,15 +4818,20 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
   app.post("/api/agents/:agentId/session-tabs", (req, res) => {
     const { agentId } = req.params;
     if (!agentMemDir(agentId)) return res.status(404).json({ error: "Agent not found" });
-    const { tabId, label } = req.body as { tabId?: string; label?: string };
+    const { tabId, label, targetAgentId } = req.body as { tabId?: string; label?: string; targetAgentId?: string };
     if (!tabId) return res.status(400).json({ error: "tabId required" });
+    // Validate targetAgentId if provided
+    if (targetAgentId && !opts.config.agents[targetAgentId]) {
+      return res.status(400).json({ error: `targetAgentId "${targetAgentId}" not found` });
+    }
     const data = readSessionTabs(agentId);
     const idx = data.tabs.findIndex((t: any) => t.id === tabId);
     if (idx >= 0) {
       if (label) data.tabs[idx].label = label;
+      if (targetAgentId !== undefined) data.tabs[idx].targetAgentId = targetAgentId || null;
       data.tabs[idx].updatedAt = new Date().toISOString();
     } else {
-      data.tabs.push({ id: tabId, label: label || `Session ${data.tabs.length + 1}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      data.tabs.push({ id: tabId, label: label || `Session ${data.tabs.length + 1}`, ...(targetAgentId ? { targetAgentId } : {}), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     }
     writeSessionTabs(agentId, data);
     res.json({ ok: true, tab: data.tabs.find((t: any) => t.id === tabId) });

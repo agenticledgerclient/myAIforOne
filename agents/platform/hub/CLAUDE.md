@@ -59,6 +59,7 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 | `list_sessions` | List active low-level sessions | `agentId` |
 | `reset_session` | Reset conversation (start fresh) | `agentId`; `senderId` (optional) |
 | `delete_session` | Delete a specific sender's session | `agentId`, `senderId` |
+| `create_session_tab` | Create a named tab on an agent's chat page; set `targetAgentId` to route that tab's messages to a different agent | `agentId`, `tabId`, `label`; `targetAgentId` (optional) |
 | `list_session_tabs` | List all named session tabs (incl. closed), with last preview + timestamp | `agentId` |
 | `get_session_tab_history` | Read full conversation for a specific named tab | `agentId`, `tabId` |
 | `rename_session_tab` | Rename a session tab | `agentId`, `tabId`, `label` |

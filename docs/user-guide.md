@@ -603,18 +603,20 @@ Each agent supports named, persistent session threads visible in the Web UI tab 
 
 | Action | API | MCP |
 |--------|-----|-----|
+| Create/upsert tab | `POST /api/agents/:agentId/session-tabs` | `create_session_tab` |
+| | **Body:** `{ tabId, label, targetAgentId? }` | **Params:** `agentId`, `tabId`, `label`; `targetAgentId` (optional) |
 | List all session tabs | `GET /api/agents/:agentId/session-tabs` | `list_session_tabs` |
 | | Returns tabs sorted newest-first with `lastMessageAt` + `lastPreview` | **Params:** `agentId` |
 | Get conversation history | `GET /api/agents/:agentId/session-tabs/:tabId/history` | `get_session_tab_history` |
 | | Returns `{ messages: [{role, text, time}] }` filtered by tabId | **Params:** `agentId`, `tabId` |
-| Register/upsert tab | `POST /api/agents/:agentId/session-tabs` | — |
-| | **Body:** `{ tabId, label }` | |
 | Rename tab | `PUT /api/agents/:agentId/session-tabs/:tabId` | `rename_session_tab` |
 | | **Body:** `{ label }` | **Params:** `agentId`, `tabId`, `label` |
 | Delete tab (permanent) | `DELETE /api/agents/:agentId/session-tabs/:tabId` | `delete_session_tab` |
 | | Also clears Claude session file | **Params:** `agentId`, `tabId` |
 
 **Note:** `senderId` in messages sent from the Web UI is the `tabId`. This is what links JSONL log entries to a specific named thread. For agents to maintain separate memory per tab, set `persistent: true` and `perSenderSessions: true` in the agent config.
+
+**`targetAgentId` — cross-agent tab routing:** When a tab is created with `targetAgentId`, all messages sent in that tab are routed to the target agent instead of the host agent. This lets hub (or any agent) create a tab that talks directly to a specialist agent (e.g. `agentcreator`, `skillcreator`) so the sub-agent accumulates its own conversation history and memory. The tab still appears on the host agent's chat page — users don't leave the page, they just switch tabs.
 
 ### Model Override (not visible in UI, API/MCP only)
 
@@ -1610,6 +1612,7 @@ Quick reference — all 117 MCP tools alphabetically:
 | -- | `delete_project` | Projects |
 | 28 | `delete_mcp_key` | MCPs |
 | 29 | `delete_session` | Sessions |
+| -- | `create_session_tab` | Session Tabs |
 | -- | `delete_session_tab` | Session Tabs |
 | 30 | `delete_task` | Tasks |
 | -- | `execute_project` | Projects |
