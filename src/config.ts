@@ -125,6 +125,7 @@ export interface ServiceConfig {
   personalRegistryDir?: string; // Override path to PersonalRegistry dir (default: ~/Desktop/MyAIforOne Drive/PersonalRegistry)
   webUI?: WebUIConfig;
   claudeAccounts?: Record<string, string>;  // name → config dir path, e.g. {"main": "~/.claude"}
+  defaultClaudeAccount?: string;    // account name to use when agent has no claudeAccount set (e.g. "main")
   multiModelEnabled?: boolean;      // false = claude only, true = enables alternative models
   platformDefaultExecutor?: string; // "claude" (default) or "ollama:gemma2" etc.
   ollamaBaseUrl?: string;           // default: "http://localhost:11434"
@@ -246,6 +247,11 @@ export function loadConfig(configPath: string): AppConfig {
       : config.service.personalRegistryDir;
   }
   _personalRegistryDir = config.service.personalRegistryDir || resolve(driveRoot, "PersonalRegistry");
+
+  // Inject default account hint into claudeAccounts map so executor can pick it up
+  if (config.service.defaultClaudeAccount && config.service.claudeAccounts) {
+    (config.service.claudeAccounts as any)._defaultAccount = config.service.defaultClaudeAccount;
+  }
 
   return config;
 }

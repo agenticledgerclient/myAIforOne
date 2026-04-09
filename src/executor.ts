@@ -857,15 +857,16 @@ export async function executeAgent(
   // ── Resolve Claude account config dir ──
   const home = homedir();
   let claudeConfigDir: string | undefined;
-  if (agentConfig.claudeAccount && claudeAccounts) {
-    const dir = claudeAccounts[agentConfig.claudeAccount];
+  const effectiveAccount = agentConfig.claudeAccount || (claudeAccounts as any)?._defaultAccount;
+  if (effectiveAccount && claudeAccounts) {
+    const dir = claudeAccounts[effectiveAccount];
     if (dir) claudeConfigDir = dir.startsWith("~") ? dir.replace("~", home) : dir;
   }
 
   // ── Check for /relogin command ──
   const reloginMatch = RELOGIN_PATTERN.exec(msg.text);
   if (reloginMatch) {
-    const accountName = reloginMatch[1] || agentConfig.claudeAccount || "default";
+    const accountName = reloginMatch[1] || effectiveAccount || "default";
     let reloginDir: string | undefined;
     if (claudeAccounts && claudeAccounts[accountName]) {
       const d = claudeAccounts[accountName];
@@ -1501,15 +1502,16 @@ export async function* executeAgentStreaming(
   // ── Resolve Claude account config dir ──
   const home = homedir();
   let claudeConfigDir: string | undefined;
-  if (agentConfig.claudeAccount && claudeAccounts) {
-    const dir = claudeAccounts[agentConfig.claudeAccount];
+  const effectiveAccount = agentConfig.claudeAccount || (claudeAccounts as any)?._defaultAccount;
+  if (effectiveAccount && claudeAccounts) {
+    const dir = claudeAccounts[effectiveAccount];
     if (dir) claudeConfigDir = dir.startsWith("~") ? dir.replace("~", home) : dir;
   }
 
   // ── Check for /relogin command ──
   const reloginMatch = RELOGIN_PATTERN.exec(msg.text);
   if (reloginMatch) {
-    const accountName = reloginMatch[1] || agentConfig.claudeAccount || "default";
+    const accountName = reloginMatch[1] || effectiveAccount || "default";
     let reloginDir: string | undefined;
     if (claudeAccounts && claudeAccounts[accountName]) {
       const d = claudeAccounts[accountName];

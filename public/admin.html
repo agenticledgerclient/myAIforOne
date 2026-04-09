@@ -386,6 +386,13 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
               <label>Log Level</label>
               <input id="svcLogLevel" placeholder="info" />
             </div>
+            <div class="field">
+              <label>Default Claude Account</label>
+              <select id="svcDefaultAccount" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:13px">
+                <option value="">System default (~/.claude)</option>
+              </select>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Used for agents without a per-agent account override. Switch when credits run out.</div>
+            </div>
           </div>
           <button class="btn-save" onclick="saveService()">Save</button>
         </div>
@@ -1248,6 +1255,20 @@ async function loadService() {
   document.getElementById('svcRegistryDir').value = s.personalRegistryDir || '';
   document.getElementById('svcPort').value = s.webUIPort || '';
   document.getElementById('svcLogLevel').value = s.logLevel || '';
+  // Populate default account dropdown
+  const acctSelect = document.getElementById('svcDefaultAccount');
+  acctSelect.innerHTML = '<option value="">System default (~/.claude)</option>';
+  try {
+    const acctRes = await fetch('/api/config/accounts');
+    const accounts = await acctRes.json();
+    for (const a of accounts) {
+      const opt = document.createElement('option');
+      opt.value = a.name;
+      opt.textContent = a.name;
+      if (a.name === s.defaultClaudeAccount) opt.selected = true;
+      acctSelect.appendChild(opt);
+    }
+  } catch (e) { /* accounts endpoint may not exist yet */ }
   const d = s.deployment || {};
   document.getElementById('depProvider').value = d.provider || '';
   document.getElementById('depToken').value = d.deployToken || '';
@@ -1273,9 +1294,10 @@ async function saveService() {
   const personalRegistryDir = document.getElementById('svcRegistryDir').value.trim();
   const webUIPort = document.getElementById('svcPort').value.trim();
   const logLevel = document.getElementById('svcLogLevel').value.trim();
+  const defaultClaudeAccount = document.getElementById('svcDefaultAccount').value;
   const res = await fetch('/api/config/service', {
     method: 'PUT', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ personalAgentsDir, personalRegistryDir, webUIPort: webUIPort ? Number(webUIPort) : undefined, logLevel })
+    body: JSON.stringify({ personalAgentsDir, personalRegistryDir, webUIPort: webUIPort ? Number(webUIPort) : undefined, logLevel, defaultClaudeAccount })
   });
   const data = await res.json();
   if (!res.ok) { showToast(data.error, 'err'); return; }

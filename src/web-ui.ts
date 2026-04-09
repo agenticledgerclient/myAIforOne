@@ -430,6 +430,7 @@ export function startWebUI(opts: WebUIOptions): void {
         githubOrg: deploy.githubOrg || "",
         githubToken: deploy.githubToken ? "••••••••" : "",
       },
+      defaultClaudeAccount: (s as any).defaultClaudeAccount || null,
       multiModelEnabled: (s as any).multiModelEnabled ?? false,
       platformDefaultExecutor: (s as any).platformDefaultExecutor || "claude",
       ollamaBaseUrl: (s as any).ollamaBaseUrl || "http://localhost:11434",
@@ -483,7 +484,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
@@ -492,6 +493,14 @@ export function startWebUI(opts: WebUIOptions): void {
       if (logLevel !== undefined) raw.service.logLevel = logLevel;
       if (logFile !== undefined) raw.service.logFile = logFile;
       if (pairingCode !== undefined) raw.service.pairingCode = pairingCode || undefined;
+      if (defaultClaudeAccount !== undefined) {
+        raw.service.defaultClaudeAccount = defaultClaudeAccount || undefined;
+        // Also update in-memory config + claudeAccounts hint
+        opts.config.service.defaultClaudeAccount = defaultClaudeAccount || undefined;
+        if (opts.config.service.claudeAccounts) {
+          (opts.config.service.claudeAccounts as any)._defaultAccount = defaultClaudeAccount || undefined;
+        }
+      }
       if (multiModelEnabled !== undefined) raw.service.multiModelEnabled = multiModelEnabled;
       if (platformDefaultExecutor !== undefined) raw.service.platformDefaultExecutor = platformDefaultExecutor;
       if (ollamaBaseUrl !== undefined) raw.service.ollamaBaseUrl = ollamaBaseUrl;
