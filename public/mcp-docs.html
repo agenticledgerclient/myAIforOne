@@ -120,7 +120,7 @@ const TOOLS = [
   {cat:"Agents",name:"get_agent",desc:"Get detailed info about a specific agent",params:[{n:"agentId",t:"string",r:true}]},
   {cat:"Agents",name:"get_agent_instructions",desc:"Get an agent's CLAUDE.md system prompt",params:[{n:"agentId",t:"string",r:true}]},
   {cat:"Agents",name:"create_agent",desc:"Create a new agent with full configuration",params:[{n:"agentId",t:"string",r:true,d:"Unique ID (lowercase, hyphens)"},{n:"name",t:"string",r:true},{n:"alias",t:"string",r:true,d:"e.g. @myagent"},{n:"description",t:"string",r:false},{n:"workspace",t:"string",r:false},{n:"organization",t:"string",r:false},{n:"function",t:"string",r:false},{n:"title",t:"string",r:false},{n:"persistent",t:"boolean",r:false},{n:"streaming",t:"boolean",r:false},{n:"advancedMemory",t:"boolean",r:false},{n:"autonomousCapable",t:"boolean",r:false},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"prompts",t:"string[]",r:false},{n:"subAgents",t:"string[]|'*'",r:false,d:"Sub-agents for group agent"},{n:"claudeAccount",t:"string",r:false},{n:"timeout",t:"number",r:false,d:"Timeout in ms (default 14400000)"},{n:"heartbeatInstructions",t:"string",r:false,d:"Custom heartbeat instructions (saved to heartbeat.md)"},{n:"agentClass",t:"enum",r:false,d:"standard | platform | builder"},{n:"executor",t:"string",r:false,d:"Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2')"},{n:"wiki",t:"boolean",r:false,d:"Enable wiki learning (agent saves learned facts to learned.md)"},{n:"wikiSync",t:"object",r:false,d:"{enabled: boolean, schedule: string} — scheduled sync of learned.md → context.md"}]},
-  {cat:"Agents",name:"update_agent",desc:"Update an existing agent's configuration",params:[{n:"agentId",t:"string",r:true},{n:"name",t:"string",r:false},{n:"alias",t:"string",r:false},{n:"instructions",t:"string",r:false,d:"Update CLAUDE.md content"},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"timeout",t:"number",r:false},{n:"heartbeatInstructions",t:"string",r:false,d:"Custom heartbeat instructions (saved to heartbeat.md)"},{n:"agentClass",t:"enum",r:false,d:"standard | platform | builder"},{n:"executor",t:"string",r:false,d:"Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2')"},{n:"wiki",t:"boolean",r:false,d:"Enable wiki learning"},{n:"wikiSync",t:"object",r:false,d:"{enabled: boolean, schedule: string}"}]},
+  {cat:"Agents",name:"update_agent",desc:"Update an existing agent's configuration",params:[{n:"agentId",t:"string",r:true},{n:"name",t:"string",r:false},{n:"alias",t:"string",r:false},{n:"description",t:"string",r:false},{n:"workspace",t:"string",r:false},{n:"organization",t:"string",r:false,d:"Organization name"},{n:"function",t:"string",r:false,d:"Org function/department"},{n:"title",t:"string",r:false,d:"Org title/role"},{n:"reportsTo",t:"string",r:false,d:"Alias of reporting agent"},{n:"persistent",t:"boolean",r:false},{n:"streaming",t:"boolean",r:false},{n:"advancedMemory",t:"boolean",r:false},{n:"autonomousCapable",t:"boolean",r:false},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"prompts",t:"string[]",r:false},{n:"subAgents",t:"string[]|'*'",r:false,d:"Sub-agents for group agent"},{n:"claudeAccount",t:"string",r:false},{n:"instructions",t:"string",r:false,d:"Update CLAUDE.md content"},{n:"timeout",t:"number",r:false},{n:"heartbeatInstructions",t:"string",r:false,d:"Custom heartbeat instructions (saved to heartbeat.md)"},{n:"agentClass",t:"enum",r:false,d:"standard | platform | builder"},{n:"executor",t:"string",r:false,d:"Executor override: 'claude' (default) or 'ollama:<model>'"},{n:"wiki",t:"boolean",r:false,d:"Enable wiki learning"},{n:"wikiSync",t:"object",r:false,d:"{enabled: boolean, schedule: string}"}]},
   {cat:"Agents",name:"delete_agent",desc:"Delete an agent",params:[{n:"agentId",t:"string",r:true}]},
   {cat:"Agents",name:"recover_agent",desc:"Recover agent from session corruption",params:[{n:"agentId",t:"string",r:true}]},
 
@@ -290,6 +290,83 @@ const TOOLS = [
 
   // Webhook
   {cat:"Chat",name:"send_webhook",desc:"Send a message to an agent via webhook (external trigger)",params:[{n:"agentId",t:"string",r:true},{n:"text",t:"string",r:true},{n:"secret",t:"string",r:false,d:"Webhook secret (x-webhook-secret header)"},{n:"channel",t:"string",r:false,d:"Override reply channel"},{n:"chatId",t:"string",r:false,d:"Override reply chat ID"}]},
+
+  // AI Gym — Learner Profile
+  {cat:"AI Gym",name:"get_learner_profile",desc:"Get the learner's AI Gym profile including dimensions, streak, trainer selection, and programs",params:[]},
+  {cat:"AI Gym",name:"update_learner_profile",desc:"Update fields in the learner profile",params:[{n:"data",t:"object",r:true,d:"Fields to merge into the learner profile"}]},
+
+  // AI Gym — Plan
+  {cat:"AI Gym",name:"get_plan",desc:"Get the learner's training plan (on-the-job + platform-driven buckets)",params:[]},
+  {cat:"AI Gym",name:"update_plan",desc:"Write an updated training plan",params:[{n:"data",t:"object",r:true,d:"Full plan to write"}]},
+
+  // AI Gym — Progress
+  {cat:"AI Gym",name:"get_gym_progress",desc:"Get program completion progress for all programs",params:[]},
+  {cat:"AI Gym",name:"update_gym_progress",desc:"Update program progress",params:[{n:"data",t:"object",r:true,d:"Progress keyed by program slug"}]},
+
+  // AI Gym — Cards
+  {cat:"AI Gym",name:"list_gym_cards",desc:"List all active gym cards (recommendations, tips, nudges)",params:[]},
+  {cat:"AI Gym",name:"create_gym_card",desc:"Create a gym card with a recommendation or tip",params:[{n:"title",t:"string",r:true},{n:"description",t:"string",r:true},{n:"type",t:"string",r:true},{n:"cta",t:"string",r:false,d:"Call-to-action text"},{n:"ctaAction",t:"string",r:false,d:"Action identifier for the CTA"}]},
+  {cat:"AI Gym",name:"dismiss_gym_card",desc:"Remove a gym card",params:[{n:"id",t:"string",r:true,d:"Card ID"}]},
+
+  // AI Gym — Dimensions
+  {cat:"AI Gym",name:"snapshot_dimensions",desc:"Save a weekly dimension score snapshot",params:[{n:"date",t:"string",r:false,d:"Snapshot date (defaults to today)"},{n:"dimensions",t:"object",r:true,d:"Object with score per dimension"}]},
+  {cat:"AI Gym",name:"get_dimension_history",desc:"Get all weekly dimension score snapshots",params:[]},
+
+  // AI Gym — Programs
+  {cat:"AI Gym",name:"list_gym_programs",desc:"List all available training programs",params:[]},
+  {cat:"AI Gym",name:"get_gym_program",desc:"Get a program with full modules and steps",params:[{n:"slug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"import_program",desc:"Import a program from markdown (H1=program, H2=module, H3=step)",params:[{n:"markdown",t:"string",r:true}]},
+  {cat:"AI Gym",name:"update_gym_program",desc:"Update a program's metadata",params:[{n:"slug",t:"string",r:true},{n:"body",t:"object",r:true,d:"Fields to update"}]},
+  {cat:"AI Gym",name:"delete_gym_program",desc:"Delete a training program",params:[{n:"slug",t:"string",r:true}]},
+
+  // AI Gym — Agent Activity
+  {cat:"AI Gym",name:"get_agent_logs",desc:"Get paginated conversation logs for an agent",params:[{n:"agentId",t:"string",r:true},{n:"limit",t:"number",r:false},{n:"offset",t:"number",r:false}]},
+  {cat:"AI Gym",name:"get_agent_activity_summary",desc:"Get aggregated activity stats for an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"AI Gym",name:"search_agent_logs",desc:"Full-text search across agent conversation logs",params:[{n:"q",t:"string",r:true},{n:"agentIds",t:"string",r:false,d:"Comma-separated agent IDs"}]},
+
+  // AI Gym — Digest
+  {cat:"AI Gym",name:"run_gym_digest",desc:"Manually trigger the activity digest (analyzes all activity, scores dimensions, generates cards)",params:[]},
+
+  // AI Gym — Feed & Config
+  {cat:"AI Gym",name:"get_gym_feed",desc:"Get the aggregated gym feed — tips/nudges from gym cards, platform updates from changelog, and AI briefing",params:[]},
+  {cat:"AI Gym",name:"get_gym_config",desc:"Get public gym configuration flags (gymEnabled, gymOnlyMode, aibriefingEnabled)",params:[]},
+
+  // Session Tabs
+  {cat:"Sessions",name:"create_session_tab",desc:"Create a named session tab on an agent's chat page, optionally routing to a different agent",params:[{n:"agentId",t:"string",r:true,d:"Agent whose chat page hosts the tab"},{n:"tabId",t:"string",r:true,d:"Unique tab slug (e.g. 'project-alpha')"},{n:"label",t:"string",r:true,d:"Human-readable tab label"},{n:"targetAgentId",t:"string",r:false,d:"Route messages to this agent instead"}]},
+  {cat:"Sessions",name:"list_session_tabs",desc:"List all named session tabs (includes closed sessions with last message preview)",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Sessions",name:"get_session_tab_history",desc:"Get full conversation history for a specific session tab",params:[{n:"agentId",t:"string",r:true},{n:"tabId",t:"string",r:true}]},
+  {cat:"Sessions",name:"rename_session_tab",desc:"Rename a session tab",params:[{n:"agentId",t:"string",r:true},{n:"tabId",t:"string",r:true},{n:"label",t:"string",r:true,d:"New name"}]},
+  {cat:"Sessions",name:"delete_session_tab",desc:"Permanently delete a session tab and its Claude session state",params:[{n:"agentId",t:"string",r:true},{n:"tabId",t:"string",r:true}]},
+
+  // Profile
+  {cat:"Profile",name:"get_profile",desc:"Get the user's profile (name, role, industry, AI experience, interests)",params:[]},
+  {cat:"Profile",name:"update_profile",desc:"Update the user's profile",params:[{n:"name",t:"string",r:false},{n:"role",t:"string",r:false},{n:"industry",t:"string",r:false},{n:"aiExperience",t:"enum",r:false,d:"beginner | intermediate | advanced"},{n:"interests",t:"string[]",r:false}]},
+
+  // Memory (continued)
+  {cat:"Memory",name:"write_memory",desc:"Write content to an agent's memory (context.md or daily journal)",params:[{n:"agentId",t:"string",r:true},{n:"content",t:"string",r:true},{n:"target",t:"enum",r:false,d:"context | daily | overwrite (default: overwrite)"}]},
+
+  // Skills (continued)
+  {cat:"Skills",name:"get_skill_content",desc:"Read the full content of a skill markdown file",params:[{n:"path",t:"string",r:true,d:"Absolute path to the skill .md file"}]},
+
+  // Files (continued)
+  {cat:"Files",name:"upload_file",desc:"Upload a file to an agent's FileStorage (base64-encoded)",params:[{n:"agentId",t:"string",r:true},{n:"fileName",t:"string",r:true},{n:"base64Content",t:"string",r:true},{n:"mode",t:"enum",r:false,d:"temp | permanent (default: temp)"}]},
+
+  // Automations (continued)
+  {cat:"Automations",name:"update_goal",desc:"Update an existing goal's configuration",params:[{n:"agentId",t:"string",r:true},{n:"goalId",t:"string",r:true},{n:"description",t:"string",r:false},{n:"successMetric",t:"string",r:false},{n:"enabled",t:"boolean",r:false},{n:"budget",t:"number",r:false,d:"Max daily USD"},{n:"heartbeat",t:"any",r:false,d:"Updated schedule config"},{n:"reportTargets",t:"any",r:false}]},
+  {cat:"Automations",name:"update_cron",desc:"Update an existing cron job's schedule, message, or channel",params:[{n:"agentId",t:"string",r:true},{n:"index",t:"number",r:true},{n:"schedule",t:"string",r:false},{n:"message",t:"string",r:false},{n:"channel",t:"string",r:false},{n:"chatId",t:"string",r:false},{n:"enabled",t:"boolean",r:false}]},
+
+  // Config (continued)
+  {cat:"Config",name:"test_provider",desc:"Test an API key for a cloud provider (OpenAI, Grok, Gemini, Groq, Together, Mistral)",params:[{n:"provider",t:"string",r:true,d:"openai | grok | gemini | groq | together | mistral"}]},
+  {cat:"Config",name:"restart_service",desc:"Restart the MyAgent gateway service",params:[]},
+
+  // Discovery
+  {cat:"Discovery",name:"list_capabilities",desc:"Get a structured summary of all platform capabilities grouped by category",params:[]},
+  {cat:"Discovery",name:"get_user_guide",desc:"Get the full platform user guide — every page, button, API, and MCP tool documented",params:[]},
+
+  // Drive
+  {cat:"Drive",name:"browse_drive",desc:"Browse files and folders in the PersonalAgents data drive",params:[{n:"path",t:"string",r:false,d:"Path to browse (default: drive root)"}]},
+  {cat:"Drive",name:"read_drive_file",desc:"Read a file from the PersonalAgents data drive (max 1MB)",params:[{n:"path",t:"string",r:true,d:"Absolute path to the file"}]},
+  {cat:"Drive",name:"search_drive",desc:"Full-text search across the PersonalAgents data drive",params:[{n:"q",t:"string",r:true,d:"Search query"},{n:"path",t:"string",r:false,d:"Scope to subdirectory"},{n:"limit",t:"number",r:false,d:"Max results (default 50)"},{n:"types",t:"string",r:false,d:"Comma-separated extensions (default: .md,.json,.jsonl,.txt)"}]},
 ];
 
 // ═══ STATE ═══════════════════════════════════════════════════════════

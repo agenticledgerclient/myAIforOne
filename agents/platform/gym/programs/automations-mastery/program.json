@@ -1,0 +1,129 @@
+{
+  "id": "automations-mastery",
+  "slug": "automations-mastery",
+  "title": "Automations Mastery",
+  "description": "Build autonomous workflows — scheduled goals, agent delegation, and systems that work while you sleep.",
+  "difficulty": "intermediate",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "dimensions": ["orchestration", "application"],
+  "estimatedTime": "40-55 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "goals-and-scheduled-tasks",
+      "title": "Goals and Scheduled Tasks",
+      "order": 1,
+      "agentInstructions": "Automation is the bridge between 'using AI' and 'having AI work for you.' Start with the concepts, make sure the learner understands the heartbeat/budget model, then guide them to set up something real. Emphasize safety — autonomous agents need guardrails.",
+      "steps": [
+        {
+          "id": "what-are-autonomous-goals",
+          "title": "What are autonomous goals?",
+          "order": 1,
+          "type": "knowledge",
+          "content": "An autonomous goal turns an agent from something you talk to into something that works independently on your behalf. When you set a goal on an agent, it wakes up on a schedule, does its work, and reports back — without you sending a single message.\n\n**How goals work:** A goal has three parts: the **objective** (what the agent should accomplish), the **heartbeat** (how often it runs — e.g., every hour, every day at 9am), and the **budget** (how many messages it can send per run to prevent runaway execution). When the heartbeat fires, the agent receives its objective as a prompt, works through it using its tools and MCPs, and posts a status update.\n\n**The budget is your safety net.** An agent with a goal of \"review all open PRs\" and a budget of 20 messages will process what it can within 20 messages, then stop. Without a budget, a misconfigured goal could run indefinitely, consuming API credits and potentially making unwanted changes. Start with conservative budgets (10-20 messages) and increase as you build trust.\n\n**Reporting** keeps you in the loop. When a goal runs, the agent sends a summary to its configured notification channel (usually Slack). You get a digest of what it did, what it found, and whether anything needs your attention. This is how you maintain oversight without micromanaging.\n\nGoals are the foundation of autonomous workflows. Once you're comfortable with a single agent running a single goal, you can compose multi-agent systems where one agent's output triggers another agent's work.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What are the three parts of an autonomous goal, and why is the budget important for safety?",
+            "How would you know if an autonomous agent completed its work or ran into problems?"
+          ]
+        },
+        {
+          "id": "cron-jobs-and-schedules",
+          "title": "Cron jobs and schedules",
+          "order": 2,
+          "type": "knowledge",
+          "content": "Cron expressions control when your automations fire. They look cryptic at first, but the pattern is simple: **minute hour day-of-month month day-of-week**.\n\n**Common patterns you'll actually use:**\n- `0 9 * * 1-5` — Every weekday at 9:00 AM (great for daily standup reports)\n- `0 */4 * * *` — Every 4 hours (good for monitoring tasks)\n- `0 9 * * 1` — Every Monday at 9:00 AM (weekly summaries)\n- `30 17 * * 5` — Every Friday at 5:30 PM (end-of-week reviews)\n- `0 0 1 * *` — First day of every month at midnight (monthly reports)\n\n**When to use scheduling:** Not everything should be automated. Good candidates are tasks that are predictable, repeatable, and time-based. Bad candidates are tasks that depend on unpredictable triggers or require your judgment before proceeding.\n\n**Good automation targets:**\n- Daily code quality scans of your repo\n- Weekly project status summaries posted to Slack\n- Morning briefings that aggregate your calendar, tasks, and unread messages\n- Nightly data backups or log analysis\n\n**Poor automation targets (for now):**\n- Responding to customer complaints (needs human judgment)\n- Making financial decisions (too much risk)\n- Tasks that vary wildly each time (no repeatable pattern)\n\nThe platform's cron system uses standard cron syntax via node-cron. You configure schedules in the agent's settings or via the API. Each cron job specifies the agent, the message to send, and the schedule.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "Write a cron expression for a task that should run every Tuesday and Thursday at 10:00 AM.",
+            "Give an example of a task that's a good automation candidate and one that's a poor candidate. Explain why for each."
+          ]
+        },
+        {
+          "id": "create-your-first-automation",
+          "title": "Create your first automation",
+          "order": 3,
+          "type": "platform-check",
+          "content": "Time to set up a real automation. Go to your agent's settings and create either a goal or a cron job — whichever fits your use case.\n\n**Option A: Create a goal.** Pick an agent with a specific purpose and set an objective it can work toward autonomously. Example objectives:\n- \"Review the git log for today's commits and summarize what changed\"\n- \"Check for any TODO comments in the codebase and list them with file locations\"\n- \"Read the latest entries in the project log and draft a status update\"\n\nSet the heartbeat to something reasonable (daily or every few hours) and the budget to 10-15 messages.\n\n**Option B: Create a cron job.** Set up a scheduled message that fires on a regular basis. Examples:\n- A Monday morning message: \"Summarize what happened last week and what's planned for this week\"\n- A daily check: \"Scan the error logs and report anything unusual\"\n- An end-of-day recap: \"List all files that were modified today with a brief description of changes\"\n\nStart simple. You can always make it more sophisticated later. The important thing is to experience the loop: set it up, let it run, review the output, and iterate on the instructions.\n\nAfter creating the automation, verify it's active in the platform. You should see it listed in the agent's configuration or on the admin dashboard.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "automation-exists"
+        }
+      ]
+    },
+    {
+      "id": "agent-to-agent-delegation",
+      "title": "Agent-to-Agent Delegation",
+      "order": 2,
+      "agentInstructions": "Multi-agent coordination is where the platform's real power shows up. Keep it conceptual first — the learner needs to understand routing and @mentions before designing complex chains. Use concrete examples from their agent roster if possible.",
+      "steps": [
+        {
+          "id": "how-agents-work-together",
+          "title": "How agents work together",
+          "order": 1,
+          "type": "knowledge",
+          "content": "A single agent is useful. Multiple agents working together are transformative. The platform supports several patterns for agent-to-agent coordination.\n\n**@Mention routing** is the simplest form. When one agent's response includes `@agentname`, the platform routes that message to the mentioned agent. This enables chains: your hub agent can say \"Let me hand this to @codereview for analysis\" and the code review agent receives the task. The response flows back through the hub to you.\n\n**Group agents** coordinate multiple specialists under one interface. A group agent doesn't do the work itself — it routes subtasks to the right specialist based on the request. Think of it as a project manager that delegates to team members.\n\n**Hub orchestration** is the default pattern on this platform. The hub agent (@hub) is your primary interface. It knows about all other agents and can delegate work to them. When you message the hub with a complex request, it can break it down and route parts to different specialists.\n\n**Cross-agent sessions** let agents share context. When Agent A delegates to Agent B with a `targetAgentId`, Agent B receives the conversation context and can respond in the same thread. This prevents the \"telephone game\" problem where context gets lost in handoffs.\n\nThe key insight is that agents don't need to be individually brilliant — they need to be well-coordinated. A team of focused specialists, each with a narrow workspace and deep system prompt, will outperform a single generalist agent trying to do everything.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "Describe a scenario where agent-to-agent delegation would be more effective than using a single powerful agent.",
+            "What's the 'telephone game' problem in multi-agent systems, and how do cross-agent sessions help solve it?"
+          ]
+        },
+        {
+          "id": "design-a-delegation-chain",
+          "title": "Design a delegation chain",
+          "order": 2,
+          "type": "self-report",
+          "content": "Let's design a multi-agent workflow on paper before building it. Think about a complex task from your work that involves multiple steps or multiple types of expertise.\n\n**Example workflow — weekly project review:**\n1. @projectbot scans the repo for recent changes and creates a change summary\n2. @codereview analyzes the changes for code quality issues\n3. @writer drafts a stakeholder-friendly update combining the summary and review findings\n4. The hub agent delivers the final update to you (or posts it to Slack via MCP)\n\n**Your turn.** Design a 3-4 step delegation chain for your own use case. For each step, define:\n- Which agent handles it (existing or one you'd create)\n- What input it receives\n- What output it produces\n- Where the output goes next\n\nDon't worry about implementing this yet — the goal is to think in terms of agent teams rather than individual agents. Consider: where are the handoff points? What context needs to transfer between agents? What happens if one agent in the chain fails?\n\nReflect on your design. Is there a step where a human checkpoint would be valuable? (Hint: there usually is, especially in the early days.) Building in human review points is a sign of maturity, not weakness.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "while-you-sleep",
+      "title": "While You Sleep",
+      "order": 3,
+      "agentInstructions": "This is the capstone — putting it all together. The learner should leave with a mental model for end-to-end autonomous workflows. Encourage them to think big but start small. The best autonomous workflows start as manual processes that get gradually automated.",
+      "steps": [
+        {
+          "id": "autonomous-workflows",
+          "title": "Autonomous workflows",
+          "order": 1,
+          "type": "knowledge",
+          "content": "An autonomous workflow combines everything you've learned: scheduled goals that fire on a cron, agents that delegate to each other, and reporting that keeps you informed. The result is a system that works while you're away and presents you with results when you return.\n\n**The anatomy of an autonomous workflow:**\n1. **Trigger** — A cron schedule or event that kicks things off (e.g., every morning at 8am)\n2. **Execution** — One or more agents work through their objectives, potentially delegating to specialists\n3. **Reporting** — Results are posted to a notification channel (Slack, Telegram, etc.)\n4. **Human review** — You review the output, approve actions, or provide feedback\n5. **Iteration** — Based on your feedback, you refine the agents' instructions and constraints\n\n**Monitoring is essential.** Autonomous doesn't mean unsupervised. Check your notification channels regularly, especially in the first week. Look for:\n- Tasks that ran but produced poor results (refine the system prompt)\n- Tasks that exceeded their budget (increase budget or narrow the scope)\n- Tasks that didn't run at all (check the cron expression and agent status)\n- Tasks that produced unexpected side effects (tighten constraints and tools)\n\n**The trust ladder:** Start with low-stakes, read-only automations (monitoring, reporting, analysis). As you verify the output quality, gradually add write capabilities and expand scope. Don't jump straight to \"agent autonomously deploys code\" — build up to it through a series of increasingly trusted automations.\n\nThe goal is to reach a state where your agents handle the predictable work, escalate the exceptions to you, and continuously improve through your feedback.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What's the 'trust ladder' approach to autonomous workflows, and why is it important?",
+            "Name three things you should monitor in the first week after setting up an autonomous workflow."
+          ]
+        },
+        {
+          "id": "build-a-workflow",
+          "title": "Build a workflow",
+          "order": 2,
+          "type": "self-report",
+          "content": "Design a complete autonomous workflow for your real work. This is a capstone exercise that brings together goals, schedules, delegation, and monitoring.\n\n**Write out your workflow with these sections:**\n\n1. **Purpose**: What does this workflow accomplish? What problem does it solve?\n2. **Trigger**: When does it run? (Include the cron expression.)\n3. **Agents involved**: Which agents participate? What's each one's role?\n4. **Execution steps**: What happens in order? Who delegates to whom?\n5. **Reporting**: Where do results go? What format should the summary be in?\n6. **Safety guardrails**: What budgets, constraints, and human checkpoints are in place?\n7. **Success criteria**: How will you know this workflow is working well?\n\n**Start small.** Even if your ultimate vision is complex, describe a v1 that you could set up today with the agents and tools you currently have. You can always add complexity in v2.\n\nAfter writing out the workflow, reflect: what's the riskiest step? Where would you want a human checkpoint? What could go wrong, and how would you detect it? These questions are what separate a thoughtful automation from a reckless one.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-04-09T00:00:00Z",
+  "updatedAt": "2026-04-09T00:00:00Z"
+}

@@ -99,7 +99,7 @@ export interface AgentConfig {
   };
   subAgents?: string[] | "*";  // Group agent: list of agent IDs to delegate to, or "*" for all
   platformAgent?: boolean;     // DEPRECATED — use agentClass instead
-  agentClass?: "standard" | "platform" | "builder";  // standard (default), platform (Lab creators), builder (app developer agents)
+  agentClass?: "standard" | "platform" | "builder" | "gym";  // standard (default), platform (Lab creators), builder (app developer agents), gym (AI Gym agents)
   executor?: string;  // "claude" (default) or "ollama:modelname" (e.g., "ollama:gemma2")
 }
 
@@ -130,6 +130,9 @@ export interface ServiceConfig {
   platformDefaultExecutor?: string; // "claude" (default) or "ollama:gemma2" etc.
   ollamaBaseUrl?: string;           // default: "http://localhost:11434"
   providerKeys?: Record<string, string>; // provider API keys: { openai: "sk-...", xai: "xai-...", google: "AIza...", groq: "gsk_...", together: "...", mistral: "..." }
+  gymEnabled?: boolean;                   // false = gym hidden, true = gym active
+  aibriefingEnabled?: boolean;            // false = no AI briefing feed, true = weekly AI news via web search
+  gymOnlyMode?: boolean;
 }
 
 export interface AppConfig {
@@ -177,11 +180,11 @@ export function loadConfig(configPath: string): AppConfig {
     agent.workspace = resolveTilde(agent.workspace);
     if (agent.agentHome) {
       agent.agentHome = resolveTilde(agent.agentHome);
-      // Auto-derive claudeMd and memoryDir from agentHome if not explicitly set differently
-      if (!agent.claudeMd || agent.claudeMd.includes(id)) {
+      // Auto-derive claudeMd and memoryDir from agentHome only if not explicitly set
+      if (!agent.claudeMd) {
         agent.claudeMd = join(agent.agentHome, "CLAUDE.md");
       }
-      if (!agent.memoryDir || agent.memoryDir.includes(id)) {
+      if (!agent.memoryDir) {
         agent.memoryDir = join(agent.agentHome, "memory");
       }
     }

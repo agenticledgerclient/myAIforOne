@@ -240,7 +240,7 @@ const CATALOG = [
   { cat: "Agents", method: "GET", path: "/api/agents/:id", summary: "Get agent details + CLAUDE.md content", params: [{ name: "id", in: "path", type: "string", required: true }] },
   { cat: "Agents", method: "GET", path: "/api/agents/:id/instructions", summary: "Get agent CLAUDE.md system prompt", params: [{ name: "id", in: "path", type: "string", required: true }] },
   { cat: "Agents", method: "POST", path: "/api/agents", summary: "Create a new agent", body: { name: { type: "string", required: true }, mentionAlias: { type: "string", required: true }, description: { type: "string" }, workspace: { type: "string" }, organization: { type: "string" }, function: { type: "string" }, title: { type: "string" }, skills: { type: "string[]" }, mcps: { type: "string[]" }, tools: { type: "string[]" }, prompts: { type: "string[]" }, subAgents: { type: "string[]|'*'" }, claudeAccount: { type: "string" }, persistent: { type: "boolean", default: true }, streaming: { type: "boolean", default: true }, advancedMemory: { type: "boolean" }, timeout: { type: "number", desc: "Timeout in ms (default 14400000)" }, heartbeatInstructions: { type: "string" }, agentClass: { type: "string", desc: "standard | platform | builder" }, wiki: { type: "boolean", desc: "Enable Wiki Learning (captures facts from conversations into learned.md)" }, wikiSync: { type: "object", desc: "{ enabled: boolean, schedule: string (cron) } — auto-merge learned facts on schedule" } } },
-  { cat: "Agents", method: "PUT", path: "/api/agents/:id", summary: "Update agent config", params: [{ name: "id", in: "path", type: "string", required: true }], body: { name: { type: "string" }, mentionAliases: { type: "string[]" }, instructions: { type: "string" }, timeout: { type: "number" }, persistent: { type: "boolean" }, heartbeatInstructions: { type: "string" }, agentClass: { type: "string", desc: "standard | platform | builder" }, wiki: { type: "boolean", desc: "Enable Wiki Learning" }, wikiSync: { type: "object", desc: "{ enabled: boolean, schedule: string (cron) } — auto-merge learned facts on schedule" } } },
+  { cat: "Agents", method: "PUT", path: "/api/agents/:id", summary: "Update agent config", params: [{ name: "id", in: "path", type: "string", required: true }], body: { name: { type: "string" }, alias: { type: "string" }, description: { type: "string" }, workspace: { type: "string" }, org: { type: "array", desc: "[{ organization, function, title, reportsTo? }]" }, persistent: { type: "boolean" }, streaming: { type: "boolean" }, advancedMemory: { type: "boolean" }, autonomousCapable: { type: "boolean" }, timeout: { type: "number" }, tools: { type: "string[]" }, skills: { type: "string[]" }, mcps: { type: "string[]" }, prompts: { type: "string[]" }, subAgents: { type: "string[]|'*'" }, claudeAccount: { type: "string" }, instructions: { type: "string", desc: "Update CLAUDE.md content" }, heartbeatInstructions: { type: "string" }, agentClass: { type: "string", desc: "standard | platform | builder" }, executor: { type: "string", desc: "'claude' (default) or 'ollama:<model>'" }, wiki: { type: "boolean", desc: "Enable Wiki Learning" }, wikiSync: { type: "object", desc: "{ enabled: boolean, schedule: string (cron) } — auto-merge learned facts on schedule" } } },
   { cat: "Agents", method: "DELETE", path: "/api/agents/:id", summary: "Delete agent and optionally remove home dir", params: [{ name: "id", in: "path", type: "string", required: true }] },
   { cat: "Agents", method: "POST", path: "/api/agents/:agentId/recover", summary: "Recover from session corruption (recreates session)", params: [{ name: "agentId", in: "path", type: "string", required: true }] },
   { cat: "Agents", method: "GET", path: "/api/whoami/:agentId", summary: "Get Claude auth status for the account this agent uses", params: [{ name: "agentId", in: "path", type: "string", required: true }] },
@@ -386,8 +386,8 @@ const CATALOG = [
   { cat: "Config", method: "POST", path: "/api/config/accounts/login", summary: "Start login flow — spawns claude auth, returns OAuth URL", body: { name: { type: "string", required: true }, path: { type: "string", required: true } } },
   { cat: "Config", method: "POST", path: "/api/config/accounts/login/code", summary: "Submit auth code to waiting login process", body: { sessionId: { type: "string", required: true }, code: { type: "string", required: true } } },
   { cat: "Config", method: "GET", path: "/api/config/accounts/:name/status", summary: "Check if account is authenticated", params: [{ name: "name", in: "path", type: "string", required: true }] },
-  { cat: "Config", method: "GET", path: "/api/config/service", summary: "Get service settings (personalAgentsDir, personalRegistryDir, port, logLevel)" },
-  { cat: "Config", method: "PUT", path: "/api/config/service", summary: "Update service settings", body: { personalAgentsDir: { type: "string" }, personalRegistryDir: { type: "string" }, webUIPort: { type: "number" }, logLevel: { type: "string" } } },
+  { cat: "Config", method: "GET", path: "/api/config/service", summary: "Get service settings (personalAgentsDir, personalRegistryDir, port, logLevel, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode)" },
+  { cat: "Config", method: "PUT", path: "/api/config/service", summary: "Update service settings (all fields optional, only provided fields are changed)", body: { personalAgentsDir: { type: "string" }, personalRegistryDir: { type: "string" }, webUIPort: { type: "number" }, logLevel: { type: "string" }, defaultClaudeAccount: { type: "string" }, multiModelEnabled: { type: "boolean" }, platformDefaultExecutor: { type: "string" }, ollamaBaseUrl: { type: "string" }, providerKeys: { type: "object", desc: "{ openai, xai, google, groq, together, mistral }" }, gymEnabled: { type: "boolean" }, aibriefingEnabled: { type: "boolean" }, gymOnlyMode: { type: "boolean" } } },
 
   // -- Changelog --
   { cat: "Dashboard", method: "GET", path: "/api/changelog", summary: "Get recent changelog parsed from git history (grouped by date)" },
@@ -397,6 +397,71 @@ const CATALOG = [
 
   // -- Webhook --
   { cat: "Chat", method: "POST", path: "/webhook/:agentId", summary: "Send a message via webhook (external trigger)", params: [{ name: "agentId", in: "path", type: "string", required: true }], body: { text: { type: "string", required: true }, channel: { type: "string", desc: "Override reply channel" }, chatId: { type: "string", desc: "Override reply chat ID" } } },
+
+  // -- AI Gym --
+  { cat: "AI Gym", method: "GET", path: "/api/gym/learner-profile", summary: "Get the learner's profile (dimensions, streak, trainer, programs)" },
+  { cat: "AI Gym", method: "PUT", path: "/api/gym/learner-profile", summary: "Update learner profile fields (merges with existing)" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/plan", summary: "Get the learner's training plan (two-bucket structure)" },
+  { cat: "AI Gym", method: "PUT", path: "/api/gym/plan", summary: "Update the training plan" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/progress", summary: "Get program completion progress" },
+  { cat: "AI Gym", method: "PUT", path: "/api/gym/progress", summary: "Update program progress" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/cards", summary: "List all gym cards (recommendations, tips)" },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/cards", summary: "Create a new gym card", body: { title: { type: "string", required: true }, description: { type: "string", required: true }, type: { type: "string", required: true }, cta: { type: "string" }, ctaAction: { type: "string" } } },
+  { cat: "AI Gym", method: "DELETE", path: "/api/gym/cards/:id", summary: "Dismiss/delete a gym card", params: [{ name: "id", in: "path", type: "string", required: true }] },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/dimensions/snapshot", summary: "Save a weekly dimension score snapshot", body: { date: { type: "string", desc: "ISO date (defaults to today)" }, dimensions: { type: "object", required: true, desc: "{ application, communication, knowledge, orchestration, craft }" } } },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/dimensions/history", summary: "Get all dimension score snapshots" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/programs", summary: "List all training programs" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/programs/:slug", summary: "Get a program with full modules and steps", params: [{ name: "slug", in: "path", type: "string", required: true }] },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/programs", summary: "Create a new program", body: { title: { type: "string", required: true }, slug: { type: "string", desc: "URL-safe identifier (auto-generated if omitted)" }, description: { type: "string", required: true }, difficulty: { type: "string", required: true }, tier: { type: "string", required: true }, modules: { type: "array", required: true } } },
+  { cat: "AI Gym", method: "PATCH", path: "/api/gym/programs/:slug", summary: "Update a program's metadata", params: [{ name: "slug", in: "path", type: "string", required: true }] },
+  { cat: "AI Gym", method: "DELETE", path: "/api/gym/programs/:slug", summary: "Delete a program", params: [{ name: "slug", in: "path", type: "string", required: true }] },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/programs/import-markdown", summary: "Import a program from markdown (H1=program, H2=module, H3=step)", body: { markdown: { type: "string", required: true } } },
+  { cat: "AI Gym", method: "GET", path: "/api/agents/:id/activity-summary", summary: "Aggregated agent activity: message count, active days, topics, tool use counts, last active", params: [{ name: "id", in: "path", type: "string", required: true }] },
+  { cat: "AI Gym", method: "GET", path: "/api/agents/:id/logs", summary: "Paginated conversation logs (newest first)", params: [{ name: "id", in: "path", type: "string", required: true }, { name: "limit", in: "query", type: "number", desc: "Max entries (default 50)" }, { name: "offset", in: "query", type: "number", desc: "Starting offset (default 0)" }] },
+  { cat: "AI Gym", method: "GET", path: "/api/agents/logs/search", summary: "Full-text search across agent logs", params: [{ name: "q", in: "query", type: "string", required: true, desc: "Search keyword" }, { name: "agentIds", in: "query", type: "string", desc: "Comma-separated agent IDs to filter" }] },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/digest/run", summary: "Manually trigger the activity digest (analyzes all agent activity, scores dimensions, generates cards)" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/feed", summary: "Aggregated feed: tips/nudges from gym cards, platform updates from changelog, AI briefing" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/config", summary: "Get public gym config flags (gymEnabled, gymOnlyMode, aibriefingEnabled)" },
+
+  // -- Session Tabs --
+  { cat: "Sessions", method: "GET", path: "/api/agents/:agentId/session-tabs", summary: "List all named session tabs (includes closed, with last message preview)", params: [{ name: "agentId", in: "path", type: "string", required: true }] },
+  { cat: "Sessions", method: "POST", path: "/api/agents/:agentId/session-tabs", summary: "Create a named session tab (optionally routes to a different agent)", params: [{ name: "agentId", in: "path", type: "string", required: true }], body: { tabId: { type: "string", required: true, desc: "Unique slug (e.g. 'project-alpha')" }, label: { type: "string", required: true }, targetAgentId: { type: "string", desc: "Route tab messages to this agent instead" } } },
+  { cat: "Sessions", method: "PUT", path: "/api/agents/:agentId/session-tabs/:tabId", summary: "Rename a session tab", params: [{ name: "agentId", in: "path", type: "string", required: true }, { name: "tabId", in: "path", type: "string", required: true }], body: { label: { type: "string", required: true } } },
+  { cat: "Sessions", method: "DELETE", path: "/api/agents/:agentId/session-tabs/:tabId", summary: "Delete a session tab and its Claude session", params: [{ name: "agentId", in: "path", type: "string", required: true }, { name: "tabId", in: "path", type: "string", required: true }] },
+  { cat: "Sessions", method: "GET", path: "/api/agents/:agentId/session-tabs/:tabId/history", summary: "Get full conversation history for a session tab", params: [{ name: "agentId", in: "path", type: "string", required: true }, { name: "tabId", in: "path", type: "string", required: true }] },
+
+  // -- Profile --
+  { cat: "Profile", method: "GET", path: "/api/profile", summary: "Get the user's profile (name, role, industry, AI experience, interests)" },
+  { cat: "Profile", method: "PUT", path: "/api/profile", summary: "Update the user's profile", body: { name: { type: "string" }, role: { type: "string" }, industry: { type: "string" }, aiExperience: { type: "string", desc: "beginner | intermediate | advanced" }, interests: { type: "string[]" } } },
+
+  // -- Memory (continued) --
+  { cat: "Memory", method: "POST", path: "/api/agents/:agentId/memory/write", summary: "Write content to agent memory (context.md or daily journal)", params: [{ name: "agentId", in: "path", type: "string", required: true }], body: { content: { type: "string", required: true }, target: { type: "string", desc: "context | daily | overwrite (default: overwrite)" } } },
+
+  // -- Skills (continued) --
+  { cat: "Skills", method: "GET", path: "/api/skills/content", summary: "Read full content of a skill markdown file", params: [{ name: "path", in: "query", type: "string", required: true, desc: "Absolute path to skill .md file" }] },
+
+  // -- Files (continued) --
+  { cat: "Files", method: "POST", path: "/api/upload/:agentId/json", summary: "Upload a file via JSON (base64-encoded content)", params: [{ name: "agentId", in: "path", type: "string", required: true }], body: { fileName: { type: "string", required: true }, base64Content: { type: "string", required: true }, mode: { type: "string", desc: "temp | permanent (default: temp)" } } },
+
+  // -- Automations (continued) --
+  { cat: "Automations", method: "PUT", path: "/api/agents/:id/goals/:goalId", summary: "Update a goal's config", params: [{ name: "id", in: "path", type: "string", required: true }, { name: "goalId", in: "path", type: "string", required: true }], body: { description: { type: "string" }, successMetric: { type: "string" }, enabled: { type: "boolean" }, budget: { type: "number", desc: "Max daily USD" }, heartbeat: { type: "any" }, reportTargets: { type: "any" } } },
+  { cat: "Automations", method: "PUT", path: "/api/agents/:id/cron/:index", summary: "Update a cron job's schedule, message, or channel", params: [{ name: "id", in: "path", type: "string", required: true }, { name: "index", in: "path", type: "number", required: true }], body: { schedule: { type: "string" }, message: { type: "string" }, channel: { type: "string" }, chatId: { type: "string" }, enabled: { type: "boolean" } } },
+
+  // -- Config (continued) --
+  { cat: "Config", method: "POST", path: "/api/config/provider-test", summary: "Test an API key for a cloud provider", body: { provider: { type: "string", required: true, desc: "openai | grok | gemini | groq | together | mistral" } } },
+  { cat: "Config", method: "POST", path: "/api/restart", summary: "Restart the MyAgent gateway service" },
+
+  // -- Utility --
+  { cat: "Utility", method: "POST", path: "/api/open-folder", summary: "Open a folder in Finder (macOS), Explorer (Windows), or xdg-open (Linux)", body: { path: { type: "string", required: true, desc: "Absolute or ~ path to open" } } },
+
+  // -- Discovery --
+  { cat: "Discovery", method: "GET", path: "/api/capabilities", summary: "Structured summary of all platform capabilities by category" },
+  { cat: "Discovery", method: "GET", path: "/api/user-guide", summary: "Full platform user guide — every page, button, API, and MCP tool" },
+
+  // -- Drive --
+  { cat: "Drive", method: "GET", path: "/api/drive/browse", summary: "Browse files and folders in the PersonalAgents data drive", params: [{ name: "path", in: "query", type: "string", desc: "Path to browse (default: drive root)" }] },
+  { cat: "Drive", method: "GET", path: "/api/drive/read", summary: "Read a file from the PersonalAgents data drive (max 1MB)", params: [{ name: "path", in: "query", type: "string", required: true }] },
+  { cat: "Drive", method: "GET", path: "/api/drive/search", summary: "Full-text search across the PersonalAgents data drive", params: [{ name: "q", in: "query", type: "string", required: true }, { name: "path", in: "query", type: "string", desc: "Scope to subdirectory" }, { name: "limit", in: "query", type: "number", desc: "Max results (default 50)" }, { name: "types", in: "query", type: "string", desc: "Comma-separated extensions" }] },
 ];
 
 // ═══ MCP TOOL CATALOG ═══════════════════════════════════════════════
@@ -410,7 +475,7 @@ const TOOLS = [
   {cat:"Agents",name:"get_agent",desc:"Get detailed info about a specific agent",params:[{n:"agentId",t:"string",r:true}]},
   {cat:"Agents",name:"get_agent_instructions",desc:"Get an agent's CLAUDE.md system prompt",params:[{n:"agentId",t:"string",r:true}]},
   {cat:"Agents",name:"create_agent",desc:"Create a new agent with full configuration",params:[{n:"agentId",t:"string",r:true,d:"Unique ID (lowercase, hyphens)"},{n:"name",t:"string",r:true},{n:"alias",t:"string",r:true,d:"e.g. @myagent"},{n:"description",t:"string",r:false},{n:"workspace",t:"string",r:false},{n:"organization",t:"string",r:false},{n:"function",t:"string",r:false},{n:"title",t:"string",r:false},{n:"persistent",t:"boolean",r:false},{n:"streaming",t:"boolean",r:false},{n:"advancedMemory",t:"boolean",r:false},{n:"autonomousCapable",t:"boolean",r:false},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"prompts",t:"string[]",r:false},{n:"subAgents",t:"string[]|'*'",r:false,d:"Sub-agents for group agent"},{n:"claudeAccount",t:"string",r:false},{n:"timeout",t:"number",r:false,d:"Timeout in ms (default 14400000)"},{n:"heartbeatInstructions",t:"string",r:false,d:"Custom heartbeat instructions (saved to heartbeat.md)"},{n:"agentClass",t:"enum",r:false,d:"standard | platform | builder"},{n:"executor",t:"string",r:false,d:"Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2')"},{n:"wiki",t:"boolean",r:false,d:"Enable Wiki Learning"},{n:"wikiSync",t:"object",r:false,d:"{ enabled, schedule } — auto-merge learned facts"}]},
-  {cat:"Agents",name:"update_agent",desc:"Update an existing agent's configuration",params:[{n:"agentId",t:"string",r:true},{n:"name",t:"string",r:false},{n:"alias",t:"string",r:false},{n:"instructions",t:"string",r:false,d:"Update CLAUDE.md content"},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"timeout",t:"number",r:false},{n:"heartbeatInstructions",t:"string",r:false,d:"Custom heartbeat instructions (saved to heartbeat.md)"},{n:"agentClass",t:"enum",r:false,d:"standard | platform | builder"},{n:"executor",t:"string",r:false,d:"Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2')"},{n:"wiki",t:"boolean",r:false,d:"Enable Wiki Learning"},{n:"wikiSync",t:"object",r:false,d:"{ enabled, schedule } — auto-merge learned facts"}]},
+  {cat:"Agents",name:"update_agent",desc:"Update an existing agent's configuration",params:[{n:"agentId",t:"string",r:true},{n:"name",t:"string",r:false},{n:"alias",t:"string",r:false},{n:"description",t:"string",r:false},{n:"workspace",t:"string",r:false},{n:"organization",t:"string",r:false,d:"Organization name"},{n:"function",t:"string",r:false,d:"Org function/department"},{n:"title",t:"string",r:false,d:"Org title/role"},{n:"reportsTo",t:"string",r:false,d:"Alias of reporting agent"},{n:"persistent",t:"boolean",r:false},{n:"streaming",t:"boolean",r:false},{n:"advancedMemory",t:"boolean",r:false},{n:"autonomousCapable",t:"boolean",r:false},{n:"tools",t:"string[]",r:false},{n:"skills",t:"string[]",r:false},{n:"mcps",t:"string[]",r:false},{n:"prompts",t:"string[]",r:false},{n:"subAgents",t:"string[]|'*'",r:false,d:"Sub-agents for group agent"},{n:"claudeAccount",t:"string",r:false},{n:"instructions",t:"string",r:false,d:"Update CLAUDE.md content"},{n:"timeout",t:"number",r:false},{n:"heartbeatInstructions",t:"string",r:false,d:"Custom heartbeat instructions (saved to heartbeat.md)"},{n:"agentClass",t:"enum",r:false,d:"standard | platform | builder"},{n:"executor",t:"string",r:false,d:"Executor override: 'claude' (default) or 'ollama:<model>'"},{n:"wiki",t:"boolean",r:false,d:"Enable Wiki Learning"},{n:"wikiSync",t:"object",r:false,d:"{ enabled, schedule } — auto-merge learned facts"}]},
   {cat:"Agents",name:"delete_agent",desc:"Delete an agent",params:[{n:"agentId",t:"string",r:true}]},
   {cat:"Agents",name:"recover_agent",desc:"Recover agent from session corruption",params:[{n:"agentId",t:"string",r:true}]},
 
@@ -562,6 +627,78 @@ const TOOLS = [
 
   // Webhook
   {cat:"Chat",name:"send_webhook",desc:"Send a message to an agent via webhook (external trigger)",params:[{n:"agentId",t:"string",r:true},{n:"text",t:"string",r:true},{n:"secret",t:"string",r:false,d:"Webhook secret (x-webhook-secret header)"},{n:"channel",t:"string",r:false,d:"Override reply channel"},{n:"chatId",t:"string",r:false,d:"Override reply chat ID"}]},
+
+  // Session Tabs
+  {cat:"Sessions",name:"create_session_tab",desc:"Create a named session tab on an agent's chat page, optionally routing to a different agent",params:[{n:"agentId",t:"string",r:true,d:"Agent whose chat page hosts the tab"},{n:"tabId",t:"string",r:true,d:"Unique tab slug"},{n:"label",t:"string",r:true},{n:"targetAgentId",t:"string",r:false,d:"Route messages to this agent instead"}]},
+  {cat:"Sessions",name:"list_session_tabs",desc:"List all named session tabs (includes closed sessions with last message preview)",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Sessions",name:"get_session_tab_history",desc:"Get full conversation history for a specific session tab",params:[{n:"agentId",t:"string",r:true},{n:"tabId",t:"string",r:true}]},
+  {cat:"Sessions",name:"rename_session_tab",desc:"Rename a session tab",params:[{n:"agentId",t:"string",r:true},{n:"tabId",t:"string",r:true},{n:"label",t:"string",r:true}]},
+  {cat:"Sessions",name:"delete_session_tab",desc:"Permanently delete a session tab and its Claude session state",params:[{n:"agentId",t:"string",r:true},{n:"tabId",t:"string",r:true}]},
+
+  // Profile
+  {cat:"Profile",name:"get_profile",desc:"Get the user's profile (name, role, industry, AI experience, interests)",params:[]},
+  {cat:"Profile",name:"update_profile",desc:"Update the user's profile",params:[{n:"name",t:"string",r:false},{n:"role",t:"string",r:false},{n:"industry",t:"string",r:false},{n:"aiExperience",t:"enum",r:false,d:"beginner | intermediate | advanced"},{n:"interests",t:"string[]",r:false}]},
+
+  // Memory (continued)
+  {cat:"Memory",name:"write_memory",desc:"Write content to an agent's memory (context.md or daily journal)",params:[{n:"agentId",t:"string",r:true},{n:"content",t:"string",r:true},{n:"target",t:"enum",r:false,d:"context | daily | overwrite (default: overwrite)"}]},
+
+  // Skills (continued)
+  {cat:"Skills",name:"get_skill_content",desc:"Read the full content of a skill markdown file",params:[{n:"path",t:"string",r:true,d:"Absolute path to the skill .md file"}]},
+
+  // Files (continued)
+  {cat:"Files",name:"upload_file",desc:"Upload a file to an agent's FileStorage (base64-encoded)",params:[{n:"agentId",t:"string",r:true},{n:"fileName",t:"string",r:true},{n:"base64Content",t:"string",r:true},{n:"mode",t:"enum",r:false,d:"temp | permanent (default: temp)"}]},
+
+  // Automations (continued)
+  {cat:"Automations",name:"update_goal",desc:"Update an existing goal's configuration",params:[{n:"agentId",t:"string",r:true},{n:"goalId",t:"string",r:true},{n:"description",t:"string",r:false},{n:"successMetric",t:"string",r:false},{n:"enabled",t:"boolean",r:false},{n:"budget",t:"number",r:false,d:"Max daily USD"},{n:"heartbeat",t:"any",r:false},{n:"reportTargets",t:"any",r:false}]},
+  {cat:"Automations",name:"update_cron",desc:"Update an existing cron job's schedule, message, or channel",params:[{n:"agentId",t:"string",r:true},{n:"index",t:"number",r:true},{n:"schedule",t:"string",r:false},{n:"message",t:"string",r:false},{n:"channel",t:"string",r:false},{n:"chatId",t:"string",r:false},{n:"enabled",t:"boolean",r:false}]},
+
+  // Config (continued)
+  {cat:"Config",name:"test_provider",desc:"Test an API key for a cloud provider (OpenAI, Grok, Gemini, Groq, Together, Mistral)",params:[{n:"provider",t:"string",r:true,d:"openai | grok | gemini | groq | together | mistral"}]},
+  {cat:"Config",name:"restart_service",desc:"Restart the MyAgent gateway service",params:[]},
+
+  // Discovery
+  {cat:"Discovery",name:"list_capabilities",desc:"Get a structured summary of all platform capabilities grouped by category",params:[]},
+  {cat:"Discovery",name:"get_user_guide",desc:"Get the full platform user guide — every page, button, API, and MCP tool documented",params:[]},
+
+  // Drive
+  {cat:"Drive",name:"browse_drive",desc:"Browse files and folders in the PersonalAgents data drive",params:[{n:"path",t:"string",r:false,d:"Path to browse (default: drive root)"}]},
+  {cat:"Drive",name:"read_drive_file",desc:"Read a file from the PersonalAgents data drive (max 1MB)",params:[{n:"path",t:"string",r:true,d:"Absolute path to the file"}]},
+  {cat:"Drive",name:"search_drive",desc:"Full-text search across the PersonalAgents data drive",params:[{n:"q",t:"string",r:true},{n:"path",t:"string",r:false,d:"Scope to subdirectory"},{n:"limit",t:"number",r:false,d:"Max results (default 50)"},{n:"types",t:"string",r:false,d:"Comma-separated extensions"}]},
+
+  // AI Gym — Learner Profile
+  {cat:"AI Gym",name:"get_learner_profile",desc:"Get the learner's AI Gym profile including dimensions, streak, trainer selection, and programs",params:[]},
+  {cat:"AI Gym",name:"update_learner_profile",desc:"Update fields in the learner profile",params:[{n:"data",t:"object",r:true,d:"Fields to merge into the learner profile"}]},
+
+  // AI Gym — Plan
+  {cat:"AI Gym",name:"get_plan",desc:"Get the learner's training plan (on-the-job + platform-driven buckets)",params:[]},
+  {cat:"AI Gym",name:"update_plan",desc:"Write an updated training plan",params:[{n:"data",t:"object",r:true,d:"Full plan to write"}]},
+
+  // AI Gym — Progress
+  {cat:"AI Gym",name:"get_gym_progress",desc:"Get program completion progress for all programs",params:[]},
+  {cat:"AI Gym",name:"update_gym_progress",desc:"Update program progress",params:[{n:"data",t:"object",r:true,d:"Progress keyed by program slug"}]},
+
+  // AI Gym — Cards
+  {cat:"AI Gym",name:"list_gym_cards",desc:"List all active gym cards (recommendations, tips, nudges)",params:[]},
+  {cat:"AI Gym",name:"create_gym_card",desc:"Create a gym card with a recommendation or tip",params:[{n:"title",t:"string",r:true},{n:"description",t:"string",r:true},{n:"type",t:"string",r:true},{n:"cta",t:"string",r:false,d:"Call-to-action text"},{n:"ctaAction",t:"string",r:false}]},
+  {cat:"AI Gym",name:"dismiss_gym_card",desc:"Remove a gym card",params:[{n:"id",t:"string",r:true}]},
+
+  // AI Gym — Dimensions
+  {cat:"AI Gym",name:"snapshot_dimensions",desc:"Save a weekly dimension score snapshot",params:[{n:"date",t:"string",r:false,d:"Snapshot date (defaults to today)"},{n:"dimensions",t:"object",r:true,d:"Object with score per dimension"}]},
+  {cat:"AI Gym",name:"get_dimension_history",desc:"Get all weekly dimension score snapshots",params:[]},
+
+  // AI Gym — Programs
+  {cat:"AI Gym",name:"list_gym_programs",desc:"List all available training programs",params:[]},
+  {cat:"AI Gym",name:"get_gym_program",desc:"Get a program with full modules and steps",params:[{n:"slug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"import_program",desc:"Import a program from markdown (H1=program, H2=module, H3=step)",params:[{n:"markdown",t:"string",r:true}]},
+  {cat:"AI Gym",name:"update_gym_program",desc:"Update a program's metadata",params:[{n:"slug",t:"string",r:true},{n:"body",t:"object",r:true}]},
+  {cat:"AI Gym",name:"delete_gym_program",desc:"Delete a training program",params:[{n:"slug",t:"string",r:true}]},
+
+  // AI Gym — Agent Activity
+  {cat:"AI Gym",name:"get_agent_activity_summary",desc:"Get aggregated activity stats for an agent",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"AI Gym",name:"search_agent_logs",desc:"Full-text search across agent conversation logs",params:[{n:"q",t:"string",r:true},{n:"agentIds",t:"string",r:false,d:"Comma-separated agent IDs"}]},
+
+  // AI Gym — Digest
+  {cat:"AI Gym",name:"run_gym_digest",desc:"Manually trigger the activity digest (analyzes all activity, scores dimensions, generates cards)",params:[]},
 ];
 
 // ═══ STATE ═══════════════════════════════════════════════════════════

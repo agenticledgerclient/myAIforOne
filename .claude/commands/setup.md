@@ -54,6 +54,7 @@ mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalAgents"
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry"
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/skills/personal"
 mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalRegistry/prompts/personal"
+mkdir -p "$HOME/Desktop/MyAIforOne Drive/PlatformUtilities"/{hub,agentcreator,skillcreator,appcreator,promptcreator,gym}/{memory,FileStorage/Temp,FileStorage/Permanent}
 ```
 
 ### Windows
@@ -65,6 +66,11 @@ $dirs = @(
   "$env:USERPROFILE\Desktop\MyAIforOne Drive\PersonalRegistry\prompts\personal"
 )
 $dirs | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
+@("hub","agentcreator","skillcreator","appcreator","promptcreator","gym") | ForEach-Object {
+  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\Desktop\MyAIforOne Drive\PlatformUtilities\$_\memory" | Out-Null
+  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\Desktop\MyAIforOne Drive\PlatformUtilities\$_\FileStorage\Temp" | Out-Null
+  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\Desktop\MyAIforOne Drive\PlatformUtilities\$_\FileStorage\Permanent" | Out-Null
+}
 ```
 
 ## Step 3: Generate config.json
@@ -98,8 +104,9 @@ The hub is the default group/router agent. Register it with:
 - `agentId`: `hub`
 - `name`: `Hub`
 - `description`: "The primary AI interface — handles all platform operations through natural conversation."
-- `agentHome`: `<PROJECT_PATH>/agents/platform/hub`
-- `claudeMd`: `<PROJECT_PATH>/agents/platform/hub/CLAUDE.md`
+- `agentHome`: `~/Desktop/MyAIforOne Drive/PlatformUtilities/hub`
+- `claudeMd`: `agents/platform/hub/CLAUDE.md`
+- `memoryDir`: `~/Desktop/MyAIforOne Drive/PlatformUtilities/hub/memory`
 - `workspace`: `<PROJECT_PATH>`
 - `persistent`: true, `streaming`: true
 - `subAgents`: `"*"` (routes to all agents)
@@ -127,9 +134,9 @@ All 4 share these settings:
   "streaming": true,
   "mcps": ["myaiforone-local"],
   "workspace": "PROJECT_PATH",
-  "agentHome": "PROJECT_PATH/agents/platform/AGENT_ID",
-  "claudeMd": "PROJECT_PATH/agents/platform/AGENT_ID/CLAUDE.md",
-  "memoryDir": "PROJECT_PATH/agents/platform/AGENT_ID/memory",
+  "agentHome": "~/Desktop/MyAIforOne Drive/PlatformUtilities/AGENT_ID",
+  "claudeMd": "agents/platform/AGENT_ID/CLAUDE.md",
+  "memoryDir": "~/Desktop/MyAIforOne Drive/PlatformUtilities/AGENT_ID/memory",
   "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
   "timeout": 14400000,
   "autoCommit": false,
@@ -138,9 +145,22 @@ All 4 share these settings:
 }
 ```
 
-Create memory directories:
-- **macOS / Linux:** `mkdir -p agents/platform/{hub,agentcreator,skillcreator,appcreator,promptcreator}/memory`
-- **Windows:** `@("hub","agentcreator","skillcreator","appcreator","promptcreator") | ForEach-Object { New-Item -ItemType Directory -Force -Path "agents\platform\$_\memory" | Out-Null }`
+### Gym Agent
+
+Register the AI Gym Coach. It's always registered but only active when `gymEnabled: true` in service config.
+
+Read the reference config from `agents/platform/gym/agent.json` and register it with these path overrides:
+```json
+{
+  "agentHome": "~/Desktop/MyAIforOne Drive/PlatformUtilities/gym",
+  "claudeMd": "agents/platform/gym/CLAUDE.md",
+  "memoryDir": "~/Desktop/MyAIforOne Drive/PlatformUtilities/gym/memory"
+}
+```
+
+All other fields (name, description, agentClass, allowedTools, mcps, org, etc.) come directly from `agents/platform/gym/agent.json`.
+
+Note: PlatformUtilities directories for all platform agents (including gym) are created in Step 2.
 
 ## Step 5: Validate & Build
 

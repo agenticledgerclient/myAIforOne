@@ -24,7 +24,10 @@
       "groq": "",
       "together": "",
       "mistral": ""
-    }
+    },
+    "gymEnabled": false,
+    "gymOnlyMode": false,
+    "aibriefingEnabled": false
   },
 
   "channels": {

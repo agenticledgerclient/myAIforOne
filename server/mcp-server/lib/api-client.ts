@@ -336,3 +336,27 @@ export const browseDrive = (path?: string) => api("/api/drive/browse", { query: 
 export const readDriveFile = (path: string) => api("/api/drive/read", { query: { path } });
 export const searchDrive = (q: string, path?: string, limit?: number, types?: string) =>
   api("/api/drive/search", { query: { q, path, limit, types } });
+
+// ─── Gym ─────────────────────────────────────────────────────────
+export const getGymLearnerProfile = () => api("/api/gym/learner-profile");
+export const updateGymLearnerProfile = (body: any) => api("/api/gym/learner-profile", { method: "PUT", body });
+export const getGymPlan = () => api("/api/gym/plan");
+export const updateGymPlan = (body: any) => api("/api/gym/plan", { method: "PUT", body });
+export const getGymProgress = () => api("/api/gym/progress");
+export const updateGymProgress = (body: any) => api("/api/gym/progress", { method: "PUT", body });
+export const listGymCards = () => api("/api/gym/cards");
+export const createGymCard = (body: any) => api("/api/gym/cards", { method: "POST", body });
+export const dismissGymCard = (id: string) => api(`/api/gym/cards/${id}`, { method: "DELETE" });
+export const snapshotDimensions = (body: any) => api("/api/gym/dimensions/snapshot", { method: "POST", body });
+export const listGymPrograms = () => api("/api/gym/programs");
+export const getGymProgram = (slug: string) => api(`/api/gym/programs/${slug}`);
+export const createGymProgram = (body: any) => api("/api/gym/programs", { method: "POST", body });
+export const importGymProgram = (body: any) => api("/api/gym/programs/import-markdown", { method: "POST", body });
+export const updateGymProgram = (slug: string, body: any) => api(`/api/gym/programs/${slug}`, { method: "PATCH", body });
+export const deleteGymProgram = (slug: string) => api(`/api/gym/programs/${slug}`, { method: "DELETE" });
+export const getGymDimensionHistory = () => api("/api/gym/dimensions/history");
+export const runGymDigest = () => api("/api/gym/digest/run", { method: "POST" });
+export const getAgentActivitySummary = (id: string) => api(`/api/agents/${id}/activity-summary`);
+export const searchAgentLogs = (q: string, agentIds?: string) => api("/api/agents/logs/search", { query: { q, agentIds } });
+export const getGymFeed = () => api("/api/gym/feed");
+export const getGymConfig = () => api("/api/gym/config");

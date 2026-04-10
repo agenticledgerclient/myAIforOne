@@ -1,0 +1,116 @@
+{
+  "id": "mcp-integrations",
+  "slug": "mcp-integrations",
+  "title": "MCP Integrations",
+  "description": "Connect your agents to the outside world — APIs, services, and tools via Model Context Protocol.",
+  "difficulty": "advanced",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "dimensions": ["orchestration", "craft", "application"],
+  "estimatedTime": "45-60 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "what-mcps-enable",
+      "title": "What MCPs Enable",
+      "order": 1,
+      "agentInstructions": "MCPs are what make agents truly powerful — they break the wall between the AI and the real world. Start conceptual, but quickly ground it in real integrations the learner can see on their own platform. Check which MCPs are already configured and use those as examples.",
+      "steps": [
+        {
+          "id": "beyond-the-local-machine",
+          "title": "Beyond the local machine",
+          "order": 1,
+          "type": "knowledge",
+          "content": "Without MCPs, an agent can only work with local files and run local commands. That's powerful, but it's limited to what's on your machine. **Model Context Protocol (MCP)** servers break that wall — they give agents the ability to interact with external services, APIs, and data sources.\n\nAn MCP server is a small program that exposes a set of **tools** to the AI agent. When you connect the GitHub MCP, your agent gains tools like `create_pull_request`, `list_issues`, and `get_file_contents`. When you connect the Slack MCP, it gains `send_message`, `list_channels`, and `search_messages`. The agent calls these tools just like it calls Read or Write — but instead of operating on local files, they operate on external services.\n\n**Three transport types:**\n- **stdio** — The MCP server runs as a local process. The agent communicates with it via standard input/output. Most common for locally-installed MCPs. Fast and reliable.\n- **HTTP** — The MCP server runs as a web service (local or remote). Communication happens over HTTP requests. Good for shared MCPs that multiple agents or users access.\n- **SSE (Server-Sent Events)** — A streaming variant of HTTP. The MCP server pushes real-time updates to the agent. Used for event-driven integrations.\n\n**How agents use MCPs:** In the platform's config, each MCP is registered globally with a name, command, and arguments. Individual agents then reference MCPs by name — an agent's `mcps` array lists which integrations it has access to. When the executor spawns the agent, it generates a temporary MCP config file and passes it to Claude with `--mcp-config`. The agent sees the MCP's tools as part of its available toolkit.\n\nThis architecture means you configure an MCP once and share it across as many agents as you want. A Slack MCP configured once can be used by your hub agent, your project bot, and your reporting agent — each one able to post messages and read channels.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What's the difference between an agent's built-in tools (Read, Write, Bash) and MCP tools? Why would you use one over the other?",
+            "Explain the difference between stdio and HTTP transport types. When would you choose each?"
+          ]
+        },
+        {
+          "id": "survey-your-integrations",
+          "title": "Survey your integrations",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Let's see what you're already working with. Check your platform's current MCP configuration by going to the **Settings** page or the **MCP Docs** page (/mcp-docs).\n\nFor each MCP that's configured, note:\n- **Name**: What's it called in the config?\n- **Transport**: Is it stdio, HTTP, or SSE?\n- **Tools**: What capabilities does it provide? (The MCP docs page lists each tool with its description and parameters.)\n- **Which agents use it**: Which agents in your roster have this MCP in their config?\n\nIf you have MCPs like Slack, GitHub, or Linear configured, you're already in good shape. If you only have the platform's built-in MCP (the one that provides agent management, gym, and project tools), that's fine too — you'll learn how to add more.\n\nPay attention to the tools each MCP provides. Understanding what's available is the first step to building workflows that leverage external services. Many users discover they already have MCP tools that could automate tasks they're currently doing manually.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "mcp-configured"
+        }
+      ]
+    },
+    {
+      "id": "connecting-your-first-mcp",
+      "title": "Connecting Your First MCP",
+      "order": 2,
+      "agentInstructions": "Walk through the actual setup process step by step. The learner should leave this module with a working MCP connection. If they get stuck on auth or config, help them debug — MCP setup is where most people hit friction.",
+      "steps": [
+        {
+          "id": "mcp-setup-walkthrough",
+          "title": "MCP setup walkthrough",
+          "order": 1,
+          "type": "knowledge",
+          "content": "Adding an MCP to your platform involves three steps: **register the server**, **configure authentication**, and **assign it to agents**.\n\n**Step 1: Register the MCP server.** In your `config.json`, add an entry to the `mcps` object. Each MCP needs a name, command, and arguments. For a stdio-based MCP:\n```json\n\"my-mcp\": {\n  \"command\": \"npx\",\n  \"args\": [\"-y\", \"@example/mcp-server\"],\n  \"env\": { \"API_KEY\": \"your-api-key\" }\n}\n```\nFor an HTTP/SSE-based MCP, you specify the URL instead of a command.\n\n**Step 2: Configure authentication.** Most MCPs need API keys or tokens. These go in the `env` field of the MCP config. **Never hardcode secrets in system prompts or agent configs** — always use the MCP's env field, which is read at runtime and not exposed to the AI.\n\n**Step 3: Assign to agents.** Add the MCP name to the agent's `mcps` array in their config. Only agents that explicitly list the MCP will have access to its tools. This is intentional — you don't want every agent posting to Slack or creating GitHub issues.\n\n**Testing your MCP:** After configuration, the fastest way to test is to start a conversation with an agent that has the MCP assigned. Ask it to use one of the MCP's tools (e.g., \"List my Slack channels\" or \"Show my GitHub repos\"). If it works, you'll see the tool call in the response. If it fails, check: (1) is the MCP command correct? (2) are the env variables set? (3) is the MCP listed in the agent's config?\n\n**Common gotchas:** MCP servers installed via npx may need a first-run download. Some MCPs require specific Node.js versions. Environment variables with special characters need proper escaping. When in doubt, test the MCP command manually in your terminal first.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "Walk through the three steps to add a new MCP to your platform. What could go wrong at each step?",
+            "Why should API keys go in the MCP's env field rather than in an agent's system prompt?"
+          ]
+        },
+        {
+          "id": "connect-an-mcp",
+          "title": "Connect an MCP",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Time to connect an MCP to your platform. Choose one based on the services you use:\n\n**Popular MCP options:**\n- **Slack MCP** — Post messages, read channels, search conversations. Great if your team uses Slack.\n- **GitHub MCP** — Create issues, read repos, manage PRs. Essential for development workflows.\n- **Linear MCP** — Manage tasks and project tracking. Good for product/engineering teams.\n- **Filesystem MCP** — Extended file operations beyond the built-in Read/Write tools.\n- **Memory MCP** — Persistent key-value storage for agents that need to remember structured data.\n\nIf you already have MCPs configured, add a new one you haven't set up yet. If you're not sure which to pick, the **Filesystem MCP** or **Memory MCP** are good starting points because they don't require external service accounts.\n\nAfter adding the MCP to your config:\n1. Restart the platform to load the new MCP\n2. Assign the MCP to at least one agent\n3. Start a conversation with that agent and ask it to use one of the MCP's tools\n4. Verify the tool call succeeds\n\nIf you run into issues, check the platform logs for error messages. The most common problems are incorrect command paths, missing environment variables, and agents that don't have the MCP in their config.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "mcp-configured"
+        }
+      ]
+    },
+    {
+      "id": "building-agent-workflows-with-external-apis",
+      "title": "Building Agent Workflows with External APIs",
+      "order": 3,
+      "agentInstructions": "This is the advanced capstone. The learner should think about combining MCPs with tools and multi-step logic. Push them to design something that creates real value — not just a demo. Error handling and fallbacks are key topics here.",
+      "steps": [
+        {
+          "id": "workflow-design-patterns",
+          "title": "Workflow design patterns",
+          "order": 1,
+          "type": "knowledge",
+          "content": "The real power of MCPs emerges when you combine them with agent tools and multi-step workflows. Here are the patterns that work best in practice.\n\n**Pattern 1: Gather → Analyze → Act.** The agent uses an MCP to gather data from an external service, uses its local tools to analyze it, then uses another MCP (or the same one) to take action. Example: Read GitHub PRs (GitHub MCP) → analyze code changes for quality issues (Read + Grep tools) → post a review summary to Slack (Slack MCP).\n\n**Pattern 2: Monitor → Alert.** A scheduled agent uses an MCP to check a service on a regular basis and alerts you when something needs attention. Example: Every hour, check Linear for overdue tasks (Linear MCP) → if any are found, send a notification to Telegram (Telegram channel) with a summary and suggested actions.\n\n**Pattern 3: Transform → Distribute.** The agent takes input from one source, transforms it, and distributes it to multiple destinations. Example: Read a project status document (Read tool) → format it as a weekly update → post to Slack (Slack MCP) and create a GitHub discussion (GitHub MCP).\n\n**Error handling matters.** External APIs fail — they timeout, rate-limit, return unexpected data, or require re-authentication. Build your workflows to be resilient:\n- Include fallback instructions in the system prompt: \"If the Slack MCP fails, save the message to a local file for manual posting\"\n- Use conservative budgets so a failing MCP doesn't burn through retries\n- Set up monitoring so you know when an MCP-dependent workflow fails\n\n**Composing MCPs:** An agent can use multiple MCPs in a single conversation. The system prompt should define when to use which MCP. \"Use GitHub MCP for code-related operations. Use Slack MCP for team communication. Use Linear MCP for task tracking. Never create GitHub issues for non-code tasks — use Linear instead.\"",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "Describe the Gather → Analyze → Act pattern with a concrete example from your own work. What MCPs and tools would be involved?",
+            "Why is error handling especially important for MCP-based workflows compared to local-only agent tasks?"
+          ]
+        },
+        {
+          "id": "end-to-end-integration",
+          "title": "End-to-end integration",
+          "order": 2,
+          "type": "self-report",
+          "content": "Design and describe an end-to-end workflow that connects at least one external API (via MCP) to agent actions. This is your capstone for the MCP program.\n\n**Your workflow design should include:**\n\n1. **The problem it solves:** What manual process are you automating or what new capability are you creating?\n2. **External services involved:** Which MCPs does it use and what data flows in/out?\n3. **Agent configuration:** Which agent runs this workflow? What's in its system prompt to guide MCP usage?\n4. **Step-by-step flow:** Walk through each step from trigger to final output. Be specific about which MCP tool is called at each step.\n5. **Error handling:** What happens when an MCP call fails? What's the fallback?\n6. **Trigger mechanism:** Is this on-demand (user-initiated), scheduled (cron), or event-driven?\n\nIf you've already set up an MCP in the previous step, try to incorporate it into this workflow. Even a simple workflow like \"Read Slack messages → summarize → save to a local file\" demonstrates the integration pattern.\n\nAfter designing the workflow, try running at least part of it. Start a conversation with the relevant agent and walk through the steps manually. Does the MCP respond as expected? Does the agent combine MCP data with local tools effectively? Use this test run to refine your design.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-04-09T00:00:00Z",
+  "updatedAt": "2026-04-09T00:00:00Z"
+}

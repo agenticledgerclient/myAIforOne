@@ -552,6 +552,8 @@ text-decoration:none;}
 }
 .recent-file-chip:hover{border-color:var(--border-glow);color:var(--text-primary);background:var(--accent-bg)}
 .recent-file-chip .chip-icon{font-size:12px}
+.recent-file-chip .chip-folder{font-size:10px;opacity:.5;margin-left:2px;cursor:pointer}
+.recent-file-chip .chip-folder:hover{opacity:1}
 
 .tool-cards{margin-bottom:8px;display:flex;flex-direction:column;gap:4px}
 .tool-card{
@@ -808,6 +810,7 @@ text-decoration:none;}
     <a class="tab-btn active" href="/ui">Chat</a>
     <a class="tab-btn" href="/library">Library</a>
       <a class="tab-btn" href="/lab">Lab</a>
+      <a class="tab-btn gym-tab-link" href="/gym" style="display:none">Gym</a>
   </nav>
   <div class="topbar-right">
     <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
@@ -1246,8 +1249,10 @@ function renderRecentFiles() {
     const ext = (f.name.split('.').pop() || '').toLowerCase();
     const icon = icons[ext] || '📁';
     const enc = encodeURIComponent(f.path);
-    html += `<span class="recent-file-chip" onclick="Canvas.openFile('${enc}')" title="${escapeHtml(f.path)}">
-      <span class="chip-icon">${icon}</span>${escapeHtml(f.name)}
+    html += `<span class="recent-file-chip" title="${escapeHtml(f.path)}">
+      <span class="chip-icon" onclick="Canvas.openFile('${enc}')">${icon}</span>
+      <span onclick="Canvas.openFile('${enc}')">${escapeHtml(f.name)}</span>
+      <span class="chip-folder" onclick="event.stopPropagation();fetch('/api/open-folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'${enc}'})})" title="Open folder">&#x1F4C2;</span>
     </span>`;
   }
   bar.innerHTML = html;
@@ -2797,5 +2802,6 @@ function toggleSidebar() {
     </div>
   </div>
 </div>
+<script>(function(){fetch("/api/config/service").then(function(r){return r.json()}).then(function(d){if(d.gymEnabled)document.querySelectorAll(".gym-tab-link").forEach(function(el){el.style.display=""});if(d.gymOnlyMode){var keep=["/gym","/org","/admin"];document.querySelectorAll(".tab-group .tab-btn").forEach(function(el){var h=el.getAttribute("href");if(h&&keep.indexOf(h)===-1&&!el.classList.contains("gym-tab-link"))el.style.display="none"});document.querySelectorAll(".topbar-right .gear-btn").forEach(function(el){var h=el.getAttribute("href");if(h&&["/marketplace","/monitor","/user-guide"].indexOf(h)!==-1)el.style.display="none"})}}).catch(function(){})})()</script>
 </body>
 </html>

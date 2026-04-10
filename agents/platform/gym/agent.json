@@ -1,0 +1,29 @@
+{
+  "id": "gym",
+  "name": "AI Gym Coach",
+  "description": "Personal AI trainer — observes your platform activity, delivers personalized training, and tracks skill growth across 5 dimensions.",
+  "alias": "gym",
+  "agentClass": "gym",
+  "workspace": "~",
+  "agentHome": "~/Desktop/MyAIforOne Drive/PlatformUtilities/gym",
+  "claudeMd": "agents/platform/gym/CLAUDE.md",
+  "memoryDir": "~/Desktop/MyAIforOne Drive/PlatformUtilities/gym/memory",
+  "advancedMemory": true,
+  "wiki": true,
+  "persistent": true,
+  "perSenderSessions": false,
+  "streaming": true,
+  "featureFlag": "gymEnabled",
+  "allowedTools": ["Read", "Glob", "Grep", "Write", "Bash"],
+  "mcps": ["myaiforone"],
+  "autoCommit": false,
+  "autoCommitBranch": "",
+  "mentionAliases": ["gym", "coach"],
+  "routes": [],
+  "org": [{
+    "organization": "Platform",
+    "function": "Training",
+    "title": "AI Gym Coach",
+    "reportsTo": "hub"
+  }]
+}

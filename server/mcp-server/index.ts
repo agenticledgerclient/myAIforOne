@@ -100,14 +100,20 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   alias: z.string().optional(),
   description: z.string().optional(),
   workspace: z.string().optional(),
+  organization: z.string().optional().describe("Organization name"),
+  function: z.string().optional().describe("Org function/department"),
+  title: z.string().optional().describe("Org title/role"),
+  reportsTo: z.string().optional().describe("Alias of the agent this one reports to (e.g. @pricingstrat)"),
   persistent: z.boolean().optional(),
   streaming: z.boolean().optional(),
   advancedMemory: z.boolean().optional(),
+  autonomousCapable: z.boolean().optional().describe("Can run autonomous goals"),
   timeout: z.number().optional(),
   tools: z.array(z.string()).optional(),
   skills: z.array(z.string()).optional(),
   mcps: z.array(z.string()).optional(),
   prompts: z.array(z.string()).optional(),
+  subAgents: z.union([z.array(z.string()), z.literal("*")]).optional().describe("Sub-agents for group agent"),
   claudeAccount: z.string().optional(),
   instructions: z.string().optional().describe("Update CLAUDE.md content"),
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
@@ -116,7 +122,12 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
 }, async ({ agentId, ...body }) => {
-  const r = await api.updateAgent(agentId, body);
+  const payload: any = { ...body };
+  if (body.organization !== undefined) {
+    payload.org = [{ organization: body.organization, function: body.function || "", title: body.title || "", reportsTo: body.reportsTo || "" }];
+    delete payload.organization; delete payload.function; delete payload.title; delete payload.reportsTo;
+  }
+  const r = await api.updateAgent(agentId, payload);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
@@ -1307,6 +1318,149 @@ server.tool("search_drive", "Full-text search across the PersonalAgents data dri
   types: z.string().optional().describe("Comma-separated file extensions to search (default: .md,.json,.jsonl,.txt)"),
 }, async ({ q, path, limit, types }) => {
   const r = await api.searchDrive(q, path, limit, types);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  AI GYM
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("get_learner_profile", "Get the gym learner's profile (identity, activity, dimensions, streak, selected trainer)", {}, async () => {
+  const r = await api.getGymLearnerProfile();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_learner_profile", "Update the gym learner's profile (merge fields)", {
+  data: z.record(z.string(), z.any()).describe("Fields to merge into the learner profile"),
+}, async ({ data }) => {
+  const r = await api.updateGymLearnerProfile(data);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_plan", "Get the gym learner's training plan (on-the-job + platform-driven buckets)", {}, async () => {
+  const r = await api.getGymPlan();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_plan", "Update the gym training plan", {
+  data: z.record(z.string(), z.any()).describe("Full plan object to write"),
+}, async ({ data }) => {
+  const r = await api.updateGymPlan(data);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_progress", "Get program completion progress for all programs", {}, async () => {
+  const r = await api.getGymProgress();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_gym_progress", "Update program/step completion progress", {
+  data: z.record(z.string(), z.any()).describe("Progress data keyed by program slug"),
+}, async ({ data }) => {
+  const r = await api.updateGymProgress(data);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("list_gym_cards", "List active gym cards (recommendations, insights, challenges)", {}, async () => {
+  const r = await api.listGymCards();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_gym_card", "Create a new gym card (recommendation, insight, or challenge)", {
+  title: z.string().describe("Card title"),
+  description: z.string().describe("Card description"),
+  cta: z.string().optional().describe("Call to action button text"),
+  ctaAction: z.string().optional().describe("Action identifier when CTA is clicked"),
+  type: z.string().optional().describe("Card type: recommendation, insight, challenge, tip"),
+}, async ({ title, description, cta, ctaAction, type }) => {
+  const r = await api.createGymCard({ title, description, cta, ctaAction, type });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("dismiss_gym_card", "Dismiss a gym card", {
+  id: z.string().describe("Card ID to dismiss"),
+}, async ({ id }) => {
+  const r = await api.dismissGymCard(id);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("snapshot_dimensions", "Save a weekly dimension score snapshot for the progress history chart", {
+  dimensions: z.record(z.string(), z.object({
+    score: z.number(),
+    label: z.string(),
+  })).describe("Dimension scores to snapshot"),
+}, async ({ dimensions }) => {
+  const r = await api.snapshotDimensions({ dimensions });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("list_gym_programs", "List all training programs in the gym", {}, async () => {
+  const r = await api.listGymPrograms();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_program", "Get a specific training program with all modules and steps", {
+  slug: z.string().describe("Program slug (e.g., 'getting-started')"),
+}, async ({ slug }) => {
+  const r = await api.getGymProgram(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("import_program", "Import a training program from markdown (H1=program, H2=module, H3=step)", {
+  markdown: z.string().describe("Markdown content to parse into a program"),
+  difficulty: z.string().optional().describe("beginner, intermediate, or advanced"),
+}, async ({ markdown, difficulty }) => {
+  const r = await api.importGymProgram({ markdown, difficulty });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_agent_activity_summary", "Get aggregated activity summary for an agent (message count, active days, topics, tool use)", {
+  agentId: z.string().describe("Agent ID"),
+}, async ({ agentId }) => {
+  const r = await api.getAgentActivitySummary(agentId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("search_agent_logs", "Full-text search across agent conversation logs", {
+  q: z.string().describe("Search query"),
+  agentIds: z.string().optional().describe("Comma-separated agent IDs to search (default: all)"),
+}, async ({ q, agentIds }) => {
+  const r = await api.searchAgentLogs(q, agentIds);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_gym_program", "Update metadata for a training program", {
+  slug: z.string().describe("Program slug"),
+  body: z.record(z.string(), z.any()).describe("Fields to update (title, description, difficulty, etc.)"),
+}, async ({ slug, body }) => {
+  const r = await api.updateGymProgram(slug, body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_gym_program", "Delete a training program", {
+  slug: z.string().describe("Program slug to delete"),
+}, async ({ slug }) => {
+  const r = await api.deleteGymProgram(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_dimension_history", "Get dimension score history (weekly snapshots)", {}, async () => {
+  const r = await api.getGymDimensionHistory();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("run_gym_digest", "Manually trigger the activity digest (analyzes all agent activity, scores dimensions, generates cards)", {}, async () => {
+  const r = await api.runGymDigest();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_feed", "Get the aggregated gym feed — tips/nudges from gym cards, platform updates from changelog, and AI briefing", {}, async () => {
+  const r = await api.getGymFeed();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_config", "Get public gym configuration flags (gymEnabled, gymOnlyMode, aibriefingEnabled)", {}, async () => {
+  const r = await api.getGymConfig();
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 

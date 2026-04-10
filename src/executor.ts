@@ -974,6 +974,27 @@ export async function executeAgent(
     return `Error: Could not load agent configuration for ${agentId}.`;
   }
 
+  // ── Prepend soul.md for gym agents (trainer personality layer) ──
+  if (agentConfig.agentClass === "gym") {
+    try {
+      const profilePath = join(memoryDir, "learner-profile.json");
+      if (existsSync(profilePath)) {
+        const profile = JSON.parse(readFileSync(profilePath, "utf-8"));
+        const trainer = profile.selectedTrainer;
+        if (trainer) {
+          const soulPath = join(memoryDir, "..", "souls", `${trainer}.md`);
+          if (existsSync(soulPath)) {
+            const soul = readFileSync(soulPath, "utf-8");
+            systemPrompt = soul + "\n\n" + systemPrompt;
+            log.info(`Gym agent: loaded soul.md for trainer "${trainer}"`);
+          }
+        }
+      }
+    } catch (err) {
+      log.warn(`Failed to load gym soul.md: ${err}`);
+    }
+  }
+
   // ── Append memory context to system prompt for persistent sessions ──
   // (In persistent mode, context.md is injected into the system prompt
   // so the agent has standing context even after a session reset)
@@ -1621,6 +1642,27 @@ export async function* executeAgentStreaming(
   } catch (err) {
     yield { type: "error", data: `Could not load agent configuration for ${agentId}.` };
     return;
+  }
+
+  // Prepend soul.md for gym agents (trainer personality layer)
+  if (agentConfig.agentClass === "gym") {
+    try {
+      const profilePath = join(memoryDir, "learner-profile.json");
+      if (existsSync(profilePath)) {
+        const profile = JSON.parse(readFileSync(profilePath, "utf-8"));
+        const trainer = profile.selectedTrainer;
+        if (trainer) {
+          const soulPath = join(memoryDir, "..", "souls", `${trainer}.md`);
+          if (existsSync(soulPath)) {
+            const soul = readFileSync(soulPath, "utf-8");
+            systemPrompt = soul + "\n\n" + systemPrompt;
+            log.info(`Gym agent: loaded soul.md for trainer "${trainer}"`);
+          }
+        }
+      }
+    } catch (err) {
+      log.warn(`Failed to load gym soul.md: ${err}`);
+    }
   }
 
   if (isPersistent && existsSync(contextPath)) {

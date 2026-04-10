@@ -1032,6 +1032,7 @@ text-decoration:none;}
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn" href="/library" id="tabLibrary">Library</a>
       <a class="tab-btn" href="/lab">Lab</a>
+      <a class="tab-btn gym-tab-link" href="/gym" style="display:none">Gym</a>
   </div>
   <div class="topbar-right">
     <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
@@ -3997,5 +3998,6 @@ document.addEventListener('click', function(e){
   if(dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
 });
 </script>
+<script>(function(){fetch("/api/config/service").then(function(r){return r.json()}).then(function(d){if(d.gymEnabled)document.querySelectorAll(".gym-tab-link").forEach(function(el){el.style.display=""});if(d.gymOnlyMode){var keep=["/gym","/org","/admin"];document.querySelectorAll(".tab-group .tab-btn").forEach(function(el){var h=el.getAttribute("href");if(h&&keep.indexOf(h)===-1&&!el.classList.contains("gym-tab-link"))el.style.display="none"});document.querySelectorAll(".topbar-right .gear-btn").forEach(function(el){var h=el.getAttribute("href");if(h&&["/marketplace","/monitor","/user-guide"].indexOf(h)!==-1)el.style.display="none"})}}).catch(function(){})})()</script>
 </body>
 </html>

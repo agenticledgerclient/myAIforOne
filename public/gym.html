@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyAIforOne — AI Gym</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#060a13;
+  --bg-surface:rgba(12,18,33,0.92);
+  --bg-card:rgba(16,22,40,0.85);
+  --bg-input:rgba(0,0,0,0.35);
+  --border-dim:rgba(56,189,248,0.08);
+  --border-glow:rgba(56,189,248,0.18);
+  --border-active:rgba(56,189,248,0.45);
+  --text-primary:rgba(255,255,255,0.92);
+  --text-secondary:rgba(255,255,255,0.68);
+  --text-muted:rgba(148,163,184,0.55);
+  --accent:#22d3ee;
+  --accent-soft:#38bdf8;
+  --accent-bg:rgba(6,182,212,0.15);
+  --purple:rgba(139,92,246,0.7);
+  --purple-bg:rgba(139,92,246,0.12);
+  --green:#4ade80;
+  --green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;
+  --amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;
+  --red-bg:rgba(248,113,113,0.1);
+  --shadow:0 2px 12px rgba(0,0,0,0.3);
+  --radius:12px;
+  --font-sans:'DM Sans',system-ui,-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-display:'Syne',sans-serif;
+}
+[data-theme="light"]{
+  --bg-deep:#f4f6f9;
+  --bg-surface:rgba(255,255,255,0.95);
+  --bg-card:rgba(255,255,255,0.9);
+  --bg-input:rgba(0,0,0,0.04);
+  --border-dim:rgba(0,0,0,0.08);
+  --border-glow:rgba(14,116,144,0.18);
+  --border-active:rgba(14,116,144,0.45);
+  --text-primary:rgba(15,23,42,0.92);
+  --text-secondary:rgba(51,65,85,0.8);
+  --text-muted:rgba(100,116,139,0.6);
+  --accent:#0891b2;
+  --accent-soft:#0e7490;
+  --accent-bg:rgba(14,116,144,0.08);
+  --purple:rgba(109,40,217,0.75);
+  --purple-bg:rgba(139,92,246,0.08);
+  --green:#16a34a;
+  --green-bg:rgba(22,163,74,0.08);
+  --amber:#d97706;
+  --amber-bg:rgba(217,119,6,0.08);
+  --red:#dc2626;
+  --red-bg:rgba(220,38,38,0.08);
+  --shadow:0 1px 8px rgba(0,0,0,0.06);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-family:var(--font-sans);color:var(--text-primary);transition:background .3s,color .3s}
+
+/* ─── Layout ──────────────────────────────── */
+.gym-app{display:flex;flex-direction:column;height:100vh}
+
+/* ─── Topbar ──────────────────────────────── */
+.topbar{height:48px;display:flex;align-items:center;padding:0 20px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0;overflow:hidden;max-width:100vw}
+.tab-group{display:flex;gap:0;flex-shrink:1;min-width:0}
+.tab-btn{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;padding:14px 12px;cursor:pointer;position:relative;transition:color .2s;text-decoration:none;display:block;white-space:nowrap;flex-shrink:0}
+.tab-btn:hover{color:var(--text-secondary)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:2px;background:var(--accent);border-radius:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.logo-mark{width:28px;height:28px;border-radius:8px;object-fit:contain}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent)}
+.theme-toggle{background:none;border:1px solid var(--border-dim);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text-muted);transition:all .2s}
+.theme-toggle:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+
+/* ─── Onboarding ──────────────────────────── */
+.onboarding{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto}
+.onboarding.hidden{display:none}
+.ob-step{display:none;flex-direction:column;align-items:center;width:100%;max-width:800px;animation:fadeUp .4s ease}
+.ob-step.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.ob-title{font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--accent);margin-bottom:6px;text-align:center}
+.ob-sub{font-size:14px;color:var(--text-muted);margin-bottom:32px;text-align:center}
+
+/* Step indicators */
+.step-dots{display:flex;gap:8px;margin-bottom:24px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--border-dim);transition:all .3s}
+.step-dot.active{background:var(--accent);box-shadow:0 0 8px rgba(34,211,238,0.4)}
+.step-dot.done{background:var(--green)}
+
+/* Trainer cards */
+.trainer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;width:100%;max-width:720px;margin-bottom:28px}
+.trainer-card{
+  background:var(--bg-card);border:2px solid var(--border-dim);border-radius:var(--radius);
+  padding:20px 16px;cursor:pointer;transition:all .3s;text-align:center;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.trainer-card:hover{border-color:var(--border-glow);transform:translateY(-2px);box-shadow:var(--shadow)}
+.trainer-card.selected{border-color:var(--accent);box-shadow:0 0 20px rgba(34,211,238,0.15)}
+.trainer-avatar{
+  width:56px;height:56px;border-radius:50%;margin:0 auto 12px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:18px;font-weight:800;color:#fff;
+}
+.trainer-name{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.trainer-style{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:.04em;margin-bottom:10px}
+.trainer-quote{font-size:12px;color:var(--text-secondary);line-height:1.5;font-style:italic}
+
+/* Step 2 — Get to know you */
+.ob-coach-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.ob-coach-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:15px;font-weight:800;color:#fff}
+.ob-coach-name{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary)}
+.ob-message{
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);
+  padding:20px;font-size:13px;line-height:1.7;color:var(--text-secondary);
+  max-width:600px;width:100%;margin-bottom:20px;backdrop-filter:blur(12px);
+}
+.ob-textarea{
+  width:100%;max-width:600px;min-height:120px;padding:14px;border-radius:var(--radius);
+  border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);
+  font-family:var(--font-sans);font-size:13px;line-height:1.6;resize:vertical;outline:none;
+  transition:border-color .2s;
+}
+.ob-textarea:focus{border-color:var(--border-glow)}
+.ob-textarea::placeholder{color:var(--text-muted)}
+
+/* Step 3 — Plan */
+.ob-loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px}
+.ob-spinner{width:40px;height:40px;border:3px solid var(--border-dim);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ob-plan-summary{
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);
+  padding:24px;max-width:600px;width:100%;backdrop-filter:blur(12px);
+}
+.ob-plan-summary.hidden{display:none}
+.ob-bucket{margin-bottom:16px}
+.ob-bucket-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.ob-bucket-text{font-size:12px;color:var(--text-secondary);line-height:1.6}
+
+/* Navigation buttons */
+.ob-nav{display:flex;gap:12px;margin-top:24px}
+.ob-btn{
+  font-family:var(--font-sans);font-size:13px;font-weight:600;padding:10px 24px;
+  border-radius:8px;border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-secondary);cursor:pointer;transition:all .2s;
+}
+.ob-btn:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.ob-btn.primary{background:var(--accent);color:#000;border-color:var(--accent)}
+.ob-btn.primary:hover{filter:brightness(1.1)}
+.ob-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ─── Main Gym View ───────────────────────── */
+.gym-main{flex:1;display:none;overflow:hidden}
+.gym-main.active{display:flex}
+
+/* Left sidebar */
+.gym-sidebar{width:260px;flex-shrink:0;background:var(--bg-surface);border-right:1px solid var(--border-dim);display:flex;flex-direction:column;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.gym-sidebar-inner{flex:1;overflow-y:auto;padding:16px}
+.gym-sidebar-inner::-webkit-scrollbar{width:3px}
+.gym-sidebar-inner::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
+
+.streak-box{
+  background:var(--accent-bg);border:1px solid var(--border-glow);border-radius:var(--radius);
+  padding:14px;text-align:center;margin-bottom:20px;
+}
+.streak-fire{font-size:28px;margin-bottom:4px}
+.streak-count{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent)}
+.streak-label{font-size:10px;color:var(--text-muted);margin-top:2px}
+
+.sidebar-section-title{
+  font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding:0 2px;
+}
+.program-list{list-style:none;margin-bottom:24px}
+.program-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+  cursor:pointer;transition:all .2s;margin-bottom:4px;font-size:12px;
+}
+.program-item:hover{background:var(--accent-bg)}
+.program-item.active-prog{background:var(--accent-bg);border-left:2px solid var(--accent)}
+.program-status{font-family:var(--font-mono);font-size:10px;flex-shrink:0;min-width:32px;text-align:center}
+.program-status.done{color:var(--green)}
+.program-status.in-progress{color:var(--amber)}
+.program-status.not-started{color:var(--text-muted)}
+.program-name{color:var(--text-secondary);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Gym cards */
+.gym-card{
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);
+  padding:14px;margin-bottom:10px;position:relative;transition:all .2s;
+  backdrop-filter:blur(12px);
+}
+.gym-card:hover{border-color:var(--border-glow)}
+.gym-card-badge{
+  position:absolute;top:8px;right:8px;font-size:9px;font-weight:700;
+  padding:2px 6px;border-radius:4px;background:var(--accent-bg);color:var(--accent);
+}
+.gym-card-dismiss{
+  position:absolute;top:8px;right:8px;background:none;border:none;
+  color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px 4px;transition:color .2s;
+}
+.gym-card-dismiss:hover{color:var(--text-primary)}
+.gym-card-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;padding-right:20px}
+.gym-card-desc{font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px}
+.gym-card-cta{
+  font-family:var(--font-sans);font-size:11px;font-weight:600;padding:5px 12px;
+  border-radius:6px;border:1px solid var(--accent);background:transparent;
+  color:var(--accent);cursor:pointer;transition:all .2s;
+}
+.gym-card-cta:hover{background:var(--accent-bg)}
+
+/* ─── Center Panel ────────────────────────── */
+.gym-center{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.gym-tabs{display:flex;border-bottom:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface)}
+.gym-tab{
+  font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-muted);
+  padding:12px 20px;cursor:pointer;border:none;background:none;position:relative;transition:color .2s;
+}
+.gym-tab:hover{color:var(--text-secondary)}
+.gym-tab.active{color:var(--accent)}
+.gym-tab.active::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:1px}
+
+/* Coach chat tab */
+.tab-panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+.tab-panel.active{display:flex}
+
+.coach-header{
+  display:flex;align-items:center;gap:10px;padding:12px 20px;
+  border-bottom:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface);
+}
+.coach-avatar{
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:11px;font-weight:800;color:#fff;
+}
+.coach-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary)}
+.coach-status{font-size:10px;color:var(--text-muted)}
+
+.chat-messages{
+  flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;
+}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:2px}
+
+.chat-msg{max-width:85%;padding:12px 16px;border-radius:var(--radius);font-size:13px;line-height:1.6}
+.chat-msg.assistant{
+  background:var(--bg-card);border:1px solid var(--border-dim);color:var(--text-secondary);
+  align-self:flex-start;border-top-left-radius:4px;
+}
+.chat-msg.user{
+  background:var(--accent-bg);border:1px solid rgba(34,211,238,0.12);color:var(--text-primary);
+  align-self:flex-end;border-top-right-radius:4px;
+}
+.chat-msg pre{font-family:var(--font-mono);font-size:11px;background:var(--bg-input);padding:8px;border-radius:6px;overflow-x:auto;margin:8px 0}
+.chat-msg code{font-family:var(--font-mono);font-size:11px;background:var(--bg-input);padding:1px 4px;border-radius:3px}
+.chat-typing{display:flex;gap:4px;padding:8px 16px;align-self:flex-start}
+.chat-typing span{width:6px;height:6px;border-radius:50%;background:var(--text-muted);animation:typeBounce 1.4s ease infinite}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes typeBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+.chat-input-area{
+  display:flex;align-items:flex-end;gap:8px;padding:12px 20px;
+  border-top:1px solid var(--border-dim);background:var(--bg-surface);flex-shrink:0;
+}
+.chat-textarea{
+  flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);
+  font-size:13px;resize:none;outline:none;max-height:120px;line-height:1.5;
+  transition:border-color .2s;
+}
+.chat-textarea:focus{border-color:var(--border-glow)}
+.chat-textarea::placeholder{color:var(--text-muted)}
+.chat-send{
+  width:40px;height:40px;border-radius:10px;border:none;background:var(--accent);
+  color:#000;cursor:pointer;font-size:16px;font-weight:700;display:flex;
+  align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;
+}
+.chat-send:hover{filter:brightness(1.1);transform:scale(1.05)}
+.chat-send:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ─── Progress Tab ────────────────────────── */
+.progress-panel{padding:24px;overflow-y:auto}
+.progress-panel::-webkit-scrollbar{width:4px}
+.progress-panel::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:2px}
+
+/* Radar chart */
+.radar-wrap{display:flex;justify-content:center;margin-bottom:32px}
+.radar-container{position:relative;width:280px;height:280px}
+.radar-svg{width:100%;height:100%}
+.radar-grid{fill:none;stroke:var(--border-dim);stroke-width:1}
+.radar-axis{stroke:var(--border-dim);stroke-width:0.5}
+.radar-shape{fill:rgba(34,211,238,0.15);stroke:var(--accent);stroke-width:2;transition:all .6s ease}
+.radar-point{fill:var(--accent);r:4;transition:all .6s ease}
+.radar-label{font-family:var(--font-display);font-size:10px;font-weight:700;fill:var(--text-secondary);text-anchor:middle}
+
+/* Dimension breakdown */
+.dim-section{margin-bottom:28px}
+.dim-section-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:14px}
+.dim-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-dim)}
+.dim-row:last-child{border-bottom:none}
+.dim-label{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text-primary);min-width:110px}
+.dim-bar-wrap{flex:1;height:6px;background:var(--bg-input);border-radius:3px;overflow:hidden}
+.dim-bar{height:100%;border-radius:3px;transition:width .6s ease;background:var(--accent)}
+.dim-score{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);min-width:28px;text-align:right}
+.dim-trend{font-size:12px;min-width:16px;text-align:center}
+.dim-trend.up{color:var(--green)}
+.dim-trend.down{color:var(--red)}
+.dim-trend.stable{color:var(--text-muted)}
+
+/* Next focus */
+.next-focus{
+  background:var(--accent-bg);border:1px solid var(--border-glow);border-radius:var(--radius);
+  padding:16px;margin-bottom:28px;
+}
+.next-focus-title{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.next-focus-text{font-size:12px;color:var(--text-secondary);line-height:1.5}
+
+/* Milestones */
+.milestones-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:14px}
+.milestone-list{list-style:none}
+.milestone-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-dim)}
+.milestone-item:last-child{border-bottom:none}
+.milestone-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0}
+.milestone-content{flex:1}
+.milestone-text{font-size:12px;color:var(--text-primary);font-weight:500;margin-bottom:2px}
+.milestone-date{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+
+/* ─── Bottom Strip ────────────────────────── */
+/* Feed strip styles moved to new Feed section below */
+
+/* ─── Scrollbar global ────────────────────── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:2px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ─── History Chart ──────────────────────── */
+.history-section{margin-top:28px}
+.history-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:14px}
+.history-empty{font-size:11px;color:var(--text-muted);padding:20px;text-align:center;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius)}
+.history-chart{position:relative;width:100%;height:200px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:16px;overflow:hidden}
+.history-svg{width:100%;height:100%}
+.history-gridline{stroke:var(--border-dim);stroke-width:0.5;stroke-dasharray:4 4}
+.history-line{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:d .6s ease}
+.history-dot{r:3;transition:all .3s}
+.history-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.history-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted)}
+.history-legend-swatch{width:12px;height:3px;border-radius:2px}
+.history-x-label{font-family:var(--font-mono);font-size:8px;fill:var(--text-muted);text-anchor:middle}
+.history-y-label{font-family:var(--font-mono);font-size:8px;fill:var(--text-muted);text-anchor:end}
+
+/* ─── Feed Strip ─────────────────────────── */
+.gym-feed-strip{
+  height:auto;min-height:32px;max-height:200px;display:flex;flex-direction:column;
+  background:var(--bg-surface);border-top:1px solid var(--border-dim);flex-shrink:0;
+  overflow:hidden;transition:max-height .3s ease;
+}
+.feed-tabs{display:flex;border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.feed-tab{
+  font-family:var(--font-display);font-size:10px;font-weight:700;color:var(--text-muted);
+  padding:6px 14px;cursor:pointer;border:none;background:none;position:relative;
+  text-transform:uppercase;letter-spacing:.06em;transition:color .2s;
+}
+.feed-tab:hover{color:var(--text-secondary)}
+.feed-tab.active{color:var(--accent)}
+.feed-tab.active::after{content:'';position:absolute;bottom:0;left:6px;right:6px;height:1.5px;background:var(--accent);border-radius:1px}
+.feed-panel{display:none;flex:1;overflow-y:auto;padding:8px 14px}
+.feed-panel.active{display:block}
+.feed-panel::-webkit-scrollbar{width:3px}
+.feed-panel::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:2px}
+.feed-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-dim)}
+.feed-item:last-child{border-bottom:none}
+.feed-item-icon{font-size:12px;flex-shrink:0;margin-top:1px}
+.feed-item-text{font-size:11px;color:var(--text-secondary);line-height:1.4}
+.feed-item-date{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-left:auto;flex-shrink:0}
+.feed-empty{font-size:10px;color:var(--text-muted);text-align:center;padding:12px}
+.feed-toggle{
+  position:absolute;top:4px;right:8px;background:none;border:none;
+  color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;
+}
+</style>
+</head>
+<body>
+<div class="gym-app">
+
+  <!-- ─── Topbar ─── -->
+  <div class="topbar">
+    <a href="/" style="display:flex;align-items:center;gap:10px;margin-right:28px;text-decoration:none">
+      <img class="logo-mark" src="/MyAIforOne-logomark-transparent.svg" alt="MyAIforOne">
+      <span class="logo-text">MyAIforOne</span>
+    </a>
+    <nav class="tab-group">
+      <a class="tab-btn" href="/">Home</a>
+      <a class="tab-btn" href="/org">Agents</a>
+      <a class="tab-btn" href="/ui">Chat</a>
+      <a class="tab-btn" href="/library">Library</a>
+      <a class="tab-btn" href="/lab">Lab</a>
+      <a class="tab-btn active" href="/gym">Gym</a>
+    </nav>
+    <div class="topbar-right">
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#x1F319;</button>
+    </div>
+  </div>
+
+  <!-- ─── Onboarding View ─── -->
+  <div class="onboarding" id="onboarding">
+    <div class="step-dots" id="stepDots">
+      <div class="step-dot active" data-step="1"></div>
+      <div class="step-dot" data-step="2"></div>
+      <div class="step-dot" data-step="3"></div>
+    </div>
+
+    <!-- Step 1: Choose Your Trainer -->
+    <div class="ob-step active" id="obStep1">
+      <h1 class="ob-title">Choose Your Trainer</h1>
+      <p class="ob-sub">Pick the coaching style that works for you. You can switch anytime.</p>
+      <div class="trainer-grid" id="trainerGrid"></div>
+      <div class="ob-nav">
+        <button class="ob-btn primary" id="step1Next" onclick="goToStep(2)" disabled>Next</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Get to Know You -->
+    <div class="ob-step" id="obStep2">
+      <div class="ob-coach-header" id="step2Header"></div>
+      <div class="ob-message" id="step2Message"></div>
+      <textarea class="ob-textarea" id="step2Input" placeholder="Tell me about yourself..." rows="5"></textarea>
+      <div class="ob-nav">
+        <button class="ob-btn" onclick="goToStep(1)">Back</button>
+        <button class="ob-btn primary" id="step2Send" onclick="submitStep2()">Send</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Get Your Plan -->
+    <div class="ob-step" id="obStep3">
+      <h1 class="ob-title">Your Training Plan</h1>
+      <p class="ob-sub">Here is what we will work on together.</p>
+      <div class="ob-loading" id="planLoading">
+        <div class="ob-spinner"></div>
+        <span style="font-size:13px;color:var(--text-muted)">Your coach is building your plan...</span>
+      </div>
+      <div class="ob-plan-summary hidden" id="planSummary">
+        <div class="ob-bucket">
+          <div class="ob-bucket-title">On the Job Training</div>
+          <div class="ob-bucket-text" id="bucket1Text">Bring your real work to the platform. Your coach will observe, assist, and track growth as you use AI for actual tasks.</div>
+        </div>
+        <div class="ob-bucket">
+          <div class="ob-bucket-title">Platform-Driven Learning</div>
+          <div class="ob-bucket-text" id="bucket2Text">Curated modules and personalized suggestions based on your profile and activity patterns.</div>
+        </div>
+      </div>
+      <div class="ob-nav">
+        <button class="ob-btn" onclick="goToStep(2)">Back</button>
+        <button class="ob-btn primary hidden" id="enterGymBtn" onclick="enterGym()">Enter the Gym</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Main Gym View ─── -->
+  <div class="gym-main" id="gymMain">
+
+    <!-- Left sidebar -->
+    <div class="gym-sidebar">
+      <div class="gym-sidebar-inner">
+        <div class="streak-box" id="streakBox">
+          <div class="streak-fire">&#x1F525;</div>
+          <div class="streak-count" id="streakCount">0</div>
+          <div class="streak-label">day streak</div>
+        </div>
+
+        <div class="sidebar-section-title">Programs</div>
+        <ul class="program-list" id="programList"></ul>
+
+        <div class="sidebar-section-title">Gym Cards</div>
+        <div id="gymCards"></div>
+      </div>
+    </div>
+
+    <!-- Center panel -->
+    <div class="gym-center">
+      <div class="gym-tabs">
+        <button class="gym-tab active" onclick="switchTab('coach')" data-tab="coach">Coach</button>
+        <button class="gym-tab" onclick="switchTab('progress')" data-tab="progress">Progress</button>
+      </div>
+
+      <!-- Coach Tab -->
+      <div class="tab-panel active" id="coachPanel">
+        <div class="coach-header" id="coachHeader"></div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-area">
+          <textarea class="chat-textarea" id="chatInput" placeholder="Message your coach..." rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+            oninput="autoResizeChat(this)"></textarea>
+          <button class="chat-send" id="chatSend" onclick="sendMessage()">&#x2192;</button>
+        </div>
+      </div>
+
+      <!-- Progress Tab -->
+      <div class="tab-panel" id="progressPanel">
+        <div class="progress-panel">
+          <div class="radar-wrap">
+            <div class="radar-container">
+              <svg class="radar-svg" viewBox="0 0 280 280" id="radarChart"></svg>
+            </div>
+          </div>
+
+          <div class="dim-section">
+            <div class="dim-section-title">Dimension Breakdown</div>
+            <div id="dimRows"></div>
+          </div>
+
+          <div class="next-focus" id="nextFocus">
+            <div class="next-focus-title">Next Focus Area</div>
+            <div class="next-focus-text" id="nextFocusText">Loading...</div>
+          </div>
+
+          <div class="milestones-title">Milestones</div>
+          <ul class="milestone-list" id="milestoneList"></ul>
+
+          <div class="history-section" id="historySection">
+            <div class="history-title">Progress Over Time</div>
+            <div class="history-chart" id="historyChart">
+              <svg class="history-svg" id="historySvg" viewBox="0 0 600 160"></svg>
+            </div>
+            <div class="history-legend" id="historyLegend"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom strip -->
+  <div class="gym-feed-strip" id="feedStrip" style="display:none">
+    <div style="position:relative">
+      <div class="feed-tabs">
+        <button class="feed-tab active" onclick="switchFeedTab('tips')" data-feed="tips">Tips</button>
+        <button class="feed-tab" onclick="switchFeedTab('updates')" data-feed="updates">Platform Updates</button>
+        <button class="feed-tab" onclick="switchFeedTab('briefing')" data-feed="briefing">AI Briefing</button>
+      </div>
+    </div>
+    <div class="feed-panel active" id="feedTips"></div>
+    <div class="feed-panel" id="feedUpdates"></div>
+    <div class="feed-panel" id="feedBriefing"></div>
+  </div>
+
+</div>
+
+<script>
+/* ─── Constants ──────────────────────────── */
+const API = '';
+const TRAINERS = [
+  {
+    id: 'alex', name: 'Alex', initials: 'AX', color: '#22d3ee',
+    style: 'Collaborative \u00B7 Steady',
+    quote: "Hey, I'm Alex. I work right alongside you \u2014 we figure things out together.",
+    fullQuote: "Before we get started, tell me a bit about yourself \u2014 I'll use this to make everything we do together actually useful to you. You can share things like: your LinkedIn or any links (I'll read them), what you do for work, where you are with AI right now (total beginner, dabbler, daily user \u2014 give me an example), and what you're hoping to get out of this. One message, however you want to write it."
+  },
+  {
+    id: 'jordan', name: 'Jordan', initials: 'JD', color: '#f97316',
+    style: 'Direct \u00B7 Steady',
+    quote: "I'm Jordan. I'm direct, I don't sugarcoat, and I'll hold you accountable.",
+    fullQuote: "Before we get started, tell me a bit about yourself \u2014 I'll use this to make everything we do together actually useful to you. You can share things like: your LinkedIn or any links (I'll read them), what you do for work, where you are with AI right now (total beginner, dabbler, daily user \u2014 give me an example), and what you're hoping to get out of this. One message, however you want to write it."
+  },
+  {
+    id: 'morgan', name: 'Morgan', initials: 'MG', color: '#a78bfa',
+    style: 'Thoughtful \u00B7 Steady',
+    quote: "I'm Morgan. I care a lot about the 'why.' I won't just show you what to click.",
+    fullQuote: "Before we get started, tell me a bit about yourself \u2014 I'll use this to make everything we do together actually useful to you. You can share things like: your LinkedIn or any links (I'll read them), what you do for work, where you are with AI right now (total beginner, dabbler, daily user \u2014 give me an example), and what you're hoping to get out of this. One message, however you want to write it."
+  },
+  {
+    id: 'riley', name: 'Riley', initials: 'RL', color: '#ef4444',
+    style: 'Challenging \u00B7 Immersive',
+    quote: "I'm Riley. I'm going to push you \u2014 hard questions, uncomfortable exercises.",
+    fullQuote: "Before we get started, tell me a bit about yourself \u2014 I'll use this to make everything we do together actually useful to you. You can share things like: your LinkedIn or any links (I'll read them), what you do for work, where you are with AI right now (total beginner, dabbler, daily user \u2014 give me an example), and what you're hoping to get out of this. One message, however you want to write it."
+  },
+  {
+    id: 'sam', name: 'Sam', initials: 'SM', color: '#4ade80',
+    style: 'Patient \u00B7 Steady',
+    quote: "I'm Sam. I meet you exactly where you are \u2014 no pressure, no judgment.",
+    fullQuote: "Before we get started, tell me a bit about yourself \u2014 I'll use this to make everything we do together actually useful to you. You can share things like: your LinkedIn or any links (I'll read them), what you do for work, where you are with AI right now (total beginner, dabbler, daily user \u2014 give me an example), and what you're hoping to get out of this. One message, however you want to write it."
+  }
+];
+
+const DIMENSIONS = [
+  { key: 'application', label: 'Application', angle: -90 },
+  { key: 'communication', label: 'Communication', angle: -18 },
+  { key: 'knowledge', label: 'Knowledge', angle: 54 },
+  { key: 'orchestration', label: 'Orchestration', angle: 126 },
+  { key: 'craft', label: 'Craft', angle: 198 }
+];
+
+/* ─── State ──────────────────────────────── */
+let state = {
+  onboardingComplete: false,
+  onboardingStep: 1,
+  selectedTrainer: null,
+  profile: null,
+  plan: null,
+  progress: null,
+  cards: [],
+  programs: [],
+  chatHistory: [],
+  sending: false
+};
+
+/* ─── Theme ──────────────────────────────── */
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('gym-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'light' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+}
+(function initTheme() {
+  const saved = localStorage.getItem('gym-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = saved === 'light' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+})();
+
+/* ─── Init ───────────────────────────────── */
+async function init() {
+  try {
+    const [profileRes, planRes, progressRes, cardsRes, programsRes] = await Promise.all([
+      fetch(`${API}/api/gym/learner-profile`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API}/api/gym/plan`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API}/api/gym/progress`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API}/api/gym/cards`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API}/api/gym/programs`).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+
+    state.profile = profileRes;
+    state.plan = planRes;
+    state.progress = progressRes;
+    state.cards = Array.isArray(cardsRes) ? cardsRes : (cardsRes?.cards || []);
+    state.programs = Array.isArray(programsRes) ? programsRes : (programsRes?.programs || []);
+
+    if (state.profile) {
+      state.onboardingComplete = !!state.profile.onboardingComplete;
+      state.selectedTrainer = state.profile.selectedTrainer || null;
+      state.onboardingStep = state.profile.onboardingStep || 1;
+    }
+  } catch (e) {
+    console.warn('Failed to load gym state, starting fresh:', e);
+  }
+
+  renderTrainerCards();
+  checkGymOnlyMode();
+
+  if (state.onboardingComplete) {
+    showMainGym();
+  } else {
+    showOnboarding();
+    if (state.selectedTrainer) {
+      selectTrainer(state.selectedTrainer, false);
+    }
+    if (state.onboardingStep > 1) {
+      goToStep(state.onboardingStep);
+    }
+  }
+}
+
+/* ─── Onboarding ─────────────────────────── */
+function showOnboarding() {
+  document.getElementById('onboarding').classList.remove('hidden');
+  document.getElementById('gymMain').classList.remove('active');
+  document.getElementById('feedStrip').style.display = 'none';
+}
+
+function showMainGym() {
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('gymMain').classList.add('active');
+  document.getElementById('feedStrip').style.display = 'flex';
+  renderMainGym();
+}
+
+function renderTrainerCards() {
+  const grid = document.getElementById('trainerGrid');
+  grid.innerHTML = TRAINERS.map(t => `
+    <div class="trainer-card${state.selectedTrainer === t.id ? ' selected' : ''}" onclick="selectTrainer('${t.id}')" data-trainer="${t.id}">
+      <div class="trainer-avatar" style="background:${t.color}">${t.initials}</div>
+      <div class="trainer-name">${t.name}</div>
+      <div class="trainer-style">${t.style}</div>
+      <div class="trainer-quote">"${t.quote}"</div>
+    </div>
+  `).join('');
+}
+
+function selectTrainer(id, save = true) {
+  state.selectedTrainer = id;
+  document.querySelectorAll('.trainer-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.trainer === id);
+  });
+  document.getElementById('step1Next').disabled = false;
+  if (save) {
+    fetch(`${API}/api/gym/learner-profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedTrainer: id, onboardingStep: 1 })
+    }).catch(() => {});
+  }
+}
+
+function goToStep(step) {
+  state.onboardingStep = step;
+  document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+  document.getElementById(`obStep${step}`).classList.add('active');
+
+  document.querySelectorAll('.step-dot').forEach(d => {
+    const s = parseInt(d.dataset.step);
+    d.classList.toggle('active', s === step);
+    d.classList.toggle('done', s < step);
+  });
+
+  if (step === 2) renderStep2();
+  if (step === 3) renderStep3();
+}
+
+function renderStep2() {
+  const trainer = TRAINERS.find(t => t.id === state.selectedTrainer);
+  if (!trainer) return;
+
+  document.getElementById('step2Header').innerHTML = `
+    <div class="ob-coach-avatar" style="background:${trainer.color}">${trainer.initials}</div>
+    <div class="ob-coach-name">${trainer.name}</div>
+  `;
+  document.getElementById('step2Message').textContent = trainer.fullQuote;
+}
+
+async function submitStep2() {
+  const input = document.getElementById('step2Input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('step2Send');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    // Send message to gym chat
+    const res = await fetch(`${API}/api/chat/gym/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, senderId: 'web' })
+    });
+    const data = await res.json();
+
+    // Update profile
+    await fetch(`${API}/api/gym/learner-profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ onboardingStep: 2 })
+    });
+
+    // If we got a jobId, consume the SSE stream (for plan generation)
+    if (data.jobId) {
+      state._onboardingJobId = data.jobId;
+    }
+
+    goToStep(3);
+  } catch (e) {
+    console.error('Step 2 submit error:', e);
+    btn.textContent = 'Retry';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send';
+  }
+}
+
+async function renderStep3() {
+  const loading = document.getElementById('planLoading');
+  const summary = document.getElementById('planSummary');
+  const enterBtn = document.getElementById('enterGymBtn');
+
+  loading.style.display = 'flex';
+  summary.classList.add('hidden');
+  enterBtn.classList.add('hidden');
+
+  // If we have a jobId from step 2, listen for the plan
+  if (state._onboardingJobId) {
+    try {
+      await consumeSSE(state._onboardingJobId, (text) => {
+        // Plan text received — try to parse buckets
+        if (text) {
+          document.getElementById('bucket1Text').textContent = extractBucket(text, 1) || 'Bring your real work to the platform. Your coach will observe, assist, and track growth as you use AI for actual tasks.';
+          document.getElementById('bucket2Text').textContent = extractBucket(text, 2) || 'Curated modules and personalized suggestions based on your profile and activity patterns.';
+        }
+      });
+    } catch (e) {
+      console.warn('SSE error during plan generation:', e);
+    }
+  }
+
+  // Also try loading plan from API
+  try {
+    const planRes = await fetch(`${API}/api/gym/plan`).then(r => r.ok ? r.json() : null);
+    if (planRes) {
+      state.plan = planRes;
+      if (planRes.bucket1) document.getElementById('bucket1Text').textContent = planRes.bucket1;
+      if (planRes.bucket2) document.getElementById('bucket2Text').textContent = planRes.bucket2;
+    }
+  } catch (e) {}
+
+  // Show plan after delay (or immediately if we already have data)
+  setTimeout(() => {
+    loading.style.display = 'none';
+    summary.classList.remove('hidden');
+    enterBtn.classList.remove('hidden');
+  }, state._onboardingJobId ? 500 : 2000);
+}
+
+function extractBucket(text, n) {
+  // Simple extraction — look for bucket headers in the response
+  const lines = text.split('\n');
+  let inBucket = false;
+  let result = [];
+  const patterns = n === 1
+    ? [/on.the.job/i, /bucket\s*1/i, /user.driven/i]
+    : [/platform.driven/i, /bucket\s*2/i, /curated/i];
+
+  for (const line of lines) {
+    if (patterns.some(p => p.test(line))) { inBucket = true; continue; }
+    if (inBucket && /^(#{1,3}\s|bucket|\*\*bucket)/i.test(line)) break;
+    if (inBucket && line.trim()) result.push(line.trim());
+  }
+  return result.join(' ').slice(0, 300) || null;
+}
+
+async function enterGym() {
+  try {
+    await fetch(`${API}/api/gym/learner-profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ onboardingComplete: true, onboardingStep: 3 })
+    });
+  } catch (e) {}
+
+  state.onboardingComplete = true;
+  showMainGym();
+}
+
+/* ─── Main Gym Rendering ─────────────────── */
+function renderMainGym() {
+  renderStreak();
+  renderPrograms();
+  renderGymCards();
+  renderCoachHeader();
+  renderProgress();
+  renderFeed();
+}
+
+function renderStreak() {
+  let streak = 0;
+  if (state.profile?.streak?.current) streak = state.profile.streak.current;
+  else if (state.progress?.streak) streak = state.progress.streak;
+  document.getElementById('streakCount').textContent = streak;
+}
+
+function renderPrograms() {
+  const list = document.getElementById('programList');
+  if (!state.programs.length) {
+    list.innerHTML = '<li style="font-size:11px;color:var(--text-muted);padding:8px 10px">No programs yet</li>';
+    return;
+  }
+  list.innerHTML = state.programs.map(p => {
+    let statusIcon = '\u25CB'; // not started
+    let statusClass = 'not-started';
+    if (p.completed || p.status === 'completed') {
+      statusIcon = '\u2713';
+      statusClass = 'done';
+    } else if (p.currentStep || p.progress || p.status === 'in-progress') {
+      const current = p.currentStep || p.progress?.current || 0;
+      const total = p.totalSteps || p.progress?.total || 0;
+      statusIcon = total ? `${current}/${total}` : '\u2026';
+      statusClass = 'in-progress';
+    }
+    return `
+      <li class="program-item" onclick="openProgram('${p.id || p.programId}')">
+        <span class="program-status ${statusClass}">${statusIcon}</span>
+        <span class="program-name">${p.name || p.title || p.id || 'Untitled'}</span>
+      </li>`;
+  }).join('');
+}
+
+function renderGymCards() {
+  const container = document.getElementById('gymCards');
+  if (!state.cards.length) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 2px">No cards right now</div>';
+    return;
+  }
+  container.innerHTML = state.cards.map((c, i) => `
+    <div class="gym-card" id="gymCard${i}">
+      ${c.isNew ? '<span class="gym-card-badge">New</span>' : ''}
+      <button class="gym-card-dismiss" onclick="dismissCard(${i}, event)"${c.isNew ? ' style="display:none"' : ''}>&times;</button>
+      <div class="gym-card-title">${c.title || 'Tip'}</div>
+      <div class="gym-card-desc">${c.description || c.text || ''}</div>
+      ${c.cta ? `<button class="gym-card-cta" onclick="handleCardCta('${c.ctaAction || ''}')">${c.cta}</button>` : ''}
+    </div>
+  `).join('');
+}
+
+function dismissCard(index, e) {
+  e.stopPropagation();
+  const el = document.getElementById(`gymCard${index}`);
+  if (el) el.style.display = 'none';
+  // Optionally dismiss on server
+  const card = state.cards[index];
+  if (card?.id) {
+    fetch(`${API}/api/gym/cards/${card.id}/dismiss`, { method: 'POST' }).catch(() => {});
+  }
+}
+
+function handleCardCta(action) {
+  if (action) sendMessage(action);
+}
+
+function openProgram(id) {
+  // Send a message to the coach about opening this program
+  sendMessage(`I want to work on the ${id} program.`);
+}
+
+/* ─── Coach Header ───────────────────────── */
+function renderCoachHeader() {
+  const trainer = TRAINERS.find(t => t.id === state.selectedTrainer) || TRAINERS[0];
+  document.getElementById('coachHeader').innerHTML = `
+    <div class="coach-avatar" style="background:${trainer.color}">${trainer.initials}</div>
+    <div>
+      <div class="coach-name">${trainer.name}</div>
+      <div class="coach-status">${trainer.style}</div>
+    </div>
+  `;
+}
+
+/* ─── Tab Switching ──────────────────────── */
+function switchTab(tab) {
+  document.querySelectorAll('.gym-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('coachPanel').classList.toggle('active', tab === 'coach');
+  document.getElementById('progressPanel').classList.toggle('active', tab === 'progress');
+}
+
+/* ─── Chat ───────────────────────────────── */
+function addChatMessage(role, text) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = formatMessage(text);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function formatMessage(text) {
+  // Basic markdown: bold, italic, code blocks, inline code
+  let html = text
+    .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+  return html;
+}
+
+function showTyping() {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+async function sendMessage(overrideText) {
+  const input = document.getElementById('chatInput');
+  const text = overrideText || input.value.trim();
+  if (!text || state.sending) return;
+
+  state.sending = true;
+  if (!overrideText) input.value = '';
+  autoResizeChat(input);
+  document.getElementById('chatSend').disabled = true;
+
+  addChatMessage('user', text);
+  showTyping();
+
+  try {
+    const res = await fetch(`${API}/api/chat/gym/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, senderId: 'web' })
+    });
+    const data = await res.json();
+
+    if (data.jobId) {
+      hideTyping();
+      const msgDiv = addChatMessage('assistant', '');
+      await consumeSSE(data.jobId, (chunk) => {
+        msgDiv.innerHTML = formatMessage(chunk);
+        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+      });
+    } else if (data.response || data.text || data.message) {
+      hideTyping();
+      addChatMessage('assistant', data.response || data.text || data.message);
+    } else {
+      hideTyping();
+      addChatMessage('assistant', 'Received your message. Working on it...');
+    }
+  } catch (e) {
+    hideTyping();
+    addChatMessage('assistant', 'Sorry, there was an error connecting to the coach. Please try again.');
+    console.error('Chat error:', e);
+  } finally {
+    state.sending = false;
+    document.getElementById('chatSend').disabled = false;
+  }
+}
+
+function consumeSSE(jobId, onText) {
+  return new Promise((resolve, reject) => {
+    const sse = new EventSource(`${API}/api/chat/jobs/${jobId}/stream`);
+    let fullText = '';
+
+    sse.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'text' || data.type === 'content' || data.text) {
+          fullText += data.text || data.content || '';
+          onText(fullText);
+        } else if (data.type === 'done' || data.type === 'end' || data.done) {
+          if (data.text) {
+            fullText += data.text;
+            onText(fullText);
+          }
+          sse.close();
+          resolve(fullText);
+        } else if (data.type === 'error') {
+          sse.close();
+          reject(new Error(data.error || 'Stream error'));
+        }
+      } catch (e) {
+        // Plain text event
+        fullText += event.data;
+        onText(fullText);
+      }
+    };
+
+    sse.addEventListener('done', () => { sse.close(); resolve(fullText); });
+    sse.addEventListener('end', () => { sse.close(); resolve(fullText); });
+    sse.addEventListener('result', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        fullText = data.text || data.response || fullText;
+        onText(fullText);
+      } catch (err) {}
+      sse.close();
+      resolve(fullText);
+    });
+
+    sse.onerror = () => {
+      sse.close();
+      if (fullText) resolve(fullText);
+      else reject(new Error('SSE connection failed'));
+    };
+
+    // Safety timeout
+    setTimeout(() => {
+      sse.close();
+      resolve(fullText);
+    }, 120000);
+  });
+}
+
+function autoResizeChat(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+/* ─── Progress / Radar Chart ─────────────── */
+function renderProgress() {
+  const dims = state.profile?.dimensions || state.progress?.dimensions || {
+    application:   { score: 0, trend: 'stable' },
+    communication: { score: 0, trend: 'stable' },
+    knowledge:     { score: 0, trend: 'stable' },
+    orchestration: { score: 0, trend: 'stable' },
+    craft:         { score: 0, trend: 'stable' }
+  };
+
+  renderRadar(dims);
+  renderDimRows(dims);
+  renderNextFocus(dims);
+  renderMilestones();
+  renderHistoryChart();
+}
+
+function renderRadar(dims) {
+  const svg = document.getElementById('radarChart');
+  const cx = 140, cy = 140, maxR = 110;
+  let html = '';
+
+  // Draw grid rings (1-5)
+  for (let level = 1; level <= 5; level++) {
+    const r = (level / 5) * maxR;
+    const points = DIMENSIONS.map(d => {
+      const rad = (d.angle * Math.PI) / 180;
+      return `${cx + r * Math.cos(rad)},${cy + r * Math.sin(rad)}`;
+    }).join(' ');
+    html += `<polygon class="radar-grid" points="${points}" />`;
+  }
+
+  // Draw axis lines
+  DIMENSIONS.forEach(d => {
+    const rad = (d.angle * Math.PI) / 180;
+    const x2 = cx + maxR * Math.cos(rad);
+    const y2 = cy + maxR * Math.sin(rad);
+    html += `<line class="radar-axis" x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" />`;
+  });
+
+  // Draw data shape
+  const dataPoints = DIMENSIONS.map(d => {
+    const score = dims[d.key]?.score || 0;
+    const r = (score / 5) * maxR;
+    const rad = (d.angle * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  });
+
+  const shapePoints = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
+  html += `<polygon class="radar-shape" points="${shapePoints}" />`;
+
+  // Draw data points
+  dataPoints.forEach(p => {
+    html += `<circle class="radar-point" cx="${p.x}" cy="${p.y}" />`;
+  });
+
+  // Draw labels
+  DIMENSIONS.forEach(d => {
+    const rad = (d.angle * Math.PI) / 180;
+    const lx = cx + (maxR + 24) * Math.cos(rad);
+    const ly = cy + (maxR + 24) * Math.sin(rad);
+    html += `<text class="radar-label" x="${lx}" y="${ly}" dy="3">${d.label}</text>`;
+  });
+
+  svg.innerHTML = html;
+}
+
+function renderDimRows(dims) {
+  const container = document.getElementById('dimRows');
+  container.innerHTML = DIMENSIONS.map(d => {
+    const dim = dims[d.key] || { score: 0, trend: 'stable' };
+    const pct = (dim.score / 5) * 100;
+    const trendIcon = dim.trend === 'up' ? '\u2191' : dim.trend === 'down' ? '\u2193' : '\u2192';
+    const trendClass = dim.trend || 'stable';
+    return `
+      <div class="dim-row">
+        <div class="dim-label">${d.label}</div>
+        <div class="dim-bar-wrap"><div class="dim-bar" style="width:${pct}%"></div></div>
+        <div class="dim-score">${dim.score}/5</div>
+        <div class="dim-trend ${trendClass}">${trendIcon}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderNextFocus(dims) {
+  // Find weakest dimension
+  let weakest = null;
+  let minScore = 6;
+  DIMENSIONS.forEach(d => {
+    const score = dims[d.key]?.score || 0;
+    if (score < minScore) { minScore = score; weakest = d; }
+  });
+
+  const focusText = weakest
+    ? `Your ${weakest.label.toLowerCase()} dimension is at ${minScore}/5. Focus on building this area to round out your AI skills.`
+    : 'Keep up the great work across all dimensions!';
+
+  document.getElementById('nextFocusText').textContent = focusText;
+}
+
+function renderMilestones() {
+  const list = document.getElementById('milestoneList');
+  const milestones = state.progress?.milestones || state.profile?.milestones || [];
+
+  if (!milestones.length) {
+    list.innerHTML = '<li style="font-size:11px;color:var(--text-muted);padding:10px 0">Complete your first program to earn milestones.</li>';
+    return;
+  }
+
+  list.innerHTML = milestones.map(m => `
+    <li class="milestone-item">
+      <div class="milestone-dot"></div>
+      <div class="milestone-content">
+        <div class="milestone-text">${m.text || m.title || m.description}</div>
+        <div class="milestone-date">${m.date || m.achievedAt || ''}</div>
+      </div>
+    </li>
+  `).join('');
+}
+
+/* ─── History Chart ─────────────────────── */
+async function renderHistoryChart() {
+  try {
+    const res = await fetch(`${API}/api/gym/dimensions/history`);
+    const history = await res.json();
+
+    if (!Array.isArray(history) || history.length < 2) {
+      document.getElementById('historyChart').innerHTML = '<div class="history-empty">Your progress chart will fill in as weeks go by. Check back after your second weekly snapshot.</div>';
+      document.getElementById('historyLegend').innerHTML = '';
+      return;
+    }
+
+    const svg = document.getElementById('historySvg');
+    const colors = {
+      application: '#22d3ee',
+      communication: '#f97316',
+      knowledge: '#a78bfa',
+      orchestration: '#ef4444',
+      craft: '#4ade80'
+    };
+
+    const W = 600, H = 160, padL = 30, padR = 10, padT = 10, padB = 24;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    let html = '';
+
+    // Y-axis gridlines (0-5)
+    for (let i = 0; i <= 5; i++) {
+      const y = padT + plotH - (i / 5) * plotH;
+      html += `<line class="history-gridline" x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" />`;
+      html += `<text class="history-y-label" x="${padL - 4}" y="${y + 3}">${i}</text>`;
+    }
+
+    // X-axis dates
+    const step = Math.max(1, Math.floor(history.length / 6));
+    history.forEach((snap, i) => {
+      if (i % step === 0 || i === history.length - 1) {
+        const x = padL + (i / (history.length - 1)) * plotW;
+        const label = snap.date ? snap.date.slice(5) : ''; // MM-DD
+        html += `<text class="history-x-label" x="${x}" y="${H - 2}">${label}</text>`;
+      }
+    });
+
+    // Lines for each dimension
+    const dims = ['application', 'communication', 'knowledge', 'orchestration', 'craft'];
+    for (const dim of dims) {
+      const points = history.map((snap, i) => {
+        const x = padL + (i / Math.max(history.length - 1, 1)) * plotW;
+        const score = snap.dimensions?.[dim] || 0;
+        const y = padT + plotH - (score / 5) * plotH;
+        return { x, y };
+      });
+
+      const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+      html += `<path class="history-line" d="${pathD}" stroke="${colors[dim]}" />`;
+
+      // Dots on last point
+      const last = points[points.length - 1];
+      html += `<circle class="history-dot" cx="${last.x}" cy="${last.y}" fill="${colors[dim]}" />`;
+    }
+
+    svg.innerHTML = html;
+
+    // Legend
+    document.getElementById('historyLegend').innerHTML = dims.map(d =>
+      `<div class="history-legend-item"><div class="history-legend-swatch" style="background:${colors[d]}"></div>${d.charAt(0).toUpperCase() + d.slice(1)}</div>`
+    ).join('');
+
+  } catch (e) {
+    console.warn('Failed to load history chart:', e);
+    document.getElementById('historyChart').innerHTML = '<div class="history-empty">Unable to load progress history.</div>';
+  }
+}
+
+/* ─── Feed ───────────────────────────────── */
+function switchFeedTab(tab) {
+  document.querySelectorAll('.feed-tab').forEach(t => t.classList.toggle('active', t.dataset.feed === tab));
+  document.getElementById('feedTips').classList.toggle('active', tab === 'tips');
+  document.getElementById('feedUpdates').classList.toggle('active', tab === 'updates');
+  document.getElementById('feedBriefing').classList.toggle('active', tab === 'briefing');
+}
+
+async function renderFeed() {
+  try {
+    const res = await fetch(`${API}/api/gym/feed`);
+    const feed = await res.json();
+
+    // Tips
+    const tipsEl = document.getElementById('feedTips');
+    if (feed.tips && feed.tips.length > 0) {
+      tipsEl.innerHTML = feed.tips.map(t => `
+        <div class="feed-item">
+          <span class="feed-item-icon">${t.type === 'tip' ? '\u{1F4A1}' : t.type === 'discovery' ? '\u{1F50D}' : '\u{1F4CC}'}</span>
+          <span class="feed-item-text">${t.title ? '<strong>' + t.title + '</strong> — ' : ''}${t.description || ''}</span>
+          <span class="feed-item-date">${t.generatedAt || t.createdAt?.slice(0,10) || ''}</span>
+        </div>
+      `).join('');
+    } else {
+      tipsEl.innerHTML = '<div class="feed-empty">Tips will appear here as your coach observes your activity.</div>';
+    }
+
+    // Platform Updates
+    const updatesEl = document.getElementById('feedUpdates');
+    if (feed.platformUpdates && feed.platformUpdates.length > 0) {
+      updatesEl.innerHTML = feed.platformUpdates.map(u => `
+        <div class="feed-item">
+          <span class="feed-item-icon">\u{1F680}</span>
+          <span class="feed-item-text">${u.title ? '<strong>' + u.title + '</strong> — ' : ''}${u.description || ''}</span>
+          <span class="feed-item-date">${u.date || ''}</span>
+        </div>
+      `).join('');
+    } else {
+      updatesEl.innerHTML = '<div class="feed-empty">Platform updates will appear here when new features are released.</div>';
+    }
+
+    // AI Briefing
+    const briefingEl = document.getElementById('feedBriefing');
+    if (feed.briefing && feed.briefing.length > 0) {
+      briefingEl.innerHTML = feed.briefing.map(b => `
+        <div class="feed-item">
+          <span class="feed-item-icon">\u{1F4F0}</span>
+          <span class="feed-item-text">${b.title ? '<strong>' + b.title + '</strong> — ' : ''}${b.summary || b.description || ''}</span>
+          <span class="feed-item-date">${b.date || ''}</span>
+        </div>
+      `).join('');
+    } else {
+      briefingEl.innerHTML = '<div class="feed-empty">AI Briefing is off by default. Enable it in settings to get personalized AI news.</div>';
+    }
+  } catch (e) {
+    console.warn('Failed to load feed:', e);
+  }
+}
+
+/* ─── Gym-Only Mode ─────────────────────── */
+async function checkGymOnlyMode() {
+  try {
+    const res = await fetch(`${API}/api/gym/config`);
+    const config = await res.json();
+    if (config.gymOnlyMode) {
+      // Hide non-essential nav items
+      const tabs = document.querySelectorAll('.tab-group .tab-btn');
+      const allowedHrefs = ['/', '/gym', '/org', '/admin'];
+      tabs.forEach(tab => {
+        const href = tab.getAttribute('href');
+        if (href && !allowedHrefs.includes(href)) {
+          tab.style.display = 'none';
+        }
+      });
+      // Rename Home to Gym Home or hide it
+    }
+  } catch (e) {}
+}
+
+/* ─── Start ──────────────────────────────── */
+init();
+</script>
+</body>
+</html>

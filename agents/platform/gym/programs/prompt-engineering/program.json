@@ -1,0 +1,136 @@
+{
+  "id": "prompt-engineering",
+  "slug": "prompt-engineering",
+  "title": "Prompt Engineering",
+  "description": "Master the art of communicating with AI — from basic prompts to system-level instructions.",
+  "difficulty": "intermediate",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "dimensions": ["communication", "application"],
+  "estimatedTime": "45-60 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "context-and-specificity",
+      "title": "Context and Specificity",
+      "order": 1,
+      "agentInstructions": "This module is about the mechanics of prompt quality. Walk the learner through concrete before/after examples. Don't be abstract — show them exactly how adding context, specifics, and constraints transforms AI output from generic to genuinely useful.",
+      "steps": [
+        {
+          "id": "anatomy-of-a-great-prompt",
+          "title": "The anatomy of a great prompt",
+          "order": 1,
+          "type": "knowledge",
+          "content": "Every effective prompt has four building blocks, and understanding them will transform how you work with AI.\n\n**Context** tells the AI what situation it's operating in. \"I'm a product manager writing release notes for a B2B SaaS tool\" gives the AI a frame of reference for tone, audience, and terminology. Without context, you get generic output that could be for anyone.\n\n**Specificity** narrows the output to exactly what you need. Instead of \"write release notes,\" try \"write 5 bullet points covering the new dashboard filtering feature, the CSV export bug fix, and the updated onboarding flow. Each bullet should be one sentence, starting with a verb.\" The more specific your request, the less time you spend editing the result.\n\n**Constraints** tell the AI what NOT to do, which is often more powerful than telling it what to do. \"Don't use technical jargon — our users are non-technical small business owners\" or \"Keep the total under 150 words\" or \"Don't mention pricing.\" Constraints prevent the most common failure mode: technically correct but contextually wrong output.\n\n**Examples** are the secret weapon. When you show the AI what good looks like — a previous version, a competitor's approach, a template — it can pattern-match far more effectively than interpreting abstract instructions. Even a single example dramatically improves output quality. Try pasting in \"here's last month's release notes for reference\" and watch the difference.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "You need an agent to write a customer email about a service outage. What context, specifics, and constraints would you include in your prompt?",
+            "Why are constraints (what NOT to do) often more powerful than positive instructions? Give an example from your own work."
+          ]
+        },
+        {
+          "id": "before-and-after",
+          "title": "Before and after",
+          "order": 2,
+          "type": "self-report",
+          "content": "Time to practice. Take three prompts you'd normally send to an AI and transform them using the four building blocks.\n\nHere are common weak prompts to start with if you need inspiration:\n- \"Summarize this document\"\n- \"Write an email to my team\"\n- \"Help me with this code\"\n- \"Create a plan for my project\"\n\nFor each one, write a **before** (the vague version) and an **after** (with context, specificity, constraints, and optionally an example). Then send the **after** version to any agent and see how the output compares to what you'd normally get.\n\nPay attention to what changes most. Usually, adding context alone gets you 50% of the way there. Adding constraints handles another 30%. Specificity and examples polish the remaining 20%.\n\nNotice which of the four building blocks made the biggest difference for each prompt. Different types of tasks benefit from different elements — creative writing benefits most from examples and constraints, while analytical tasks benefit most from context and specificity.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "measure-the-difference",
+          "title": "Measure the difference",
+          "order": 3,
+          "type": "platform-check",
+          "content": "Now put your new skills into sustained practice. Go to any agent on the platform and have a real working session — at least 5 messages — where you apply everything from this module.\n\nDon't just test the agent with toy prompts. Use it for actual work you need to get done today. Each message should include at least one of the four building blocks: context, specificity, constraints, or examples.\n\nAs you go, notice how the conversation evolves. Good prompts create a compounding effect — the AI builds on the context you've established, and each response gets more tailored. By message 3 or 4, you should feel like the agent truly understands your situation.\n\nIf you find yourself re-explaining things or correcting the AI, that's a signal your initial prompt was missing context. That's not failure — it's exactly the feedback loop that makes you better at prompting over time.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "message-count-gte-5"
+        }
+      ]
+    },
+    {
+      "id": "system-prompts",
+      "title": "System Prompts",
+      "order": 2,
+      "agentInstructions": "System prompts are the most powerful lever on the platform. Help the learner understand that a system prompt isn't just a greeting — it's the DNA of an agent. Use real examples from the platform's own agents (like the hub agent or gym coach) to illustrate what great system prompts look like.",
+      "steps": [
+        {
+          "id": "what-is-a-system-prompt",
+          "title": "What is a system prompt?",
+          "order": 1,
+          "type": "knowledge",
+          "content": "A system prompt is the instruction set that runs before every conversation. On this platform, it lives in the agent's **CLAUDE.md** file, and it shapes every single response the agent gives. Think of it as the difference between hiring \"someone\" and hiring \"a senior financial analyst who specializes in SaaS metrics, communicates in plain English, and always shows their reasoning.\"\n\nA system prompt typically defines four things: **Role** (who the agent is and what it's expert at), **Behavior** (how it should respond — tone, format, level of detail), **Domain knowledge** (key facts, terminology, context it should always have), and **Constraints** (what it should never do, what to avoid, guardrails).\n\nThe power of a system prompt is that it front-loads context you'd otherwise have to repeat in every conversation. Without one, you'd start every chat with \"You're a financial analyst, here's what I need you to know about our business...\" With a good system prompt, the agent already knows all of that.\n\nSystem prompts also compound with your per-message prompts. When your system prompt says \"You are a code reviewer for a React/TypeScript project\" and your message says \"Review this component,\" the agent applies its persistent expertise to your specific request. The system prompt is the foundation; your messages are the tasks built on top of it.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What's the practical difference between putting instructions in a system prompt versus repeating them in every message?",
+            "If an agent keeps giving overly technical responses to non-technical users, where would you fix that — in the system prompt or in individual messages? Why?"
+          ]
+        },
+        {
+          "id": "read-an-agents-system-prompt",
+          "title": "Read an agent's system prompt",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Let's look at a real system prompt in action. Go to the **Org** page (/org) and click on any agent that has a custom system prompt — you'll see the CLAUDE.md content in their detail panel.\n\nAs you read it, look for the four elements: role definition, behavior instructions, domain knowledge, and constraints. Notice how specific the best system prompts are. They don't just say \"be helpful\" — they define exactly what kind of help, in what format, with what boundaries.\n\nIf you have access to multiple agents, compare their system prompts. How does a coding agent's prompt differ from a writing agent's? What makes each one effective for its purpose?\n\nPay special attention to the constraints section. The best system prompts spend as much space on what NOT to do as on what to do. This is what prevents an agent from going off-rails or making assumptions that waste your time.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "agent-has-custom-prompt"
+        },
+        {
+          "id": "write-your-own-system-prompt",
+          "title": "Write your own system prompt",
+          "order": 3,
+          "type": "self-report",
+          "content": "Now it's your turn. Pick an agent (or create a new one) and write a system prompt from scratch. Don't just write a couple of sentences — aim for a prompt that covers all four elements.\n\nStart with the role: Who is this agent? What's its expertise? What would its job title be if it were a person? Then add behavior rules: Should it be concise or detailed? Formal or casual? Should it ask clarifying questions or just do its best with what it has?\n\nNext, add domain knowledge: What facts, terminology, or context should it always have? If it's a project agent, what does it need to know about your project? Finally, add constraints: What should it never do? What topics are out of scope? What format rules should it always follow?\n\nAfter writing it, test it. Send the agent 3-4 different types of requests and see if the system prompt shapes the responses the way you intended. If not, iterate. The best system prompts go through 2-3 revisions before they feel right.\n\nReflect on what was hardest to write. Most people struggle with constraints — it takes practice to anticipate what an AI might do wrong and proactively prevent it.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "iterating-and-debugging",
+      "title": "Iterating and Debugging",
+      "order": 3,
+      "agentInstructions": "This module is about what to do when things go wrong. Normalize failure — even experts iterate on prompts. The goal is to build a toolkit of correction strategies so the learner doesn't get stuck or frustrated.",
+      "steps": [
+        {
+          "id": "when-ai-gets-it-wrong",
+          "title": "When AI gets it wrong",
+          "order": 1,
+          "type": "knowledge",
+          "content": "AI will get things wrong. The skill isn't in getting perfect output on the first try — it's in knowing how to iterate efficiently when the output misses the mark.\n\n**Correction strategies** from most to least disruptive:\n\n1. **Refine in-thread**: \"That's close, but make it more concise and remove the bullet points\" — works when the AI is 70%+ there. The AI retains context from the conversation, so small nudges are powerful.\n2. **Add missing context**: \"I should have mentioned — this is for an internal audience, not customers\" — works when the output is wrong because you left out important information.\n3. **Show an example**: \"Here's what I'm looking for\" + paste a sample — works when the AI understood the task but not the style or format.\n4. **Reset and restructure**: Start a new conversation with a completely rewritten prompt — works when the conversation has gone off-track and corrections are making it worse.\n\n**When to reset vs. iterate**: If you've sent more than 3 correction messages and the output still isn't right, it's usually faster to start fresh with a better initial prompt. Each correction adds noise to the conversation context, and sometimes the AI gets confused trying to satisfy contradictory instructions.\n\n**The meta-skill**: After every iteration, ask yourself \"what was missing from my original prompt that caused this?\" Over time, you'll internalize the patterns and your first-try success rate will climb. The best prompt engineers aren't people who write perfect prompts — they're people who've debugged enough prompts to know what goes wrong and prevent it upfront.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "You've sent 4 correction messages and the agent still isn't giving you what you want. What would you do and why?",
+            "What's the difference between refining in-thread and resetting? When is each strategy the better choice?"
+          ]
+        },
+        {
+          "id": "debug-a-prompt-chain",
+          "title": "Debug a prompt chain",
+          "order": 2,
+          "type": "self-report",
+          "content": "Let's practice debugging. Pick a multi-step task — something that requires at least 3 back-and-forth messages to complete. Here are some ideas:\n\n- Ask an agent to draft a document, then refine the tone, then adjust the structure\n- Have an agent analyze data, then ask follow-up questions about the analysis, then request a summary\n- Get an agent to help plan a project, then drill into a specific phase, then ask it to identify risks\n\nAs you go through the conversation, intentionally practice these moves:\n- **At least one refinement**: After the first response, ask for a specific change\n- **At least one context addition**: Add information you originally left out and see how the output shifts\n- **Evaluate whether to continue or reset**: After 3-4 exchanges, consciously decide if you'd be better off restarting\n\nWhen you're done, reflect on the experience. What was your original prompt missing? At what point did the conversation feel most productive? If you hit a dead end, what would you change in your approach?",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-04-09T00:00:00Z",
+  "updatedAt": "2026-04-09T00:00:00Z"
+}

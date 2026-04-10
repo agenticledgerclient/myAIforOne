@@ -11,6 +11,8 @@ import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.j
 import { executeGoal } from "./goals.js";
 import { executeHeartbeat, loadHeartbeatHistory } from "./heartbeat.js";
 import { executeWikiSync, getWikiSyncHistory } from "./wiki-sync.js";
+import { createGymRouter } from "./gym/gym-router.js";
+import { startActivityDigest } from "./gym/activity-digest.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
 
@@ -57,6 +59,17 @@ export function startWebUI(opts: WebUIOptions): void {
     extensions: ["svg", "png", "ico", "jpg", "jpeg", "gif", "webp"],
   }));
 
+  // ─── Mount Gym API routes (gated by gymEnabled in the router) ────
+  if ((opts.config.service as any).gymEnabled) {
+    const gymAgent = opts.config.agents?.gym;
+    const gymMemDir = gymAgent?.memoryDir;
+    const gymRepoDir = join(opts.baseDir, "agents", "platform", "gym");
+    app.use(createGymRouter(opts.baseDir, {
+      memoryDir: gymMemDir || undefined,
+      programsDir: join(gymRepoDir, "programs"),
+    }));
+  }
+
   // ─── Serve the Home page ─────────────────────────────────────────
   const serveHome = (_req: any, res: any) => {
     const htmlPath = join(opts.baseDir, "public", "home.html");
@@ -67,7 +80,12 @@ export function startWebUI(opts: WebUIOptions): void {
       res.redirect("/org");
     }
   };
-  app.get("/", serveHome);
+  // If gymOnlyMode, redirect root to /gym
+  if (opts.config.service?.gymOnlyMode) {
+    app.get("/", (_req, res) => res.redirect("/gym"));
+  } else {
+    app.get("/", serveHome);
+  }
   app.get("/home", serveHome);
 
   // ─── Serve the Activity Logs page (redirects to admin) ──────────
@@ -177,6 +195,17 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
+  // ─── Serve the Gym page (gated by gymEnabled) ────────────────────
+  app.get("/gym", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "gym.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.status(404).send("Gym page not found.");
+    }
+  });
+
   // /apps route removed — Apps are now managed in the Registry (marketplace) Apps tab
 
   // ─── Serve the Agent Dashboard page ────────────────────────────
@@ -221,6 +250,23 @@ export function startWebUI(opts: WebUIOptions): void {
       res.sendFile(htmlPath);
     } else {
       res.status(404).send("API docs not found.");
+    }
+  });
+
+  // ─── API: Open folder in Finder / Explorer ─────────────────────────
+  app.post("/api/open-folder", (req, res) => {
+    const { path: filePath } = req.body;
+    if (!filePath || typeof filePath !== "string") return res.status(400).json({ error: "path required" });
+    const resolved = resolve(filePath.replace(/^~/, homedir()));
+    try {
+      const target = existsSync(resolved) && statSync(resolved).isDirectory() ? resolved : dirname(resolved);
+      if (!existsSync(target)) return res.status(404).json({ error: "path not found" });
+      if (process.platform === "darwin") execSync(`open "${target}"`);
+      else if (process.platform === "win32") execSync(`explorer "${target}"`);
+      else execSync(`xdg-open "${target}"`);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
@@ -437,6 +483,9 @@ export function startWebUI(opts: WebUIOptions): void {
       providerKeys: Object.fromEntries(
         Object.entries((s as any).providerKeys || {}).map(([k, v]) => [k, v ? "••••••••" : ""])
       ),
+      gymEnabled: (s as any).gymEnabled ?? false,
+      aibriefingEnabled: (s as any).aibriefingEnabled ?? false,
+      gymOnlyMode: (s as any).gymOnlyMode ?? false,
     });
   });
 
@@ -484,7 +533,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
@@ -515,6 +564,9 @@ export function startWebUI(opts: WebUIOptions): void {
           }
         }
       }
+      if (gymEnabled !== undefined) { raw.service.gymEnabled = gymEnabled; (opts.config.service as any).gymEnabled = gymEnabled; }
+      if (aibriefingEnabled !== undefined) { raw.service.aibriefingEnabled = aibriefingEnabled; (opts.config.service as any).aibriefingEnabled = aibriefingEnabled; }
+      if (gymOnlyMode !== undefined) { raw.service.gymOnlyMode = gymOnlyMode; (opts.config.service as any).gymOnlyMode = gymOnlyMode; }
       if (webUIPort !== undefined || webhookSecret !== undefined || webUIEnabled !== undefined) {
         if (!raw.service.webUI) raw.service.webUI = {};
         if (webUIPort !== undefined) raw.service.webUI.port = Number(webUIPort);
@@ -5714,5 +5766,11 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
 
   app.listen(opts.port, () => {
     log.info(`Web UI running on http://localhost:${opts.port}/ui`);
+
+    // Start gym activity digest cron if gymEnabled
+    if ((opts.config.service as any).gymEnabled) {
+      const gymAgentDigest = opts.config.agents?.gym;
+      startActivityDigest({ baseDir: opts.baseDir, port: opts.port, memoryDir: gymAgentDigest?.memoryDir || undefined });
+    }
   });
 }

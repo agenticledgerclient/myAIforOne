@@ -62,6 +62,15 @@ window.Canvas = (function() {
   }
 
   // ─── Toggle / Close ─────────────────────────────────────────────
+  function _clearResizeInlineStyles() {
+    const wrap = document.getElementById('chatBodyWrap');
+    if (!wrap) return;
+    const msgs = wrap.querySelector('.chat-messages');
+    const panel = document.getElementById('canvasPanel');
+    if (msgs) msgs.style.flex = '';
+    if (panel) panel.style.width = '';
+  }
+
   function toggle() {
     canvasOpen = !canvasOpen;
     const wrap = document.getElementById('chatBodyWrap');
@@ -69,6 +78,7 @@ window.Canvas = (function() {
     if (wrap) wrap.classList.toggle('canvas-open', canvasOpen);
     if (btn) btn.classList.toggle('active', canvasOpen);
     if (canvasOpen) _initResize();
+    else _clearResizeInlineStyles();
   }
 
   function close() {
@@ -78,6 +88,7 @@ window.Canvas = (function() {
     const btn = document.querySelector('.canvas-toggle-btn');
     if (wrap) wrap.classList.remove('canvas-open');
     if (btn) btn.classList.remove('active');
+    _clearResizeInlineStyles();
   }
 
   function isOpen() { return canvasOpen; }

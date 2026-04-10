@@ -1,0 +1,124 @@
+{
+  "id": "getting-started",
+  "slug": "getting-started",
+  "title": "Getting Started",
+  "description": "Your first steps with AI agents — from your first conversation to creating your own specialized agent.",
+  "difficulty": "beginner",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "dimensions": ["application", "knowledge", "craft"],
+  "estimatedTime": "30-45 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "meet-your-ai",
+      "title": "Meet Your AI",
+      "order": 1,
+      "agentInstructions": "Start here. Make sure the learner understands what agents are conceptually before they start using them. Keep it conversational, not lecture-like.",
+      "steps": [
+        {
+          "id": "what-is-an-agent",
+          "title": "What is an agent?",
+          "order": 1,
+          "type": "knowledge",
+          "content": "An AI agent is more than a chatbot. It's a persistent assistant with its own memory, workspace, tools, and personality. On this platform, each agent has:\n\n- **A system prompt (CLAUDE.md)** — instructions that define who it is and how it behaves\n- **A workspace** — a folder or project it can read and modify\n- **Tools** — abilities like reading files, writing code, running commands\n- **Memory** — conversation history and learned facts that persist across sessions\n- **MCP integrations** — connections to external services (Slack, GitHub, databases, etc.)\n\nThink of agents like team members. Each one has a specialty, their own desk (workspace), and their own set of tools. You can have a coding agent, a research agent, a writing agent — each optimized for different work.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What's the difference between an agent and a regular chatbot?",
+            "Name two things that make each agent unique (hint: think about what they know and what they can do)"
+          ]
+        },
+        {
+          "id": "first-conversation",
+          "title": "Your first conversation",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Time to actually talk to an agent. Go to the **Chat** page (/ui), pick any agent, and have a real conversation. Ask it to help you with something — don't just say 'hello'. Give it a task:\n\n- Ask it to explain something you're curious about\n- Ask it to draft an email or message\n- Ask it to help you think through a problem\n\nSend at least 5 messages back and forth. Get a feel for the rhythm of working with an agent.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "message-count-gte-5"
+        }
+      ]
+    },
+    {
+      "id": "give-it-context",
+      "title": "Give It Context",
+      "order": 2,
+      "agentInstructions": "This module is about prompt quality. Emphasize the before/after difference — users should feel the improvement in output when they provide better input.",
+      "steps": [
+        {
+          "id": "what-makes-good-prompt",
+          "title": "What makes a good prompt?",
+          "order": 1,
+          "type": "knowledge",
+          "content": "The quality of what you get from AI is directly proportional to the quality of what you give it. Here's what makes a prompt effective:\n\n**Context** — Tell it what you're working on and why. \"I'm preparing a quarterly report for my board\" is better than \"write a report.\"\n\n**Specifics** — Be precise about what you want. Format, length, tone, audience. \"Write a 3-paragraph summary in plain English for non-technical stakeholders\" beats \"summarize this.\"\n\n**Examples** — When possible, show it what good looks like. Paste in a previous version, a competitor's approach, or a template.\n\n**Constraints** — Tell it what NOT to do. \"Don't use jargon. Keep it under 200 words. Don't make up numbers.\"",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What are the four elements of an effective prompt?",
+            "Why is 'write a report' a weak prompt? How would you improve it?"
+          ]
+        },
+        {
+          "id": "try-detailed-prompt",
+          "title": "Try a detailed prompt",
+          "order": 2,
+          "type": "self-report",
+          "content": "Now put it into practice. Go to any agent and send a prompt that includes:\n\n1. **Context** — what you're working on\n2. **Specifics** — exactly what you want\n3. **Constraints** — what to avoid\n\nCompare the result to a vague version of the same request. Notice the difference.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "upload-a-file",
+          "title": "Upload a file to your agent",
+          "order": 3,
+          "type": "platform-check",
+          "content": "Agents can work with files you upload. Try it:\n\n1. Go to any agent's chat\n2. Click the 📎 attachment button\n3. Upload a document, spreadsheet, image, or any file\n4. Ask the agent to analyze, summarize, or work with the file\n\nThis is powerful — instead of copy-pasting content, you can hand the agent the actual file and let it work directly with it.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "file-upload-used"
+        }
+      ]
+    },
+    {
+      "id": "make-it-yours",
+      "title": "Make It Yours",
+      "order": 3,
+      "agentInstructions": "This is the capstone module. The learner should leave with a working specialized agent. Help them think about what's genuinely useful for their work, not just a toy example.",
+      "steps": [
+        {
+          "id": "create-specialized-agent",
+          "title": "Create a specialized agent",
+          "order": 1,
+          "type": "platform-check",
+          "content": "Now create an agent that's built for YOUR work. Go to the **Org** page (/org) and click **+ New Agent**. Think about:\n\n- **What's one recurring task** you do that AI could help with?\n- **What project** are you working on that needs a dedicated assistant?\n\nExamples:\n- A \"Meeting Notes\" agent that summarizes your meeting recordings\n- A \"Code Reviewer\" agent pointed at your project repo\n- A \"Content Writer\" agent with your brand guidelines in its system prompt\n\nCreate the agent, give it a clear name and description, and point its workspace at a relevant folder.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "new-agent-exists"
+        },
+        {
+          "id": "write-system-prompt",
+          "title": "Write a system prompt",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Your new agent needs instructions. Its CLAUDE.md file is its personality and expertise. Go to the agent's dashboard and write a system prompt that tells it:\n\n- **Who it is** — its role and expertise\n- **What it should do** — its primary tasks\n- **How it should behave** — tone, format preferences, constraints\n- **What it knows** — domain context, key facts\n\nA good system prompt is like onboarding a new team member. The more context you give, the better it performs from day one.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "agent-has-custom-prompt"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-04-09T00:00:00Z",
+  "updatedAt": "2026-04-09T00:00:00Z"
+}

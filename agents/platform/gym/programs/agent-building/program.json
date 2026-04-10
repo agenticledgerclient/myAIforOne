@@ -1,0 +1,160 @@
+{
+  "id": "agent-building",
+  "slug": "agent-building",
+  "title": "Agent Building",
+  "description": "Design, create, and configure specialized AI agents tailored to your real work.",
+  "difficulty": "intermediate",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "dimensions": ["craft", "knowledge"],
+  "estimatedTime": "50-70 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "anatomy-of-an-agent",
+      "title": "Anatomy of an Agent",
+      "order": 1,
+      "agentInstructions": "Ground the learner in the building blocks before they start building. Use the platform's own agents as examples — point them to real agent configs they can examine. Make the abstract concrete.",
+      "steps": [
+        {
+          "id": "what-makes-an-agent",
+          "title": "What makes an agent",
+          "order": 1,
+          "type": "knowledge",
+          "content": "An agent on this platform is built from five core components, and understanding how they fit together is the key to building agents that actually work well.\n\n**Workspace** is the agent's home directory — the folder it can read from and write to. A coding agent pointed at `/Users/you/projects/my-app` can see every file in that project. A general agent pointed at `~` has broad access but no deep context. The workspace determines what the agent can see and touch, so choosing the right one is your first and most important decision.\n\n**System prompt (CLAUDE.md)** is the agent's identity. It defines the agent's role, expertise, behavior rules, and constraints. A 2-sentence system prompt creates a generalist. A 200-line system prompt creates a specialist who knows your project's architecture, coding conventions, and communication preferences. The system prompt runs before every conversation, so everything in it shapes every response.\n\n**Tools** are the agent's capabilities. The platform offers Read, Write, Edit, Bash, Glob, and Grep. A code reviewer might only need Read, Glob, and Grep (read-only). A builder agent needs all of them. Restricting tools is a feature, not a limitation — it prevents accidents and keeps agents focused.\n\n**Memory** comes in two forms. Basic memory is the conversation history within a session. Advanced memory (`advancedMemory: true`) gives the agent long-term recall across sessions — it maintains daily journals and can search past interactions using vector similarity. Wiki learning (`wiki: true`) lets the agent extract and store facts in `learned.md` for persistent knowledge.\n\n**MCP integrations** connect the agent to external services — Slack, GitHub, databases, APIs. An agent with the GitHub MCP can create pull requests. An agent with the Slack MCP can post updates to channels. MCPs are what turn a smart text generator into a connected team member that can take action in the real world.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "An agent keeps hallucinating file paths that don't exist in a project. Which component is likely misconfigured, and how would you fix it?",
+            "You want an agent that monitors a codebase for issues but can't accidentally modify anything. Which tools would you enable and which would you disable?"
+          ]
+        },
+        {
+          "id": "agent-audit",
+          "title": "Agent audit",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Before building your own agent, let's study one that already exists. Go to the **Org** page (/org) and click on any agent to open its detail panel.\n\nExamine each component:\n- **Workspace**: What directory is it pointed at? Is it broad (like ~) or focused (like a specific project folder)?\n- **System prompt**: Read the CLAUDE.md. How detailed is it? Does it define a clear role? Does it have constraints?\n- **Tools**: Which tools does it have access to? Are there any that are disabled? Why might that be?\n- **Memory**: Does it have advanced memory or wiki learning enabled?\n- **MCPs**: Are any external integrations configured?\n\nIf you only have one agent (the hub), that's fine — the hub agent is actually a great case study because it has a detailed system prompt, specific tools, and MCP integrations. Study how its system prompt defines its role as the platform's primary conversational interface.\n\nTake note of what makes this agent effective (or what could be improved). You'll use these observations when building your own.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "new-agent-exists"
+        }
+      ]
+    },
+    {
+      "id": "your-first-specialized-agent",
+      "title": "Your First Specialized Agent",
+      "order": 2,
+      "agentInstructions": "This is where the learner creates something real. Push them toward a genuine use case from their work — not a toy example. Help them think through what problem this agent solves and who it serves. The creation itself should feel purposeful.",
+      "steps": [
+        {
+          "id": "choosing-a-purpose",
+          "title": "Choosing a purpose",
+          "order": 1,
+          "type": "knowledge",
+          "content": "The best agents solve a specific, recurring problem. Before you create one, let's find the right use case from your actual work.\n\n**Look for these patterns in your day:**\n- Tasks you do repeatedly that follow a similar pattern (weekly reports, code reviews, email drafts)\n- Projects where you need a dedicated assistant that remembers context across sessions\n- Workflows where you constantly context-switch between tools or information sources\n- Areas where you have expertise that could be encoded as instructions for an AI\n\n**Good agent candidates:**\n- A project-specific coding assistant pointed at your repo, with your coding standards in its system prompt\n- A meeting notes agent that summarizes recordings in your preferred format every time\n- A research assistant for a specific domain (legal, financial, medical) with domain terminology and constraints\n- A content writer with your brand voice, style guide, and audience profile baked in\n\n**Poor agent candidates (for now):**\n- Tasks you do once and never again — just use the hub agent for ad-hoc work\n- Tasks that require real-time data from services you haven't connected via MCP\n- Tasks where you don't yet know what \"good\" looks like — start with the hub agent to figure it out, then create a specialist\n\nThe litmus test: if you'd spend 2+ minutes re-explaining context to an AI every time you do this task, it's worth encoding that context in a dedicated agent.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What recurring task from your own work would make a good specialized agent? Why is it better as a dedicated agent than using the hub?",
+            "Why would a one-time task be a poor candidate for a specialized agent?"
+          ]
+        },
+        {
+          "id": "create-and-configure",
+          "title": "Create and configure",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Time to build. Go to the **Org** page (/org), click **+ New Agent**, and create your specialized agent.\n\n**Name it clearly.** The name should tell you (and other agents) exactly what it does. \"Code Reviewer\" is better than \"Helper.\" \"Q3 Marketing Writer\" is better than \"Writer.\"\n\n**Set the workspace.** Point it at the specific folder for its domain. If it's a coding agent, point it at the project root. If it's a writing agent, point it at the folder where your documents live. Be as specific as possible — a narrow workspace means the agent has deep context on exactly what it needs.\n\n**Choose tools deliberately.** Start with the minimum set of tools the agent needs:\n- **Read-only agents** (reviewers, monitors, analysts): Read, Glob, Grep\n- **Builder agents** (coders, writers, editors): Read, Write, Edit, Bash, Glob, Grep\n- **Cautious builders**: Read, Write, Edit, Glob, Grep (no Bash — prevents running arbitrary commands)\n\nYou can always add tools later. It's harder to undo damage from an overpowered agent than to grant additional permissions.\n\n**Write a description.** This shows up in the Org page and helps other agents understand what your agent does. One clear sentence is enough.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "new-agent-exists"
+        },
+        {
+          "id": "first-conversation-with-your-agent",
+          "title": "First conversation with your agent",
+          "order": 3,
+          "type": "platform-check",
+          "content": "Your agent exists — now let's put it to work. Go to the **Chat** page (/ui), select your new agent, and have a substantive conversation. Don't just test it with \"hello\" — give it real work.\n\n**For a coding agent:** Ask it to review a specific file, explain a function, or suggest improvements to a module. Send follow-up questions to test how well it understands the codebase context.\n\n**For a writing agent:** Ask it to draft something in your domain. Then ask for revisions. Then ask it to adapt the same content for a different audience. Test whether the system prompt's tone and style guidelines are working.\n\n**For any agent:** After 3-4 exchanges, try asking it something slightly outside its specialty. A well-configured agent should either handle it within its domain framing or honestly acknowledge it's outside its scope (if you added that constraint).\n\nSend at least 5 messages. Pay attention to whether the agent feels like a specialist or a generalist. If it feels too generic, that's a sign the system prompt needs more detail. If it feels too rigid, the constraints might be too tight.\n\nThis first conversation is diagnostic — you're not just using the agent, you're evaluating whether its configuration matches your intentions.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "message-count-gte-5"
+        }
+      ]
+    },
+    {
+      "id": "writing-an-effective-system-prompt",
+      "title": "Writing an Effective System Prompt",
+      "order": 3,
+      "agentInstructions": "System prompts are the highest-leverage skill in agent building. Share real patterns and anti-patterns. If the learner's system prompt is too short or too vague, push them to add specificity. A good system prompt is usually 50-200 lines.",
+      "steps": [
+        {
+          "id": "system-prompt-patterns",
+          "title": "System prompt patterns",
+          "order": 1,
+          "type": "knowledge",
+          "content": "Great system prompts follow predictable patterns. Here are the building blocks you should include, roughly in order:\n\n**Identity block** — Start with who the agent is. \"You are a senior frontend engineer specializing in React and TypeScript. You work on the Acme dashboard project.\" This sets the expertise level, domain, and scope.\n\n**Behavior rules** — Define how the agent communicates. \"Always explain your reasoning before showing code. Use TypeScript strict mode. Prefer functional components over class components. When unsure, ask a clarifying question rather than guessing.\" These rules prevent the most common frustrations.\n\n**Domain knowledge** — Embed facts the agent should always know. \"Our API uses REST with JWT auth. The main database is PostgreSQL. We deploy via GitHub Actions to AWS ECS. The design system uses Tailwind with custom tokens defined in tailwind.config.ts.\" This eliminates repetitive context-setting.\n\n**Format preferences** — Specify output structure. \"When reviewing code, use this format: (1) Summary of changes, (2) Issues found with severity, (3) Suggestions. Keep code snippets under 20 lines — link to files for longer blocks.\"\n\n**Constraints and guardrails** — Define boundaries. \"Never modify files in /config or /infrastructure without explicit confirmation. Don't suggest dependencies not already in package.json without explaining why. Never run destructive bash commands.\"\n\n**Anti-patterns to avoid:** Don't write a system prompt that's just \"Be helpful and answer questions\" — that's the default behavior anyway. Don't include contradictory instructions. Don't make it so long that critical rules get buried — put the most important constraints near the top.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What are the five building blocks of a system prompt, and which one would you write first for a brand-new agent?",
+            "Why should critical constraints go near the top of a system prompt rather than the bottom?"
+          ]
+        },
+        {
+          "id": "write-and-iterate",
+          "title": "Write and iterate",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Open your agent's detail panel on the Org page and write (or substantially improve) its CLAUDE.md system prompt. Aim for at least 30-50 lines that cover all five building blocks.\n\nStart with the identity block — one paragraph that defines the role, expertise, and scope. Then add 3-5 behavior rules that address how you want the agent to communicate. Include at least one section of domain knowledge — facts about your project, your preferences, or your workflow that the agent should always know.\n\nAdd format preferences for the agent's most common output types. If it writes code, define your style. If it writes prose, define your tone. Finally, add 3-5 constraints — things it should never do.\n\nAfter saving the system prompt, test it immediately. Send the agent a request and check:\n- Does it use the right tone and format?\n- Does it demonstrate the domain knowledge you included?\n- Does it respect your constraints?\n\nIf any of these are off, iterate. Adjust the wording, add more specificity, or move critical instructions higher in the prompt. Most system prompts need 2-3 rounds of refinement to feel right.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "agent-has-custom-prompt"
+        }
+      ]
+    },
+    {
+      "id": "tools-and-workspace-setup",
+      "title": "Tools and Workspace Setup",
+      "order": 4,
+      "agentInstructions": "This is the practical finishing module. Help the learner think about security and scope — the principle of least privilege applies to AI agents just like it does to software systems. A well-scoped agent is safer, faster, and more focused.",
+      "steps": [
+        {
+          "id": "understanding-tools",
+          "title": "Understanding tools",
+          "order": 1,
+          "type": "knowledge",
+          "content": "Each tool on the platform gives an agent a specific capability. Understanding what each tool does helps you configure agents that are powerful enough to be useful but constrained enough to be safe.\n\n**Read** — Read any file in the workspace. Essential for almost every agent. A code reviewer needs to read source files. A writing agent needs to read reference documents. This is the most commonly enabled tool.\n\n**Write** — Create new files or completely overwrite existing ones. Needed for agents that produce artifacts — generated code, reports, documents. More destructive than Edit because it replaces entire files.\n\n**Edit** — Make targeted changes within existing files. Safer than Write because it modifies specific sections rather than replacing entire files. Ideal for code agents that need to fix bugs or refactor.\n\n**Bash** — Run shell commands. The most powerful and most dangerous tool. Enables running tests, installing packages, executing scripts, and interacting with the system. Only enable this for agents you fully trust with your system.\n\n**Glob** — Find files by pattern (e.g., \"find all .tsx files in src/\"). Enables navigation of large codebases. Low risk, high utility.\n\n**Grep** — Search file contents for patterns. Combined with Glob, this lets agents explore and understand codebases. Read-only and safe.\n\n**The principle of least privilege:** Give each agent only the tools it needs. A monitoring agent needs Read + Glob + Grep. A builder needs all six. An analyst might need Read + Glob + Grep + Bash (for running analysis scripts but not modifying code). When in doubt, start restrictive and add tools as needed.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "You're building an agent that generates weekly reports by analyzing log files. Which tools would you enable and why?",
+            "Why is Bash the most dangerous tool? Give a scenario where an agent with Bash access could cause problems."
+          ]
+        },
+        {
+          "id": "configure-tools-and-workspace",
+          "title": "Configure tools and workspace",
+          "order": 2,
+          "type": "self-report",
+          "content": "Return to your agent's configuration on the Org page and fine-tune its tools and workspace setup for a real project.\n\n**Workspace audit:** Is your agent pointed at the right directory? If it's a project agent, it should point at the project root — not your home directory, not a parent folder. The tighter the workspace, the more relevant the agent's file operations will be.\n\n**Tool audit:** Review each enabled tool and ask: does this agent actually need this? If you enabled Bash but your agent only reads and analyzes code, remove Bash. If you enabled Write but your agent should only suggest changes (not make them), switch to Read-only tools.\n\n**Test the configuration:** After adjusting, test edge cases. Ask the agent to do something that should be outside its scope. Does it handle it gracefully? Ask it to work with files in its workspace. Can it find what it needs?\n\nIf you have time, consider creating a second agent with a different tool profile — perhaps a read-only version of the same agent for review purposes, while the original keeps write access for building. Having multiple agents with different permission levels for the same project is a common and effective pattern.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-04-09T00:00:00Z",
+  "updatedAt": "2026-04-09T00:00:00Z"
+}

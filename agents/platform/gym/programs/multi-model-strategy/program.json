@@ -1,0 +1,115 @@
+{
+  "id": "multi-model-strategy",
+  "slug": "multi-model-strategy",
+  "title": "Multi-Model Strategy",
+  "description": "Choose the right AI model for each job — Claude, GPT, Gemini, local models, and when to use which.",
+  "difficulty": "advanced",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "dimensions": ["knowledge", "craft"],
+  "estimatedTime": "40-55 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "model-landscape",
+      "title": "Model Landscape",
+      "order": 1,
+      "agentInstructions": "Be balanced and honest about model capabilities. This isn't about picking a winner — it's about understanding tradeoffs. The learner should leave knowing that model choice is a strategic decision, not a loyalty test. Keep the information practical and current.",
+      "steps": [
+        {
+          "id": "the-ai-model-ecosystem",
+          "title": "The AI model ecosystem",
+          "order": 1,
+          "type": "knowledge",
+          "content": "The AI model landscape is broader than just Claude, and understanding the ecosystem helps you make better decisions about which model to use for which task.\n\n**Claude (Anthropic)** — The default on this platform. Strong at reasoning, code generation, long documents, and following complex instructions. Available in multiple tiers: Haiku (fast, cheap, good for simple tasks), Sonnet (balanced), and Opus (most capable, best for complex reasoning). Claude excels at tasks requiring careful analysis, nuanced writing, and tool use.\n\n**GPT (OpenAI)** — The most widely-known model family. GPT-4o is strong at creative writing, multilingual tasks, and has good general knowledge. GPT-4o-mini is a fast, affordable option for simpler tasks. OpenAI also offers specialized models for images (DALL-E), speech (Whisper), and embeddings.\n\n**Gemini (Google)** — Strong at multimodal tasks (combining text, images, video, code). Has a very large context window. Good at tasks involving Google ecosystem data and search-adjacent reasoning. Gemini Pro and Flash offer different speed/capability tradeoffs.\n\n**Groq** — Not a model but an inference provider that runs open-source models (Llama, Mixtral) at extremely high speed. When you need fast responses and the task doesn't require frontier-model reasoning, Groq is compelling.\n\n**Ollama (Local)** — Runs open-source models (Llama, Gemma, Mistral, Phi, etc.) entirely on your machine. Zero API costs, complete privacy (no data leaves your device), works offline. The tradeoff is that local models are generally less capable than cloud models, and performance depends on your hardware. On this platform, Ollama agents get text-in/text-out only — no tool use, no MCP, no sessions.\n\nNo single model is best at everything. The strategic advantage comes from matching models to tasks based on cost, speed, capability, and privacy requirements.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "You have a task that involves analyzing confidential financial data that must never leave your machine. Which model approach would you choose and why?",
+            "What are the main tradeoffs between using a cloud model like Claude and a local model via Ollama?"
+          ]
+        },
+        {
+          "id": "model-comparison",
+          "title": "Model comparison",
+          "order": 2,
+          "type": "self-report",
+          "content": "Let's build your intuition for model differences through direct comparison. Pick a task and try it with at least two different models (or model tiers) if you have access.\n\n**Suggested comparison experiments:**\n- Give the same coding task to Claude and an Ollama model. Compare code quality, explanation clarity, and handling of edge cases.\n- Ask the same analytical question to different Claude tiers (Haiku vs. Sonnet vs. Opus). Note where the cheaper model is \"good enough\" and where the premium model clearly wins.\n- Try a creative writing task across models. Notice differences in voice, creativity, and instruction-following.\n\nIf you only have access to Claude, you can still compare tiers. The difference between Haiku and Opus on a complex reasoning task is dramatic and instructive.\n\n**What to observe:**\n- **Accuracy**: Did the model get the facts right?\n- **Depth**: How thorough was the analysis?\n- **Speed**: How fast was the response? (Matters for interactive use.)\n- **Tone**: Does the model match your preferred communication style?\n- **Cost**: For production use, what's the per-task cost difference?\n\nDocument your findings. Over time, this comparison data becomes your personal model selection guide — you'll know intuitively which model to reach for based on the task at hand.\n\nReflect on what surprised you. Most people expect premium models to always win, but for simple tasks, smaller and cheaper models often produce equivalent results at a fraction of the cost and latency.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "when-to-use-which-model",
+      "title": "When to Use Which Model",
+      "order": 2,
+      "agentInstructions": "This module is about developing judgment. There's no universal right answer — it depends on the user's priorities (cost, speed, privacy, quality). Help them build a decision framework rather than memorize rules.",
+      "steps": [
+        {
+          "id": "matching-models-to-tasks",
+          "title": "Matching models to tasks",
+          "order": 1,
+          "type": "knowledge",
+          "content": "Model selection is a tradeoff between five dimensions: **capability**, **cost**, **speed**, **privacy**, and **reliability**. Here's a practical framework.\n\n**Use frontier cloud models (Claude Opus, GPT-4o) when:**\n- The task requires complex reasoning, multi-step analysis, or nuanced judgment\n- Accuracy matters more than speed or cost (legal analysis, code architecture, strategic planning)\n- You need tool use, MCP integrations, or sophisticated instruction-following\n- The task involves long documents or large codebases (strong context windows)\n\n**Use mid-tier cloud models (Claude Sonnet, GPT-4o-mini) when:**\n- The task is moderately complex but well-defined (code generation, summarization, drafting)\n- You need a good balance of quality and cost for regular use\n- Response speed matters (interactive conversations, real-time assistants)\n- This is your workhorse tier for day-to-day agent work\n\n**Use fast/cheap models (Claude Haiku, Groq) when:**\n- The task is simple and well-structured (classification, extraction, formatting)\n- You're processing high volumes (batch analysis, log scanning, data transformation)\n- Latency is critical (user-facing chatbots, real-time assistants)\n- The task has clear right/wrong answers that don't require deep reasoning\n\n**Use local models (Ollama) when:**\n- Privacy is paramount (sensitive data that cannot leave your machine)\n- You need to work offline or in air-gapped environments\n- Cost is a primary concern and you're running many queries\n- The task is within the local model's capability (Q&A, simple generation, content drafting)\n- You want experimentation freedom without API costs\n\n**The hybrid approach:** The most effective strategy isn't choosing one model — it's using different models for different agents. Your code architect might run on Opus for maximum reasoning. Your daily standup summarizer runs on Haiku because it's fast and cheap. Your confidential HR assistant runs locally on Ollama. Each agent gets the model that matches its job.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "You have three agents: a code architect, a log scanner that runs every hour, and an HR assistant handling employee data. What model would you assign to each and why?",
+            "When is a cheaper, faster model actually better than a more capable one — not just 'good enough,' but genuinely a better choice?"
+          ]
+        },
+        {
+          "id": "model-selection-exercise",
+          "title": "Model selection exercise",
+          "order": 2,
+          "type": "self-report",
+          "content": "Map your current (or planned) agent roster to optimal models. For each agent you have or want to create, decide which model best fits its role.\n\n**Create a model assignment table:**\n\n| Agent | Primary Task | Key Requirement | Recommended Model | Why |\n|-------|-------------|-----------------|-------------------|-----|\n| hub | General assistance | Versatile + tool use | Claude Sonnet | Balance of capability and cost |\n| (your agent) | ... | ... | ... | ... |\n\nFor each agent, consider:\n- Does it need tool use? (If yes, cloud models only — Ollama agents can't use tools on this platform)\n- Does it handle sensitive data? (If yes, consider local models)\n- How often does it run? (High-frequency = cost matters more)\n- How complex are its tasks? (Simple = cheaper model is fine)\n- Does it need MCPs? (If yes, Claude is the strongest choice)\n\nAfter filling out the table, look for patterns. You'll likely find that most of your agents can run on mid-tier models, a few need premium, and some could save money on cheaper or local models.\n\nReflect on what this exercise reveals about your platform usage. Are you over-provisioning (using expensive models for simple tasks)? Under-provisioning (using cheap models for tasks that need more capability)? The right model assignment can dramatically reduce costs while maintaining or even improving output quality.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "switching-and-comparing-on-the-platform",
+      "title": "Switching and Comparing on the Platform",
+      "order": 3,
+      "agentInstructions": "This is the hands-on module. Walk the learner through the actual platform configuration for multi-model support. If they don't have Ollama installed, that's okay — the exercise of configuring an alternative executor is still valuable even as a dry run.",
+      "steps": [
+        {
+          "id": "multi-model-setup",
+          "title": "Multi-model setup",
+          "order": 1,
+          "type": "knowledge",
+          "content": "The platform supports multiple AI models through its executor system. Here's how to configure it.\n\n**Step 1: Enable multi-model support.** In your `config.json`, set `service.multiModelEnabled: true`. This unlocks the ability to assign different executors to different agents. When disabled (the default), all agents use Claude.\n\n**Step 2: Configure Ollama (for local models).** If you want to use local models:\n1. Install Ollama from ollama.ai\n2. Pull a model: `ollama pull gemma2` (or llama3, mistral, phi3, etc.)\n3. Ensure Ollama is running: `ollama serve`\n4. Set `service.ollamaBaseUrl` in config if it's not the default `http://localhost:11434`\n\n**Step 3: Assign executors to agents.** Each agent can have an `executor` field that overrides the platform default:\n- `\"executor\": \"claude\"` — Use Claude (the default, doesn't need to be set explicitly)\n- `\"executor\": \"ollama:gemma2\"` — Use Gemma 2 via Ollama\n- `\"executor\": \"ollama:llama3\"` — Use Llama 3 via Ollama\n- `\"executor\": \"ollama:mistral\"` — Use Mistral via Ollama\n\nAgents without an explicit executor use `service.platformDefaultExecutor` (which defaults to \"claude\").\n\n**Step 4: Configure provider keys (for cloud alternatives).** If you want to use non-Claude cloud models, add API keys to `service.providerKeys` in config:\n```json\n\"providerKeys\": {\n  \"openai\": \"sk-...\",\n  \"google\": \"AIza...\"\n}\n```\n\n**Important limitations of Ollama agents:** Local model agents get text-in/text-out only. They cannot use tools (Read, Write, Bash, etc.), MCP integrations, or sessions. They're best for advisory roles, Q&A, content generation, and tasks that don't need filesystem or API access. Plan your agent architecture accordingly — some agents must remain on Claude for full capability.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What are the limitations of an Ollama-based agent compared to a Claude-based agent on this platform?",
+            "Describe the steps to configure an agent to use a local Gemma model instead of Claude."
+          ]
+        },
+        {
+          "id": "configure-a-non-claude-agent",
+          "title": "Configure a non-Claude agent",
+          "order": 2,
+          "type": "platform-check",
+          "content": "Put your knowledge into practice by configuring an agent to use an alternative model. You have two paths depending on your setup:\n\n**Path A: Ollama (if installed).** Pick an existing agent or create a new one that's suited for text-only work (advisory, Q&A, content drafting). Set its executor to an Ollama model. Test it with a conversation and compare the output quality to a Claude-based agent on the same task.\n\nGood candidates for Ollama:\n- A brainstorming agent that generates ideas (doesn't need tools)\n- A Q&A agent for a specific knowledge domain\n- A draft writer that produces first versions you'll edit\n\n**Path B: Provider keys (if you have other API keys).** Configure a provider key in your settings and set an agent to use an alternative cloud model. This gives you cloud-grade capability from a different provider.\n\n**Path C: Executor field exploration (if neither above).** Even without Ollama or alternative keys, you can enable multi-model support in config and set an agent's executor field to understand how the system works. Set `service.multiModelEnabled: true`, then explore the executor configuration in the agent settings.\n\nAfter configuring, test the agent:\n1. Send it a moderate-complexity task\n2. Evaluate the response quality\n3. Compare response time to your default Claude agents\n4. Note whether the model handles your domain's terminology and context appropriately\n\nReflect on whether this model is a good fit for this agent's role, or whether Claude remains the better choice for this particular use case.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "platform-check",
+          "check": "feature-used"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-04-09T00:00:00Z",
+  "updatedAt": "2026-04-09T00:00:00Z"
+}
