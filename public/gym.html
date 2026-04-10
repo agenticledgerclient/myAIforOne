@@ -1597,12 +1597,19 @@ function buildLearnCards() {
 function dismissCard(index, e) {
   e.stopPropagation();
   const el = document.getElementById(`gymCard${index}`);
-  if (el) el.style.display = 'none';
-  // Optionally dismiss on server
+  if (el) {
+    el.style.transition = 'opacity 0.3s, transform 0.3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-10px)';
+  }
+  // Persist dismiss on server and remove from local state
   const card = state.cards[index];
   if (card?.id) {
     fetch(`${API}/api/gym/cards/${card.id}/dismiss`, { method: 'POST' }).catch(() => {});
   }
+  // Remove from local state so re-renders don't bring it back
+  state.cards.splice(index, 1);
+  setTimeout(() => { if (el) el.remove(); }, 300);
 }
 
 async function dismissInsight(id, status, btn) {
@@ -2266,10 +2273,10 @@ async function sendMessage(overrideText) {
 
     if (data.jobId) {
       if (gymRawLogsOpen) gymStreamRawLogs(data.jobId);
-      const msgDiv = addChatMessage('assistant', '');
+      let msgDiv = null;
       let firstChunk = true;
       await consumeSSE(data.jobId, (chunk) => {
-        if (firstChunk) { hideTyping(); firstChunk = false; }
+        if (firstChunk) { hideTyping(); msgDiv = addChatMessage('assistant', ''); firstChunk = false; }
         msgDiv.innerHTML = formatMessage(chunk);
         document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
       });

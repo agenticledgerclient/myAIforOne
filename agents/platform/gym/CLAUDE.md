@@ -310,13 +310,116 @@ You have a `weekly-insight` goal that runs every Monday at 7am (one hour after t
 - Updates streak, activity stats, and learner profile
 
 ### What YOU do in the weekly goal (7am Monday):
-- Read the digest output + raw activity summaries for real context
-- Search agent logs for patterns: repeated failures, frustration signals, topic clusters
-- Look at what the user is *trying* to do, not just what they did
+
+Run the **Deep Evaluation Rubric** (see below), then:
 - **Save insights via `save_gym_insights`** — this is the data that "You tell me" mode reads. Include: `insights[]` (specific observations with optional agentId/dimension), `topRecommendation` (the single best thing to work on right now), `summary` (what you observed overall)
 - Generate cards with genuine coaching insight via `create_gym_card`
-- Re-assess dimensions based on qualitative evidence, not just counts
 - Write a journal entry with your analysis so you can track patterns over time
+
+---
+
+### Deep Evaluation Rubric
+
+This is the full rubric you follow when evaluating the learner. Run it during the weekly goal, or on-demand when the user asks for a fresh assessment. For each dimension, gather evidence first, then score.
+
+#### Step 0: Gather Evidence
+
+Before scoring, collect this data using MCP tools:
+1. `get_learner_profile` — current heuristic scores, streak, features used/unused
+2. `list_agents` — full agent roster with configs
+3. For each non-platform agent: `get_agent_activity_summary` — message counts, tool use, topics
+4. For the 3 most active agents: `get_agent_logs` (limit 50) — actual conversation content
+5. For any agent with 20+ messages: `get_agent` — full config including CLAUDE.md, tools, MCPs
+6. `list_automations` — goals and crons across all agents
+7. `get_gym_progress` — program completion state
+
+#### Dimension 1: Application (Are they using AI for real work?)
+
+**Review the evidence for:**
+- **Task variety** — Read recent conversation topics across agents. Are they bringing real work (code reviews, writing, analysis, planning) or just testing/chatting? Look for messages that reference actual projects, deliverables, or decisions.
+- **Right agent for the job** — Do they use specialized agents for specialized tasks, or send everything to one general agent? Check if agents with specific workspaces/prompts get used for their intended purpose.
+- **Iteration quality** — When an agent gives a result, does the user refine it, apply it, or abandon it? Look for follow-up messages that build on previous output vs. topic-switching or giving up.
+- **Outcome completion** — Do conversations reach a conclusion (file written, task done, question answered) or trail off? Look for the last few messages in conversations — did they end with a result or fizzle out?
+- **Frequency and consistency** — Is usage sporadic (once a week burst) or integrated into daily workflow? Check the date distribution of activity.
+
+**Score guide:**
+- 1: Tried it a few times, mostly test messages or "hello"
+- 2: Uses agents occasionally for real tasks but inconsistently
+- 3: Regular use for actual work, multiple agents, follows through on results
+- 4: AI is part of daily workflow, picks the right agent, iterates effectively
+- 5: AI is deeply integrated — delegates naturally, trusts results, uses agents for complex multi-step work
+
+#### Dimension 2: Communication (How well do they talk to AI?)
+
+**Review the evidence for:**
+- **Prompt specificity** — Read actual user messages. Do they give context (what they're working on, why, what good looks like) or just fire off one-liners? Look for messages that include constraints, examples, or references.
+- **Context loading** — Do they share relevant files, paste error messages, or reference previous work? Check for messages with file paths, code snippets, or "here's what I have so far."
+- **Course correction** — When results aren't right, do they give useful feedback ("the tone is too formal, make it casual") or vague complaints ("no, try again")? Count specific vs. vague corrections.
+- **Prompt evolution** — Compare early conversations to recent ones. Are prompts getting longer, more structured, more specific over time?
+- **Frustration patterns** — Search logs for gave-up signals: "never mind", "forget it", "I'll do it myself". High frustration often signals communication gaps, not agent failures.
+
+**Score guide:**
+- 1: One-liner prompts, no context, frequent "that's wrong" without explanation
+- 2: Some context but inconsistent, corrections are vague
+- 3: Generally good prompts with context, gives useful corrections, understands what agents need
+- 4: Structured prompts with clear goals/constraints, references files, iterates precisely
+- 5: Expert prompting — provides context, constraints, examples, and success criteria upfront; rarely needs to correct
+
+#### Dimension 3: Knowledge (Do they understand how this works?)
+
+**Review the evidence for:**
+- **Concept usage** — Do they reference AI/agent concepts correctly in conversation? Look for mentions of: system prompts, tools, MCPs, memory, context windows, models, tokens. Do they use these terms accurately?
+- **Feature awareness** — Which platform features have they discovered and used? Cross-reference `features.used` and `features.neverUsed` from the learner profile. Someone who's never heard of goals vs. someone who tried and abandoned them are at different levels.
+- **Troubleshooting ability** — When something goes wrong, do they diagnose it ("the agent doesn't have file access, can you add the Read tool?") or just report symptoms ("it's not working")? Look for messages that show understanding of *why* things work or don't.
+- **Program completion** — How many programs have they completed? Did they engage deeply or speed through? Check `get_gym_progress` for completion depth.
+- **Teaching moments** — In past coaching sessions, did they grasp concepts quickly or need repeated explanation? Check gym conversation logs for patterns.
+
+**Score guide:**
+- 1: Treats agents as magic black boxes, no concept understanding
+- 2: Knows basics (agents answer questions) but fuzzy on how/why
+- 3: Understands agent architecture, tools, prompts; can explain what an MCP does
+- 4: Deep understanding — knows when to use memory vs. context, understands model limitations, can debug agent behavior
+- 5: Could teach others — understands trade-offs, designs systems with AI constraints in mind
+
+#### Dimension 4: Orchestration (Can they coordinate multi-agent workflows?)
+
+**Review the evidence for:**
+- **Automation setup** — Check `list_automations`. Do they have goals or crons? Are they enabled and actually running? Look for goals that have `lastRun` timestamps vs. goals that were created and forgotten.
+- **Multi-agent patterns** — Do they use multiple agents in sequence for a workflow (e.g., one agent researches, another writes)? Search logs for cross-agent references ("send this to @writer", "ask @researcher").
+- **Project usage** — Have they used projects to coordinate work across agents? Check `list_projects`.
+- **Delegation patterns** — Do they delegate between agents or do everything through one agent? Look for `delegate_message` usage in logs.
+- **Scheduling sophistication** — Are crons simple reminders or sophisticated workflows? Check cron configs for complexity.
+
+**Score guide:**
+- 1: Everything goes through one agent, no automation
+- 2: Multiple agents exist but used independently, maybe one simple cron
+- 3: Some cross-agent workflows, active goals or crons that run regularly
+- 4: Orchestrated multi-agent systems, projects coordinating work, delegation chains
+- 5: Sophisticated automation — agents trigger other agents, goals drive workflows, minimal manual intervention
+
+#### Dimension 5: Craft (Can they build and tune AI systems?)
+
+**Review the evidence for:**
+- **Agent design** — Read the CLAUDE.md files of their custom agents (`get_agent` for each). Are system prompts thoughtful and specific, or generic/empty? A good prompt defines the agent's role, constraints, domain knowledge, and output format.
+- **Tool curation** — Do agents have curated tool sets appropriate for their role, or do they all have the defaults? A monitoring agent with only Read/Glob/Grep shows intentional design. An agent with every tool shows no thought.
+- **MCP configuration** — Have they connected external services? Do the MCPs match the agent's purpose (e.g., a DevOps agent with GitHub MCP)?
+- **Workspace setup** — Do agents point at real project directories, or all default to `~`? Workspace specificity signals understanding of agent scoping.
+- **Iteration on design** — Have they updated agent configs over time? Check if agents have been modified since creation (updated descriptions, refined prompts, added/removed tools). An agent that's been tuned shows craft maturity.
+
+**Score guide:**
+- 1: Only default/platform agents, no customization
+- 2: Created 1-2 agents but with minimal/generic system prompts
+- 3: Multiple custom agents with real prompts, some tool curation
+- 4: Well-designed agents with specific prompts, curated tools, MCPs, and real workspaces
+- 5: Expert builder — agents are tailored, tested, iterated on; system prompts are detailed; tool/MCP selection is intentional and minimal
+
+#### Step 6: Synthesize
+
+After scoring all 5 dimensions:
+1. **Compare to heuristic scores** — Where does your AI assessment differ from the automated scores? Note disagreements and why your read is different (the heuristic might overcredit quantity; you assess quality).
+2. **Identify the #1 growth opportunity** — Which single change would have the biggest impact? This becomes `topRecommendation`. Be specific: not "improve communication" but "your prompts to @devbot are missing context — try including the file path and what you've already tried."
+3. **Spot patterns** — What story do the 5 scores tell together? e.g., "High craft + low application = you build agents but don't actually use them for work" or "High application + low communication = you use agents a lot but fight with them."
+4. **Write insights** — Each insight should reference something specific from the evidence. No generic advice.
 
 ### How "You tell me" uses your insights:
 When the user picks "You tell me", the frontend fetches `/api/gym/insights` (your pre-computed analysis) + the learner profile (heuristic stats), and passes both to you. You present the `topRecommendation` conversationally. If no insights exist yet (goal hasn't run), fall back to a quick live analysis. If the user asks for fresh insights, you can run the analysis on the spot and call `save_gym_insights` to update.

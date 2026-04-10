@@ -116,10 +116,13 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
   const cardsPath = () => join(memoryDir, "gym-cards.json");
 
-  router.get("/api/gym/cards", (_req, res) => {
+  router.get("/api/gym/cards", (req, res) => {
     ensureDir(memoryDir);
-    const data = readJson(cardsPath(), []);
-    res.json(Array.isArray(data) ? data : []);
+    const data: any[] = readJson(cardsPath(), []);
+    const all = req.query.all === "true";
+    // By default, filter out dismissed cards
+    const filtered = all ? data : data.filter((c: any) => !c.dismissed);
+    res.json(Array.isArray(filtered) ? filtered : []);
   });
 
   router.post("/api/gym/cards", (req, res) => {
@@ -139,6 +142,20 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
     cards.push(card);
     writeJson(cardsPath(), cards);
     res.status(201).json(card);
+  });
+
+  router.post("/api/gym/cards/:id/dismiss", (req, res) => {
+    ensureDir(memoryDir);
+    const cards: any[] = readJson(cardsPath(), []);
+    const card = cards.find((c: any) => c.id === req.params.id);
+    if (!card) {
+      res.status(404).json({ error: "Card not found" });
+      return;
+    }
+    card.dismissed = true;
+    card.dismissedAt = new Date().toISOString();
+    writeJson(cardsPath(), cards);
+    res.json(card);
   });
 
   router.delete("/api/gym/cards/:id", (req, res) => {
@@ -391,7 +408,27 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
   router.get("/api/agents/:id/activity-summary", (req, res) => {
     const agentId = req.params.id;
     const agentsDir = join(baseDir, "agents");
-    const memDir = join(agentsDir, agentId, "memory");
+
+    // Resolve the agent's actual memory directory from config.json
+    let memDir = join(agentsDir, agentId, "memory");
+    const configPath = join(baseDir, "config.json");
+    try {
+      if (existsSync(configPath)) {
+        const config = JSON.parse(readFileSync(configPath, "utf-8"));
+        const agentConfig = config.agents?.[agentId];
+        if (agentConfig?.memoryDir) {
+          const resolved = agentConfig.memoryDir.replace(/^~/, process.env.HOME || "~");
+          if (existsSync(resolved)) memDir = resolved;
+        }
+      }
+    } catch { /* fall back to default path */ }
+
+    // Also check platform subdirectory if default path doesn't exist
+    if (!existsSync(memDir)) {
+      const platformMemDir = join(agentsDir, "platform", agentId, "memory");
+      if (existsSync(platformMemDir)) memDir = platformMemDir;
+    }
+
     const logPath = join(memDir, "conversation_log.jsonl");
 
     if (!existsSync(logPath)) {
@@ -517,10 +554,25 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
     const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
     const agentsDir = join(baseDir, "agents");
 
-    // Try direct path, then platform/ subfolder
-    let logPath = join(agentsDir, agentId, "memory", "conversation_log.jsonl");
-    if (!existsSync(logPath)) {
-      logPath = join(agentsDir, "platform", agentId, "memory", "conversation_log.jsonl");
+    // Resolve memory dir: check config.json memoryDir, then direct path, then platform/ subfolder
+    let logPath = "";
+    const cfgPath = join(baseDir, "config.json");
+    try {
+      if (existsSync(cfgPath)) {
+        const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+        const ac = cfg.agents?.[agentId];
+        if (ac?.memoryDir) {
+          const resolved = ac.memoryDir.replace(/^~/, process.env.HOME || "~");
+          const candidate = join(resolved, "conversation_log.jsonl");
+          if (existsSync(candidate)) logPath = candidate;
+        }
+      }
+    } catch { /* ignore */ }
+    if (!logPath) {
+      logPath = join(agentsDir, agentId, "memory", "conversation_log.jsonl");
+      if (!existsSync(logPath)) {
+        logPath = join(agentsDir, "platform", agentId, "memory", "conversation_log.jsonl");
+      }
     }
 
     if (!existsSync(logPath)) {

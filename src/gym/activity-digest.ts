@@ -81,19 +81,30 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
   log.info("[Gym Digest] Starting activity digest...");
 
   try {
-    // ── Step 1: Get agent roster ──
+    // ── Step 1: Get agent roster from config.json ──
     const agentsDir = join(baseDir, "agents");
     const agentDirs: string[] = [];
 
-    // Scan for agent directories (top-level + platform subdirs)
-    if (existsSync(agentsDir)) {
+    // Primary source: config.json (contains all agents including those without agent.json)
+    const configPath = join(baseDir, "config.json");
+    if (existsSync(configPath)) {
+      try {
+        const config = JSON.parse(readFileSync(configPath, "utf-8"));
+        const agentsMap = config.agents || {};
+        for (const id of Object.keys(agentsMap)) {
+          agentDirs.push(id);
+        }
+      } catch { /* fall back to directory scan */ }
+    }
+
+    // Fallback: scan agent directories if config.json didn't yield results
+    if (agentDirs.length === 0 && existsSync(agentsDir)) {
       for (const entry of readdirSync(agentsDir, { withFileTypes: true })) {
         if (!entry.isDirectory() || entry.name.startsWith("_")) continue;
         const ajPath = join(agentsDir, entry.name, "agent.json");
         if (existsSync(ajPath)) {
           agentDirs.push(entry.name);
         }
-        // Check platform subdirectory
         if (entry.name === "platform") {
           const platformDir = join(agentsDir, "platform");
           for (const sub of readdirSync(platformDir, { withFileTypes: true })) {
@@ -111,6 +122,16 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
     const summaries: ActivitySummary[] = [];
     const agentInfos: AgentInfo[] = [];
 
+    // Read config.json for agent metadata (most agents are defined here)
+    let configAgents: Record<string, any> = {};
+    const configPath2 = join(baseDir, "config.json");
+    try {
+      if (existsSync(configPath2)) {
+        const config = JSON.parse(readFileSync(configPath2, "utf-8"));
+        configAgents = config.agents || {};
+      }
+    } catch { /* ignore */ }
+
     for (const agentPath of agentDirs) {
       const agentId = agentPath.includes("/") ? agentPath.split("/").pop()! : agentPath;
       try {
@@ -120,13 +141,21 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
         // Agent may not have logs — skip
       }
 
-      // Read agent.json for craft/orchestration scoring
+      // Read agent config from agent.json or config.json
+      let aj: any = null;
       const ajPath = join(agentsDir, agentPath, "agent.json");
       if (existsSync(ajPath)) {
+        try { aj = JSON.parse(readFileSync(ajPath, "utf-8")); } catch { /* skip */ }
+      }
+      // Fall back to config.json entry
+      if (!aj && configAgents[agentId]) {
+        aj = { id: agentId, ...configAgents[agentId] };
+      }
+
+      if (aj) {
         try {
-          const aj = JSON.parse(readFileSync(ajPath, "utf-8"));
           const claudeMdPath = aj.claudeMd
-            ? join(baseDir, aj.claudeMd)
+            ? aj.claudeMd.replace(/^~/, process.env.HOME || "~")
             : join(agentsDir, agentPath, "CLAUDE.md");
           let promptLength = 0;
           if (existsSync(claudeMdPath)) {
