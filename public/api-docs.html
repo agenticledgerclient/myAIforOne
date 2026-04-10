@@ -347,6 +347,7 @@ const CATALOG = [
   { cat: "Registry", method: "POST", path: "/api/marketplace/prompt-trigger", summary: "Update prompt trigger setting", body: { trigger: { type: "string", required: true } } },
   { cat: "Registry", method: "POST", path: "/api/marketplace/add-mcp", summary: "Add MCP to registry", body: { id: { type: "string", required: true }, name: { type: "string", required: true }, type: { type: "string", required: true }, url: { type: "string" } } },
   { cat: "Registry", method: "POST", path: "/api/marketplace/platform-default", summary: "Set a marketplace item as a platform default", body: { id: { type: "string", required: true }, type: { type: "string", required: true } } },
+  { cat: "Registry", method: "POST", path: "/api/import-from-folder", summary: "Import skills from a local folder into the marketplace registry", body: { folderPath: { type: "string", required: true, desc: "Absolute path to folder containing skill files" } } },
 
   // -- Lab --
   { cat: "Lab", method: "GET", path: "/api/platform-agents", summary: "List platform-managed creator agents for the Lab page", response: "{ agents: [{ id, name, description, streaming }] }" },
@@ -393,6 +394,7 @@ const CATALOG = [
   { cat: "Dashboard", method: "GET", path: "/api/changelog", summary: "Get recent changelog parsed from git history (grouped by date)" },
 
   // -- xbar --
+  { cat: "Config", method: "GET", path: "/api/ollama-proxy", summary: "Proxy requests to local Ollama API for multi-model support. Returns model list or generation results." },
   { cat: "Config", method: "POST", path: "/api/install-xbar", summary: "Install xbar status bar plugin (macOS only)" },
 
   // -- Webhook --
@@ -422,6 +424,10 @@ const CATALOG = [
   { cat: "AI Gym", method: "POST", path: "/api/gym/digest/run", summary: "Manually trigger the activity digest (analyzes all agent activity, scores dimensions, generates cards)" },
   { cat: "AI Gym", method: "GET", path: "/api/gym/feed", summary: "Aggregated feed: tips/nudges from gym cards, platform updates from changelog, AI briefing" },
   { cat: "AI Gym", method: "GET", path: "/api/gym/config", summary: "Get public gym config flags (gymEnabled, gymOnlyMode, aibriefingEnabled)" },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/guides", summary: "List all coach-created guides (programs with source=coach)" },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/guides", summary: "Create a coach-generated guide from a training session", body: { title: { type: "string", required: true }, description: { type: "string" }, difficulty: { type: "string" }, dimensions: { type: "array" }, estimatedTime: { type: "string" }, modules: { type: "array" }, content: { type: "string" } } },
+  { cat: "AI Gym", method: "GET", path: "/api/gym/insights", summary: "Get pre-computed AI insights (generated weekly by the gym goal). Used by 'You tell me' mode." },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/insights", summary: "Save AI-generated insights from weekly analysis", body: { insights: { type: "array", required: true, desc: "Array of { title, description, dimension?, agentId? }" }, topRecommendation: { type: "string", desc: "Single best recommendation" }, summary: { type: "string", desc: "Brief summary of observations" } } },
 
   // -- Session Tabs --
   { cat: "Sessions", method: "GET", path: "/api/agents/:agentId/session-tabs", summary: "List all named session tabs (includes closed, with last message preview)", params: [{ name: "agentId", in: "path", type: "string", required: true }] },

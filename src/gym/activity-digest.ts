@@ -521,6 +521,77 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
       }
     }
 
+    // ── Step 9: Generate insights for "You tell me" mode ──
+    const insights: Array<{ category: string; text: string; priority: number }> = [];
+
+    // Insight from weakest dimension
+    if (weakest && weakest[1] < 3) {
+      const dimTips: Record<string, string> = {
+        application: "You're not yet using agents for real work tasks regularly. Bringing a real task to an agent — even a small one — builds the strongest intuition.",
+        communication: "Your prompts could be more detailed. Try giving agents more context upfront: what you want, why, and what good looks like.",
+        knowledge: "You haven't explored the learning programs yet. Structured programs are the fastest way to level up.",
+        orchestration: "You're doing everything manually. Goals, cron jobs, and delegation can automate the repetitive parts.",
+        craft: "Your agents are still generic. Specialized agents with focused system prompts and curated tools outperform generalists.",
+      };
+      insights.push({
+        category: "dimension",
+        text: dimTips[weakest[0]] || `Your ${weakest[0]} score is ${weakest[1]}/5 — room to grow.`,
+        priority: 5 - weakest[1],
+      });
+    }
+
+    // Insight from struggles
+    if (struggles.length > 0) {
+      const s = struggles[0];
+      insights.push({
+        category: "struggle",
+        text: s.pattern === "gave-up"
+          ? `You've been hitting walls with @${s.agentId}. This usually means the prompt needs restructuring — not that the agent can't do it.`
+          : `Lots of corrections with @${s.agentId}. Front-loading context in your initial prompt can cut the back-and-forth in half.`,
+        priority: 4,
+      });
+    }
+
+    // Insight from dormant agents
+    if (dormantAgents.length > 0) {
+      insights.push({
+        category: "dormant",
+        text: `You have ${dormantAgents.length} dormant agent${dormantAgents.length > 1 ? "s" : ""} (${dormantAgents.slice(0, 3).map(a => "@" + a).join(", ")}). Worth reviewing — maybe reconfigure or retire them.`,
+        priority: 2,
+      });
+    }
+
+    // Insight from unused high-value feature
+    if (topGap) {
+      insights.push({
+        category: "feature-gap",
+        text: `You haven't tried ${topGap} yet. ${featureValue[topGap].reason}`,
+        priority: featureValue[topGap].value >= 4 ? 3 : 1,
+      });
+    }
+
+    // Sort by priority and pick top recommendation
+    insights.sort((a, b) => b.priority - a.priority);
+    const topRec = insights[0];
+
+    // Build summary
+    const summaryParts: string[] = [];
+    const overallLevel = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 5);
+    summaryParts.push(`Overall level: ${scoreLabels[overallLevel] || "Developing"} (avg ${(Object.values(scores).reduce((a, b) => a + b, 0) / 5).toFixed(1)}/5).`);
+    summaryParts.push(`${activeAgents.length} active agent${activeAgents.length !== 1 ? "s" : ""}, ~${messagesThisWeek} messages this week, ${streakCurrent}-day streak.`);
+    if (weakest && weakest[1] < 3) summaryParts.push(`Weakest area: ${weakest[0]} (${weakest[1]}/5).`);
+
+    try {
+      await apiPost(port, "/api/gym/insights", {
+        insights: insights.map(({ category, text }) => ({ category, text })),
+        topRecommendation: topRec ? topRec.text : null,
+        summary: summaryParts.join(" "),
+      });
+      log.info(`[Gym Digest] Insights updated (${insights.length} insights, top: ${topRec?.category || "none"})`);
+    } catch (err) {
+      log.warn(`[Gym Digest] Failed to update insights: ${err}`);
+    }
+
     log.info(`[Gym Digest] Complete. ${cards.length} cards generated.`);
   } catch (err) {
     log.error(`[Gym Digest] Failed: ${err}`);

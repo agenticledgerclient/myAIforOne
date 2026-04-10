@@ -64,9 +64,11 @@ export function startWebUI(opts: WebUIOptions): void {
     const gymAgent = opts.config.agents?.gym;
     const gymMemDir = gymAgent?.memoryDir;
     const gymRepoDir = join(opts.baseDir, "agents", "platform", "gym");
+    const gymUserProgramsDir = gymMemDir ? join(gymMemDir, "..", "programs") : undefined;
     app.use(createGymRouter(opts.baseDir, {
       memoryDir: gymMemDir || undefined,
       programsDir: join(gymRepoDir, "programs"),
+      userProgramsDir: gymUserProgramsDir,
     }));
   }
 

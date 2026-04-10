@@ -229,7 +229,7 @@ When activated via Select button:
 
 ## 2.2 Agent Creation / Edit Modal
 
-Opened by **+ New Agent** button or clicking an agent's Config button. Has 6 tabs.
+Opened by **+ New Agent** button or clicking an agent's Config button. Has 6 standard tabs, plus 4 additional tabs when editing a Gym-class agent (10 total).
 
 ### Tab 1: Overview
 
@@ -240,7 +240,7 @@ Opened by **+ New Agent** button or clicking an agent's Config button. Has 6 tab
 | **Name** | Display name shown in UI and chat. |
 | **Description** | Short description of the agent's purpose. |
 | **Instructions (CLAUDE.md)** | System prompt written to the agent's CLAUDE.md file. Multi-line textarea. |
-| **Agent Class** | Dropdown: Standard, Builder, Platform. |
+| **Agent Class** | Dropdown: Standard, Builder, Platform, Gym. |
 | **Executor** | Dropdown: Platform Default, Claude, Ollama models, or cloud providers — OpenAI, Grok (xAI), Gemini, Groq, Together, Mistral (when multi-model is enabled). Format: `provider:model` (e.g., `openai:gpt-4o`, `gemini:gemini-2.5-flash`, `grok:grok-3`). Overrides the service-level default executor for this agent. |
 
 #### Organization Entries
@@ -444,6 +444,61 @@ Which channels can invoke this agent.
 - Per route: channel dropdown, chat/channel ID, require mention checkbox, remove (×)
 - **+ Add Route** — adds a new channel route
 
+### Gym-Specific Tabs (Agent Class = Gym Only)
+
+When editing an agent with **Agent Class: Gym**, four additional tabs appear after Config. These tabs are hidden for all other agent classes.
+
+#### Trainer Tab
+
+Switch the active coaching personality. Changes how the coach communicates during training sessions without affecting progress or profile data.
+
+| Element | Description |
+|---------|-------------|
+| **Trainer grid** | 5 cards in a responsive grid, each showing avatar (initials), name, coaching style |
+| **Active indicator** | Selected trainer has a colored border, tinted background, and "Active" badge |
+| **Click to switch** | Clicking a card immediately updates the learner profile via `PUT /api/gym/learner-profile` with `{ selectedTrainer }` |
+
+Trainers: Alex (Collaborative, cyan), Jordan (Direct, orange), Morgan (Thoughtful, purple), Riley (Challenging, red), Sam (Patient, green).
+
+#### Learner Tab
+
+View and edit the learner profile built during onboarding. The coach updates this profile as you train.
+
+| Field | Description |
+|-------|-------------|
+| **Identity** | JSON or text — professional background, role, experience level |
+| **Goals** | Newline-separated list of learning goals |
+| **Current Streak** | Read-only counter of consecutive active days |
+| **Longest Streak** | Read-only all-time streak record |
+| **Strengths** | Pill badges of identified strengths (read-only, set by coach) |
+| **Struggles** | Pill badges of identified struggles (read-only, set by coach) |
+| **Save Profile** | Pushes identity + goals changes via `PUT /api/gym/learner-profile` |
+
+#### Dimensions Tab
+
+Current scores across the 5 AI skill dimensions with trend and history.
+
+| Element | Description |
+|---------|-------------|
+| **Dimension bars** | 5 color-coded progress bars (0–10 scale) with score and trend arrow |
+| **Trend indicators** | Up arrow (improving, green), down arrow (declining, red), dot (stable, gray) |
+| **History table** | Last 5 dimension snapshots showing date and scores per dimension |
+
+Data sources: `GET /api/gym/learner-profile` (current scores), `GET /api/gym/dimensions/history` (snapshots).
+
+#### Programs Tab
+
+All training programs with enrollment status and completion progress.
+
+| Element | Description |
+|---------|-------------|
+| **Program cards** | Title, difficulty badge (color-coded), estimated time, target dimensions |
+| **Progress bar** | Shown for started programs — percentage complete with step count |
+| **Current module** | Shows which module the learner is working on |
+| **Description** | Truncated program description (120 chars) |
+
+Data sources: `GET /api/gym/programs` (program list), `GET /api/gym/progress` (completion state).
+
 ### Delete Agent
 
 - **Delete Agent button** (red, bottom-left of modal) — only visible when editing
@@ -462,7 +517,7 @@ Which channels can invoke this agent.
 ### Save Agent
 
 - **Save button** — "Create Agent" (new) or "Update Agent" (editing)
-  - Collects all fields from all 6 tabs
+  - Collects all fields from all tabs (6 standard + 4 gym-specific if applicable)
   - Validates required fields (agentId, alias, name)
   - Creates agent directory, writes CLAUDE.md, updates config.json
 
@@ -1579,9 +1634,33 @@ Full-screen 3-step flow shown when `onboardingComplete: false`. Must be complete
 | **Plan summary** | Two-bucket display: On-the-Job Training + Platform-Driven Learning |
 | **Enter the Gym** | Marks onboarding complete and enters main gym |
 
-## 10.2 Main Gym View
+## 10.2 Mode Picker (Landing)
+
+After onboarding, returning users see a **mode picker** instead of jumping straight into chat. Three tiles answer "what brings you to the gym?"
+
+| Tile | Title | Description |
+|------|-------|-------------|
+| **1** | **I have work to do** | Bring a real task. Coach helps you execute while teaching along the way. Chat opens with "Describe what you need to get done..." placeholder. |
+| **2 (Recommended)** | **You tell me** | Coach picks what to work on based on activity, dimension gaps, and unused features. Visually emphasized with accent border. Auto-sends a coaching request — coach arrives with one specific recommendation. |
+| **3** | **I want to get smart** | Self-directed learning. Pick a topic or program. If in-progress program exists, coach offers to continue it. Otherwise prompts for topic. |
+
+Additional elements:
+- **Time-aware greeting** — "Good morning/afternoon/evening. What brings you to the gym?"
+- **Streak counter** — shown below tiles if streak > 0
+
+Clicking a tile sets the **session mode** (task/coach/learn), transitions to the main gym view, and primes the coach chat with mode-appropriate context.
+
+## 10.3 Main Gym View
 
 Three-panel layout: left sidebar, center panel (tabbed), bottom feed strip.
+
+### Top Bar
+
+| Element | Description |
+|---------|-------------|
+| **Configure button** | Opens the agent editor modal (same as Org page) in an iframe overlay, pre-loaded with the gym agent. Shows all 6 standard tabs plus 4 gym-specific tabs (Trainer, Learner, Dimensions, Programs). See section 2.2 for tab details. |
+| **Gym nav link** | Returns to gym home |
+| **Theme toggle** | Light/dark mode switch |
 
 ### Left Sidebar
 
@@ -1615,7 +1694,7 @@ Three-panel layout: left sidebar, center panel (tabbed), bottom feed strip.
 
 Placeholder for P1. Displays "Feed coming in P1".
 
-## 10.3 AI Strength Dimensions
+## 10.4 AI Strength Dimensions
 
 Learners are scored across 5 dimensions on a **1–5 scale** (0 = not yet assessed):
 
@@ -1629,7 +1708,7 @@ Learners are scored across 5 dimensions on a **1–5 scale** (0 = not yet assess
 
 Score labels: 1 = Beginner, 2 = Developing, 3 = Proficient, 4 = Advanced, 5 = Expert.
 
-## 10.4 Programs
+## 10.5 Programs
 
 Structured training curricula. Each program has modules, and each module has steps with verification.
 
@@ -1648,7 +1727,7 @@ Pre-installed beginner program with 3 modules and 7 steps:
 | **platform-check** | Coach calls MCP tools to verify platform state changed (e.g., new agent created) |
 | **self-report** | User describes what they did and learned |
 
-## 10.5 Activity Digest
+## 10.6 Activity Digest
 
 Scheduled daily at 6am (when `gymEnabled: true`). Also triggerable manually via `POST /api/gym/digest/run`.
 
@@ -1660,13 +1739,33 @@ What it does:
 5. Writes daily journal to `agents/platform/gym/memory/daily/<date>.md`
 6. Generates 2–3 gym cards (weakest dimension tips, dormant agent nudges, unused feature discovery)
 
-## 10.6 Trainer Souls
+## 10.7 Trainer Souls
 
-Each trainer is a `soul.md` file prepended to the gym agent's system prompt at spawn time. Switching trainers changes the coaching voice without affecting progress, plan, or profile. Switch anytime via the learner profile.
+Each trainer is a `soul.md` file prepended to the gym agent's system prompt at spawn time. Switching trainers changes the coaching voice without affecting progress, plan, or profile. Switch anytime via the **Trainer tab** in the gym agent's Configure modal (top bar → Configure → Trainer tab).
 
 Avatar SVGs at `public/trainers/{alex,jordan,morgan,riley,sam}.svg`.
 
-## 10.7 API & MCP Reference
+## 10.8 Coach-Created Guides
+
+After any substantive coaching session, the gym agent auto-generates a reusable guide and asks the user to review it.
+
+| Element | Description |
+|---------|-------------|
+| **Guide generation** | Coach distills session into clean step-by-step instructions via `create_gym_guide` MCP tool |
+| **Review prompt** | Coach asks "I wrote up a guide from what we just did — want to review it?" |
+| **Approval** | User can edit, approve, or discard before saving |
+| **Where guides appear** | Gym sidebar → Guides tab → "Coach Created" filter |
+| **Skill publishing** | Guides can also be published as agent-executable skills via `create_skill` |
+
+Guides have two forms: human-readable (browsable in gym) and agent-executable (assignable as skills).
+
+| Action | API | MCP |
+|--------|-----|-----|
+| List coach guides | `GET /api/gym/guides` | `list_gym_guides` |
+| Create coach guide | `POST /api/gym/guides` | `create_gym_guide` |
+| | **Body:** `{ title, description?, difficulty?, dimensions?, estimatedTime?, modules?, content? }` | **Params:** `title`, `description?`, `difficulty?`, `dimensions?`, `estimatedTime?`, `modules?`, `content?` |
+
+## 10.9 API & MCP Reference
 
 | Action | API | MCP |
 |--------|-----|-----|
@@ -1709,6 +1808,10 @@ Avatar SVGs at `public/trainers/{alex,jordan,morgan,riley,sam}.svg`.
 | | Returns tips, platformUpdates, briefing | *(no params)* |
 | Get gym config flags | `GET /api/gym/config` | `get_gym_config` |
 | | Returns gymEnabled, gymOnlyMode, aibriefingEnabled | *(no params)* |
+| List coach-created guides | `GET /api/gym/guides` | `list_gym_guides` |
+| | Returns array of programs with source=coach | *(no params)* |
+| Create coach guide | `POST /api/gym/guides` | `create_gym_guide` |
+| | **Body:** `{ title, description?, difficulty?, dimensions?, estimatedTime?, modules?, content? }` | **Params:** `title`, `description?`, `difficulty?`, `dimensions?`, `estimatedTime?`, `modules?`, `content?` |
 
 ---
 
@@ -1776,6 +1879,7 @@ Quick reference — all MCP tools alphabetically:
 | 11 | `clear_model` | Model |
 | 12 | `create_agent` | Agents |
 | -- | `create_gym_card` | AI Gym |
+| -- | `create_gym_guide` | AI Gym |
 | 13 | `create_app` | Apps |
 | 14 | `create_cron` | Cron |
 | 15 | `create_goal` | Goals |
@@ -1848,6 +1952,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `link_to_project` | Projects |
 | 62 | `list_agents` | Agents |
 | -- | `list_gym_cards` | AI Gym |
+| -- | `list_gym_guides` | AI Gym |
 | -- | `list_gym_programs` | AI Gym |
 | 63 | `list_agent_files` | Files |
 | 64 | `list_apps` | Apps |

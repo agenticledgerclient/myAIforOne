@@ -14,8 +14,19 @@
   "perSenderSessions": false,
   "streaming": true,
   "featureFlag": "gymEnabled",
-  "allowedTools": ["Read", "Glob", "Grep", "Write", "Bash"],
+  "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
   "mcps": ["myaiforone"],
+  "timeout": 14400000,
+  "goals": [
+    {
+      "id": "weekly-insight",
+      "description": "Weekly AI-powered activity analysis — review agent logs, learner profile, and digest data to generate personalized coaching cards with real insight",
+      "heartbeat": "0 7 * * 1",
+      "enabled": true,
+      "successCriteria": "Generated at least 1 personalized gym card based on actual activity patterns",
+      "instructions": "1. Call get_learner_profile to get current dimensions, streak, and activity stats\n2. Call list_agents, then get_agent_activity_summary for each active agent\n3. Call search_agent_logs with queries like 'error', 'help', 'how do I' to find struggle patterns\n4. Read the latest daily digest from your memory/daily/ folder\n5. Think deeply about what you observe — what is the user actually doing vs what they could be doing? What patterns emerge?\n6. Save your analysis via save_gym_insights with: insights[] (specific observations), topRecommendation (the single best thing to work on), and summary (what you observed). This is what 'You tell me' mode reads.\n7. Generate 1-3 gym cards via create_gym_card with genuinely personalized insights (not generic tips)\n8. Update dimension scores via snapshot_dimensions if the data warrants a re-assessment\n9. Write a brief journal entry to memory/daily/ summarizing your analysis"
+    }
+  ],
   "autoCommit": false,
   "autoCommitBranch": "",
   "mentionAliases": ["gym", "coach"],

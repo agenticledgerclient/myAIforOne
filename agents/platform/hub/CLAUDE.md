@@ -289,6 +289,56 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 | `get_user_guide` | Full platform reference (every page, button, API, MCP tool) | — |
 | `browse_dirs` | Browse subdirectories of a path (for directory picker) | `path` |
 
+### AI Gym — Learner Profile & Plan
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `get_learner_profile` | Get gym learner's profile (identity, dimensions, streak, trainer) | — |
+| `update_learner_profile` | Update learner profile (merge fields) | `data` (object) |
+| `get_plan` | Get training plan (on-the-job + platform-driven buckets) | — |
+| `update_plan` | Update the training plan | `data` (full plan object) |
+
+### AI Gym — Progress & Dimensions
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `get_gym_progress` | Program completion progress for all programs | — |
+| `update_gym_progress` | Update program/step completion progress | `data` (keyed by program slug) |
+| `snapshot_dimensions` | Save weekly dimension score snapshot | `dimensions` (object: `{dimName: {score, label}}`) |
+| `get_dimension_history` | Get dimension score history (weekly snapshots) | — |
+
+### AI Gym — Cards & Feed
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `list_gym_cards` | List active gym cards (recommendations, insights, challenges) | — |
+| `create_gym_card` | Create a gym card | `title`, `description`; `cta`, `ctaAction`, `type` (recommendation/insight/challenge/tip) |
+| `dismiss_gym_card` | Dismiss a gym card | `id` |
+| `get_gym_feed` | Aggregated feed — gym cards + platform updates + AI briefing | — |
+
+### AI Gym — Programs & Guides
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `list_gym_programs` | List all training programs | — |
+| `get_gym_program` | Get a program with all modules and steps | `slug` |
+| `import_program` | Import program from markdown (H1=program, H2=module, H3=step) | `markdown`; `difficulty` |
+| `update_gym_program` | Update program metadata | `slug`, `body` (fields to update) |
+| `delete_gym_program` | Delete a training program | `slug` |
+| `list_gym_guides` | List coach-created guides (source=coach) | — |
+| `create_gym_guide` | Create a guide from a training session | `title`; `description`, `difficulty`, `dimensions[]`, `estimatedTime`, `modules[]` or `content` (markdown) |
+
+### AI Gym — Activity & Config
+
+| Tool | What it does | Key params |
+|------|-------------|------------|
+| `get_agent_activity_summary` | Aggregated activity for an agent (messages, topics, tool use) | `agentId` |
+| `search_agent_logs` | Full-text search across agent conversation logs | `q`; `agentIds` (comma-separated, default: all) |
+| `run_gym_digest` | Trigger activity digest (analyzes activity, scores dimensions, generates cards) | — |
+| `get_gym_config` | Get gym config flags (gymEnabled, gymOnlyMode, aibriefingEnabled) | — |
+| `get_gym_insights` | Get pre-computed AI insights from the weekly goal (used by "You tell me") | — |
+| `save_gym_insights` | Save AI insights from analysis | `insights[]`, `topRecommendation`, `summary` |
+
 ---
 
 ## Decision Patterns

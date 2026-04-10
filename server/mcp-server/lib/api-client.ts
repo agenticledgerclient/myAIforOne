@@ -360,3 +360,7 @@ export const getAgentActivitySummary = (id: string) => api(`/api/agents/${id}/ac
 export const searchAgentLogs = (q: string, agentIds?: string) => api("/api/agents/logs/search", { query: { q, agentIds } });
 export const getGymFeed = () => api("/api/gym/feed");
 export const getGymConfig = () => api("/api/gym/config");
+export const listGymGuides = () => api("/api/gym/guides");
+export const createGymGuide = (data: Record<string, unknown>) => api("/api/gym/guides", { method: "POST", body: data });
+export const getGymInsights = () => api("/api/gym/insights");
+export const saveGymInsights = (data: Record<string, unknown>) => api("/api/gym/insights", { method: "POST", body: data });

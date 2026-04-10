@@ -71,7 +71,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .tab-btn:hover{color:var(--text-secondary)}
 .tab-btn.active{color:var(--accent)}
 .tab-btn.active::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:2px;background:var(--accent);border-radius:1px}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.gym-nav-btn{font-family:var(--font-sans);font-size:12px;font-weight:700;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:6px 14px;cursor:pointer;text-decoration:none;letter-spacing:.02em;transition:opacity .2s,transform .2s;white-space:nowrap}
+.gym-nav-btn:hover{opacity:.88;transform:translateY(-1px)}
 .logo-mark{width:28px;height:28px;border-radius:8px;object-fit:contain}
 .logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--accent)}
 .theme-toggle{background:none;border:1px solid var(--border-dim);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text-muted);transition:all .2s}
@@ -129,6 +131,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .ob-textarea:focus{border-color:var(--border-glow)}
 .ob-textarea::placeholder{color:var(--text-muted)}
 
+/* File attachment */
+.ob-attach-zone{
+  width:100%;max-width:600px;margin-top:10px;padding:14px;border-radius:var(--radius);
+  border:2px dashed var(--border-dim);background:var(--bg-input);cursor:pointer;
+  text-align:center;color:var(--text-muted);font-size:12px;transition:all .2s;
+}
+.ob-attach-zone:hover,.ob-attach-zone.dragover{border-color:var(--accent);color:var(--text-secondary)}
+.ob-attach-zone input[type="file"]{display:none}
+.ob-file-list{width:100%;max-width:600px;margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.ob-file-pill{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border-dim);font-size:12px}
+.ob-file-pill .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary)}
+.ob-file-pill .fsize{color:var(--text-muted);font-size:11px;flex-shrink:0}
+.ob-file-pill .fremove{color:var(--red);cursor:pointer;font-size:14px;flex-shrink:0;line-height:1}
+
 /* Step 3 — Plan */
 .ob-loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px}
 .ob-spinner{width:40px;height:40px;border:3px solid var(--border-dim);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
@@ -154,12 +170,50 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .ob-btn.primary:hover{filter:brightness(1.1)}
 .ob-btn:disabled{opacity:.4;cursor:not-allowed}
 
+/* ─── Mode Picker ────────────────────────── */
+.mode-picker{
+  flex:1;display:none;align-items:center;justify-content:center;
+  overflow:auto;padding:40px 20px;
+}
+.mode-picker.active{display:flex}
+.mode-picker-inner{max-width:820px;width:100%;text-align:center}
+.mode-greeting{
+  font-family:var(--font-display);font-size:28px;font-weight:700;
+  color:var(--text-primary);margin-bottom:36px;
+}
+.mode-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.mode-tile{
+  position:relative;padding:28px 20px;border-radius:16px;
+  border:1px solid var(--border-dim);background:var(--bg-surface);
+  cursor:pointer;transition:all .25s ease;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.mode-tile:hover{border-color:var(--border-glow);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.2)}
+.mode-tile.recommended{
+  border-color:var(--accent);background:var(--accent-bg);
+  box-shadow:0 0 20px rgba(34,211,238,0.08);
+}
+.mode-tile.recommended:hover{box-shadow:0 8px 32px rgba(34,211,238,0.15)}
+.mode-tile-badge{
+  position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:var(--bg-deep);font-size:11px;font-weight:600;
+  padding:2px 12px;border-radius:10px;white-space:nowrap;
+}
+.mode-tile-icon{font-size:36px;margin-bottom:4px}
+.mode-tile-title{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-primary)}
+.mode-tile-desc{font-size:13px;color:var(--text-secondary);line-height:1.5;margin-top:4px}
+.mode-streak{margin-top:28px;font-size:14px;color:var(--text-muted)}
+@media(max-width:700px){
+  .mode-tiles{grid-template-columns:1fr}
+  .mode-greeting{font-size:22px;margin-bottom:24px}
+}
+
 /* ─── Main Gym View ───────────────────────── */
 .gym-main{flex:1;display:none;overflow:hidden}
 .gym-main.active{display:flex}
 
 /* Left sidebar */
-.gym-sidebar{width:260px;flex-shrink:0;background:var(--bg-surface);border-right:1px solid var(--border-dim);display:flex;flex-direction:column;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.gym-sidebar{width:520px;flex-shrink:0;background:var(--bg-surface);border-right:1px solid var(--border-dim);display:flex;flex-direction:column;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .gym-sidebar-inner{flex:1;overflow-y:auto;padding:16px}
 .gym-sidebar-inner::-webkit-scrollbar{width:3px}
 .gym-sidebar-inner::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
@@ -176,40 +230,41 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text-muted);
   text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding:0 2px;
 }
-.program-list{list-style:none;margin-bottom:24px}
-.program-item{
-  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
-  cursor:pointer;transition:all .2s;margin-bottom:4px;font-size:12px;
+
+/* Sidebar nav */
+.gym-nav{display:flex;flex-direction:column;gap:2px;margin-bottom:20px}
+.gym-nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;
+  border:none;background:none;cursor:pointer;font-family:var(--font-sans);
+  font-size:13px;font-weight:600;color:var(--text-secondary);transition:all .2s;text-align:left;width:100%;
 }
-.program-item:hover{background:var(--accent-bg)}
-.program-item.active-prog{background:var(--accent-bg);border-left:2px solid var(--accent)}
-.program-status{font-family:var(--font-mono);font-size:10px;flex-shrink:0;min-width:32px;text-align:center}
-.program-status.done{color:var(--green)}
-.program-status.in-progress{color:var(--amber)}
-.program-status.not-started{color:var(--text-muted)}
-.program-name{color:var(--text-secondary);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gym-nav-item:hover{background:var(--accent-bg);color:var(--text-primary)}
+.gym-nav-item.active{background:var(--accent-bg);color:var(--accent)}
+.gym-nav-icon{font-size:15px;width:22px;text-align:center;flex-shrink:0}
+.gym-nav-label{flex:1}
 
 /* Gym cards */
 .gym-card{
-  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);
-  padding:14px;margin-bottom:10px;position:relative;transition:all .2s;
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:8px;
+  padding:8px 10px;margin-bottom:6px;position:relative;transition:all .2s;
   backdrop-filter:blur(12px);
 }
 .gym-card:hover{border-color:var(--border-glow)}
 .gym-card-badge{
-  position:absolute;top:8px;right:8px;font-size:9px;font-weight:700;
-  padding:2px 6px;border-radius:4px;background:var(--accent-bg);color:var(--accent);
+  position:absolute;top:5px;right:5px;font-size:8px;font-weight:700;
+  padding:1px 5px;border-radius:4px;background:var(--accent-bg);color:var(--accent);
 }
 .gym-card-dismiss{
-  position:absolute;top:8px;right:8px;background:none;border:none;
-  color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px 4px;transition:color .2s;
+  position:absolute;top:5px;right:5px;background:none;border:none;
+  color:var(--text-muted);cursor:pointer;font-size:12px;padding:1px 3px;transition:color .2s;
 }
 .gym-card-dismiss:hover{color:var(--text-primary)}
-.gym-card-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;padding-right:20px}
-.gym-card-desc{font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px}
+.gym-card-insight{border-left:2px solid var(--accent)}
+.gym-card-title{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:2px;padding-right:16px}
+.gym-card-desc{font-size:10px;color:var(--text-muted);line-height:1.4;margin-bottom:4px}
 .gym-card-cta{
-  font-family:var(--font-sans);font-size:11px;font-weight:600;padding:5px 12px;
-  border-radius:6px;border:1px solid var(--accent);background:transparent;
+  font-family:var(--font-sans);font-size:10px;font-weight:600;padding:3px 8px;
+  border-radius:5px;border:1px solid var(--accent);background:transparent;
   color:var(--accent);cursor:pointer;transition:all .2s;
 }
 .gym-card-cta:hover{background:var(--accent-bg)}
@@ -225,9 +280,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .gym-tab.active{color:var(--accent)}
 .gym-tab.active::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:1px}
 
-/* Coach chat tab */
-.tab-panel{display:none;flex:1;flex-direction:column;overflow:hidden}
-.tab-panel.active{display:flex}
+/* View panels */
+.gym-view{display:none;flex:1;flex-direction:column;overflow:hidden}
+.gym-view.active{display:flex}
 
 .coach-header{
   display:flex;align-items:center;gap:10px;padding:12px 20px;
@@ -353,6 +408,122 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .history-x-label{font-family:var(--font-mono);font-size:8px;fill:var(--text-muted);text-anchor:middle}
 .history-y-label{font-family:var(--font-mono);font-size:8px;fill:var(--text-muted);text-anchor:end}
 
+/* ─── Guides Grid ────────────────────────── */
+.guides-header{display:flex;align-items:center;justify-content:space-between;padding:20px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.guides-title{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-primary)}
+.guides-search{
+  width:240px;padding:8px 14px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);
+  font-size:13px;outline:none;transition:border-color .2s;
+}
+.guides-search:focus{border-color:var(--border-glow)}
+.guides-search::placeholder{color:var(--text-muted)}
+.guides-filters{display:flex;gap:6px;padding:0 20px 12px;flex-shrink:0}
+.guides-filter-pill{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;padding:5px 12px;
+  border-radius:16px;border:1px solid var(--border-dim);background:none;
+  color:var(--text-muted);cursor:pointer;transition:all .2s;letter-spacing:.02em;
+}
+.guides-filter-pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.guides-filter-pill.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.guides-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px;overflow-y:auto;flex:1}
+.guide-card{
+  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);
+  padding:20px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.guide-card:hover{border-color:var(--border-glow);transform:translateY(-2px);box-shadow:var(--shadow)}
+.guide-card-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:6px}
+.guide-card-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.guide-card-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.guide-card-tag{font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:4px;background:var(--accent-bg);color:var(--accent)}
+.guide-card-tag.difficulty{background:var(--purple-bg);color:var(--purple)}
+.guide-card-footer{display:flex;align-items:center;justify-content:space-between}
+.guide-card-cta{
+  font-family:var(--font-sans);font-size:12px;font-weight:700;padding:8px 18px;
+  border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;transition:all .2s;
+}
+.guide-card-cta:hover{opacity:.88;transform:translateY(-1px)}
+
+/* ─── Guide Viewer ───────────────────────── */
+.gv-wrapper{display:flex;flex:1;overflow:hidden}
+.gv-content{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border-dim);min-width:0}
+.gv-topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface)}
+.gv-back{font-family:var(--font-sans);font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;white-space:nowrap}
+.gv-back:hover{text-decoration:underline}
+.gv-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gv-modules{display:flex;gap:0;overflow-x:auto;border-bottom:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface)}
+.gv-modules::-webkit-scrollbar{height:2px}
+.gv-modules::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
+.gv-module-tab{
+  font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text-muted);
+  padding:10px 16px;cursor:pointer;border:none;background:none;position:relative;
+  transition:color .2s;white-space:nowrap;flex-shrink:0;
+}
+.gv-module-tab:hover{color:var(--text-secondary)}
+.gv-module-tab.active{color:var(--accent)}
+.gv-module-tab.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--accent);border-radius:1px}
+.gv-step-pills{display:flex;gap:6px;padding:10px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;overflow-x:auto;background:var(--bg-surface)}
+.gv-step-pill{
+  font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:12px;
+  border:1px solid var(--border-dim);background:none;color:var(--text-muted);
+  cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;
+}
+.gv-step-pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.gv-step-pill.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.gv-step-pill.done{color:var(--green);border-color:rgba(74,222,128,0.3)}
+.gv-step-content{flex:1;overflow-y:auto;padding:24px;font-size:13px;line-height:1.7;color:var(--text-secondary)}
+.gv-step-content::-webkit-scrollbar{width:4px}
+.gv-step-content::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:2px}
+.gv-step-content h1,.gv-step-content h2,.gv-step-content h3{font-family:var(--font-display);color:var(--text-primary);margin:16px 0 8px}
+.gv-step-content h1{font-size:18px}.gv-step-content h2{font-size:15px}.gv-step-content h3{font-size:13px}
+.gv-step-content ul,.gv-step-content ol{padding-left:20px;margin:8px 0}
+.gv-step-content li{margin-bottom:4px}
+.gv-step-content blockquote{border-left:3px solid var(--accent);padding:8px 16px;margin:12px 0;color:var(--text-muted);background:var(--accent-bg);border-radius:0 8px 8px 0}
+.gv-step-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface)}
+.gv-check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);cursor:pointer}
+.gv-check input{accent-color:var(--accent)}
+.gv-nav-btns{display:flex;gap:8px}
+.gv-nav-btn{
+  font-family:var(--font-sans);font-size:11px;font-weight:600;padding:6px 14px;
+  border-radius:6px;border:1px solid var(--border-dim);background:none;
+  color:var(--text-secondary);cursor:pointer;transition:all .2s;
+}
+.gv-nav-btn:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.gv-nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.gv-ai-actions{display:flex;gap:8px;padding:8px 20px;border-top:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface)}
+.gv-ai-btn{
+  font-family:var(--font-sans);font-size:11px;font-weight:600;padding:6px 12px;
+  border-radius:6px;border:1px solid var(--border-dim);background:var(--bg-card);
+  color:var(--text-secondary);cursor:pointer;transition:all .2s;
+}
+.gv-ai-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.gv-chat{width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.gv-chat-context{padding:8px 16px;background:var(--accent-bg);border-bottom:1px solid var(--border-dim);font-size:11px;color:var(--accent);font-weight:600;flex-shrink:0}
+
+/* ─── AI Generator ───────────────────────── */
+.gen-wrapper{display:flex;flex:1;overflow:hidden}
+.gen-chat{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border-dim)}
+.gen-chat-header{padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.gen-chat-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary)}
+.gen-chat-sub{font-size:11px;color:var(--text-muted);display:block;margin-top:2px}
+.gen-preview{width:380px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.gen-preview-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.gen-preview-header span{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary)}
+.gen-preview-content{flex:1;overflow-y:auto;padding:16px}
+.gen-preview-content::-webkit-scrollbar{width:3px}
+.gen-preview-content::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:2px}
+.gen-import-btn{
+  font-family:var(--font-sans);font-size:12px;font-weight:700;padding:6px 14px;
+  border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;transition:all .2s;
+}
+.gen-import-btn:disabled{opacity:.4;cursor:not-allowed}
+.gen-import-btn:hover:not(:disabled){opacity:.88}
+.gen-preview-empty{font-size:12px;color:var(--text-muted);text-align:center;padding:40px 20px}
+.gen-module-preview{margin-bottom:16px}
+.gen-module-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px;padding:6px 0;border-bottom:1px solid var(--border-dim)}
+.gen-step-preview{font-size:12px;color:var(--text-secondary);padding:4px 0 4px 12px;border-left:2px solid var(--border-dim)}
+
 /* ─── Feed Strip ─────────────────────────── */
 .gym-feed-strip{
   height:auto;min-height:32px;max-height:200px;display:flex;flex-direction:column;
@@ -378,6 +549,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .feed-item-text{font-size:11px;color:var(--text-secondary);line-height:1.4}
 .feed-item-date{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-left:auto;flex-shrink:0}
 .feed-empty{font-size:10px;color:var(--text-muted);text-align:center;padding:12px}
+.gym-feed-strip.expanded{position:fixed;top:48px;left:0;right:0;bottom:0;max-height:none;z-index:100;background:var(--bg-surface)}
+.gym-feed-strip.expanded .feed-panel{padding:16px 24px}
+.feed-expand-btn{
+  position:absolute;top:4px;right:40px;background:none;border:none;
+  color:var(--text-muted);cursor:pointer;font-size:10px;font-weight:700;
+  padding:2px 8px;transition:color .2s;font-family:var(--font-mono);letter-spacing:.04em;
+}
+.feed-expand-btn:hover{color:var(--text-primary)}
 .feed-toggle{
   position:absolute;top:4px;right:8px;background:none;border:none;
   color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;
@@ -393,15 +572,23 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
       <img class="logo-mark" src="/MyAIforOne-logomark-transparent.svg" alt="MyAIforOne">
       <span class="logo-text">MyAIforOne</span>
     </a>
-    <nav class="tab-group">
+    <nav class="tab-group" id="platformTabs">
       <a class="tab-btn" href="/">Home</a>
       <a class="tab-btn" href="/org">Agents</a>
       <a class="tab-btn" href="/ui">Chat</a>
       <a class="tab-btn" href="/library">Library</a>
       <a class="tab-btn" href="/lab">Lab</a>
-      <a class="tab-btn active" href="/gym">Gym</a>
+    </nav>
+    <nav class="tab-group gym-tabs" id="gymTabs" style="display:none">
+      <button class="tab-btn active" data-gymtab="coach" onclick="switchView('coach')">Coach</button>
+      <button class="tab-btn" data-gymtab="progress" onclick="switchView('progress')">Progress</button>
+      <button class="tab-btn" data-gymtab="guides" onclick="switchView('guides')">Guides</button>
+      <button class="tab-btn" data-gymtab="generator" onclick="switchView('generator')">AI Generator</button>
     </nav>
     <div class="topbar-right">
+      <!-- Refresh Insights moved to sidebar, only shown in coach mode -->
+      <button class="gym-nav-btn" onclick="openConfigOverlay()" title="Configure gym agent" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-secondary)">&#x2699; Configure</button>
+      <a class="gym-nav-btn" href="/gym">Gym</a>
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#x1F319;</button>
     </div>
   </div>
@@ -428,7 +615,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     <div class="ob-step" id="obStep2">
       <div class="ob-coach-header" id="step2Header"></div>
       <div class="ob-message" id="step2Message"></div>
-      <textarea class="ob-textarea" id="step2Input" placeholder="Tell me about yourself..." rows="5"></textarea>
+      <textarea class="ob-textarea" id="step2Input" placeholder="Tell me about yourself — your role, what you do, what you want to learn..." rows="5"></textarea>
+      <div class="ob-attach-zone" id="obAttachZone"
+        onclick="document.getElementById('obFileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="event.preventDefault();this.classList.remove('dragover');handleObFileDrop(event)">
+        <input type="file" id="obFileInput" multiple accept=".pdf,.doc,.docx,.txt,.md,.csv,.json,.html" onchange="handleObFileSelect(event)">
+        <span>Attach files (resume, bio, etc.) — drop here or click to browse</span>
+      </div>
+      <div class="ob-file-list" id="obFileList"></div>
       <div class="ob-nav">
         <button class="ob-btn" onclick="goToStep(1)">Back</button>
         <button class="ob-btn primary" id="step2Send" onclick="submitStep2()">Send</button>
@@ -460,6 +656,32 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     </div>
   </div>
 
+  <!-- ─── Mode Picker ─── -->
+  <div class="mode-picker" id="modePicker">
+    <div class="mode-picker-inner">
+      <div class="mode-greeting" id="modeGreeting">What brings you to the gym?</div>
+      <div class="mode-tiles">
+        <div class="mode-tile" onclick="enterMode('task')">
+          <div class="mode-tile-icon">&#x1F6E0;</div>
+          <div class="mode-tile-title">I have work to do</div>
+          <div class="mode-tile-desc">Get it done while learning. Bring a real task — your coach helps you execute and teaches you along the way.</div>
+        </div>
+        <div class="mode-tile recommended" onclick="enterMode('coach')">
+          <div class="mode-tile-badge">Recommended</div>
+          <div class="mode-tile-icon">&#x1F3AF;</div>
+          <div class="mode-tile-title">You tell me</div>
+          <div class="mode-tile-desc">Based on your activity and gaps, your coach picks what to work on next. Zero decisions needed.</div>
+        </div>
+        <div class="mode-tile" onclick="enterMode('learn')">
+          <div class="mode-tile-icon">&#x1F4DA;</div>
+          <div class="mode-tile-title">I want to get smart</div>
+          <div class="mode-tile-desc">Pick a topic or program and dive deep. Structured learning at your own pace.</div>
+        </div>
+      </div>
+      <div class="mode-streak" id="modeStreak"></div>
+    </div>
+  </div>
+
   <!-- ─── Main Gym View ─── -->
   <div class="gym-main" id="gymMain">
 
@@ -472,23 +694,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
           <div class="streak-label">day streak</div>
         </div>
 
-        <div class="sidebar-section-title">Programs</div>
-        <ul class="program-list" id="programList"></ul>
-
-        <div class="sidebar-section-title">Gym Cards</div>
+        <div id="sidebarRefreshInsights" style="display:none;margin-bottom:12px">
+          <button class="gym-nav-btn" id="refreshInsightsBtn" onclick="refreshInsights()" title="Regenerate insights now" style="width:100%;background:transparent;border:1px solid var(--border-dim);color:var(--text-secondary);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:var(--font-sans)">&#x1F504; Refresh Insights</button>
+        </div>
+        <div class="sidebar-section-title" id="cardsSectionTitle">Gym Cards</div>
         <div id="gymCards"></div>
+        <div id="sidebarGuides" style="display:none"></div>
       </div>
     </div>
 
     <!-- Center panel -->
     <div class="gym-center">
-      <div class="gym-tabs">
-        <button class="gym-tab active" onclick="switchTab('coach')" data-tab="coach">Coach</button>
-        <button class="gym-tab" onclick="switchTab('progress')" data-tab="progress">Progress</button>
-      </div>
 
-      <!-- Coach Tab -->
-      <div class="tab-panel active" id="coachPanel">
+      <!-- Coach View (default) -->
+      <div class="gym-view active" id="coachView">
         <div class="coach-header" id="coachHeader"></div>
         <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-area">
@@ -499,8 +718,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
         </div>
       </div>
 
-      <!-- Progress Tab -->
-      <div class="tab-panel" id="progressPanel">
+      <!-- Progress View -->
+      <div class="gym-view" id="progressView">
         <div class="progress-panel">
           <div class="radar-wrap">
             <div class="radar-container">
@@ -530,6 +749,91 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
           </div>
         </div>
       </div>
+
+      <!-- Guides View -->
+      <div class="gym-view" id="guidesView">
+        <div class="guides-header">
+          <h2 class="guides-title">Training Guides</h2>
+          <input class="guides-search" id="guidesSearch" type="text" placeholder="Search guides..." oninput="filterGuides(this.value)">
+        </div>
+        <div class="guides-filters" id="guidesFilters">
+          <button class="guides-filter-pill active" data-source="all" onclick="filterBySource('all')">All</button>
+          <button class="guides-filter-pill" data-source="platform" onclick="filterBySource('platform')">Platform</button>
+          <button class="guides-filter-pill" data-source="coach" onclick="filterBySource('coach')">Coach Created</button>
+          <button class="guides-filter-pill" data-source="user" onclick="filterBySource('user')">My Guides</button>
+        </div>
+        <div class="guides-grid" id="guidesGrid"></div>
+      </div>
+
+      <!-- Guide Viewer -->
+      <div class="gym-view" id="guideViewerView">
+        <div class="gv-wrapper">
+          <div class="gv-content">
+            <div class="gv-topbar">
+              <button class="gv-back" onclick="exitGuideViewer()">&#x2190; Back to Guides</button>
+              <span class="gv-title" id="gvTitle"></span>
+            </div>
+            <div class="gv-modules" id="gvModules"></div>
+            <div class="gv-step-pills" id="gvStepPills"></div>
+            <div class="gv-step-content" id="gvStepContent"></div>
+            <div class="gv-ai-actions">
+              <button class="gv-ai-btn" onclick="guideAiAction('explain')">&#x1F4A1; Explain This</button>
+              <button class="gv-ai-btn" onclick="guideAiAction('quiz')">&#x2753; Quiz Me</button>
+              <button class="gv-ai-btn" onclick="guideAiAction('ask')">&#x1F916; Ask AI</button>
+            </div>
+            <div class="gv-step-footer">
+              <label class="gv-check">
+                <input type="checkbox" id="gvComplete" onchange="toggleStepComplete()">
+                <span>Mark as complete</span>
+              </label>
+              <div class="gv-nav-btns">
+                <button class="gv-nav-btn" id="gvPrev" onclick="prevStep()">&#x2190; Previous</button>
+                <button class="gv-nav-btn" id="gvNext" onclick="nextStep()">Next &#x2192;</button>
+              </div>
+            </div>
+          </div>
+          <div class="gv-chat">
+            <div class="gv-chat-context" id="gvChatContext">Coach</div>
+            <div class="chat-messages" id="gvChatMessages"></div>
+            <div class="chat-input-area">
+              <textarea class="chat-textarea" id="gvChatInput" placeholder="Ask about this step..." rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGuideMessage()}"
+                oninput="autoResizeChat(this)"></textarea>
+              <button class="chat-send" id="gvChatSend" onclick="sendGuideMessage()">&#x2192;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Generator View -->
+      <div class="gym-view" id="generatorView">
+        <div class="gen-wrapper">
+          <div class="gen-chat">
+            <div class="gen-chat-header">
+              <span class="gen-chat-title">AI Guide Generator</span>
+              <span class="gen-chat-sub">Describe the guide you want to create and I'll build it for you</span>
+            </div>
+            <div class="chat-messages" id="genChatMessages"></div>
+            <div class="chat-input-area">
+              <textarea class="chat-textarea" id="genChatInput"
+                placeholder="e.g. Create a beginner guide to writing effective AI prompts..."
+                rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGeneratorMessage()}"
+                oninput="autoResizeChat(this)"></textarea>
+              <button class="chat-send" onclick="sendGeneratorMessage()">&#x2192;</button>
+            </div>
+          </div>
+          <div class="gen-preview">
+            <div class="gen-preview-header">
+              <span>Preview</span>
+              <button class="gen-import-btn" id="genImportBtn" onclick="importGeneratedGuide()" disabled>Import Guide</button>
+            </div>
+            <div class="gen-preview-content" id="genPreviewContent">
+              <div class="gen-preview-empty">Your guide structure will appear here as the AI generates it.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -541,6 +845,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
         <button class="feed-tab" onclick="switchFeedTab('updates')" data-feed="updates">Platform Updates</button>
         <button class="feed-tab" onclick="switchFeedTab('briefing')" data-feed="briefing">AI Briefing</button>
       </div>
+      <button class="feed-expand-btn" id="feedExpandBtn" onclick="toggleFeedExpand()">EXPAND</button>
     </div>
     <div class="feed-panel active" id="feedTips"></div>
     <div class="feed-panel" id="feedUpdates"></div>
@@ -602,9 +907,15 @@ let state = {
   plan: null,
   progress: null,
   cards: [],
+  insights: { insights: [], topRecommendation: null },
   programs: [],
   chatHistory: [],
-  sending: false
+  sending: false,
+  activeView: 'coach',
+  guideViewer: null,
+  _generatorSeeded: false,
+  _generatorMarkdown: '',
+  currentMode: null,
 };
 
 /* ─── Theme ──────────────────────────────── */
@@ -626,12 +937,13 @@ function toggleTheme() {
 /* ─── Init ───────────────────────────────── */
 async function init() {
   try {
-    const [profileRes, planRes, progressRes, cardsRes, programsRes] = await Promise.all([
+    const [profileRes, planRes, progressRes, cardsRes, programsRes, insightsRes] = await Promise.all([
       fetch(`${API}/api/gym/learner-profile`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/plan`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/progress`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/cards`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/programs`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API}/api/gym/insights`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
 
     state.profile = profileRes;
@@ -639,6 +951,7 @@ async function init() {
     state.progress = progressRes;
     state.cards = Array.isArray(cardsRes) ? cardsRes : (cardsRes?.cards || []);
     state.programs = Array.isArray(programsRes) ? programsRes : (programsRes?.programs || []);
+    state.insights = insightsRes || { insights: [], topRecommendation: null };
 
     if (state.profile) {
       state.onboardingComplete = !!state.profile.onboardingComplete;
@@ -668,15 +981,140 @@ async function init() {
 /* ─── Onboarding ─────────────────────────── */
 function showOnboarding() {
   document.getElementById('onboarding').classList.remove('hidden');
+  document.getElementById('modePicker').classList.remove('active');
   document.getElementById('gymMain').classList.remove('active');
   document.getElementById('feedStrip').style.display = 'none';
 }
 
 function showMainGym() {
   document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('gymMain').classList.remove('active');
+  document.getElementById('feedStrip').style.display = 'none';
+  // Show mode picker instead of going straight to gym
+  showModePicker();
+}
+
+function showModePicker() {
+  document.getElementById('modePicker').classList.add('active');
+  document.getElementById('gymMain').classList.remove('active');
+  document.getElementById('feedStrip').style.display = 'none';
+  // Greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('modeGreeting').textContent = `${greeting}. What brings you to the gym?`;
+  // Streak
+  const streak = state.profile?.streak?.current || 0;
+  const streakEl = document.getElementById('modeStreak');
+  if (streak > 0) {
+    streakEl.innerHTML = `&#x1F525; ${streak} day streak`;
+  } else {
+    streakEl.textContent = '';
+  }
+}
+
+function enterMode(mode) {
+  state.currentMode = mode;
+  document.getElementById('modePicker').classList.remove('active');
   document.getElementById('gymMain').classList.add('active');
   document.getElementById('feedStrip').style.display = 'flex';
   renderMainGym();
+  // Switch to coach view for all modes
+  switchView('coach');
+  // Set chat placeholder based on mode
+  const input = document.getElementById('chatInput');
+  if (mode === 'task') {
+    input.placeholder = 'Describe what you need to get done...';
+    primeCoachForMode('task');
+  } else if (mode === 'coach') {
+    input.placeholder = 'Message your coach...';
+    primeCoachForMode('coach');
+  } else if (mode === 'learn') {
+    input.placeholder = 'What do you want to learn about?';
+    primeCoachForMode('learn');
+  }
+}
+
+async function primeCoachForMode(mode) {
+  const msgs = document.getElementById('chatMessages');
+  const trainer = TRAINERS.find(t => t.id === state.selectedTrainer) || TRAINERS[0];
+  // Clear any previous primer messages
+  document.querySelectorAll('.mode-primer').forEach(el => el.remove());
+
+  let primerText = '';
+  if (mode === 'task') {
+    primerText = "What are you working on? Describe the task and I'll help you get it done — I'll point out what you're learning along the way.";
+  } else if (mode === 'coach') {
+    // Fetch pre-computed insights from the weekly goal, plus learner profile for stats
+    appendCoachMessage("Let me pull up your latest insights...", trainer, 'mode-primer');
+    showTyping();
+    try {
+      const [insightsRes, profileRes] = await Promise.all([
+        fetch(`${API}/api/gym/insights`).then(r => r.json()).catch(() => ({ insights: [], topRecommendation: null })),
+        fetch(`${API}/api/gym/learner-profile`).then(r => r.json()).catch(() => ({})),
+      ]);
+      const hasInsights = insightsRes.topRecommendation || (insightsRes.insights && insightsRes.insights.length > 0);
+      let systemText;
+      if (hasInsights) {
+        systemText = `[SYSTEM: The user selected "You tell me" mode. Here are the pre-computed insights from the weekly analysis:\n\nTop recommendation: ${insightsRes.topRecommendation || 'none'}\nInsights: ${JSON.stringify(insightsRes.insights || [])}\nSummary: ${insightsRes.summary || 'none'}\nGenerated: ${insightsRes.generatedAt || 'never'}\n\nLearner profile stats: dimensions=${JSON.stringify(profileRes.dimensions || {})}, streak=${profileRes.streak?.current || 0}, neverUsed=${JSON.stringify(profileRes.features?.neverUsed || [])}, struggles=${JSON.stringify(profileRes.patterns?.struggles || [])}\n\nPresent the top recommendation conversationally. Reference the specific insight data. If the user wants a fresh analysis, tell them you can run one now.]`;
+      } else {
+        systemText = `[SYSTEM: The user selected "You tell me" mode. No pre-computed insights are available yet (the weekly analysis hasn't run). Fall back to live analysis: call get_learner_profile for dimensions/stats, then get_agent_activity_summary for the most-used agents, and give ONE specific recommendation. Keep it quick.]`;
+      }
+      const res = await fetch(`${API}/api/chat/gym/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: systemText, senderId: 'web' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.jobId) {
+          hideTyping();
+          const msgDiv = addChatMessage('assistant', '');
+          await consumeSSE(data.jobId, (chunk) => {
+            msgDiv.innerHTML = formatMessage(chunk);
+            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+          });
+        }
+      }
+    } catch (e) {
+      hideTyping();
+      console.warn('Failed to prime coach mode:', e);
+    }
+    return;
+  } else if (mode === 'learn') {
+    // Check for in-progress programs
+    const inProgress = findInProgressProgram();
+    if (inProgress) {
+      primerText = `You're in the middle of **${inProgress.title}** — want to pick up where you left off? Or you can browse other topics or tell me what you want to learn.`;
+    } else {
+      primerText = "What do you want to learn? Pick a topic, browse the programs in the sidebar, or just tell me what you're curious about.";
+    }
+  }
+  if (primerText) {
+    appendCoachMessage(primerText, trainer, 'mode-primer');
+  }
+}
+
+function findInProgressProgram() {
+  const progress = state.progress?.programs || {};
+  for (const [slug, prog] of Object.entries(progress)) {
+    if (prog.startedAt && !prog.completedAt) {
+      const program = (state.programs || []).find(p => (p.slug || p.id) === slug);
+      if (program) return { slug, title: program.title || slug, ...prog };
+    }
+  }
+  return null;
+}
+
+function appendCoachMessage(text, trainer, extraClass = '') {
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `chat-msg coach ${extraClass}`;
+  div.innerHTML = `
+    <div class="chat-avatar" style="background:${trainer.color}20;color:${trainer.color}">${trainer.initials}</div>
+    <div class="chat-bubble">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
 function renderTrainerCards() {
@@ -732,21 +1170,84 @@ function renderStep2() {
   document.getElementById('step2Message').textContent = trainer.fullQuote;
 }
 
+// ─── Onboarding File Attachments ─────────────────────────────
+let obPendingFiles = [];
+
+function handleObFileDrop(e) {
+  const files = e.dataTransfer?.files;
+  if (files) addObFiles(files);
+}
+function handleObFileSelect(e) {
+  const files = e.target?.files;
+  if (files) addObFiles(files);
+  e.target.value = '';
+}
+function addObFiles(fileList) {
+  for (const f of fileList) {
+    if (!obPendingFiles.find(p => p.name === f.name && p.size === f.size)) {
+      obPendingFiles.push(f);
+    }
+  }
+  renderObFileList();
+}
+function removeObFile(i) {
+  obPendingFiles.splice(i, 1);
+  renderObFileList();
+}
+function renderObFileList() {
+  const el = document.getElementById('obFileList');
+  if (!obPendingFiles.length) { el.innerHTML = ''; return; }
+  el.innerHTML = obPendingFiles.map((f, i) => {
+    const sz = f.size < 1024 ? f.size + ' B' : f.size < 1048576 ? (f.size/1024).toFixed(1) + ' KB' : (f.size/1048576).toFixed(1) + ' MB';
+    return `<div class="ob-file-pill"><span class="fname">${f.name}</span><span class="fsize">${sz}</span><span class="fremove" onclick="removeObFile(${i})">×</span></div>`;
+  }).join('');
+}
+
+async function uploadObFiles() {
+  const uploaded = [];
+  for (const f of obPendingFiles) {
+    try {
+      const formData = new FormData();
+      formData.append('file', f);
+      formData.append('mode', 'permanent');
+      const resp = await fetch(`${API}/api/upload/gym`, { method: 'POST', body: formData });
+      const data = await resp.json();
+      if (data.ok) uploaded.push({ name: data.fileName, path: data.path });
+    } catch (err) {
+      console.warn('Upload failed:', f.name, err);
+    }
+  }
+  return uploaded;
+}
+
 async function submitStep2() {
   const input = document.getElementById('step2Input');
   const text = input.value.trim();
-  if (!text) return;
+  if (!text && obPendingFiles.length === 0) return;
 
   const btn = document.getElementById('step2Send');
   btn.disabled = true;
-  btn.textContent = 'Sending...';
+  btn.textContent = obPendingFiles.length > 0 ? 'Uploading...' : 'Sending...';
 
   try {
-    // Send message to gym chat
+    // Upload attachments first
+    let fileContext = '';
+    if (obPendingFiles.length > 0) {
+      const uploaded = await uploadObFiles();
+      if (uploaded.length > 0) {
+        fileContext = '\n\n[Attached files: ' + uploaded.map(u => u.path).join(', ') + '. Please read and incorporate these into my learner profile.]';
+      }
+      obPendingFiles = [];
+      renderObFileList();
+    }
+
+    btn.textContent = 'Sending...';
+
+    // Send message to gym chat (with file paths appended so coach can read them)
     const res = await fetch(`${API}/api/chat/gym/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, senderId: 'web' })
+      body: JSON.stringify({ text: (text || 'See attached files.') + fileContext, senderId: 'web' })
     });
     const data = await res.json();
 
@@ -806,12 +1307,10 @@ async function renderStep3() {
     }
   } catch (e) {}
 
-  // Show plan after delay (or immediately if we already have data)
-  setTimeout(() => {
-    loading.style.display = 'none';
-    summary.classList.remove('hidden');
-    enterBtn.classList.remove('hidden');
-  }, state._onboardingJobId ? 500 : 2000);
+  // Show plan and enter button now that streaming is done
+  loading.style.display = 'none';
+  summary.classList.remove('hidden');
+  enterBtn.classList.remove('hidden');
 }
 
 function extractBucket(text, n) {
@@ -847,7 +1346,6 @@ async function enterGym() {
 /* ─── Main Gym Rendering ─────────────────── */
 function renderMainGym() {
   renderStreak();
-  renderPrograms();
   renderGymCards();
   renderCoachHeader();
   renderProgress();
@@ -861,39 +1359,76 @@ function renderStreak() {
   document.getElementById('streakCount').textContent = streak;
 }
 
-function renderPrograms() {
-  const list = document.getElementById('programList');
-  if (!state.programs.length) {
-    list.innerHTML = '<li style="font-size:11px;color:var(--text-muted);padding:8px 10px">No programs yet</li>';
-    return;
-  }
-  list.innerHTML = state.programs.map(p => {
-    let statusIcon = '\u25CB'; // not started
-    let statusClass = 'not-started';
-    if (p.completed || p.status === 'completed') {
-      statusIcon = '\u2713';
-      statusClass = 'done';
-    } else if (p.currentStep || p.progress || p.status === 'in-progress') {
-      const current = p.currentStep || p.progress?.current || 0;
-      const total = p.totalSteps || p.progress?.total || 0;
-      statusIcon = total ? `${current}/${total}` : '\u2026';
-      statusClass = 'in-progress';
-    }
-    return `
-      <li class="program-item" onclick="openProgram('${p.id || p.programId}')">
-        <span class="program-status ${statusClass}">${statusIcon}</span>
-        <span class="program-name">${p.name || p.title || p.id || 'Untitled'}</span>
-      </li>`;
-  }).join('');
+/* ─── View Switching ─────────────────────── */
+function switchView(view) {
+  state.activeView = view;
+  // Update topbar gym tabs
+  document.querySelectorAll('#gymTabs .tab-btn[data-gymtab]').forEach(n =>
+    n.classList.toggle('active', n.dataset.gymtab === view || (view === 'guide-viewer' && n.dataset.gymtab === 'guides'))
+  );
+  ['coachView','progressView','guidesView','guideViewerView','generatorView'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  const viewMap = { coach:'coachView', progress:'progressView', guides:'guidesView', 'guide-viewer':'guideViewerView', generator:'generatorView' };
+  const target = document.getElementById(viewMap[view]);
+  if (target) target.classList.add('active');
+
+  if (view === 'guides') renderGuidesView();
+  if (view === 'generator' && !state._generatorSeeded) seedGenerator();
 }
 
 function renderGymCards() {
   const container = document.getElementById('gymCards');
-  if (!state.cards.length) {
-    container.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 2px">No cards right now</div>';
+  const titleEl = document.getElementById('cardsSectionTitle');
+  const guidesEl = document.getElementById('sidebarGuides');
+  const refreshEl = document.getElementById('sidebarRefreshInsights');
+  const mode = state.currentMode;
+
+  // Show refresh insights only in coach ("You tell me") mode
+  if (refreshEl) refreshEl.style.display = mode === 'coach' ? '' : 'none';
+
+  // ── Task mode: hide cards, hide guides ──
+  if (mode === 'task') {
+    container.innerHTML = '';
+    if (titleEl) titleEl.style.display = 'none';
+    if (guidesEl) { guidesEl.style.display = 'none'; guidesEl.innerHTML = ''; }
     return;
   }
-  container.innerHTML = state.cards.map((c, i) => `
+
+  // ── Learn mode: show guides in sidebar ──
+  if (mode === 'learn') {
+    container.innerHTML = '';
+    if (titleEl) titleEl.style.display = 'none';
+    if (guidesEl) {
+      guidesEl.style.display = '';
+      renderSidebarGuides(guidesEl);
+    }
+    return;
+  }
+
+  // ── Coach mode ("You tell me"): insight + heuristic cards ──
+  if (guidesEl) { guidesEl.style.display = 'none'; guidesEl.innerHTML = ''; }
+  if (titleEl) {
+    titleEl.style.display = '';
+    titleEl.textContent = 'Insights';
+  }
+
+  // ── Coach mode (default): AI insight cards + heuristic cards ──
+  const insightCards = (state.insights?.insights || []).filter(ins => ins.text).map((ins, i) => `
+    <div class="gym-card gym-card-insight" id="insightCard${i}" data-insight-id="${ins.id || ''}">
+      <span class="gym-card-badge" style="background:var(--accent);color:#fff;right:22px">Insight</span>
+      <button class="gym-card-dismiss" onclick="dismissInsight('${ins.id}', 'cancelled', this)" title="Dismiss">&times;</button>
+      <div class="gym-card-title">${ins.category === 'dimension' ? '📊 Dimension' : ins.category === 'struggle' ? '⚡ Pattern' : ins.category === 'dormant' ? '💤 Dormant' : ins.category === 'feature-gap' ? '🔓 Feature' : '💡 Insight'}</div>
+      <div class="gym-card-desc">${ins.text || ''}</div>
+      <div style="display:flex;gap:4px;margin-top:6px">
+        <button class="gym-card-cta" onclick="dismissInsight('${ins.id}', 'done', this)" style="flex:1;font-size:10px;padding:3px 6px">✓ Done</button>
+        <button class="gym-card-cta" onclick="dismissInsight('${ins.id}', 'cancelled', this)" style="flex:1;font-size:10px;padding:3px 6px;background:var(--bg-input);color:var(--text-secondary)">✗ Not relevant</button>
+      </div>
+    </div>
+  `).join('');
+
+  const heuristicCards = state.cards.map((c, i) => `
     <div class="gym-card" id="gymCard${i}">
       ${c.isNew ? '<span class="gym-card-badge">New</span>' : ''}
       <button class="gym-card-dismiss" onclick="dismissCard(${i}, event)"${c.isNew ? ' style="display:none"' : ''}>&times;</button>
@@ -902,6 +1437,92 @@ function renderGymCards() {
       ${c.cta ? `<button class="gym-card-cta" onclick="handleCardCta('${c.ctaAction || ''}')">${c.cta}</button>` : ''}
     </div>
   `).join('');
+
+  const allCards = insightCards + heuristicCards;
+  if (!allCards.trim()) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 2px">No cards right now</div>';
+    return;
+  }
+  container.innerHTML = allCards;
+}
+
+function buildLearnCards() {
+  const cards = [];
+  const progress = state.progress?.programs || state.progress || {};
+  const programs = state.programs || [];
+  const profile = state.profile || {};
+  const dimensions = profile.dimensions || {};
+
+  // Card: in-progress programs with progress bar
+  for (const [slug, prog] of Object.entries(progress)) {
+    if (prog.startedAt && !prog.completedAt) {
+      const program = programs.find(p => (p.slug || p.id) === slug);
+      if (!program) continue;
+      const totalSteps = (program.modules || []).reduce((sum, m) => sum + (m.steps?.length || 0), 0);
+      const completedSteps = Object.values(prog.steps || {}).filter(s => s === true || s?.completed).length;
+      const pct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+      // Find next incomplete step
+      let nextStep = null;
+      for (const m of (program.modules || [])) {
+        for (const s of (m.steps || [])) {
+          const stepDone = prog.steps?.[s.id] === true || prog.steps?.[s.id]?.completed;
+          if (!stepDone) { nextStep = s.title; break; }
+        }
+        if (nextStep) break;
+      }
+      cards.push({
+        title: `Continue: ${program.title}`,
+        description: nextStep ? `Next: ${nextStep}` : `${pct}% complete`,
+        progress: pct,
+        cta: 'Resume',
+        ctaAction: `I want to continue the ${program.title} program`,
+      });
+    }
+  }
+
+  // Card: recommended programs based on weak dimensions
+  const weakDims = Object.entries(dimensions)
+    .filter(([, v]) => v.score < 3)
+    .sort((a, b) => a[1].score - b[1].score);
+  const dimToProgram = {
+    knowledge: 'getting-started',
+    communication: 'prompt-engineering',
+    orchestration: 'automations',
+    craft: 'agent-building',
+    application: null,
+  };
+  for (const [dim] of weakDims.slice(0, 1)) {
+    const recSlug = dimToProgram[dim];
+    if (!recSlug) continue;
+    // Don't recommend if already in progress or completed
+    if (progress[recSlug]?.startedAt) continue;
+    const program = programs.find(p => (p.slug || p.id) === recSlug);
+    if (!program) continue;
+    cards.push({
+      title: `Recommended: ${program.title}`,
+      description: `Your ${dim} is at ${dimensions[dim].label} — this program will help.`,
+      cta: 'Start',
+      ctaAction: `I want to start the ${program.title} program`,
+    });
+  }
+
+  // Card: recently completed program (celebration)
+  for (const [slug, prog] of Object.entries(progress)) {
+    if (prog.completedAt) {
+      const completedDate = new Date(prog.completedAt);
+      const daysSince = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSince <= 7) {
+        const program = programs.find(p => (p.slug || p.id) === slug);
+        cards.push({
+          title: `Completed: ${program?.title || slug}`,
+          description: 'Great work! Look for your next challenge.',
+          progress: 100,
+        });
+      }
+    }
+  }
+
+  return cards;
 }
 
 function dismissCard(index, e) {
@@ -915,13 +1536,115 @@ function dismissCard(index, e) {
   }
 }
 
-function handleCardCta(action) {
-  if (action) sendMessage(action);
+async function dismissInsight(id, status, btn) {
+  if (!id) return;
+  // Animate out
+  const card = btn.closest('.gym-card-insight');
+  if (card) {
+    card.style.transition = 'opacity 0.3s, transform 0.3s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(-10px)';
+  }
+  try {
+    await fetch(`${API}/api/gym/insights/${id}/dismiss`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    // Remove from local state
+    if (state.insights?.insights) {
+      state.insights.insights = state.insights.insights.filter(ins => ins.id !== id);
+    }
+  } catch (e) {
+    console.warn('Failed to dismiss insight:', e);
+  }
+  // Remove card after animation
+  setTimeout(() => { if (card) card.remove(); }, 300);
 }
 
-function openProgram(id) {
-  // Send a message to the coach about opening this program
-  sendMessage(`I want to work on the ${id} program.`);
+/* ─── Sidebar Guides (Learn mode) ────────── */
+let sidebarGuidesFilter = 'all';
+
+function renderSidebarGuides(container) {
+  const q = '';
+  let filtered = state.programs || [];
+  if (sidebarGuidesFilter !== 'all') {
+    filtered = filtered.filter(p => (p.source || 'platform') === sidebarGuidesFilter);
+  }
+
+  const filterHtml = `
+    <div style="margin-bottom:12px">
+      <div class="sidebar-section-title" style="margin-bottom:8px">Training Guides</div>
+      <input type="text" id="sidebarGuidesSearch" placeholder="Search guides..." oninput="filterSidebarGuides()"
+        style="width:100%;padding:8px 10px;border:1px solid var(--border-dim);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-size:12px;font-family:var(--font-sans);box-sizing:border-box;margin-bottom:8px">
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${['all','platform','coach','user'].map(s => {
+          const label = {all:'All',platform:'Platform',coach:'Coach',user:'My Guides'}[s];
+          const active = sidebarGuidesFilter === s ? 'background:var(--accent);color:#000;font-weight:700' : 'background:var(--bg-input);color:var(--text-secondary)';
+          return `<button onclick="setSidebarGuidesFilter('${s}')" style="border:none;padding:4px 10px;border-radius:6px;font-size:10px;font-family:var(--font-sans);cursor:pointer;${active}">${label}</button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  const cardsHtml = filtered.length === 0
+    ? '<div style="font-size:12px;color:var(--text-muted);padding:20px 4px;text-align:center">No guides yet. Use the AI Generator to create one.</div>'
+    : filtered.map(p => {
+        const slug = p.slug || p.id;
+        const moduleCount = p.modules?.length || 0;
+        const stepCount = p.modules?.reduce((sum, m) => sum + (m.steps?.length || 0), 0) || 0;
+        const progress = getGuideProgress(slug);
+        const source = p.source || 'platform';
+        const sourceLabel = {platform:'Platform',coach:'Coach',user:'My Guide'}[source] || source;
+        const sourceColor = {platform:'var(--accent)',coach:'var(--purple)',user:'var(--green)'}[source] || 'var(--text-muted)';
+        return `
+          <div onclick="openGuide('${slug}')" style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--border-glow)'" onmouseout="this.style.borderColor='var(--border-dim)'">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title || p.name || 'Untitled'}</div>
+              <span style="font-family:var(--font-mono);font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;color:${sourceColor};background:${sourceColor}15;flex-shrink:0;margin-left:6px">${sourceLabel}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.description || ''}</div>
+            <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+              ${moduleCount ? `<span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);background:var(--bg-input);padding:2px 6px;border-radius:4px">${moduleCount} modules</span>` : ''}
+              ${stepCount ? `<span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);background:var(--bg-input);padding:2px 6px;border-radius:4px">${stepCount} steps</span>` : ''}
+              ${p.difficulty ? `<span style="font-family:var(--font-mono);font-size:9px;color:var(--accent);background:var(--accent-bg);padding:2px 6px;border-radius:4px">${p.difficulty}</span>` : ''}
+            </div>
+            ${progress > 0 ? `<div style="margin-top:6px;height:3px;border-radius:2px;background:var(--bg-input);overflow:hidden"><div style="height:100%;width:${Math.min(progress * 10, 100)}%;background:var(--accent);border-radius:2px"></div></div>` : ''}
+          </div>`;
+      }).join('');
+
+  container.innerHTML = filterHtml + cardsHtml;
+}
+
+function setSidebarGuidesFilter(source) {
+  sidebarGuidesFilter = source;
+  const guidesEl = document.getElementById('sidebarGuides');
+  if (guidesEl) renderSidebarGuides(guidesEl);
+}
+
+function filterSidebarGuides() {
+  const q = (document.getElementById('sidebarGuidesSearch')?.value || '').toLowerCase().trim();
+  const guidesEl = document.getElementById('sidebarGuides');
+  if (!guidesEl) return;
+  // Re-render with search filter
+  let filtered = state.programs || [];
+  if (sidebarGuidesFilter !== 'all') {
+    filtered = filtered.filter(p => (p.source || 'platform') === sidebarGuidesFilter);
+  }
+  if (q) {
+    filtered = filtered.filter(p =>
+      (p.title || p.name || '').toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q)
+    );
+  }
+  // Re-render just the cards portion
+  const cards = guidesEl.querySelectorAll('div[onclick]');
+  // Simpler: just re-render all
+  renderSidebarGuides(guidesEl);
+}
+
+function handleCardCta(action) {
+  if (action) sendMessage(action);
 }
 
 /* ─── Coach Header ───────────────────────── */
@@ -936,16 +1659,288 @@ function renderCoachHeader() {
   `;
 }
 
-/* ─── Tab Switching ──────────────────────── */
-function switchTab(tab) {
-  document.querySelectorAll('.gym-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  document.getElementById('coachPanel').classList.toggle('active', tab === 'coach');
-  document.getElementById('progressPanel').classList.toggle('active', tab === 'progress');
+/* ─── Guides Grid ────────────────────────── */
+let guidesActiveSource = 'all';
+
+function renderGuidesView() {
+  applyGuidesFilter();
 }
 
-/* ─── Chat ───────────────────────────────── */
-function addChatMessage(role, text) {
-  const container = document.getElementById('chatMessages');
+function filterBySource(source) {
+  guidesActiveSource = source;
+  document.querySelectorAll('.guides-filter-pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.source === source)
+  );
+  applyGuidesFilter();
+}
+
+function applyGuidesFilter() {
+  const q = (document.getElementById('guidesSearch')?.value || '').toLowerCase().trim();
+  let filtered = state.programs;
+
+  if (guidesActiveSource !== 'all') {
+    filtered = filtered.filter(p => (p.source || 'platform') === guidesActiveSource);
+  }
+  if (q) {
+    filtered = filtered.filter(p =>
+      (p.title || p.name || '').toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q) ||
+      (p.difficulty || '').toLowerCase().includes(q)
+    );
+  }
+  renderGuideCards(filtered, document.getElementById('guidesGrid'));
+}
+
+function renderGuideCards(programs, container) {
+  if (!programs.length) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:60px 20px">No guides available yet. Use the AI Generator to create one.</div>';
+    return;
+  }
+  container.innerHTML = programs.map(p => {
+    const moduleCount = p.modules?.length || 0;
+    const stepCount = p.modules?.reduce((sum, m) => sum + (m.steps?.length || 0), 0) || 0;
+    const slug = p.slug || p.id;
+    const progress = getGuideProgress(slug);
+    const ctaText = progress > 0 ? 'Continue' : 'Start';
+    const source = p.source || 'platform';
+    const sourceLabel = { platform: 'Platform', coach: 'Coach', user: 'My Guide' }[source] || source;
+    const sourceColor = { platform: 'var(--accent)', coach: 'var(--purple)', user: 'var(--green)' }[source] || 'var(--text-muted)';
+    return `
+      <div class="guide-card" onclick="openGuide('${slug}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="guide-card-title" style="margin-bottom:0">${p.title || p.name || 'Untitled'}</div>
+          <span style="font-family:var(--font-mono);font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;color:${sourceColor};background:${sourceColor}15;flex-shrink:0">${sourceLabel}</span>
+        </div>
+        <div class="guide-card-desc">${p.description || ''}</div>
+        <div class="guide-card-meta">
+          ${moduleCount ? `<span class="guide-card-tag">${moduleCount} module${moduleCount !== 1 ? 's' : ''}</span>` : ''}
+          ${stepCount ? `<span class="guide-card-tag">${stepCount} steps</span>` : ''}
+          ${p.difficulty ? `<span class="guide-card-tag difficulty">${p.difficulty}</span>` : ''}
+          ${p.estimatedTime ? `<span class="guide-card-tag">${p.estimatedTime}</span>` : ''}
+        </div>
+        <div class="guide-card-footer">
+          <button class="guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">${ctaText}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterGuides() {
+  applyGuidesFilter();
+}
+
+function getGuideProgress(slug) {
+  const prog = state.progress?.programs?.[slug];
+  if (!prog) return 0;
+  return prog.completedSteps?.length || 0;
+}
+
+/* ─── Guide Viewer ───────────────────────── */
+async function openGuide(slug) {
+  try {
+    const res = await fetch(`${API}/api/gym/programs/${slug}`);
+    if (!res.ok) throw new Error('Failed to load guide');
+    const program = await res.json();
+
+    const savedProgress = state.progress?.programs?.[slug] || {};
+    state.guideViewer = {
+      slug,
+      program,
+      moduleIndex: savedProgress.lastModuleIndex || 0,
+      stepIndex: savedProgress.lastStepIndex || 0,
+      completedSteps: new Set(savedProgress.completedSteps || []),
+      chatHistory: [],
+    };
+
+    switchView('guide-viewer');
+    renderGuideViewer();
+  } catch (e) {
+    console.error('Failed to open guide:', e);
+  }
+}
+
+function renderGuideViewer() {
+  const gv = state.guideViewer;
+  const p = gv.program;
+  document.getElementById('gvTitle').textContent = p.title || p.name || 'Guide';
+
+  // Module tabs
+  const modulesEl = document.getElementById('gvModules');
+  modulesEl.innerHTML = (p.modules || []).map((m, i) => `
+    <button class="gv-module-tab${i === gv.moduleIndex ? ' active' : ''}" onclick="switchGuideModule(${i})">
+      ${m.title || 'Module ' + (i + 1)}
+    </button>
+  `).join('');
+
+  renderGuideStepPills();
+  renderGuideStep();
+}
+
+function renderGuideStepPills() {
+  const gv = state.guideViewer;
+  const module = gv.program.modules?.[gv.moduleIndex];
+  if (!module?.steps?.length) return;
+
+  const pillsEl = document.getElementById('gvStepPills');
+  pillsEl.innerHTML = module.steps.map((s, i) => {
+    const key = `${module.id}:${s.id}`;
+    const isDone = gv.completedSteps.has(key);
+    const isActive = i === gv.stepIndex;
+    return `<button class="gv-step-pill${isActive ? ' active' : ''}${isDone ? ' done' : ''}" onclick="goToGuideStep(${i})">${s.title || 'Step ' + (i + 1)}</button>`;
+  }).join('');
+}
+
+function renderGuideStep() {
+  const gv = state.guideViewer;
+  const module = gv.program.modules?.[gv.moduleIndex];
+  const step = module?.steps?.[gv.stepIndex];
+
+  const contentEl = document.getElementById('gvStepContent');
+  if (!step) {
+    contentEl.innerHTML = '<div style="color:var(--text-muted);padding:40px;text-align:center">No content for this step.</div>';
+    return;
+  }
+
+  contentEl.innerHTML = `
+    <h2 style="margin-top:0">${step.title || ''}</h2>
+    ${renderStepContent(step.content || '')}
+    ${step.verificationQuestions?.length ? `
+      <div style="margin-top:24px;padding:16px;background:var(--accent-bg);border-radius:var(--radius);border:1px solid var(--border-glow)">
+        <div style="font-weight:700;font-size:12px;color:var(--accent);margin-bottom:8px">Check Your Understanding</div>
+        ${step.verificationQuestions.map(q => `<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">• ${q}</div>`).join('')}
+      </div>
+    ` : ''}
+  `;
+  contentEl.scrollTop = 0;
+
+  // Update completion checkbox
+  const key = `${module.id}:${step.id}`;
+  document.getElementById('gvComplete').checked = gv.completedSteps.has(key);
+
+  // Update nav buttons
+  const flatSteps = getFlatSteps();
+  const flatIdx = getFlatStepIndex();
+  document.getElementById('gvPrev').disabled = flatIdx <= 0;
+  document.getElementById('gvNext').disabled = flatIdx >= flatSteps.length - 1;
+
+  // Update chat context
+  document.getElementById('gvChatContext').textContent = 'Asking about: ' + (step.title || 'Step');
+
+  // Clear guide chat
+  document.getElementById('gvChatMessages').innerHTML = '';
+}
+
+function renderStepContent(text) {
+  return text
+    .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^\- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+}
+
+function getFlatSteps() {
+  const modules = state.guideViewer.program.modules || [];
+  const flat = [];
+  modules.forEach((m, mi) => (m.steps || []).forEach((s, si) => flat.push({ moduleIndex: mi, stepIndex: si, step: s, module: m })));
+  return flat;
+}
+
+function getFlatStepIndex() {
+  const gv = state.guideViewer;
+  const flat = getFlatSteps();
+  return flat.findIndex(f => f.moduleIndex === gv.moduleIndex && f.stepIndex === gv.stepIndex);
+}
+
+function switchGuideModule(index) {
+  state.guideViewer.moduleIndex = index;
+  state.guideViewer.stepIndex = 0;
+  renderGuideViewer();
+}
+
+function goToGuideStep(index) {
+  state.guideViewer.stepIndex = index;
+  renderGuideStepPills();
+  renderGuideStep();
+}
+
+function prevStep() {
+  const flat = getFlatSteps();
+  const idx = getFlatStepIndex();
+  if (idx <= 0) return;
+  const prev = flat[idx - 1];
+  state.guideViewer.moduleIndex = prev.moduleIndex;
+  state.guideViewer.stepIndex = prev.stepIndex;
+  renderGuideViewer();
+}
+
+function nextStep() {
+  const flat = getFlatSteps();
+  const idx = getFlatStepIndex();
+  if (idx >= flat.length - 1) return;
+  const next = flat[idx + 1];
+  state.guideViewer.moduleIndex = next.moduleIndex;
+  state.guideViewer.stepIndex = next.stepIndex;
+  renderGuideViewer();
+}
+
+async function toggleStepComplete() {
+  const gv = state.guideViewer;
+  const module = gv.program.modules?.[gv.moduleIndex];
+  const step = module?.steps?.[gv.stepIndex];
+  if (!module || !step) return;
+  const key = `${module.id}:${step.id}`;
+
+  if (gv.completedSteps.has(key)) gv.completedSteps.delete(key);
+  else gv.completedSteps.add(key);
+
+  renderGuideStepPills();
+
+  const programs = state.progress?.programs || {};
+  programs[gv.slug] = {
+    completedSteps: Array.from(gv.completedSteps),
+    lastModuleIndex: gv.moduleIndex,
+    lastStepIndex: gv.stepIndex,
+    updatedAt: new Date().toISOString(),
+  };
+  state.progress = { ...state.progress, programs };
+  await fetch(`${API}/api/gym/progress`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(state.progress)
+  }).catch(() => {});
+}
+
+function exitGuideViewer() {
+  switchView('guides');
+}
+
+function guideAiAction(action) {
+  const gv = state.guideViewer;
+  const module = gv.program.modules?.[gv.moduleIndex];
+  const step = module?.steps?.[gv.stepIndex];
+  if (!step) return;
+
+  const prompts = {
+    explain: `Explain this concept to me in simpler terms: "${step.title}"`,
+    quiz: `Quiz me on what I should have learned from this step: "${step.title}". Ask me 2-3 questions.`,
+  };
+  if (action === 'ask') {
+    document.getElementById('gvChatInput').focus();
+  } else {
+    sendGuideMessage(prompts[action]);
+  }
+}
+
+function addChatTo(containerId, role, text) {
+  const container = document.getElementById(containerId);
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
   div.innerHTML = formatMessage(text);
@@ -954,8 +1949,194 @@ function addChatMessage(role, text) {
   return div;
 }
 
+async function sendGuideMessage(overrideText) {
+  const input = document.getElementById('gvChatInput');
+  const text = overrideText || input.value.trim();
+  if (!text || state.sending) return;
+
+  const gv = state.guideViewer;
+  const module = gv.program.modules?.[gv.moduleIndex];
+  const step = module?.steps?.[gv.stepIndex];
+  const contextPrefix = `[Context: User is viewing guide "${gv.program.title}", module "${module?.title}", step "${step?.title}". Step content: ${(step?.content || '').slice(0, 500)}]\n\n`;
+
+  state.sending = true;
+  if (!overrideText) input.value = '';
+
+  addChatTo('gvChatMessages', 'user', text);
+  showTypingIn('gvChatMessages');
+
+  try {
+    const res = await fetch(`${API}/api/chat/gym/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: contextPrefix + text, senderId: 'web' })
+    });
+    const data = await res.json();
+    if (data.jobId) {
+      hideTypingIn('gvChatMessages');
+      const msgDiv = addChatTo('gvChatMessages', 'assistant', '');
+      await consumeSSE(data.jobId, (chunk) => {
+        msgDiv.innerHTML = formatMessage(chunk);
+        document.getElementById('gvChatMessages').scrollTop = document.getElementById('gvChatMessages').scrollHeight;
+      });
+    } else {
+      hideTypingIn('gvChatMessages');
+      addChatTo('gvChatMessages', 'assistant', data.response || data.text || 'Working on it...');
+    }
+  } catch (e) {
+    hideTypingIn('gvChatMessages');
+    addChatTo('gvChatMessages', 'assistant', 'Error connecting to coach. Please try again.');
+  } finally {
+    state.sending = false;
+  }
+}
+
+/* ─── AI Generator ───────────────────────── */
+function seedGenerator() {
+  state._generatorSeeded = true;
+  addChatTo('genChatMessages', 'assistant',
+    "Hi! I can help you create a training guide. Just describe what you'd like to teach — the topic, audience, and goals — and I'll generate a structured guide with modules and steps.\n\nFor example: *\"Create a beginner guide to building MCP integrations for AI agents\"*"
+  );
+}
+
+async function sendGeneratorMessage() {
+  const input = document.getElementById('genChatInput');
+  const text = input.value.trim();
+  if (!text || state.sending) return;
+
+  state.sending = true;
+  input.value = '';
+  autoResizeChat(input);
+
+  addChatTo('genChatMessages', 'user', text);
+  showTypingIn('genChatMessages');
+
+  const prefix = '[Context: User is in the AI Guide Generator. Generate training guide content in structured markdown. Use # for the guide title, ## for modules (e.g. "## Module 1: Getting Started"), ### for steps within modules (e.g. "### Step 1: Setup"). Include detailed educational content under each step. Ask 2-3 clarifying questions first if the request is vague, then generate the full guide.]\n\n';
+
+  try {
+    const res = await fetch(`${API}/api/chat/gym/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: prefix + text, senderId: 'web' })
+    });
+    const data = await res.json();
+    if (data.jobId) {
+      hideTypingIn('genChatMessages');
+      const msgDiv = addChatTo('genChatMessages', 'assistant', '');
+      let fullText = '';
+      await consumeSSE(data.jobId, (chunk) => {
+        fullText = chunk;
+        msgDiv.innerHTML = formatMessage(chunk);
+        document.getElementById('genChatMessages').scrollTop = document.getElementById('genChatMessages').scrollHeight;
+        parseAndPreview(chunk);
+      });
+      state._generatorMarkdown = fullText;
+    } else {
+      hideTypingIn('genChatMessages');
+      addChatTo('genChatMessages', 'assistant', data.response || data.text || 'Working on it...');
+    }
+  } catch (e) {
+    hideTypingIn('genChatMessages');
+    addChatTo('genChatMessages', 'assistant', 'Error connecting. Please try again.');
+  } finally {
+    state.sending = false;
+  }
+}
+
+function parseAndPreview(markdown) {
+  const lines = markdown.split('\n');
+  let title = '';
+  const modules = [];
+  let currentModule = null;
+
+  for (const line of lines) {
+    const h1 = line.match(/^#\s+(.+)/);
+    if (h1 && !line.startsWith('##')) { title = h1[1].replace(/\*\*/g, '').trim(); continue; }
+    const h2 = line.match(/^##\s+(.+)/);
+    if (h2 && !line.startsWith('###')) {
+      currentModule = { title: h2[1].replace(/\*\*/g, '').trim(), steps: [] };
+      modules.push(currentModule);
+      continue;
+    }
+    const h3 = line.match(/^###\s+(.+)/);
+    if (h3 && currentModule) {
+      currentModule.steps.push(h3[1].replace(/\*\*/g, '').trim());
+    }
+  }
+
+  const preview = document.getElementById('genPreviewContent');
+  if (title || modules.length) {
+    let html = `<div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:16px">${title || 'Untitled Guide'}</div>`;
+    modules.forEach((m, i) => {
+      html += `<div class="gen-module-preview">
+        <div class="gen-module-title">Module ${i + 1}: ${m.title}</div>
+        ${m.steps.map((s, j) => `<div class="gen-step-preview">${j + 1}. ${s}</div>`).join('')}
+      </div>`;
+    });
+    preview.innerHTML = html;
+    document.getElementById('genImportBtn').disabled = false;
+  }
+}
+
+async function importGeneratedGuide() {
+  const markdown = state._generatorMarkdown;
+  if (!markdown) return;
+
+  const btn = document.getElementById('genImportBtn');
+  btn.disabled = true;
+  btn.textContent = 'Importing...';
+
+  try {
+    const res = await fetch(`${API}/api/gym/programs/import-markdown`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown })
+    });
+    const program = await res.json();
+    if (program.error) throw new Error(program.error);
+
+    state.programs.push(program);
+    btn.textContent = 'Imported!';
+    addChatTo('genChatMessages', 'assistant', `Guide "${program.title || 'Untitled'}" has been imported! You can find it in the Guides section.`);
+    setTimeout(() => { btn.textContent = 'Import Guide'; btn.disabled = true; }, 3000);
+  } catch (e) {
+    console.error('Import failed:', e);
+    btn.textContent = 'Import Failed';
+    setTimeout(() => { btn.textContent = 'Import Guide'; btn.disabled = false; }, 2000);
+  }
+}
+
+/* ─── Feed Expand/Collapse ───────────────── */
+function toggleFeedExpand() {
+  const strip = document.getElementById('feedStrip');
+  const btn = document.getElementById('feedExpandBtn');
+  const expanded = strip.classList.toggle('expanded');
+  btn.textContent = expanded ? 'COLLAPSE' : 'EXPAND';
+}
+
+/* ─── Shared Chat Helpers ────────────────── */
+function showTypingIn(containerId) {
+  const container = document.getElementById(containerId);
+  const div = document.createElement('div');
+  div.className = 'chat-typing';
+  div.id = containerId + '_typing';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideTypingIn(containerId) {
+  const el = document.getElementById(containerId + '_typing');
+  if (el) el.remove();
+}
+
+/* ─── Chat ───────────────────────────────── */
+function addChatMessage(role, text) {
+  return addChatTo('chatMessages', role, text);
+}
+
 function formatMessage(text) {
-  // Basic markdown: bold, italic, code blocks, inline code
+  // Markdown: headers, bold, italic, code blocks, inline code, lists, blockquotes
   let html = text
     .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -970,7 +2151,7 @@ function showTyping() {
   const div = document.createElement('div');
   div.className = 'chat-typing';
   div.id = 'typingIndicator';
-  div.innerHTML = '<span></span><span></span><span></span>';
+  div.innerHTML = '<span style="width:auto;height:auto;background:none;animation:none;font-size:12px;color:var(--text-muted);font-family:var(--font-sans);margin-right:6px">Thinking</span><span></span><span></span><span></span>';
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 }
@@ -1002,12 +2183,14 @@ async function sendMessage(overrideText) {
     const data = await res.json();
 
     if (data.jobId) {
-      hideTyping();
       const msgDiv = addChatMessage('assistant', '');
+      let firstChunk = true;
       await consumeSSE(data.jobId, (chunk) => {
+        if (firstChunk) { hideTyping(); firstChunk = false; }
         msgDiv.innerHTML = formatMessage(chunk);
         document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
       });
+      if (firstChunk) hideTyping(); // fallback if no chunks came
     } else if (data.response || data.text || data.message) {
       hideTyping();
       addChatMessage('assistant', data.response || data.text || data.message);
@@ -1033,19 +2216,21 @@ function consumeSSE(jobId, onText) {
     sse.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'text' || data.type === 'content' || data.text) {
-          fullText += data.text || data.content || '';
+        if (data.type === 'text' || data.type === 'content') {
+          fullText += data.data || data.text || data.content || '';
           onText(fullText);
         } else if (data.type === 'done' || data.type === 'end' || data.done) {
-          if (data.text) {
-            fullText += data.text;
+          if (data.data || data.text) {
+            fullText = data.data || data.text;
             onText(fullText);
           }
           sse.close();
           resolve(fullText);
         } else if (data.type === 'error') {
           sse.close();
-          reject(new Error(data.error || 'Stream error'));
+          reject(new Error(data.error || data.data || 'Stream error'));
+        } else if (data.type === 'status') {
+          // Status events (e.g. "Starting...") — ignore
         }
       } catch (e) {
         // Plain text event
@@ -1059,7 +2244,7 @@ function consumeSSE(jobId, onText) {
     sse.addEventListener('result', (e) => {
       try {
         const data = JSON.parse(e.data);
-        fullText = data.text || data.response || fullText;
+        fullText = data.data || data.text || data.response || fullText;
         onText(fullText);
       } catch (err) {}
       sse.close();
@@ -1344,23 +2529,86 @@ async function checkGymOnlyMode() {
   try {
     const res = await fetch(`${API}/api/gym/config`);
     const config = await res.json();
-    if (config.gymOnlyMode) {
-      // Hide non-essential nav items
-      const tabs = document.querySelectorAll('.tab-group .tab-btn');
-      const allowedHrefs = ['/', '/gym', '/org', '/admin'];
-      tabs.forEach(tab => {
-        const href = tab.getAttribute('href');
-        if (href && !allowedHrefs.includes(href)) {
-          tab.style.display = 'none';
-        }
-      });
-      // Rename Home to Gym Home or hide it
-    }
+    // Gym page: always show gym tabs, always hide platform tabs
+    document.getElementById('gymTabs').style.display = 'flex';
+    document.getElementById('platformTabs').style.display = 'none';
   } catch (e) {}
 }
+
+/* ─── Config Overlay (iframe) ──────────────── */
+function openConfigOverlay() {
+  const overlay = document.getElementById('configOverlay');
+  const iframe = document.getElementById('configIframe');
+  iframe.src = '/org?edit=gym';
+  overlay.classList.add('show');
+}
+async function refreshInsights() {
+  const btn = document.getElementById('refreshInsightsBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating…';
+  try {
+    const res = await fetch(`${API}/api/gym/insights/generate`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = '✅ Done';
+      // Reload insights into state and re-render sidebar
+      state.insights = { insights: data.insights || [], topRecommendation: data.topRecommendation, summary: data.summary };
+      renderGymCards();
+    } else {
+      btn.textContent = '❌ Failed';
+    }
+  } catch (e) {
+    btn.textContent = '❌ Error';
+  }
+  setTimeout(() => { btn.textContent = '🔄 Refresh Insights'; btn.disabled = false; }, 3000);
+}
+
+function closeConfigOverlay() {
+  const overlay = document.getElementById('configOverlay');
+  const iframe = document.getElementById('configIframe');
+  overlay.classList.remove('show');
+  setTimeout(() => { iframe.src = 'about:blank'; }, 300);
+}
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'configModalClosed') closeConfigOverlay();
+});
 
 /* ─── Start ──────────────────────────────── */
 init();
 </script>
+
+<!-- Config Overlay -->
+<div class="config-overlay" id="configOverlay" onclick="closeConfigOverlay()">
+  <div class="config-overlay-inner" onclick="event.stopPropagation()">
+    <button class="config-overlay-close" onclick="closeConfigOverlay()">&#10005;</button>
+    <iframe id="configIframe" src="about:blank"></iframe>
+  </div>
+</div>
+<style>
+.config-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .25s ease;
+}
+.config-overlay.show{display:flex;opacity:1}
+.config-overlay-inner{
+  position:relative;width:90vw;max-width:680px;height:85vh;
+  border-radius:16px;overflow:hidden;
+  border:1px solid var(--border-glow);
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+.config-overlay-inner iframe{
+  width:100%;height:100%;border:none;background:var(--bg-deep);
+}
+.config-overlay-close{
+  position:absolute;top:10px;right:14px;z-index:10;
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;
+  font-size:16px;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.config-overlay-close:hover{border-color:var(--border-glow);color:var(--text-primary)}
+</style>
 </body>
 </html>

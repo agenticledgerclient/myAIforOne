@@ -84,6 +84,8 @@ html,body{
 .tab-btn.active{color:var(--accent)}
 .tab-btn.active::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:2px;background:var(--accent);border-radius:1px}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.gym-nav-btn{font-family:var(--font-sans);font-size:12px;font-weight:700;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:6px 14px;cursor:pointer;text-decoration:none;letter-spacing:.02em;transition:opacity .2s,transform .2s;white-space:nowrap}
+.gym-nav-btn:hover{opacity:.88;transform:translateY(-1px)}
 .theme-toggle,.gear-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2stext-decoration:none;}
 .theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
 .docs-dropdown{position:relative;display:inline-block}
@@ -265,9 +267,9 @@ html,body{
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn" href="/library">Library</a>
       <a class="tab-btn" href="/lab">Lab</a>
-      <a class="tab-btn gym-tab-link" href="/gym" style="display:none">Gym</a>
   </nav>
   <div class="topbar-right">
+    <a class="gym-nav-btn gym-tab-link" href="/gym" style="display:none">Gym</a>
     <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>

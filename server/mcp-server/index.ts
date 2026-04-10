@@ -1464,6 +1464,71 @@ server.tool("get_gym_config", "Get public gym configuration flags (gymEnabled, g
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+server.tool("list_gym_guides", "List all coach-created guides (programs with source=coach)", {}, async () => {
+  const r = await api.listGymGuides();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_gym_guide", "Create a coach-generated guide from a training session. Saved as a program with source=coach, visible in the Guides tab.", {
+  title: z.string().describe("Guide title"),
+  description: z.string().optional().describe("Short description of what this guide covers"),
+  difficulty: z.enum(["beginner", "intermediate", "advanced"]).optional().describe("Difficulty level"),
+  dimensions: z.array(z.string()).optional().describe("Related skill dimensions (application, communication, knowledge, orchestration, craft)"),
+  estimatedTime: z.string().optional().describe("Estimated completion time (e.g. '15 minutes')"),
+  modules: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    order: z.number(),
+    steps: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      order: z.number(),
+      type: z.enum(["knowledge", "self-report", "platform-check"]).optional(),
+      content: z.string(),
+    })),
+  })).optional().describe("Structured modules with steps"),
+  content: z.string().optional().describe("Raw markdown content (alternative to modules — will be displayed as a single-step guide)"),
+}, async (params) => {
+  const body: Record<string, unknown> = { ...params };
+  // If raw content provided without modules, wrap in a single module
+  if (params.content && !params.modules) {
+    body.modules = [{
+      id: "main",
+      title: params.title,
+      order: 1,
+      steps: [{
+        id: "guide-content",
+        title: params.title,
+        order: 1,
+        type: "knowledge",
+        content: params.content,
+      }],
+    }];
+    delete body.content;
+  }
+  const r = await api.createGymGuide(body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_insights", "Get pre-computed AI insights (generated weekly by the gym goal). Used by 'You tell me' mode.", {}, async () => {
+  const r = await api.getGymInsights();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("save_gym_insights", "Save AI-generated insights from weekly analysis. Called by the weekly-insight goal after analyzing activity.", {
+  insights: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    dimension: z.string().optional(),
+    agentId: z.string().optional(),
+  })).describe("List of insight objects"),
+  topRecommendation: z.string().optional().describe("The single best recommendation for the user right now"),
+  summary: z.string().optional().describe("Brief summary of what was observed"),
+}, async ({ insights, topRecommendation, summary }) => {
+  const r = await api.saveGymInsights({ insights, topRecommendation, summary });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 // ═══════════════════════════════════════════════════════════════════
 //  START SERVER
 // ═══════════════════════════════════════════════════════════════════

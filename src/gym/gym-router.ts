@@ -7,11 +7,12 @@ import { randomUUID } from "node:crypto";
 // All AI Gym endpoints: learner profile, plan, progress, cards,
 // dimension history, programs, agent activity summaries, and log search.
 
-export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; programsDir?: string }): Router {
+export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; programsDir?: string; userProgramsDir?: string }): Router {
   const router = Router();
   const gymRepoDir = join(baseDir, "agents", "platform", "gym");
   const memoryDir = opts?.memoryDir || join(gymRepoDir, "memory");
   const programsDir = opts?.programsDir || join(gymRepoDir, "programs");
+  const userProgramsDir = opts?.userProgramsDir || join(memoryDir, "programs");
 
   // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -172,17 +173,27 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
   // ── 6. Programs — List All ─────────────────────────────────────────
 
   router.get("/api/gym/programs", (_req, res) => {
+    const programs: any[] = [];
+
+    // Platform standard programs (from repo)
     ensureDir(programsDir);
-    const slugs = readdirSync(programsDir, { withFileTypes: true })
+    const platformSlugs = readdirSync(programsDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name);
+    for (const slug of platformSlugs) {
+      const data = readJson(join(programsDir, slug, "program.json"), null);
+      if (data) programs.push({ ...data, slug, source: data.source || "platform" });
+    }
 
-    const programs = slugs.map((slug) => {
-      const pPath = join(programsDir, slug, "program.json");
-      const data = readJson(pPath, null);
-      if (!data) return null;
-      return { ...data, slug };
-    }).filter(Boolean);
+    // User & coach created programs (from Drive)
+    ensureDir(userProgramsDir);
+    const userSlugs = readdirSync(userProgramsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+    for (const slug of userSlugs) {
+      const data = readJson(join(userProgramsDir, slug, "program.json"), null);
+      if (data) programs.push({ ...data, slug, source: data.source || "user" });
+    }
 
     res.json(programs);
   });
@@ -191,7 +202,14 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
   router.get("/api/gym/programs/:slug", (req, res) => {
     const slug = req.params.slug;
-    const progDir = join(programsDir, slug);
+
+    // Check platform programs first, then user programs
+    let progDir = join(programsDir, slug);
+    let defaultSource = "platform";
+    if (!existsSync(join(progDir, "program.json"))) {
+      progDir = join(userProgramsDir, slug);
+      defaultSource = "user";
+    }
     const pPath = join(progDir, "program.json");
 
     if (!existsSync(pPath)) {
@@ -201,6 +219,7 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
     const program = readJson(pPath, {});
     program.slug = slug;
+    if (!program.source) program.source = defaultSource;
 
     // Enrich modules with .md file content if present
     if (Array.isArray(program.modules)) {
@@ -222,12 +241,13 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
   router.post("/api/gym/programs", (req, res) => {
     const slug = req.body.slug || req.body.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomUUID();
-    const progDir = join(programsDir, slug);
+    const progDir = join(userProgramsDir, slug);
     ensureDir(progDir);
 
     const program = {
       ...req.body,
       slug,
+      source: req.body.source || "user",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -239,7 +259,9 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
   router.patch("/api/gym/programs/:slug", (req, res) => {
     const slug = req.params.slug;
-    const pPath = join(programsDir, slug, "program.json");
+    // Check user programs first (editable), then platform
+    let pPath = join(userProgramsDir, slug, "program.json");
+    if (!existsSync(pPath)) pPath = join(programsDir, slug, "program.json");
 
     if (!existsSync(pPath)) {
       res.status(404).json({ error: "Program not found" });
@@ -256,7 +278,13 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
   router.delete("/api/gym/programs/:slug", (req, res) => {
     const slug = req.params.slug;
-    const progDir = join(programsDir, slug);
+
+    // Check user programs first
+    let progDir = join(userProgramsDir, slug);
+    if (!existsSync(progDir)) {
+      // Allow deleting platform programs only if explicitly requested
+      progDir = join(programsDir, slug);
+    }
 
     if (!existsSync(progDir)) {
       res.status(404).json({ error: "Program not found" });
@@ -340,12 +368,15 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
     // Generate slug
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomUUID();
-    const progDir = join(programsDir, slug);
+    const source = req.body.source || "user";
+    const progDir = join(userProgramsDir, slug);
     ensureDir(progDir);
 
     const program = {
       slug,
       title,
+      description: req.body.description || "",
+      source,
       modules,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -585,6 +616,126 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
       gymOnlyMode: !!service.gymOnlyMode,
       aibriefingEnabled: !!service.aibriefingEnabled,
     });
+  });
+
+  // ── AI Insights (written by weekly goal, read by "You tell me") ──
+
+  const insightsPath = () => join(memoryDir, "insights.json");
+
+  router.get("/api/gym/insights", (req, res) => {
+    const data = readJson(insightsPath(), { insights: [], generatedAt: null, dismissed: [] });
+    const dismissed: string[] = data.dismissed || [];
+    const includeDismissed = req.query.includeDismissed === "true";
+    // Filter out dismissed insights unless explicitly requested
+    const filtered = includeDismissed
+      ? data.insights || []
+      : (data.insights || []).filter((ins: any) => !dismissed.includes(ins.id));
+    res.json({ ...data, insights: filtered });
+  });
+
+  router.post("/api/gym/insights", (req, res) => {
+    const existing = readJson(insightsPath(), { insights: [], generatedAt: null, dismissed: [] });
+    // Assign IDs to each insight if not already present
+    const insights = (req.body.insights || []).map((ins: any, i: number) => ({
+      ...ins,
+      id: ins.id || `insight-${ins.category || "gen"}-${i}-${Date.now()}`,
+    }));
+    const newInsights = {
+      insights,
+      topRecommendation: req.body.topRecommendation || null,
+      summary: req.body.summary || null,
+      generatedAt: new Date().toISOString(),
+      previousGeneratedAt: existing.generatedAt || null,
+      dismissed: existing.dismissed || [], // Preserve dismissed list across regenerations
+    };
+    writeJson(insightsPath(), newInsights);
+    res.json(newInsights);
+  });
+
+  // Dismiss an insight (mark as done or cancelled)
+  router.post("/api/gym/insights/:id/dismiss", (req, res) => {
+    const data = readJson(insightsPath(), { insights: [], generatedAt: null, dismissed: [] });
+    const dismissed: string[] = data.dismissed || [];
+    const insightId = req.params.id;
+    const status = req.body.status || "dismissed"; // "done" | "cancelled" | "dismissed"
+    const insight = (data.insights || []).find((ins: any) => ins.id === insightId);
+    if (!insight) {
+      res.status(404).json({ error: "Insight not found" });
+      return;
+    }
+    if (!dismissed.includes(insightId)) {
+      dismissed.push(insightId);
+    }
+    // Mark the insight itself with status for history
+    insight.dismissedAt = new Date().toISOString();
+    insight.dismissStatus = status;
+    data.dismissed = dismissed;
+    writeJson(insightsPath(), data);
+    res.json({ ok: true, id: insightId, status });
+  });
+
+  // Clear all dismissed insights (reset)
+  router.post("/api/gym/insights/reset-dismissed", (_req, res) => {
+    const data = readJson(insightsPath(), { insights: [], generatedAt: null, dismissed: [] });
+    // Remove dismiss markers from insights
+    for (const ins of (data.insights || [])) {
+      delete ins.dismissedAt;
+      delete ins.dismissStatus;
+    }
+    data.dismissed = [];
+    writeJson(insightsPath(), data);
+    res.json({ ok: true });
+  });
+
+  // ── Manual digest trigger ────────────────────────────────────────
+  router.post("/api/gym/insights/generate", async (_req, res) => {
+    try {
+      const { runActivityDigest } = await import("./activity-digest.js");
+      const configPath = join(baseDir, "config.json");
+      const config = readJson(configPath, {});
+      const port = config.service?.port || 4888;
+      await runActivityDigest({ baseDir, port, memoryDir });
+      const data = readJson(insightsPath(), { insights: [], generatedAt: null });
+      res.json({ ok: true, ...data });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  // ── Coach-Created Guides ──────────────────────────────────────────
+
+  // List guides (programs with source=coach)
+  router.get("/api/gym/guides", (_req, res) => {
+    const guides: any[] = [];
+    // Check user programs dir for coach-created guides
+    if (existsSync(userProgramsDir)) {
+      for (const entry of readdirSync(userProgramsDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const pPath = join(userProgramsDir, entry.name, "program.json");
+        const data = readJson(pPath, null);
+        if (data && data.source === "coach") {
+          guides.push({ ...data, slug: entry.name });
+        }
+      }
+    }
+    res.json(guides);
+  });
+
+  // Create a guide (convenience wrapper — creates a program with source=coach)
+  router.post("/api/gym/guides", (req, res) => {
+    const slug = req.body.slug || req.body.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomUUID();
+    const progDir = join(userProgramsDir, slug);
+    ensureDir(progDir);
+
+    const guide = {
+      ...req.body,
+      slug,
+      source: "coach",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    writeJson(join(progDir, "program.json"), guide);
+    res.status(201).json(guide);
   });
 
   return router;

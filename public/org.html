@@ -102,6 +102,8 @@ html,body{
 .sub-nav-link.active{color:var(--accent)}
 
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.gym-nav-btn{font-family:var(--font-sans);font-size:12px;font-weight:700;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:6px 14px;cursor:pointer;text-decoration:none;letter-spacing:.02em;transition:opacity .2s,transform .2s;white-space:nowrap}
+.gym-nav-btn:hover{opacity:.88;transform:translateY(-1px)}
 .topbar-control{
   font-family:var(--font-sans);font-size:11px;font-weight:500;
   padding:6px 12px;border-radius:8px;
@@ -1032,9 +1034,9 @@ text-decoration:none;}
     <a class="tab-btn" href="/ui">Chat</a>
     <a class="tab-btn" href="/library" id="tabLibrary">Library</a>
       <a class="tab-btn" href="/lab">Lab</a>
-      <a class="tab-btn gym-tab-link" href="/gym" style="display:none">Gym</a>
   </div>
   <div class="topbar-right">
+    <a class="gym-nav-btn gym-tab-link" href="/gym" style="display:none">Gym</a>
     <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
@@ -1064,6 +1066,10 @@ text-decoration:none;}
       <button class="modal-tab" onclick="switchModalTab('schedules',this)">Schedules</button>
       <button class="modal-tab" onclick="switchModalTab('goals',this)">Goals</button>
       <button class="modal-tab" onclick="switchModalTab('config',this)">Config</button>
+      <button class="modal-tab gym-only-tab" style="display:none" onclick="switchModalTab('gym-trainer',this)">Trainer</button>
+      <button class="modal-tab gym-only-tab" style="display:none" onclick="switchModalTab('gym-learner',this)">Learner</button>
+      <button class="modal-tab gym-only-tab" style="display:none" onclick="switchModalTab('gym-dimensions',this)">Dimensions</button>
+      <button class="modal-tab gym-only-tab" style="display:none" onclick="switchModalTab('gym-programs',this)">Programs</button>
     </div>
 
     <!-- Overview Tab -->
@@ -1103,8 +1109,9 @@ text-decoration:none;}
           <option value="standard">Standard</option>
           <option value="builder">Builder</option>
           <option value="platform">Platform</option>
+          <option value="gym">Gym</option>
         </select>
-        <div class="form-hint">Standard (default), Builder (app developer agents), Platform (Lab creators).</div>
+        <div class="form-hint">Standard (default), Builder (app developer agents), Platform (Lab creators), Gym (training coach).</div>
       </div>
 
       <div class="form-group">
@@ -1340,6 +1347,69 @@ text-decoration:none;}
       <button class="add-entry-btn" onclick="addRouteEntry()">+ Add Route</button>
     </div>
     </div>
+
+    <!-- Gym: Trainer Tab -->
+    <div class="modal-tab-content" id="tab-gym-trainer">
+    <div class="modal-body">
+      <div class="form-section">Active Trainer</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px">Choose the coaching personality for your gym agent. This changes how the coach interacts during training sessions.</p>
+      <div id="gymTrainerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
+    </div>
+    </div>
+
+    <!-- Gym: Learner Tab -->
+    <div class="modal-tab-content" id="tab-gym-learner">
+    <div class="modal-body">
+      <div class="form-section">Learner Profile</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px">The coach builds this profile during onboarding and updates it as you train. You can edit fields directly.</p>
+      <div class="form-group">
+        <label class="form-label">Identity</label>
+        <textarea class="form-input" id="gym-learner-identity" rows="4" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="Built during onboarding..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Goals</label>
+        <textarea class="form-input" id="gym-learner-goals" rows="3" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="What the learner wants to achieve..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Current Streak</label>
+          <input class="form-input" id="gym-learner-streak" type="number" min="0" readonly style="opacity:.7;cursor:not-allowed;font-family:var(--font-mono);font-size:12px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Longest Streak</label>
+          <input class="form-input" id="gym-learner-longestStreak" type="number" min="0" readonly style="opacity:.7;cursor:not-allowed;font-family:var(--font-mono);font-size:12px">
+        </div>
+      </div>
+      <div class="form-section" style="margin-top:16px">Strengths</div>
+      <div id="gym-learner-strengths" style="font-size:13px;color:var(--text-secondary)"></div>
+      <div class="form-section" style="margin-top:16px">Struggles</div>
+      <div id="gym-learner-struggles" style="font-size:13px;color:var(--text-secondary)"></div>
+      <div style="margin-top:20px;display:flex;gap:8px">
+        <button class="btn-save" onclick="saveGymLearnerProfile()" style="font-size:13px;padding:8px 16px">Save Profile</button>
+      </div>
+    </div>
+    </div>
+
+    <!-- Gym: Dimensions Tab -->
+    <div class="modal-tab-content" id="tab-gym-dimensions">
+    <div class="modal-body">
+      <div class="form-section">Skill Dimensions</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px">Current scores across the 5 skill dimensions. Updated by the coach as you progress.</p>
+      <div id="gymDimensionBars" style="display:flex;flex-direction:column;gap:12px"></div>
+      <div class="form-section" style="margin-top:24px">History</div>
+      <div id="gymDimensionHistory" style="font-size:13px;color:var(--text-secondary)"></div>
+    </div>
+    </div>
+
+    <!-- Gym: Programs Tab -->
+    <div class="modal-tab-content" id="tab-gym-programs">
+    <div class="modal-body">
+      <div class="form-section">Programs</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px">Training programs available to the gym. Shows enrollment and completion status.</p>
+      <div id="gymProgramList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+    </div>
+
     <div class="modal-footer">
       <div class="modal-footer-left">
         <button class="btn-delete hidden" id="deleteBtn" onclick="showDeleteConfirm()">Delete Agent</button>
@@ -2244,6 +2314,13 @@ async function openModal(agentId) {
     const agentClassEl = document.getElementById('f-agentClass');
     if (agentClassEl) agentClassEl.value = a.agentClass || 'standard';
 
+    // Show/hide gym-specific tabs
+    const isGym = (a.agentClass || 'standard') === 'gym';
+    document.querySelectorAll('.gym-only-tab').forEach(el => {
+      el.style.display = isGym ? '' : 'none';
+    });
+    if (isGym) loadGymTabData();
+
     // Executor
     loadExecutorOptions(a.executor || '');
 
@@ -2315,6 +2392,7 @@ async function openModal(agentId) {
     document.getElementById('saveBtn').textContent = 'Create Agent';
     document.getElementById('modalHint').textContent = 'Agent files created in ~/Desktop/MyAIforOne Drive/PersonalAgents/';
     document.getElementById('deleteBtn').classList.add('hidden');
+    document.querySelectorAll('.gym-only-tab').forEach(el => el.style.display = 'none');
 
     idField.value = '';
     idField.readOnly = false;
@@ -3434,6 +3512,229 @@ function getGoalsFromForm() {
     else if (reportTargets.length > 1) goal.reportTo = reportTargets;
     return goal;
   }).filter(Boolean);
+}
+
+// ─── Gym Tab Functions ──────────────────────────────────────────
+
+const GYM_TRAINERS = [
+  { id: 'alex', name: 'Alex', initials: 'AX', color: '#22d3ee', style: 'Collaborative' },
+  { id: 'jordan', name: 'Jordan', initials: 'JD', color: '#f97316', style: 'Direct' },
+  { id: 'morgan', name: 'Morgan', initials: 'MG', color: '#a78bfa', style: 'Thoughtful' },
+  { id: 'riley', name: 'Riley', initials: 'RL', color: '#ef4444', style: 'Challenging' },
+  { id: 'sam', name: 'Sam', initials: 'SM', color: '#4ade80', style: 'Patient' }
+];
+
+const GYM_DIMENSIONS = [
+  { key: 'application', label: 'Application', color: '#22d3ee' },
+  { key: 'communication', label: 'Communication', color: '#f97316' },
+  { key: 'knowledge', label: 'Knowledge', color: '#a78bfa' },
+  { key: 'orchestration', label: 'Orchestration', color: '#ef4444' },
+  { key: 'craft', label: 'Craft', color: '#4ade80' }
+];
+
+let gymProfile = null;
+
+async function loadGymTabData() {
+  try {
+    const [profileRes, progRes, programsRes, histRes] = await Promise.all([
+      fetch('/api/gym/learner-profile'),
+      fetch('/api/gym/progress'),
+      fetch('/api/gym/programs'),
+      fetch('/api/gym/dimensions/history')
+    ]);
+    gymProfile = await profileRes.json();
+    const progress = await progRes.json();
+    const programs = await programsRes.json();
+    const history = await histRes.json();
+
+    renderGymTrainerTab(gymProfile);
+    renderGymLearnerTab(gymProfile);
+    renderGymDimensionsTab(gymProfile, history);
+    renderGymProgramsTab(programs, progress);
+  } catch (e) {
+    console.warn('Failed to load gym data:', e);
+  }
+}
+
+function renderGymTrainerTab(profile) {
+  const grid = document.getElementById('gymTrainerGrid');
+  const selected = profile.selectedTrainer || 'alex';
+  grid.innerHTML = GYM_TRAINERS.map(t => `
+    <div class="gym-trainer-card ${t.id === selected ? 'selected' : ''}" data-trainer="${t.id}" onclick="selectGymTrainer('${t.id}')"
+      style="padding:16px;border-radius:12px;border:2px solid ${t.id === selected ? t.color : 'var(--border-dim)'};
+      background:${t.id === selected ? t.color + '10' : 'var(--bg-surface)'};cursor:pointer;transition:all .2s;text-align:center">
+      <div style="width:48px;height:48px;border-radius:50%;background:${t.color}20;color:${t.color};
+        display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;margin:0 auto 8px">
+        ${t.initials}
+      </div>
+      <div style="font-weight:600;color:var(--text-primary);font-size:14px">${t.name}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${t.style}</div>
+      ${t.id === selected ? '<div style="font-size:11px;color:' + t.color + ';margin-top:6px;font-weight:600">Active</div>' : ''}
+    </div>
+  `).join('');
+}
+
+async function selectGymTrainer(trainerId) {
+  try {
+    await fetch('/api/gym/learner-profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedTrainer: trainerId })
+    });
+    if (gymProfile) gymProfile.selectedTrainer = trainerId;
+    renderGymTrainerTab(gymProfile || { selectedTrainer: trainerId });
+  } catch (e) {
+    console.warn('Failed to switch trainer:', e);
+  }
+}
+
+function renderGymLearnerTab(profile) {
+  const identityEl = document.getElementById('gym-learner-identity');
+  const goalsEl = document.getElementById('gym-learner-goals');
+  const streakEl = document.getElementById('gym-learner-streak');
+  const longestEl = document.getElementById('gym-learner-longestStreak');
+  const strengthsEl = document.getElementById('gym-learner-strengths');
+  const strugglesEl = document.getElementById('gym-learner-struggles');
+
+  const identity = profile.identity || {};
+  identityEl.value = typeof identity === 'string' ? identity : JSON.stringify(identity, null, 2);
+
+  const goals = profile.goals || profile.identity?.goals || [];
+  goalsEl.value = Array.isArray(goals) ? goals.join('\n') : (typeof goals === 'string' ? goals : JSON.stringify(goals, null, 2));
+
+  streakEl.value = profile.streak?.current || 0;
+  longestEl.value = profile.streak?.longest || 0;
+
+  const strengths = profile.patterns?.strengths || [];
+  strengthsEl.innerHTML = strengths.length > 0
+    ? strengths.map(s => `<span style="display:inline-block;padding:4px 10px;border-radius:8px;background:var(--bg-deep);border:1px solid var(--border-dim);margin:2px;font-size:12px">${s}</span>`).join('')
+    : '<span style="color:var(--text-muted);font-size:12px">None identified yet</span>';
+
+  const struggles = profile.patterns?.struggles || [];
+  strugglesEl.innerHTML = struggles.length > 0
+    ? struggles.map(s => `<span style="display:inline-block;padding:4px 10px;border-radius:8px;background:var(--bg-deep);border:1px solid var(--border-dim);margin:2px;font-size:12px">${s}</span>`).join('')
+    : '<span style="color:var(--text-muted);font-size:12px">None identified yet</span>';
+}
+
+async function saveGymLearnerProfile() {
+  try {
+    const identityRaw = document.getElementById('gym-learner-identity').value;
+    const goalsRaw = document.getElementById('gym-learner-goals').value;
+
+    let identity;
+    try { identity = JSON.parse(identityRaw); } catch { identity = identityRaw; }
+
+    const goals = goalsRaw.split('\n').map(g => g.trim()).filter(Boolean);
+
+    await fetch('/api/gym/learner-profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identity, goals })
+    });
+
+    // Refresh
+    const res = await fetch('/api/gym/learner-profile');
+    gymProfile = await res.json();
+    renderGymLearnerTab(gymProfile);
+  } catch (e) {
+    console.warn('Failed to save learner profile:', e);
+  }
+}
+
+function renderGymDimensionsTab(profile, history) {
+  const barsEl = document.getElementById('gymDimensionBars');
+  const dims = profile.dimensions || {};
+
+  barsEl.innerHTML = GYM_DIMENSIONS.map(d => {
+    const dim = dims[d.key] || {};
+    const score = dim.score || 0;
+    const pct = Math.round((score / 10) * 100);
+    const trend = dim.trend || 'stable';
+    const trendIcon = trend === 'improving' ? '&#x2191;' : trend === 'declining' ? '&#x2193;' : '&#x2022;';
+    const trendColor = trend === 'improving' ? '#4ade80' : trend === 'declining' ? '#ef4444' : 'var(--text-muted)';
+    return `
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:110px;font-size:13px;font-weight:500;color:var(--text-primary)">${d.label}</div>
+        <div style="flex:1;height:8px;border-radius:4px;background:var(--bg-deep);overflow:hidden">
+          <div style="width:${pct}%;height:100%;border-radius:4px;background:${d.color};transition:width .4s ease"></div>
+        </div>
+        <div style="width:40px;text-align:right;font-size:13px;font-weight:600;color:var(--text-primary)">${score}/10</div>
+        <div style="width:20px;text-align:center;font-size:14px;color:${trendColor}" title="${trend}">${trendIcon}</div>
+      </div>
+    `;
+  }).join('');
+
+  // History
+  const histEl = document.getElementById('gymDimensionHistory');
+  const snapshots = Array.isArray(history) ? history : [];
+  if (snapshots.length === 0) {
+    histEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">No snapshots yet. The coach takes snapshots as you progress.</span>';
+  } else {
+    const recent = snapshots.slice(-5).reverse();
+    histEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:1px solid var(--border-dim)">
+          <th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:500">Date</th>
+          ${GYM_DIMENSIONS.map(d => `<th style="text-align:center;padding:6px 4px;color:${d.color};font-weight:500">${d.label.slice(0, 4)}</th>`).join('')}
+        </tr></thead>
+        <tbody>
+          ${recent.map(s => `
+            <tr style="border-bottom:1px solid var(--border-dim)">
+              <td style="padding:6px 8px;color:var(--text-secondary)">${s.date || '—'}</td>
+              ${GYM_DIMENSIONS.map(d => `<td style="text-align:center;padding:6px 4px;color:var(--text-primary)">${s.dimensions?.[d.key] ?? '—'}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+}
+
+function renderGymProgramsTab(programs, progress) {
+  const listEl = document.getElementById('gymProgramList');
+  const progs = Array.isArray(programs) ? programs : [];
+  const progressData = progress?.programs || {};
+
+  if (progs.length === 0) {
+    listEl.innerHTML = '<span style="color:var(--text-muted);font-size:13px">No programs found.</span>';
+    return;
+  }
+
+  listEl.innerHTML = progs.map(p => {
+    const prog = progressData[p.slug || p.id] || {};
+    const completedSteps = prog.completedSteps?.length || 0;
+    const totalSteps = (p.modules || []).reduce((sum, m) => sum + (m.steps?.length || 0), 0);
+    const isStarted = !!prog.startedAt;
+    const pct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
+    const diffColors = { beginner: '#4ade80', intermediate: '#f97316', advanced: '#ef4444' };
+    const diffColor = diffColors[p.difficulty] || 'var(--text-muted)';
+
+    return `
+      <div style="padding:14px 16px;border-radius:12px;border:1px solid var(--border-dim);background:var(--bg-surface)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--text-primary)">${p.title || p.id}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+              <span style="color:${diffColor}">${p.difficulty || 'unknown'}</span>
+              ${p.estimatedTime ? ' · ' + p.estimatedTime : ''}
+              ${(p.dimensions || []).length > 0 ? ' · ' + p.dimensions.join(', ') : ''}
+            </div>
+          </div>
+          <div style="text-align:right;min-width:80px">
+            ${isStarted ? `<div style="font-size:13px;font-weight:600;color:var(--text-primary)">${pct}%</div>` : '<div style="font-size:12px;color:var(--text-muted)">Not started</div>'}
+          </div>
+        </div>
+        ${isStarted ? `
+          <div style="margin-top:8px;height:4px;border-radius:2px;background:var(--bg-deep);overflow:hidden">
+            <div style="width:${pct}%;height:100%;border-radius:2px;background:${pct === 100 ? '#4ade80' : 'var(--accent-primary)'};transition:width .3s"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${completedSteps}/${totalSteps} steps${prog.currentModule ? ' · Current: ' + prog.currentModule : ''}</div>
+        ` : ''}
+        ${p.description ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4">${p.description.length > 120 ? p.description.slice(0, 120) + '...' : p.description}</div>` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
 async function saveAgent() {
