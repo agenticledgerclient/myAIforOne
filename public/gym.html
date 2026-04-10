@@ -1499,8 +1499,8 @@ function renderGymCards() {
 
   const heuristicCards = state.cards.map((c, i) => `
     <div class="gym-card" id="gymCard${i}">
-      ${c.isNew ? '<span class="gym-card-badge">New</span>' : ''}
-      <button class="gym-card-dismiss" onclick="dismissCard(${i}, event)"${c.isNew ? ' style="display:none"' : ''}>&times;</button>
+      ${c.isNew ? '<span class="gym-card-badge" style="right:22px">New</span>' : ''}
+      <button class="gym-card-dismiss" onclick="dismissCard(${i}, event)">&times;</button>
       <div class="gym-card-title">${c.title || 'Tip'}</div>
       <div class="gym-card-desc">${c.description || c.text || ''}</div>
       ${c.cta ? `<button class="gym-card-cta" onclick="handleCardCta('${c.ctaAction || ''}')">${c.cta}</button>` : ''}
