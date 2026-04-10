@@ -255,8 +255,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   padding:1px 5px;border-radius:4px;background:var(--accent-bg);color:var(--accent);
 }
 .gym-card-dismiss{
-  position:absolute;top:5px;right:5px;background:none;border:none;
-  color:var(--text-muted);cursor:pointer;font-size:12px;padding:1px 3px;transition:color .2s;
+  position:absolute;top:4px;right:4px;background:none;border:none;
+  color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 4px;transition:color .2s;z-index:2;line-height:1;
 }
 .gym-card-dismiss:hover{color:var(--text-primary)}
 .gym-card-insight{border-left:2px solid var(--accent)}
@@ -337,6 +337,54 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 }
 .chat-send:hover{filter:brightness(1.1);transform:scale(1.05)}
 .chat-send:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.chat-input-wrap{display:flex;flex-direction:column;flex-shrink:0}
+
+/* ─── Chat toolbar buttons ────────────────── */
+.gym-clip-btn,.gym-mic-btn,.gym-raw-btn{
+  width:36px;height:36px;border-radius:8px;border:1px solid var(--border-dim);
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:all .2s;flex-shrink:0;
+}
+.gym-clip-btn:hover,.gym-mic-btn:hover,.gym-raw-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.gym-clip-btn.has-files{border-color:var(--accent);color:var(--accent)}
+.gym-mic-btn.recording{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.1);color:#ef4444;animation:gymMicPulse 1s ease-in-out infinite}
+.gym-raw-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(139,92,246,0.1)}
+@keyframes gymMicPulse{0%,100%{opacity:1}50%{opacity:.6}}
+.gym-file-drop{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:10px 14px;border:2px dashed var(--border-glow);border-radius:10px;
+  background:var(--bg-input);text-align:center;font-size:11px;color:var(--text-muted);
+  cursor:pointer;transition:all .2s;min-height:50px;
+}
+.gym-file-drop.hidden{display:none}
+.gym-file-drop.dragover{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.gym-file-drop input[type=file]{display:none}
+.gym-file-list{display:flex;flex-wrap:wrap;gap:4px;width:100%;justify-content:flex-start}
+.gym-file-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:6px;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  font-family:var(--font-mono);font-size:9px;color:var(--text-primary);max-width:180px;
+}
+.gym-file-pill-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.gym-file-pill-rm{cursor:pointer;color:var(--text-muted);font-size:12px}
+.gym-file-pill-rm:hover{color:#ef4444}
+.gym-raw-drawer{
+  display:none;max-height:200px;overflow-y:auto;padding:8px 12px;
+  background:var(--bg-input);border-top:1px solid var(--border-dim);
+  font-family:var(--font-mono);font-size:10px;color:var(--text-muted);border-radius:0 0 8px 8px;
+}
+.gym-raw-drawer.open{display:block}
+.gym-raw-drawer pre{margin:0;white-space:pre-wrap;word-break:break-all}
+.gym-raw-drawer .log-line{opacity:0.7}
+.gym-raw-drawer .log-line:last-child{opacity:1}
+.gym-raw-drawer .log-stderr{color:#ef4444}
+.gym-raw-drawer .log-dim{opacity:0.4}
+.gym-raw-header{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px}
+.gym-raw-mode-btn{background:none;border:1px solid var(--border-dim);color:var(--text-muted);font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer;font-family:var(--font-mono)}
+.gym-raw-mode-btn:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ─── Progress Tab ────────────────────────── */
 .progress-panel{padding:24px;overflow-y:auto}
@@ -710,11 +758,32 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
       <div class="gym-view active" id="coachView">
         <div class="coach-header" id="coachHeader"></div>
         <div class="chat-messages" id="chatMessages"></div>
-        <div class="chat-input-area">
-          <textarea class="chat-textarea" id="chatInput" placeholder="Message your coach..." rows="1"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
-            oninput="autoResizeChat(this)"></textarea>
-          <button class="chat-send" id="chatSend" onclick="sendMessage()">&#x2192;</button>
+        <div class="chat-input-wrap">
+          <div class="gym-file-drop hidden" id="gymFileDropZone"
+            onclick="document.getElementById('gymFileInput').click()"
+            ondragover="event.preventDefault();this.classList.add('dragover')"
+            ondragleave="this.classList.remove('dragover')"
+            ondrop="event.preventDefault();this.classList.remove('dragover');gymHandleFileDrop(event)">
+            <input type="file" id="gymFileInput" multiple onchange="gymHandleFileSelect(event)">
+            <div id="gymFileListArea"><span>Drop files here or click to browse</span></div>
+          </div>
+          <div class="chat-input-area">
+            <button class="gym-clip-btn" id="gymClipBtn" onclick="gymToggleFileZone()" title="Attach files">&#x1F4CE;</button>
+            <button class="gym-mic-btn" id="gymMicBtn" onclick="gymToggleVoice()" title="Click to speak">&#x1F3A4;</button>
+            <button class="gym-mic-btn" id="gymVoiceModeBtn" onclick="gymToggleVoiceMode()" title="Read responses aloud" style="font-size:14px">&#x1F507;</button>
+            <button class="gym-raw-btn" id="gymRawBtn" onclick="gymToggleRawLogs()" title="Raw logs (live feed)">&#x2318;</button>
+            <textarea class="chat-textarea" id="chatInput" placeholder="Message your coach..." rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+              oninput="autoResizeChat(this)"></textarea>
+            <button class="chat-send" id="chatSend" onclick="sendMessage()">&#x2192;</button>
+          </div>
+          <div class="gym-raw-drawer" id="gymRawDrawer">
+            <div class="gym-raw-header">
+              <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Activity</span>
+              <button class="gym-raw-mode-btn" id="gymRawModeBtn" onclick="gymToggleRawMode()">&#x25CB; Clean</button>
+            </div>
+            <pre id="gymRawContent"></pre>
+          </div>
         </div>
       </div>
 
@@ -2171,18 +2240,32 @@ async function sendMessage(overrideText) {
   autoResizeChat(input);
   document.getElementById('chatSend').disabled = true;
 
-  addChatMessage('user', text);
+  // Upload pending files
+  let fileRefs = [];
+  if (gymPendingFiles.length > 0) {
+    fileRefs = await gymUploadFiles();
+  }
+
+  const displayText = fileRefs.length
+    ? text + '\n' + fileRefs.map(f => `[File ${f.mode === 'permanent' ? 'saved' : 'attached'}: ${f.name} at ${f.path}]`).join('\n')
+    : text;
+  const sendText = fileRefs.length
+    ? text + '\n\n' + fileRefs.map(f => `[Attached file: ${f.name} at ${f.path}]`).join('\n')
+    : text;
+
+  addChatMessage('user', displayText);
   showTyping();
 
   try {
     const res = await fetch(`${API}/api/chat/gym/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, senderId: 'web' })
+      body: JSON.stringify({ text: sendText, senderId: 'web' })
     });
     const data = await res.json();
 
     if (data.jobId) {
+      if (gymRawLogsOpen) gymStreamRawLogs(data.jobId);
       const msgDiv = addChatMessage('assistant', '');
       let firstChunk = true;
       await consumeSSE(data.jobId, (chunk) => {
@@ -2190,10 +2273,14 @@ async function sendMessage(overrideText) {
         msgDiv.innerHTML = formatMessage(chunk);
         document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
       });
-      if (firstChunk) hideTyping(); // fallback if no chunks came
+      if (firstChunk) hideTyping();
+      // Speak response if voice mode on
+      if (gymVoiceModeOn) gymSpeakText(msgDiv.textContent);
     } else if (data.response || data.text || data.message) {
       hideTyping();
-      addChatMessage('assistant', data.response || data.text || data.message);
+      const reply = data.response || data.text || data.message;
+      addChatMessage('assistant', reply);
+      if (gymVoiceModeOn) gymSpeakText(reply);
     } else {
       hideTyping();
       addChatMessage('assistant', 'Received your message. Working on it...');
@@ -2268,6 +2355,240 @@ function consumeSSE(jobId, onText) {
 function autoResizeChat(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+/* ─── File Attachments ──────────────────── */
+let gymPendingFiles = [];
+
+function gymToggleFileZone() {
+  const zone = document.getElementById('gymFileDropZone');
+  if (!zone) return;
+  zone.classList.toggle('hidden');
+  const btn = document.getElementById('gymClipBtn');
+  if (btn) btn.classList.toggle('has-files', !zone.classList.contains('hidden'));
+}
+
+function gymHandleFileDrop(e) {
+  const files = e.dataTransfer?.files;
+  if (files) gymAddFiles(files);
+}
+
+function gymHandleFileSelect(e) {
+  const files = e.target?.files;
+  if (files) gymAddFiles(files);
+  e.target.value = '';
+}
+
+function gymAddFiles(fileList) {
+  for (const f of fileList) {
+    if (!gymPendingFiles.find(p => p.file.name === f.name && p.file.size === f.size)) {
+      gymPendingFiles.push({ file: f, mode: 'temp' });
+    }
+  }
+  gymRenderFileList();
+}
+
+function gymRemoveFile(idx) {
+  gymPendingFiles.splice(idx, 1);
+  gymRenderFileList();
+  if (gymPendingFiles.length === 0) {
+    const btn = document.getElementById('gymClipBtn');
+    if (btn) btn.classList.remove('has-files');
+  }
+}
+
+function gymRenderFileList() {
+  const area = document.getElementById('gymFileListArea');
+  if (!area) return;
+  if (gymPendingFiles.length === 0) {
+    area.innerHTML = '<span>Drop files here or click to browse</span>';
+    return;
+  }
+  area.innerHTML = '<div class="gym-file-list">' + gymPendingFiles.map((p, i) => {
+    const size = p.file.size > 1024*1024
+      ? (p.file.size/(1024*1024)).toFixed(1) + ' MB'
+      : (p.file.size/1024).toFixed(0) + ' KB';
+    return `<div class="gym-file-pill">
+      <span class="gym-file-pill-name">${p.file.name}</span>
+      <span style="color:var(--text-muted);font-size:8px">${size}</span>
+      <span class="gym-file-pill-rm" onclick="gymRemoveFile(${i})">&times;</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+async function gymUploadFiles() {
+  const uploaded = [];
+  for (const p of gymPendingFiles) {
+    try {
+      const formData = new FormData();
+      formData.append('file', p.file);
+      formData.append('mode', p.mode);
+      const resp = await fetch(`${API}/api/upload/gym`, { method: 'POST', body: formData });
+      const data = await resp.json();
+      if (data.ok) uploaded.push({ name: data.fileName, path: data.path, mode: data.mode });
+    } catch (err) { console.warn('Upload failed:', p.file.name, err); }
+  }
+  gymPendingFiles = [];
+  gymRenderFileList();
+  const zone = document.getElementById('gymFileDropZone');
+  if (zone) zone.classList.add('hidden');
+  const btn = document.getElementById('gymClipBtn');
+  if (btn) btn.classList.remove('has-files');
+  return uploaded;
+}
+
+/* ─── Voice Input ───────────────────────── */
+let gymRecognition = null;
+let gymIsRecording = false;
+
+function gymToggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Speech recognition not supported in this browser. Use Chrome or Edge.');
+    return;
+  }
+  if (gymIsRecording) gymStopVoice(); else gymStartVoice();
+}
+
+function gymStartVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  gymRecognition = new SpeechRecognition();
+  gymRecognition.continuous = true;
+  gymRecognition.interimResults = true;
+  gymRecognition.lang = 'en-US';
+
+  let finalTranscript = '';
+  const input = document.getElementById('chatInput');
+  const existingText = input ? input.value : '';
+
+  gymRecognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' ';
+      else interim += event.results[i][0].transcript;
+    }
+    if (input) {
+      input.value = existingText + (existingText ? ' ' : '') + finalTranscript + interim;
+      autoResizeChat(input);
+    }
+  };
+  gymRecognition.onerror = () => gymStopVoice();
+  gymRecognition.onend = () => { if (gymIsRecording) gymStopVoice(); };
+  gymRecognition.start();
+  gymIsRecording = true;
+  const btn = document.getElementById('gymMicBtn');
+  if (btn) { btn.classList.add('recording'); btn.title = 'Click to stop'; }
+}
+
+function gymStopVoice() {
+  if (gymRecognition) { gymRecognition.stop(); gymRecognition = null; }
+  gymIsRecording = false;
+  const btn = document.getElementById('gymMicBtn');
+  if (btn) { btn.classList.remove('recording'); btn.title = 'Click to speak'; }
+  const input = document.getElementById('chatInput');
+  if (input) input.focus();
+}
+
+/* ─── Voice Read-Back ───────────────────── */
+let gymVoiceModeOn = false;
+
+function gymToggleVoiceMode() {
+  gymVoiceModeOn = !gymVoiceModeOn;
+  const btn = document.getElementById('gymVoiceModeBtn');
+  if (btn) { btn.innerHTML = gymVoiceModeOn ? '&#x1F50A;' : '&#x1F507;'; btn.style.color = gymVoiceModeOn ? 'var(--accent)' : ''; }
+  if (!gymVoiceModeOn) window.speechSynthesis?.cancel();
+}
+
+function gymSpeakText(text) {
+  if (!gymVoiceModeOn || !window.speechSynthesis) return;
+  const clean = text.replace(/[*_`#>~]/g, '').replace(/\n+/g, ' ').trim();
+  if (!clean) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.rate = 1.05;
+  window.speechSynthesis.speak(u);
+}
+
+/* ─── Raw Logs ──────────────────────────── */
+let gymRawLogsOpen = false;
+let gymRawLogsReader = null;
+let gymRawMode = false;
+
+function gymToggleRawLogs() {
+  gymRawLogsOpen = !gymRawLogsOpen;
+  const drawer = document.getElementById('gymRawDrawer');
+  const btn = document.getElementById('gymRawBtn');
+  if (drawer) drawer.classList.toggle('open', gymRawLogsOpen);
+  if (btn) btn.classList.toggle('active', gymRawLogsOpen);
+  if (gymRawLogsOpen) {
+    const el = document.getElementById('gymRawContent');
+    if (el) el.textContent = 'No active job. Send a message to start streaming logs.\n';
+  }
+}
+
+async function gymStreamRawLogs(jobId) {
+  const el = document.getElementById('gymRawContent');
+  if (!el) return;
+  el.textContent = '';
+  try {
+    const res = await fetch(`${API}/api/chat/jobs/${jobId}/raw?after=0`);
+    const reader = res.body.getReader();
+    gymRawLogsReader = reader;
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') { el.textContent += '\n--- Job complete ---\n'; break; }
+        if (gymRawMode) {
+          const span = document.createElement('span');
+          span.className = data.startsWith('[stderr]') ? 'log-line log-stderr' : 'log-line';
+          span.textContent = data + '\n';
+          el.appendChild(span);
+        } else {
+          const fmt = gymFormatLogLine(data);
+          if (fmt) {
+            const span = document.createElement('span');
+            span.className = 'log-line' + (fmt.cls ? ' ' + fmt.cls : '');
+            span.textContent = fmt.icon + ' ' + fmt.text + '\n';
+            el.appendChild(span);
+          }
+        }
+        const drawer = document.getElementById('gymRawDrawer');
+        if (drawer) drawer.scrollTop = drawer.scrollHeight;
+      }
+    }
+  } catch { /* connection closed */ }
+}
+
+function gymToggleRawMode() {
+  gymRawMode = !gymRawMode;
+  const btn = document.getElementById('gymRawModeBtn');
+  if (btn) btn.innerHTML = gymRawMode ? '&#x25CF; Raw' : '&#x25CB; Clean';
+}
+
+function gymFormatLogLine(data) {
+  if (data.startsWith('[stderr]')) return { icon: '\u26A0', text: data.slice(9), cls: 'log-stderr' };
+  try {
+    let evt = JSON.parse(data);
+    if (evt.type === 'stream_event' && evt.event) evt = evt.event;
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') return { icon: '\uD83D\uDCAC', text: evt.delta.text };
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'thinking_delta') return { icon: '\uD83E\uDDE0', text: evt.delta.thinking };
+    if (evt.type === 'content_block_start' && evt.content_block?.type === 'tool_use') return { icon: '\uD83D\uDD27', text: evt.content_block.name };
+    if (evt.type === 'result') return { icon: '\u2705', text: (evt.result || '').slice(0, 80) };
+    if (evt.type === 'content_block_stop' || evt.type === 'message_stop' || evt.type === 'message_delta') return null;
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'input_json_delta') return null;
+    if (evt.type === 'rate_limit_event') return null;
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'signature_delta') return null;
+    if (evt.type === 'system' && evt.subtype === 'init') return { icon: '\u25CF', text: 'Session started \u2014 ' + (evt.model || '') + ' | ' + (evt.mcp_servers?.length || 0) + ' MCPs' };
+    if (evt.type === 'system') return { icon: '\u2699', text: evt.subtype || 'system' };
+    return { icon: '\u2022', text: evt.type || JSON.stringify(data).slice(0, 60), cls: 'log-dim' };
+  } catch { return { icon: '\u2022', text: data.slice(0, 80), cls: 'log-dim' }; }
 }
 
 /* ─── Progress / Radar Chart ─────────────── */
