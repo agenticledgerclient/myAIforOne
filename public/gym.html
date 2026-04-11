@@ -1024,13 +1024,15 @@ function showModePicker() {
   }
 }
 
-function enterMode(mode) {
+async function enterMode(mode) {
   state.currentMode = mode;
   document.getElementById('modePicker').classList.remove('active');
   document.getElementById('gymMain').classList.add('active');
   renderMainGym();
   // Switch to coach view for all modes
   switchView('coach');
+  // Load chat history from previous sessions
+  await loadGymChatHistory();
   // Set chat placeholder based on mode
   const input = document.getElementById('chatInput');
   if (mode === 'task') {
@@ -1042,6 +1044,26 @@ function enterMode(mode) {
   } else if (mode === 'learn') {
     input.placeholder = 'What do you want to learn about?';
     primeCoachForMode('learn');
+  }
+}
+
+async function loadGymChatHistory() {
+  const container = document.getElementById('chatMessages');
+  // Don't reload if we already have messages (e.g. returning from guide viewer)
+  if (container.children.length > 0) return;
+  try {
+    const res = await fetch(`${API}/api/agents/gym/session-tabs/web/history`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const messages = data.messages || [];
+    // Show last 30 messages to keep it manageable
+    const recent = messages.slice(-30);
+    for (const msg of recent) {
+      addChatMessage(msg.role === 'user' ? 'user' : 'assistant', msg.text);
+    }
+    container.scrollTop = container.scrollHeight;
+  } catch (e) {
+    console.warn('Failed to load gym chat history:', e);
   }
 }
 
@@ -2196,7 +2218,22 @@ async function sendMessage(overrideText) {
   } finally {
     state.sending = false;
     document.getElementById('chatSend').disabled = false;
+    // Refresh guides in case coach created one during this exchange
+    refreshGymPrograms();
   }
+}
+
+async function refreshGymPrograms() {
+  try {
+    const res = await fetch(`${API}/api/gym/programs`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const newPrograms = Array.isArray(data) ? data : (data?.programs || []);
+    if (newPrograms.length !== state.programs.length) {
+      state.programs = newPrograms;
+      if (typeof renderSidebarGuides === 'function') renderSidebarGuides();
+    }
+  } catch (e) { /* silent */ }
 }
 
 function consumeSSE(jobId, onText) {

@@ -90,6 +90,17 @@ export function startWebUI(opts: WebUIOptions): void {
   }
   app.get("/home", serveHome);
 
+  // ─── Serve Home v2 (Work/Coach unified page) ───────────────────
+  app.get("/home2", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "home2.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.redirect("/");
+    }
+  });
+
   // ─── Serve the Activity Logs page (redirects to admin) ──────────
   app.get("/activity", (_req, res) => {
     res.redirect("/admin?tab=activity");
