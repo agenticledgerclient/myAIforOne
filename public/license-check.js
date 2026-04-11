@@ -1,6 +1,7 @@
 /**
- * License gate — shows a modal prompting for license key entry
- * if the platform has an invalid or missing license.
+ * License gate — shows a modal prompting for license key entry when the
+ * platform is unlicensed or the license is invalid/expired. Also shows a
+ * yellow banner across the top of every page when running in grace mode.
  * Include this script on any page that should enforce licensing.
  */
 (async function checkLicense() {
@@ -8,15 +9,59 @@
     const res = await fetch('/api/license');
     const data = await res.json();
 
-    // Valid license or no license configured (unlicensed mode) — do nothing
-    if (data.valid && !data.error) return;
+    // Grace mode — server unreachable, fail-open. Don't block, but show
+    // a visible yellow banner so the admin knows the state.
+    if (data.valid && data.graceMode) {
+      showGraceBanner(data);
+      return;
+    }
 
-    // Invalid license — show the modal
-    showLicenseModal(data);
+    // Unlicensed (no key configured) OR explicit invalid license → modal.
+    if (data.unlicensed || !data.valid) {
+      showLicenseModal(data);
+      return;
+    }
+
+    // Valid, properly activated → nothing.
   } catch {
-    // Can't reach API — don't block, might be loading
+    // Can't reach local API — don't block, might be loading
   }
 })();
+
+/**
+ * Fixed amber banner pinned to the BOTTOM of the page. Used to signal grace
+ * mode ("license server unreachable — running in fail-open mode"). Pads the
+ * body so the banner doesn't overlap fixed footers or floating UI.
+ */
+function showGraceBanner(data) {
+  if (document.getElementById('license-grace-banner')) return; // idempotent
+  const bar = document.createElement('div');
+  bar.id = 'license-grace-banner';
+  bar.style.cssText = [
+    'position:fixed',
+    'bottom:0',
+    'left:0',
+    'right:0',
+    'z-index:99998',
+    'background:linear-gradient(90deg,#f59e0b,#fbbf24)',
+    'color:#1a1206',
+    'font-family:"DM Sans",system-ui,sans-serif',
+    'font-size:12px',
+    'font-weight:600',
+    'text-align:center',
+    'padding:8px 16px',
+    'box-shadow:0 -2px 12px rgba(245,158,11,0.35)',
+    'letter-spacing:0.02em',
+  ].join(';');
+  bar.innerHTML =
+    '⚠ GRACE MODE — license server unreachable. Running with full access; ' +
+    're-verifying every 24h. ' +
+    '<a href="/admin?tab=settings" style="color:#0b0704;text-decoration:underline;margin-left:6px">Check settings →</a>';
+  document.body.appendChild(bar);
+  // Push body content up so the banner doesn't cover fixed footers / floating buttons.
+  const prevPad = parseInt(getComputedStyle(document.body).paddingBottom || '0', 10);
+  document.body.style.paddingBottom = (prevPad + 34) + 'px';
+}
 
 function showLicenseModal(licenseData) {
   // Don't show on the admin settings page (they can enter it there)

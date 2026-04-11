@@ -1,12 +1,22 @@
 /**
  * License verification — calls the MyAIforOne licensing server on startup.
- * If no licenseKey is configured, the platform runs unlicensed (no restrictions).
- * If a licenseKey is present, it must be valid and not expired.
+ *
+ * Policy:
+ *   - No licenseKey configured          → unlicensed mode (no restrictions)
+ *   - Server says { valid: true }       → full access, use license features
+ *   - Server says { valid: false }      → LOCKED (agent execution blocked)
+ *   - Server unreachable (net/DNS/5xx)  → grace mode: full access, re-verify every 24h
+ *
+ * Grace mode exit conditions (checked every 24h):
+ *   - Server now returns valid   → exit grace mode, use real license
+ *   - Server now returns invalid → stop grace mode, LOCK execution
+ *   - Server still unreachable   → stay in grace mode, schedule next re-check
  */
 
 import { log } from "./logger.js";
 
 const DEFAULT_LICENSE_URL = "https://ai41license.agenticledger.ai";
+const GRACE_REVERIFY_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface LicenseInfo {
   valid: boolean;
@@ -15,24 +25,36 @@ export interface LicenseInfo {
   features?: Record<string, boolean | number>;
   expiresAt?: string;
   error?: string;
+  /** True when the server could not be reached and we're running on a fail-open grace period. */
+  graceMode?: boolean;
+  /** True when no license key is configured at all (pre-activation state). */
+  unlicensed?: boolean;
 }
 
 let _cachedLicense: LicenseInfo | null = null;
+let _graceReverifyTimer: NodeJS.Timeout | null = null;
 
 /**
  * Verify the license key against the licensing server.
- * Returns license info if valid, or throws if invalid/expired.
- * If no licenseKey is configured, returns a valid "unlicensed" result (no restrictions).
+ * See policy in file header. Updates the cached license and manages the
+ * grace-mode re-verify loop as a side effect.
  */
 export async function verifyLicense(licenseKey?: string, licenseUrl?: string): Promise<LicenseInfo> {
-  // No license key configured — run unlicensed (no restrictions)
+  // No license key configured — flag as unlicensed so the UI can show an
+  // activation popup. Note: `valid: true` is kept so agent execution isn't
+  // blocked at the core layer — the popup enforces activation at the UI layer.
   if (!licenseKey) {
-    _cachedLicense = { valid: true };
+    _cachedLicense = { valid: true, unlicensed: true };
+    stopGraceReverifyLoop();
     return _cachedLicense;
   }
 
   const baseUrl = (licenseUrl || DEFAULT_LICENSE_URL).replace(/\/$/, "");
   const url = `${baseUrl}/api/license/verify`;
+
+  let data: LicenseInfo | null = null;
+  let unreachable = false;
+  let unreachableReason = "";
 
   try {
     const res = await fetch(url, {
@@ -42,22 +64,81 @@ export async function verifyLicense(licenseKey?: string, licenseUrl?: string): P
       signal: AbortSignal.timeout(10000), // 10s timeout
     });
 
-    const data = await res.json() as LicenseInfo;
-
-    if (!data.valid) {
-      _cachedLicense = data;
-      return data;
+    if (!res.ok) {
+      // Non-2xx counts as unreachable — server is malfunctioning, not giving
+      // a definitive valid/invalid answer. Fail open into grace mode.
+      unreachable = true;
+      unreachableReason = `HTTP ${res.status}`;
+    } else {
+      try {
+        data = (await res.json()) as LicenseInfo;
+      } catch (parseErr) {
+        unreachable = true;
+        unreachableReason = `malformed response (${parseErr})`;
+      }
     }
-
-    _cachedLicense = data;
-    log.info(`License verified — org: ${data.org}, expires: ${data.expiresAt}`);
-    return data;
   } catch (err) {
-    // If we can't reach the licensing server, allow startup with a warning
-    // (don't brick the user's platform because of a network issue)
-    log.warn(`License server unreachable (${err}). Starting in grace mode.`);
-    _cachedLicense = { valid: true, error: "License server unreachable — running in grace mode" };
+    unreachable = true;
+    unreachableReason = String(err);
+  }
+
+  if (unreachable) {
+    log.warn(`License server unreachable (${unreachableReason}). Running in grace mode.`);
+    _cachedLicense = {
+      valid: true,
+      graceMode: true,
+      error: "License server unreachable — running in grace mode",
+    };
+    startGraceReverifyLoop(licenseKey, licenseUrl);
     return _cachedLicense;
+  }
+
+  // Definitive response from the server (valid or invalid) — cancel any grace loop.
+  _cachedLicense = data!;
+  stopGraceReverifyLoop();
+
+  if (data!.valid) {
+    log.info(`License verified — org: ${data!.org}, expires: ${data!.expiresAt}`);
+  } else {
+    log.error(`License invalid: ${data!.error || "expired or revoked"}. Agent execution blocked.`);
+  }
+
+  return data!;
+}
+
+/**
+ * Start the 24h re-verify loop used while we're in grace mode. Idempotent:
+ * calling it while a timer is already running is a no-op so we don't stack timers.
+ */
+function startGraceReverifyLoop(licenseKey: string, licenseUrl?: string) {
+  if (_graceReverifyTimer) return;
+  log.info(`Grace mode active — will re-verify license every 24h`);
+  _graceReverifyTimer = setInterval(async () => {
+    log.info(`Grace mode re-check: verifying license...`);
+    try {
+      const result = await verifyLicense(licenseKey, licenseUrl);
+      if (result.graceMode) {
+        log.warn(`Grace mode re-check: server still unreachable. Next re-check in 24h.`);
+      } else if (result.valid) {
+        log.info(`Grace mode re-check: license now valid. Exiting grace mode.`);
+      } else {
+        log.error(`Grace mode re-check: server rejected license (${result.error || "invalid"}). Agent execution now blocked.`);
+      }
+    } catch (err) {
+      log.warn(`Grace mode re-check failed unexpectedly: ${err}`);
+    }
+  }, GRACE_REVERIFY_INTERVAL_MS);
+
+  // Don't hold the event loop open just for this timer.
+  if (typeof _graceReverifyTimer.unref === "function") {
+    _graceReverifyTimer.unref();
+  }
+}
+
+function stopGraceReverifyLoop() {
+  if (_graceReverifyTimer) {
+    clearInterval(_graceReverifyTimer);
+    _graceReverifyTimer = null;
   }
 }
 
@@ -97,12 +178,13 @@ export function getFeatureLimit(feature: string): number {
  *
  * Rules:
  * - No licenseKey configured → allowed (unlicensed mode, no restrictions)
- * - Valid licenseKey → allowed
- * - Invalid/expired licenseKey → blocked
+ * - Valid licenseKey         → allowed
+ * - Grace mode               → allowed (we can't reach the server; fail open)
+ * - Invalid/expired key      → blocked
  */
 export function checkLicenseForExecution(): string | null {
   if (!_cachedLicense) return null; // verifyLicense hasn't been called yet — allow
-  if (_cachedLicense.valid) return null; // valid or unlicensed — allow
+  if (_cachedLicense.valid) return null; // valid, unlicensed, or grace mode — allow
   return `License invalid: ${_cachedLicense.error || "expired or revoked"}. Enter a valid license key in Admin → Settings and restart.`;
 }
 
@@ -111,4 +193,45 @@ export function checkLicenseForExecution(): string | null {
  */
 export async function reverifyLicense(licenseKey?: string, licenseUrl?: string): Promise<LicenseInfo> {
   return verifyLicense(licenseKey, licenseUrl);
+}
+
+/**
+ * Dry-run verification: check a license key against the server WITHOUT touching
+ * the cached license or starting the grace-mode loop. Used by the Admin UI's
+ * "Verify Only" button so admins can test a key before saving it.
+ *
+ * Return shape:
+ *   { valid: true, org, features, expiresAt }        — server confirmed valid
+ *   { valid: false, error }                          — server said invalid
+ *   { valid: false, error, unreachable: true }       — couldn't reach server
+ */
+export async function checkLicenseNoCache(
+  licenseKey: string,
+  licenseUrl?: string,
+): Promise<LicenseInfo & { unreachable?: boolean }> {
+  if (!licenseKey) {
+    return { valid: false, error: "No license key provided" };
+  }
+
+  const baseUrl = (licenseUrl || DEFAULT_LICENSE_URL).replace(/\/$/, "");
+  const url = `${baseUrl}/api/license/verify`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ licenseKey }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      return { valid: false, error: `Server returned HTTP ${res.status}`, unreachable: true };
+    }
+    try {
+      return (await res.json()) as LicenseInfo;
+    } catch (parseErr) {
+      return { valid: false, error: `Malformed response: ${parseErr}`, unreachable: true };
+    }
+  } catch (err) {
+    return { valid: false, error: `Cannot reach license server: ${err}`, unreachable: true };
+  }
 }

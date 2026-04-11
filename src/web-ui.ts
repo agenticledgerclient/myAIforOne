@@ -5727,6 +5727,25 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }
   });
 
+  // Dry-run: verify a key against the license server WITHOUT saving it to
+  // config or touching the cached license. Used by the Admin UI's "Verify
+  // Only" button so admins can test a key before saving.
+  app.post("/api/license/check", async (req, res) => {
+    try {
+      const { licenseKey } = req.body || {};
+      if (!licenseKey || typeof licenseKey !== "string") {
+        res.status(400).json({ valid: false, error: "licenseKey required" });
+        return;
+      }
+      const { checkLicenseNoCache } = await import("./license.js");
+      const licenseUrl = (opts.config.service as any).licenseUrl;
+      const result = await checkLicenseNoCache(licenseKey, licenseUrl);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ valid: false, error: String(err) });
+    }
+  });
+
   // ─── Startup: sync config.json MCPs → registry ───────────────────
   try {
     const cfgMcps = (opts.config as any).mcps || {};
