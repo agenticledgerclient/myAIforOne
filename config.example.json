@@ -71,6 +71,24 @@
   },
 
   "mcps": {
+    "_comment_platform_mcps": "REQUIRED: These platform MCPs must be registered on every installation. myaiforone-local is the gateway's own MCP server (agents, tasks, projects, orgs). aigym-platform connects to AI Gym for training programs and learner progress. Assign them to specific agents via each agent's mcps array — they are NOT auto-assigned to all agents.",
+
+    "myaiforone-local": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./server/mcp-server/dist/index.js"],
+      "env": {
+        "MYAGENT_API_URL": "http://localhost:4888"
+      }
+    },
+    "aigym-platform": {
+      "type": "http",
+      "url": "https://app.aigym.studio/mcp",
+      "headers": { "Authorization": "Bearer ${AIGYM_API_KEY}" }
+    },
+
+    "_comment_optional_mcps": "Optional MCPs below — add API keys for the services you use. Agents reference these by name in their mcps array.",
+
     "finney": {
       "type": "http",
       "url": "https://finneymcp.agenticledger.ai/mcp",

@@ -405,7 +405,9 @@ text-decoration:none;}
 .gv-nav-btn:hover:not(:disabled){border-color:var(--border-glow);color:var(--text-primary)}
 .gv-nav-btn:disabled{opacity:.3;cursor:not-allowed}
 /* Guide viewer chat (right side) */
-.gv-chat{width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.gv-chat{width:360px;min-width:200px;max-width:600px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.gv-chat-resize{position:absolute;top:0;left:-3px;bottom:0;width:6px;cursor:col-resize;z-index:10}
+.gv-chat-resize:hover{background:rgba(34,211,238,0.15)}
 .gv-chat-header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);flex-shrink:0}
 .gv-chat-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;flex-shrink:0}
 .gv-chat-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary)}
@@ -421,6 +423,29 @@ text-decoration:none;}
 .gv-chat-textarea{flex:1;padding:8px 10px;border:1px solid var(--border-dim);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-size:12px;font-family:var(--font-sans);resize:none;max-height:100px;min-height:36px}
 .gv-chat-send{width:36px;height:36px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;transition:all .2s}
 .gv-chat-send:hover{filter:brightness(1.1)}
+
+/* Coach quick actions bar (above input, gym mode only) */
+.coach-quick-actions{
+  display:flex;flex-direction:row;align-items:center;gap:12px;
+  padding:8px 16px;flex-shrink:0;
+  background:var(--bg-surface);
+  border-top:1px solid var(--border-dim);
+}
+.coach-quick-label{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.10em;
+  color:var(--text-muted);white-space:nowrap;flex-shrink:0;
+}
+.coach-quick-btns{display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;justify-content:center;flex:1}
+.coach-quick-btns::-webkit-scrollbar{height:2px}
+.coach-quick-btns::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
+.coach-quick-btn{
+  font-family:var(--font-sans);font-size:11px;font-weight:600;padding:5px 12px;
+  border-radius:8px;border:1px solid rgba(34,211,238,0.25);background:rgba(6,182,212,0.08);
+  color:var(--accent);cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.coach-quick-btn:hover{border-color:var(--accent);background:rgba(6,182,212,0.18);box-shadow:0 0 8px rgba(34,211,238,0.15)}
+.coach-quick-sep{color:var(--border-glow);font-size:14px;line-height:1;align-self:center;flex-shrink:0;padding:0 2px}
 
 /* Coach chat specific overrides */
 .coach-chat-header{
@@ -718,7 +743,7 @@ text-decoration:none;}
       </div>
       <div class="mode-toggle" id="modeToggle">
         <button class="mode-toggle-btn active" id="modeWork" onclick="switchMode('work')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Work</button>
-        <button class="mode-toggle-btn" id="modeCoach" onclick="switchMode('coach')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="4" x2="20" y2="4"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>Coach</button>
+        <button class="mode-toggle-btn" id="modeCoach" onclick="switchMode('coach')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="4" x2="20" y2="4"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>AI Gym</button>
       </div>
       <div class="hub-actions-right">
         <select class="header-btn" id="accountSelect" style="padding:2px 6px;cursor:pointer;display:none" onchange="setAccountOverride(this.value)" title="Claude Account override"></select>
@@ -728,6 +753,7 @@ text-decoration:none;}
       </div>
     </div>
     <div class="session-tabs" id="homeSessionTabBar"></div>
+    <div class="session-tabs" id="coachSessionTabBar" style="display:none"></div>
     <div class="chat-body-outer">
     <!-- Coach Sidebar (hidden in work mode) -->
     <div class="coach-sidebar" id="coachSidebar">
@@ -757,7 +783,6 @@ text-decoration:none;}
           </div>
           <div class="sidebar-filter-tabs" id="guidesFilterTabs"></div>
           <div id="guidesListContent"></div>
-          <button class="trigger-insights-btn" onclick="triggerInsights()">&#x1F504; Trigger Insights</button>
         </div>
 
         <!-- My Growth Panel -->
@@ -806,7 +831,7 @@ text-decoration:none;}
       <div class="coach-resize-handle" id="coachResizeHandle"></div>
     </div>
 
-    <div class="chat-body-wrap" id="chatBodyWrap" style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="chat-body-wrap" id="chatBodyWrap">
     <div class="chat-messages-home chat-messages" id="chatMessages"></div>
     <div class="canvas-panel" id="canvasPanel">
       <div class="canvas-resize-handle" id="canvasResizeHandle"></div>
@@ -850,7 +875,8 @@ text-decoration:none;}
             </div>
           </div>
         </div>
-        <div class="gv-chat">
+        <div class="gv-chat" id="gvChatPanel">
+          <div class="gv-chat-resize" id="gvChatResizeHandle"></div>
           <div class="gv-chat-header">
             <div class="gv-chat-avatar" id="gvChatAvatar">C</div>
             <div>
@@ -879,6 +905,19 @@ text-decoration:none;}
         </div>
       </div>
       <div class="logs-content" id="logsContent"></div>
+    </div>
+    <div class="coach-quick-actions" id="coachQuickActions" style="display:none">
+      <span class="coach-quick-label">PRESET ACTIONS</span>
+      <div class="coach-quick-btns">
+        <button class="coach-quick-btn" onclick="coachQuick('state')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Where do I stand?</button>
+        <button class="coach-quick-btn" onclick="coachQuick('week')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> How was this week?</button>
+        <span class="coach-quick-sep">|</span>
+        <button class="coach-quick-btn" onclick="coachQuick('gaps')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> What are my gaps?</button>
+        <button class="coach-quick-btn" onclick="coachQuick('focus')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg> What should I focus on?</button>
+        <span class="coach-quick-sep">|</span>
+        <button class="coach-quick-btn" onclick="coachQuick('plan')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Create a learning plan</button>
+        <button class="coach-quick-btn" onclick="coachQuick('guide')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg> Create a guide</button>
+      </div>
     </div>
     <div class="chat-input-home" style="position:relative">
       <div class="autocomplete" id="autocomplete"></div>
@@ -945,6 +984,151 @@ let guidesFilter = 'all';
 let guideViewerState = null;
 let coachDataLoaded = false;
 
+// ─── Coach Session Tabs ──────────────────────────────
+let coachTabs = [];
+let coachActiveTabId = null;
+let coachTabMessages = {};
+let coachTabStreaming = {};
+
+function loadCoachTabs() {
+  try {
+    const t = localStorage.getItem('coachTabs');
+    const a = localStorage.getItem('coachActiveTab');
+    if (t) coachTabs = JSON.parse(t);
+    if (a) coachActiveTabId = JSON.parse(a);
+  } catch {}
+  if (!coachTabs.length) {
+    coachTabs = [{ id: 'coach-default', label: 'Session 1', createdAt: Date.now() }];
+    coachActiveTabId = 'coach-default';
+  }
+  if (!coachActiveTabId) coachActiveTabId = coachTabs[0]?.id;
+}
+function saveCoachTabs() {
+  try {
+    localStorage.setItem('coachTabs', JSON.stringify(coachTabs));
+    localStorage.setItem('coachActiveTab', JSON.stringify(coachActiveTabId));
+  } catch {}
+}
+loadCoachTabs();
+
+function getCoachTabState(tabId) {
+  if (!coachTabStreaming[tabId]) coachTabStreaming[tabId] = { text: '', isThinking: false, jobId: null, queue: [] };
+  return coachTabStreaming[tabId];
+}
+function coachSyncFromActiveTab() {
+  const ts = getCoachTabState(coachActiveTabId);
+  if (!coachTabMessages[coachActiveTabId]) coachTabMessages[coachActiveTabId] = [];
+  messages = coachTabMessages[coachActiveTabId];
+  coachMessages = messages;
+  isThinking = ts.isThinking;
+  coachIsThinking = ts.isThinking;
+  streamingText = ts.text;
+  coachStreamingText = ts.text;
+  currentJobId = ts.jobId;
+  coachJobId = ts.jobId;
+  homeQueue = ts.queue;
+}
+function coachSyncToActiveTab() {
+  coachTabMessages[coachActiveTabId] = messages;
+  coachMessages = messages;
+  const ts = getCoachTabState(coachActiveTabId);
+  ts.isThinking = isThinking;
+  ts.text = streamingText;
+  ts.jobId = currentJobId;
+  ts.queue = homeQueue;
+}
+function createCoachTab() {
+  coachSyncToActiveTab();
+  const num = coachTabs.length + 1;
+  const id = 'ctab-' + Date.now().toString(36);
+  coachTabs.push({ id, label: 'Session ' + num, createdAt: Date.now() });
+  coachActiveTabId = id;
+  coachTabMessages[id] = [];
+  coachTabStreaming[id] = { text: '', isThinking: false, jobId: null, queue: [] };
+  saveCoachTabs();
+  coachSyncFromActiveTab();
+  renderMessages();
+  scrollChat();
+  renderCoachTabBar();
+  updateHomeInputButtons();
+}
+function closeCoachTab(tabId) {
+  if (coachTabs.length <= 1) return;
+  const ts = getCoachTabState(tabId);
+  if (ts.isThinking || ts.jobId) {
+    if (!confirm('This session has an active stream. Close anyway?')) return;
+  }
+  const idx = coachTabs.findIndex(t => t.id === tabId);
+  if (idx < 0) return;
+  coachTabs.splice(idx, 1);
+  delete coachTabMessages[tabId];
+  delete coachTabStreaming[tabId];
+  if (coachActiveTabId === tabId) {
+    coachActiveTabId = coachTabs[Math.min(idx, coachTabs.length - 1)].id;
+  }
+  saveCoachTabs();
+  coachSyncFromActiveTab();
+  renderMessages();
+  scrollChat();
+  renderCoachTabBar();
+  updateHomeInputButtons();
+}
+function switchCoachTab(tabId) {
+  if (coachActiveTabId === tabId) return;
+  coachSyncToActiveTab();
+  coachActiveTabId = tabId;
+  saveCoachTabs();
+  coachSyncFromActiveTab();
+  renderMessages();
+  scrollChat();
+  renderCoachTabBar();
+  updateHomeInputButtons();
+  renderHomeQueue();
+  const inp = document.getElementById('chatInput');
+  if (inp) inp.focus();
+}
+function startRenameCoachTab(tabId) {
+  const el = document.querySelector(`#coachSessionTabBar .session-tab[data-tab-id="${tabId}"] .tab-label`);
+  if (!el) return;
+  const tab = coachTabs.find(t => t.id === tabId);
+  if (!tab) return;
+  const input = document.createElement('input');
+  input.className = 'tab-rename-input';
+  input.value = tab.label;
+  input.onblur = () => finishRenameCoachTab(tabId, input.value);
+  input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = tab.label; input.blur(); } };
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function finishRenameCoachTab(tabId, newLabel) {
+  const tab = coachTabs.find(t => t.id === tabId);
+  if (tab && newLabel.trim()) {
+    tab.label = newLabel.trim();
+    saveCoachTabs();
+  }
+  renderCoachTabBar();
+}
+function renderCoachTabBar() {
+  const container = document.getElementById('coachSessionTabBar');
+  if (!container) return;
+  let html = coachTabs.map(t => {
+    const isActive = t.id === coachActiveTabId;
+    const ts = coachTabStreaming[t.id];
+    const hasActivity = !isActive && ts && (ts.isThinking || ts.jobId);
+    return `<div class="session-tab${isActive ? ' active' : ''}${hasActivity ? ' has-activity' : ''}" data-tab-id="${t.id}"
+      onclick="switchCoachTab('${t.id}')"
+      ondblclick="startRenameCoachTab('${t.id}')">
+      <span class="tab-dot"></span>
+      <span class="tab-label">${escapeHtml(t.label)}</span>
+      ${coachTabs.length > 1 ? `<span class="tab-close" onclick="event.stopPropagation();closeCoachTab('${t.id}')">&times;</span>` : ''}
+    </div>`;
+  }).join('');
+  html += `<div class="session-tab-add" onclick="createCoachTab()" title="New session">+</div>`;
+  container.innerHTML = html;
+}
+
 function switchMode(mode) {
   if (mode === currentMode) return;
   currentMode = mode;
@@ -956,13 +1140,16 @@ function switchMode(mode) {
   // Toggle sidebar
   document.getElementById('coachSidebar').classList.toggle('visible', mode === 'coach');
 
+  // Close guide viewer if open
+  if (guideViewerState) closeGuideViewer();
+
   // Update agent identity on the left
   const hubLabel = document.getElementById('hubLabel');
   const hubAvatar = document.getElementById('hubAvatar');
   const hubSub = document.getElementById('hubSub');
   if (mode === 'coach') {
     const gymAgent = agents.find(a => a.id === 'gym');
-    const coachName = gymAgent?.aliases?.[0] || gymAgent?.name || 'Coach';
+    const coachName = (gymAgent?.aliases?.[0] || gymAgent?.name || 'Coach').replace(/^@/, '');
     hubLabel.textContent = `@${coachName}`;
     hubAvatar.textContent = coachName.slice(0, 2).toUpperCase();
     hubSub.textContent = 'AI Coach';
@@ -987,13 +1174,17 @@ function switchMode(mode) {
   if (canvasBtn) canvasBtn.style.display = mode === 'work' ? '' : 'none';
   if (mode === 'coach') Canvas.close?.();
 
-  // Hide session tabs in coach mode (coach has one session)
+  // Toggle session tabs
   const sessionTabs = document.getElementById('homeSessionTabBar');
   if (sessionTabs) sessionTabs.style.display = mode === 'work' ? '' : 'none';
+  const coachTabs = document.getElementById('coachSessionTabBar');
+  if (coachTabs) coachTabs.style.display = mode === 'coach' ? '' : 'none';
 
-  // Toggle agent bar and drawer button visibility
+  // Toggle agent bar / coach quick actions
   const agentBar = document.querySelector('.chat-agent-bar');
   if (agentBar) agentBar.style.display = mode === 'work' ? '' : 'none';
+  const coachActions = document.getElementById('coachQuickActions');
+  if (coachActions) coachActions.style.display = mode === 'coach' ? '' : 'none';
   const drawerBtn = document.querySelector('.chat-input-home-box .input-action[title="Agents"]');
   if (drawerBtn) drawerBtn.style.display = mode === 'work' ? '' : 'none';
 
@@ -1001,19 +1192,16 @@ function switchMode(mode) {
   if (mode === 'coach') {
     // Save work messages, load coach
     syncToActiveTab();
-    messages = coachMessages;
-    isThinking = coachIsThinking;
-    streamingText = coachStreamingText;
+    coachSyncFromActiveTab();
     renderMessages();
     scrollChat();
+    renderCoachTabBar();
     document.getElementById('chatInput').placeholder = 'Message your coach...';
     // Load coach data on first switch
     if (!coachDataLoaded) loadCoachData();
   } else {
     // Save coach messages, restore work
-    coachMessages = messages;
-    coachIsThinking = isThinking;
-    coachStreamingText = streamingText;
+    coachSyncToActiveTab();
     syncFromActiveTab();
     renderMessages();
     scrollChat();
@@ -1276,10 +1464,24 @@ async function renderSkillsHistory() {
   }
 }
 
-// ─── Trigger Insights ──────────────────────────────────
+// ─── Coach Quick Actions ──────────────────────────────
 function triggerInsights() {
   if (currentMode !== 'coach') switchMode('coach');
-  const text = 'Trigger a fresh insights analysis of my recent activity, gaps, and recommended next steps.';
+  sendCoachMessage('Trigger a fresh insights analysis of my recent activity, gaps, and recommended next steps.');
+}
+
+function coachQuick(action) {
+  const prompts = {
+    state: '[PRESET:WHERE_DO_I_STAND] Run a fresh assessment of my current skill levels across all 5 dimensions. Use get_learner_profile and run_gym_digest if the last digest is stale. Give me a direct snapshot: what\'s strong, what\'s weak, and where I stand overall.',
+    week:  '[PRESET:HOW_WAS_THIS_WEEK] Review my activity from the past 7 days. Use get_agent_activity_summary and get_activity. Tell me what I actually did — sessions, agents used, tasks completed — and whether I made progress.',
+    gaps:  '[PRESET:WHAT_ARE_MY_GAPS] Identify the specific gaps holding me back right now. Use get_learner_profile and check features.neverUsed, weak dimensions, and patterns.struggles. Be specific — reference what I\'ve actually done or skipped.',
+    focus: '[PRESET:WHAT_SHOULD_I_FOCUS_ON] Based on where I am today, tell me the single most valuable thing I should work on next and exactly why. One clear recommendation, not a list.',
+    plan:  '[PRESET:CREATE_LEARNING_PLAN] Build me a structured 2-week learning plan based on my current gaps and skill levels. Use get_learner_profile and get_gym_progress. Include specific guides, programs, and a logical progression.',
+    guide: '[PRESET:CREATE_GUIDE] I want to create a guide. Start by asking me what topic or skill it should cover, then help me build it and save it via create_gym_guide.',
+  };
+  const text = prompts[action];
+  if (!text) return;
+  if (currentMode !== 'coach') switchMode('coach');
   document.getElementById('chatInput').value = '';
   sendCoachMessage(text);
 }
@@ -1712,6 +1914,22 @@ async function sendGuideChat(overrideText) {
     startX = e.clientX;
     startW = sidebar.offsetWidth;
     const onMove = (e2) => { sidebar.style.width = Math.max(200, Math.min(600, startW + e2.clientX - startX)) + 'px'; };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+
+// ─── Guide Chat Resize Handle ─────────────────────────
+(function() {
+  const handle = document.getElementById('gvChatResizeHandle');
+  const panel = document.getElementById('gvChatPanel');
+  if (!handle || !panel) return;
+  let startX, startW;
+  handle.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startW = panel.offsetWidth;
+    const onMove = (e2) => { panel.style.width = Math.max(200, Math.min(600, startW - (e2.clientX - startX))) + 'px'; };
     const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -2652,15 +2870,17 @@ async function confirmResetSession() {
 }
 
 async function confirmResetCoachSession() {
-  if (!confirm('Reset coach session? This clears coach conversation history.')) return;
+  if (!confirm('Reset this coach session? This clears conversation history for this tab.')) return;
   try {
     await fetch('/api/agents/gym/session', { method: 'DELETE' });
+    coachTabMessages[coachActiveTabId] = [];
+    coachTabStreaming[coachActiveTabId] = { text: '', isThinking: false, jobId: null };
     coachMessages = [];
     coachIsThinking = false;
     coachStreamingText = '';
     coachJobId = null;
     if (currentMode === 'coach') {
-      messages = coachMessages;
+      messages = [];
       streamingText = '';
       isThinking = false;
       renderMessages();

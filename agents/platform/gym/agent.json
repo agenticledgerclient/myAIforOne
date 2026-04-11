@@ -4,7 +4,7 @@
   "description": "Personal AI trainer — observes your platform activity, delivers personalized training, and tracks skill growth across 5 dimensions.",
   "alias": "gym",
   "agentClass": "gym",
-  "workspace": "~",
+  "workspace": "~/Desktop/MyAIforOne Drive",
   "agentHome": "~/Desktop/MyAIforOne Drive/PlatformUtilities/gym",
   "claudeMd": "agents/platform/gym/CLAUDE.md",
   "memoryDir": "~/Desktop/MyAIforOne Drive/PlatformUtilities/gym/memory",
@@ -15,7 +15,7 @@
   "streaming": true,
   "featureFlag": "gymEnabled",
   "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
-  "mcps": ["myaiforone-local"],
+  "mcps": ["myaiforone-local", "apify", "linkedin", "aigym-platform"],
   "timeout": 14400000,
   "goals": [
     {

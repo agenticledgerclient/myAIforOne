@@ -2082,6 +2082,7 @@ export async function* executeAgentStreaming(
   }
 
   if (exitCode !== 0 && !fullResponse) {
+    log.error(`Agent ${agentId} exited with code ${exitCode}. stderr: ${stderrBuf.slice(0, 1000)}`);
     const accountName = agentConfig.claudeAccount || "default";
     const combinedErr = stderrBuf.toLowerCase();
     const isAuthError = combinedErr.includes("not authenticated") ||
@@ -2092,7 +2093,7 @@ export async function* executeAgentStreaming(
       combinedErr.includes("auth") ||
       combinedErr.includes("login required");
     const isStaleSession = combinedErr.includes("no conversation found") ||
-      (isPersistent && session && stderrBuf.includes("exited with code 1"));
+      (isPersistent && session && (stderrBuf.trim() === "" || stderrBuf.includes("exited with code 1")));
 
     if (isStaleSession && session) {
       // Stale session — clear it so next message creates a fresh one

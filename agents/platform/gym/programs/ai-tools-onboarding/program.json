@@ -1,0 +1,202 @@
+{
+  "id": "ai-tools-onboarding",
+  "slug": "ai-tools-onboarding",
+  "title": "AI Tools Onboarding: Your Personal Writing Assistant",
+  "description": "A streamlined guide for busy executives to get set up on the top four AI platforms and configure a personal writing assistant for quick, polished communication.",
+  "difficulty": "beginner",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "source": "platform",
+  "sourceId": "4528da58-c8e7-41d0-9f0c-6fd9876ce59b",
+  "dimensions": ["application", "communication"],
+  "estimatedTime": "20-30 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "chatgpt-setup",
+      "title": "ChatGPT Setup (OpenAI)",
+      "order": 1,
+      "agentInstructions": "Help the learner get set up on ChatGPT and configure a personal writing project.",
+      "steps": [
+        {
+          "id": "chatgpt-create-account",
+          "title": "Create Your Account",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to [chat.openai.com](https://chat.openai.com) and click **Sign Up**. Use your work email or sign in directly with Google. Complete email verification if prompted. A free account is sufficient to get started.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "chatgpt-create-project",
+          "title": "Create a Project",
+          "order": 2,
+          "type": "self-report",
+          "content": "Once logged in, look for **\"Projects\"** in the left sidebar and click **\"New Project\"**. Name it **\"Personal Writing Assistant\"**.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "chatgpt-custom-instructions",
+          "title": "Set Up Your Custom Instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "Inside the project, click **\"Custom Instructions\"** and paste the following:\n\n> *\"You are my personal writing assistant. When I paste text, emails, or messages, clean them up for clarity and professionalism. Keep my tone, be concise, and don't over-formalize. Return only the edited version unless I ask for explanations.\"*",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "claude-setup",
+      "title": "Claude Setup (Anthropic)",
+      "order": 2,
+      "agentInstructions": "Claude is excellent for nuanced writing and tone matching — a strong tool for executive communication.",
+      "steps": [
+        {
+          "id": "claude-create-account",
+          "title": "Create Your Account",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to [claude.ai](https://claude.ai) and click **\"Sign Up\"**. Use Google sign-in or your work email. Verify your email if prompted.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "claude-create-project",
+          "title": "Create a Project",
+          "order": 2,
+          "type": "self-report",
+          "content": "In the left sidebar click **\"Projects\"** then **\"New Project\"**. Name it **\"Personal Writing Assistant\"**.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "claude-project-instructions",
+          "title": "Set Your Project Instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "Inside the project, find **\"Project Instructions\"** at the top of the screen and paste the following:\n\n> *\"You are my personal writing assistant. When I paste text, emails, or messages, clean them up for clarity and professionalism. Keep my tone, be concise, and don't over-formalize. Return only the edited version unless I ask for explanations.\"*",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "gemini-setup",
+      "title": "Gemini Setup (Google)",
+      "order": 3,
+      "agentInstructions": "Google's Gemini integrates seamlessly with Gmail and Google Workspace — ideal if the learner is already in the Google ecosystem.",
+      "steps": [
+        {
+          "id": "gemini-create-account",
+          "title": "Create Your Account",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to [gemini.google.com](https://gemini.google.com). Sign in with your existing Google account. No separate sign up is needed.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "gemini-create-gem",
+          "title": "Create a Gem",
+          "order": 2,
+          "type": "self-report",
+          "content": "Click **\"Gem Manager\"** in the left sidebar, then click **\"New Gem\"**. Name it **\"Personal Writing Assistant\"**.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "gemini-configure-gem",
+          "title": "Configure Your Gem Instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "In the instructions field paste the following:\n\n> *\"You are my personal writing assistant. When I paste text, emails, or messages, clean them up for clarity and professionalism. Keep my tone, be concise, and don't over-formalize. Return only the edited version unless I ask for explanations.\"*\n\nClick **Save** and then **\"Chat with Gem\"** to activate it.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "grok-setup",
+      "title": "Grok Setup (xAI)",
+      "order": 4,
+      "agentInstructions": "Grok is built by xAI and lives inside X (formerly Twitter). Great for casual, sharp and punchy communication.",
+      "steps": [
+        {
+          "id": "grok-create-account",
+          "title": "Create Your Account",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to [x.com](https://x.com) and sign up or log in. A free account works, though **Grok** features are more robust on **X Premium**. Consider upgrading if you plan to use it regularly.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "grok-access",
+          "title": "Access Grok",
+          "order": 2,
+          "type": "self-report",
+          "content": "Once logged in, find **\"Grok\"** in the left navigation sidebar and click it to open the interface.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "grok-create-custom",
+          "title": "Create a Custom Grok",
+          "order": 3,
+          "type": "self-report",
+          "content": "Click **\"Create a Grok\"** from the left panel. Name it **\"Personal Writing Assistant\"** and paste the following into the instructions field:\n\n> *\"You are my personal writing assistant. When I paste text, emails, or messages, clean them up for clarity and professionalism. Keep my tone, be concise, and don't over-formalize. Return only the edited version unless I ask for explanations.\"*\n\nClick **Save** to finish setup.",
+          "isCritical": true,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "quick-reference",
+      "title": "Quick Reference — You're All Set!",
+      "order": 5,
+      "agentInstructions": "Wrap up with a quick reference guide the learner can use going forward.",
+      "steps": [
+        {
+          "id": "how-to-use",
+          "title": "How to Use Each Assistant",
+          "order": 1,
+          "type": "knowledge",
+          "content": "Once set up, using each assistant is simple. Open the relevant project or gem, paste your text, and hit send.\n\n**Example prompt you can use anytime:**\n> *\"Clean this up:\"* then paste your text.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "choosing-right-tool",
+          "title": "Choosing the Right Tool",
+          "order": 2,
+          "type": "knowledge",
+          "content": "Use this as a quick guide:\n\n- **ChatGPT** — Most versatile, great all-rounder\n- **Claude** — Best for longer emails and nuanced tone\n- **Gemini** — Best if you're working in Gmail or Google Docs\n- **Grok** — Best for short, sharp, punchy messages",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "Which tool would you use to clean up a long, nuanced executive email?",
+            "Which tool is best suited if you live in Google Workspace?"
+          ]
+        }
+      ]
+    }
+  ]
+}
