@@ -133,6 +133,8 @@ export interface ServiceConfig {
   gymEnabled?: boolean;                   // false = gym hidden, true = gym active
   aibriefingEnabled?: boolean;            // false = no AI briefing feed, true = weekly AI news via web search
   gymOnlyMode?: boolean;
+  licenseKey?: string;                    // MyAIforOne license key (validated against ai41license.agenticledger.ai)
+  licenseUrl?: string;                    // Override license server URL (default: https://ai41license.agenticledger.ai)
 }
 
 export interface AppConfig {

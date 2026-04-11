@@ -1362,6 +1362,40 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Update deployment config | `PUT /api/config/service` | `update_service_config` |
 | | **Body:** `{ deployment: { provider?, deployToken?, githubOrg?, githubToken? } }` | **Params:** `body` (object) |
 
+### License Section
+- **Section label:** "License" (accent highlight)
+- **Description:** "MyAIforOne license key for platform activation and feature gating"
+- **Status dot** — green (valid), red (invalid/expired), gray (unlicensed)
+- **Fields:**
+
+| Field | Description |
+|-------|-------------|
+| **License Key** | MyAIforOne license key (format: `MA1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) |
+
+- **License info panel** — shows after verification:
+  - **Status badge** — ACTIVE (green), INVALID (red), or UNLICENSED (gray)
+  - **Organization name** — from the license record
+  - **Expiry date** — when the license expires
+- **Save & Verify button** — saves the key to `config.json` and verifies against the licensing server immediately. Agents unblock without restart.
+- **Verify Only button** — checks current license status without saving
+
+**License popup:** If no valid license is configured, a full-screen modal appears on page load (all pages except Admin) prompting the user to enter their license key. The key is saved and verified inline — no restart needed.
+
+**Behavior:**
+
+| Scenario | UI | Agents |
+|----------|-----|--------|
+| No license key | No popup (unlicensed mode) | Work normally |
+| Valid license | No popup | Work normally |
+| Invalid/expired license | Popup on all pages | Blocked until valid key entered |
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Get license status | `GET /api/license` | N/A |
+| | Returns `{ valid, org?, name?, features?, expiresAt? }` | |
+| Save license key | `PUT /api/config/service` | `update_service_config` |
+| | **Body:** `{ licenseKey: "MA1-..." }` | **Params:** `body` (object with `licenseKey`) |
+
 ### SaaS Publishing Section
 - **Description:** "Publish skills, prompts, agents, and apps from your Library to a shared SaaS workspace"
 - **Status dot** — green when connected, hidden otherwise

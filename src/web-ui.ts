@@ -56,7 +56,7 @@ export function startWebUI(opts: WebUIOptions): void {
   app.use(express.static(join(opts.baseDir, "public"), {
     maxAge: "1h",
     index: false,
-    extensions: ["svg", "png", "ico", "jpg", "jpeg", "gif", "webp"],
+    extensions: ["svg", "png", "ico", "jpg", "jpeg", "gif", "webp", "js", "css"],
   }));
 
   // ─── Mount Gym API routes (gated by gymEnabled in the router) ────
@@ -495,6 +495,8 @@ export function startWebUI(opts: WebUIOptions): void {
       gymEnabled: (s as any).gymEnabled ?? false,
       aibriefingEnabled: (s as any).aibriefingEnabled ?? false,
       gymOnlyMode: (s as any).gymOnlyMode ?? false,
+      licenseKey: (s as any).licenseKey ? `${(s as any).licenseKey.slice(0, 20)}...` : "",
+      licenseUrl: (s as any).licenseUrl || "https://ai41license.agenticledger.ai",
     });
   });
 
@@ -542,7 +544,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode, licenseKey, licenseUrl } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
@@ -576,6 +578,18 @@ export function startWebUI(opts: WebUIOptions): void {
       if (gymEnabled !== undefined) { raw.service.gymEnabled = gymEnabled; (opts.config.service as any).gymEnabled = gymEnabled; }
       if (aibriefingEnabled !== undefined) { raw.service.aibriefingEnabled = aibriefingEnabled; (opts.config.service as any).aibriefingEnabled = aibriefingEnabled; }
       if (gymOnlyMode !== undefined) { raw.service.gymOnlyMode = gymOnlyMode; (opts.config.service as any).gymOnlyMode = gymOnlyMode; }
+      if (licenseKey !== undefined && licenseKey !== "" && !licenseKey.endsWith("...")) {
+        raw.service.licenseKey = licenseKey;
+        (opts.config.service as any).licenseKey = licenseKey;
+        // Re-verify license immediately so agents unblock without restart
+        import("./license.js").then(({ reverifyLicense }) => {
+          reverifyLicense(licenseKey, (opts.config.service as any).licenseUrl).then(result => {
+            log.info(`License re-verified: valid=${result.valid} org=${result.org || "n/a"}`);
+          }).catch(() => {});
+        });
+      }
+      if (licenseKey === "") { delete raw.service.licenseKey; delete (opts.config.service as any).licenseKey; }
+      if (licenseUrl !== undefined) { raw.service.licenseUrl = licenseUrl || undefined; (opts.config.service as any).licenseUrl = licenseUrl || undefined; }
       if (webUIPort !== undefined || webhookSecret !== undefined || webUIEnabled !== undefined) {
         if (!raw.service.webUI) raw.service.webUI = {};
         if (webUIPort !== undefined) raw.service.webUI.port = Number(webUIPort);
@@ -5700,6 +5714,17 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true, uptime: process.uptime() });
+  });
+
+  // ─── License info ────────────────────────────────────────────────
+  app.get("/api/license", async (_req, res) => {
+    try {
+      const { getLicense } = await import("./license.js");
+      const license = getLicense();
+      res.json(license || { valid: true });
+    } catch {
+      res.json({ valid: true });
+    }
   });
 
   // ─── Startup: sync config.json MCPs → registry ───────────────────

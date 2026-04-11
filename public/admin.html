@@ -588,6 +588,37 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
+      <!-- ── License ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:var(--accent-bg);border-color:var(--accent);color:var(--accent)">&#9919;</div>
+          <div>
+            <div class="section-title">License</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">MyAIforOne license key for platform activation and feature gating</div>
+          </div>
+          <span id="license-status-dot" style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0" title="Unknown"></span>
+        </div>
+        <div class="section-body">
+          <div class="service-grid">
+            <div class="field" style="grid-column: 1 / -1">
+              <label>License Key</label>
+              <input id="svcLicenseKey" placeholder="MA1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-family:monospace;font-size:12px" />
+            </div>
+          </div>
+          <div id="license-info" style="margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--bg-secondary);border:1px solid var(--border);display:none">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span id="license-badge" style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600"></span>
+              <span id="license-org" style="font-size:12px;color:var(--text-secondary)"></span>
+            </div>
+            <div id="license-expiry" style="font-size:11px;color:var(--text-muted)"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-save" onclick="saveLicenseKey()">Save & Verify</button>
+            <button class="btn-save" style="background:var(--bg-tertiary,#333);color:var(--text-secondary)" onclick="verifyLicenseKey()">Verify Only</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ── SaaS Publishing ── -->
       <div class="section">
         <div class="section-header">
@@ -1347,6 +1378,9 @@ async function loadService() {
   document.getElementById('keyTogether').value = pk.together || '';
   document.getElementById('keyMistral').value = pk.mistral || '';
   updateMultiModelFieldsVisibility();
+  // License
+  document.getElementById('svcLicenseKey').value = s.licenseKey || '';
+  verifyLicenseKey();
 }
 
 async function saveService() {
@@ -1554,6 +1588,65 @@ async function saveDeployment() {
   const data = await res.json();
   if (!res.ok) { showToast(data.error, 'err'); return; }
   showToast('Deployment settings saved');
+}
+
+async function saveLicenseKey() {
+  const licenseKey = document.getElementById('svcLicenseKey').value.trim();
+  const res = await fetch('/api/config/service', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ licenseKey })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast('License key saved. Restart required for enforcement.');
+  verifyLicenseKey();
+}
+
+async function verifyLicenseKey() {
+  const dot = document.getElementById('license-status-dot');
+  const info = document.getElementById('license-info');
+  const badge = document.getElementById('license-badge');
+  const org = document.getElementById('license-org');
+  const expiry = document.getElementById('license-expiry');
+
+  try {
+    const res = await fetch('/api/license');
+    const data = await res.json();
+
+    if (!data.valid && data.error) {
+      dot.style.background = 'var(--red, #ef4444)';
+      dot.title = 'Invalid';
+      info.style.display = 'block';
+      badge.textContent = 'INVALID';
+      badge.style.background = 'var(--red-bg, #3b1111)';
+      badge.style.color = 'var(--red, #ef4444)';
+      org.textContent = data.error;
+      expiry.textContent = '';
+    } else if (data.org) {
+      dot.style.background = 'var(--green, #22c55e)';
+      dot.title = 'Valid';
+      info.style.display = 'block';
+      badge.textContent = 'ACTIVE';
+      badge.style.background = 'var(--green-bg, #0a2e14)';
+      badge.style.color = 'var(--green, #22c55e)';
+      org.textContent = data.name || data.org;
+      expiry.textContent = data.expiresAt ? 'Expires ' + new Date(data.expiresAt).toLocaleDateString() : '';
+    } else {
+      // No license configured — running unlicensed
+      dot.style.background = 'var(--text-muted)';
+      dot.title = 'No license';
+      info.style.display = 'block';
+      badge.textContent = 'UNLICENSED';
+      badge.style.background = 'var(--bg-tertiary, #333)';
+      badge.style.color = 'var(--text-muted)';
+      org.textContent = 'Running without a license key';
+      expiry.textContent = '';
+    }
+  } catch (e) {
+    dot.style.background = 'var(--text-muted)';
+    dot.title = 'Error';
+    info.style.display = 'none';
+  }
 }
 
 async function loadSaas() {

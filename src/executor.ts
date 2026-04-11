@@ -12,6 +12,7 @@ import { createMemoryManager, type MemoryManager } from "./memory/index.js";
 import { loadMcpKeysWithDecryption } from "./keystore.js";
 import { buildAgentRegistry, buildGroupAgentPrompt } from "./agent-registry.js";
 import { log } from "./logger.js";
+import { checkLicenseForExecution } from "./license.js";
 
 // Module-level config reference for group agent registry
 import type { AppConfig } from "./config.js";
@@ -836,6 +837,10 @@ export async function executeAgent(
   claudeAccounts?: Record<string, string>,
   globalDefaults?: { skills?: string[]; mcps?: string[]; prompts?: string[]; promptTrigger?: string },
 ): Promise<string> {
+  // License gate — block execution if license is invalid
+  const licenseBlock = checkLicenseForExecution();
+  if (licenseBlock) return licenseBlock;
+
   const { agentId, agentConfig } = route;
   const effectiveSkills = [...new Set([...(agentConfig.skills || []), ...(globalDefaults?.skills || [])])];
   const effectiveMcps = [...new Set([...(agentConfig.mcps || []), ...(globalDefaults?.mcps || [])])];
@@ -1502,6 +1507,13 @@ export async function* executeAgentStreaming(
   globalDefaults?: { skills?: string[]; mcps?: string[]; prompts?: string[]; promptTrigger?: string },
   signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
+  // License gate — block execution if license is invalid
+  const licenseBlock = checkLicenseForExecution();
+  if (licenseBlock) {
+    yield { type: "error", data: licenseBlock };
+    return;
+  }
+
   const { agentId, agentConfig } = route;
   const effectiveSkills = [...new Set([...(agentConfig.skills || []), ...(globalDefaults?.skills || [])])];
   const effectiveMcps = [...new Set([...(agentConfig.mcps || []), ...(globalDefaults?.mcps || [])])];

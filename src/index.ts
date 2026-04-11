@@ -12,6 +12,7 @@ import { startWebUI } from "./web-ui.js";
 import { startCronJobs, stopCronJobs } from "./cron.js";
 import { startGoals, stopGoals } from "./goals.js";
 import { startWikiSync, stopWikiSync } from "./wiki-sync.js";
+import { verifyLicense } from "./license.js";
 import type { ChannelDriver, InboundMessage } from "./channels/types.js";
 
 const isMac = process.platform === "darwin";
@@ -27,6 +28,12 @@ async function main(): Promise<void> {
   configureLogger(config.service.logLevel, config.service.logFile);
 
   log.info("channelToAgentToClaude starting...");
+
+  // ─── License verification (non-blocking — UI always starts) ────────
+  const license = await verifyLicense(config.service.licenseKey, config.service.licenseUrl);
+  if (config.service.licenseKey && !license.valid) {
+    log.warn(`License invalid: ${license.error || "expired or revoked"}. Agents will be blocked until a valid license is entered in Admin → Settings.`);
+  }
 
   const drivers: ChannelDriver[] = [];
   const driverMap = new Map<string, ChannelDriver>();
