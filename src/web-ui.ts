@@ -72,9 +72,9 @@ export function startWebUI(opts: WebUIOptions): void {
     }));
   }
 
-  // ─── Serve the Home page ─────────────────────────────────────────
+  // ─── Serve the Home page (home2 is now the default) ─────────────
   const serveHome = (_req: any, res: any) => {
-    const htmlPath = join(opts.baseDir, "public", "home.html");
+    const htmlPath = join(opts.baseDir, "public", "home2.html");
     if (existsSync(htmlPath)) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(htmlPath);
@@ -82,15 +82,20 @@ export function startWebUI(opts: WebUIOptions): void {
       res.redirect("/org");
     }
   };
-  // If gymOnlyMode, redirect root to /gym
-  if (opts.config.service?.gymOnlyMode) {
-    app.get("/", (_req, res) => res.redirect("/gym"));
-  } else {
-    app.get("/", serveHome);
-  }
+  app.get("/", serveHome);
   app.get("/home", serveHome);
+  // Legacy home (old single-agent chat page)
+  app.get("/home-legacy", (_req, res) => {
+    const htmlPath = join(opts.baseDir, "public", "home.html");
+    if (existsSync(htmlPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(htmlPath);
+    } else {
+      res.redirect("/org");
+    }
+  });
 
-  // ─── Serve Home v2 (Work/Coach unified page) ───────────────────
+  // ─── Serve Home v2 (also reachable at /home2) ──────────────────
   app.get("/home2", (_req, res) => {
     const htmlPath = join(opts.baseDir, "public", "home2.html");
     if (existsSync(htmlPath)) {
@@ -208,16 +213,7 @@ export function startWebUI(opts: WebUIOptions): void {
     }
   });
 
-  // ─── Serve the Gym page (gated by gymEnabled) ────────────────────
-  app.get("/gym", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "gym.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Gym page not found.");
-    }
-  });
+  // /gym route removed — AI Gym is now integrated into the home2 Work/AI Gym toggle
 
   // /apps route removed — Apps are now managed in the Registry (marketplace) Apps tab
 

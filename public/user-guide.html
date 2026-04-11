@@ -129,7 +129,6 @@ html,body{width:100%;height:100%;background:var(--bg-deep);font-family:var(--fon
       <a class="tab-btn" href="/lab">Lab</a>
   </div>
   <div class="topbar-right">
-    <a class="gym-nav-btn gym-tab-link" href="/gym" style="display:none">Gym</a>
     <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
@@ -213,6 +212,5 @@ function filterToc(q) {
 
 loadGuide();
 </script>
-<script>(function(){fetch("/api/config/service").then(function(r){return r.json()}).then(function(d){if(d.gymEnabled)document.querySelectorAll(".gym-tab-link").forEach(function(el){el.style.display=""});if(d.gymOnlyMode){var keep=["/gym","/org","/admin"];document.querySelectorAll(".tab-group .tab-btn").forEach(function(el){var h=el.getAttribute("href");if(h&&keep.indexOf(h)===-1&&!el.classList.contains("gym-tab-link"))el.style.display="none"});document.querySelectorAll(".topbar-right .gear-btn").forEach(function(el){var h=el.getAttribute("href");if(h&&["/marketplace","/monitor","/user-guide"].indexOf(h)!==-1)el.style.display="none"})}}).catch(function(){})})()</script>
 </body>
 </html>
