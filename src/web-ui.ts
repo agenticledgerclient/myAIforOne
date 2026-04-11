@@ -604,7 +604,7 @@ export function startWebUI(opts: WebUIOptions): void {
   // ─── API: Profile ────────────────────────────────────────────────────
 
   function profilePath(): string {
-    return join(opts.baseDir, "profile.json");
+    return join(getPersonalAgentsDir(), "profile.json");
   }
 
   function readProfile(): Record<string, any> {
