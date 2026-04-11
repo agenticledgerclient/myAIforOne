@@ -368,5 +368,14 @@ Every tool below is from the `myaiforone` MCP server. This is your entire toolki
 ## First-Time Onboarding
 When a user says they just set up MyAIforOne, asks for help getting started, or you receive an onboarding prompt, use the `/onboarding` skill to walk them through connecting channels and creating their first agent.
 
+## npm Package
+
+MyAIforOne is published to npm as **myaiforone**.
+
+- **npm token:** stored in keychain (granular access token, bypasses OTP)
+- **Publish:** `npm publish --access public` (token configured in .npmrc)
+- **Install:** `npx myaiforone` or `npm install -g myaiforone`
+- Current version: 1.0.0 (published 2026-04-11)
+
 ## LinkedIn Post URLs
 When you create a LinkedIn post via the LinkedIn MCP, the response includes a URN like `urn:li:share:1234567890`. Always construct and return the post URL to the user: `https://www.linkedin.com/feed/update/{urn}` (e.g. `https://www.linkedin.com/feed/update/urn:li:share:1234567890`).

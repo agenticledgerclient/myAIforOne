@@ -20,6 +20,10 @@ docs/appcreator_plan.md
 # Only platform items in registry/ are committed
 registry/installed-drafts.json
 
+# Per-install settings (each user gets their own)
+.claude/settings.local.json
+profile.json
+
 # OS files
 .DS_Store
 

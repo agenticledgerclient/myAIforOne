@@ -97,6 +97,16 @@ When `multiModelEnabled: true` in service config, agents can use open-source mod
 5. Run `/opappbuild_agentready_trueup` — updates API docs, MCP tools, and MCP docs to match new endpoints
 6. Run `/opappbuild_testsuite_trueup` — adds test coverage for new endpoints
 
+## Git Remotes
+
+This repo pushes to two remotes. **Always push to both** when committing:
+- **origin** — `github.com/agenticledger/channelToAgentToClaude` (private dev repo)
+- **client** — `github.com/agenticledgerclient/myAIforOne` (client delivery repo)
+
+```bash
+git push origin main && git push client main
+```
+
 ## Related Projects
 
 - **SaaS version** (`myAI41_saas`) — multi-tenant fork at `~/Desktop/APPs/myAI41_saas`, managed by `@ma41saas`. After significant architectural or API changes here, flag whether the SaaS version may need the same update.

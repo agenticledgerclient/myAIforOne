@@ -1,0 +1,7 @@
+# Agent runtime data — personal to each install
+agents/*/memory/
+agents/*/tasks.json
+agents/*/FileStorage/
+agents/platform/*/memory/
+agents/platform/*/tasks.json
+agents/platform/*/FileStorage/

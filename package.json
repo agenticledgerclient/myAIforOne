@@ -1,9 +1,36 @@
 {
-  "name": "channel-to-agent-to-claude",
+  "name": "myaiforone",
   "version": "1.0.0",
   "type": "module",
   "description": "Routes messages from phone channels to project-specific Claude Code agents",
+  "bin": {
+    "myaiforone": "./bin/cli.js"
+  },
+  "files": [
+    ".claude/commands/",
+    "bin/",
+    "dist/",
+    "src/",
+    "server/",
+    "public/",
+    "agents/_template/",
+    "agents/platform/",
+    "!agents/*/memory/",
+    "!agents/*/tasks.json",
+    "!agents/*/FileStorage/",
+    "!agents/platform/*/memory/",
+    "!agents/platform/*/tasks.json",
+    "!agents/platform/*/FileStorage/",
+    "config.example.json",
+    "mcp-catalog.json",
+    "registry/",
+    "scripts/",
+    "docs/",
+    "tsconfig.json",
+    "README.md"
+  ],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "tsc && tsc -p server/mcp-server/tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",

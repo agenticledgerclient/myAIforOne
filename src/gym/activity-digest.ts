@@ -380,63 +380,7 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
       log.warn(`[Gym Digest] Failed to update profile: ${err}`);
     }
 
-    // ── Step 8: Generate gym cards ──
-    const cards: Array<{ title: string; description: string; type: string; ctaAction?: string; cta?: string }> = [];
-
-    // Card: weakest dimension suggestion
-    const weakest = (Object.entries(scores) as [string, number][]).sort((a, b) => a[1] - b[1])[0];
-    if (weakest && weakest[1] < 3) {
-      const suggestions: Record<string, string> = {
-        application: "Try using an agent for a real work task today.",
-        communication: "Practice writing a detailed, context-rich prompt.",
-        knowledge: "Check out the Getting Started program to build foundations.",
-        orchestration: "Set up your first scheduled goal or automation.",
-        craft: "Create a specialized agent for one of your projects.",
-      };
-      cards.push({
-        title: `Build your ${weakest[0]}`,
-        description: suggestions[weakest[0]] || `Your ${weakest[0]} score is ${weakest[1]}/5 — let's improve it.`,
-        type: "recommendation",
-        cta: "Let's go",
-        ctaAction: `Help me improve my ${weakest[0]} skills`,
-      });
-    }
-
-    // Card: dormant agent nudge
-    if (dormantAgents.length > 0) {
-      const agent = dormantAgents[0];
-      cards.push({
-        title: `Revive @${agent}`,
-        description: `Your ${agent} agent hasn't been active recently. Still useful, or time to reconfigure?`,
-        type: "nudge",
-        cta: "Review",
-        ctaAction: `Tell me about my ${agent} agent — is it still useful?`,
-      });
-    }
-
-    // Card: unused feature discovery
-    if (neverUsed.length > 0) {
-      const featureDescriptions: Record<string, string> = {
-        goals: "Automated goals let your agents work while you sleep.",
-        cron: "Scheduled tasks can run reports, checks, or updates automatically.",
-        mcps: "MCPs connect your agents to external services like Slack, GitHub, or Stripe.",
-        web: "Web tools let your agents search the internet and fetch live data.",
-        delegation: "Agent-to-agent delegation lets agents hand off work to each other.",
-        "multi-model": "You can use different AI models (Ollama, GPT) for different agents.",
-      };
-      const feature = neverUsed.find((f) => featureDescriptions[f]);
-      if (feature) {
-        cards.push({
-          title: `Try ${feature}`,
-          description: featureDescriptions[feature],
-          type: "discovery",
-          cta: "Learn more",
-          ctaAction: `Tell me about ${feature} and how to set it up`,
-        });
-      }
-    }
-
-    // ── Struggle Detection ──
+    // ── Step 8: Struggle Detection (saved to profile for deep evaluation rubric) ──
     const struggles: Array<{agentId: string; pattern: string; detail: string}> = [];
 
     for (const s of summaries) {
@@ -444,19 +388,16 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
       const agentId = s.agentId;
       if (["hub", "gym", "agentcreator"].includes(agentId)) continue;
 
-      // Read last 50 log entries for this agent
       try {
         const logsRes = await apiGet(port, `/api/agents/${agentId}/logs?limit=50`);
         const entries = logsRes.entries || [];
 
-        // Detect "gave up" patterns
         const gaveUpPatterns = /never\s*mind|forget\s*it|i('|')ll\s+do\s+it\s+(myself|manually)|this\s+isn('|')t\s+working|let('|')s\s+stop/i;
         const gaveUpCount = entries.filter((e: any) => e.role === "user" && gaveUpPatterns.test(e.content || "")).length;
         if (gaveUpCount >= 2) {
           struggles.push({ agentId, pattern: "gave-up", detail: `User gave up ${gaveUpCount} times with @${agentId}` });
         }
 
-        // Detect high correction rate (many short back-and-forth exchanges)
         let corrections = 0;
         for (let i = 1; i < entries.length - 1; i++) {
           const prev = entries[i - 1];
@@ -474,30 +415,11 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
       } catch { /* skip */ }
     }
 
-    // Write struggles to profile
     if (struggles.length > 0) {
       profileUpdate.patterns = {
         ...profileUpdate.patterns,
         struggles: struggles.map((s) => ({ ...s, detectedAt: today })),
       };
-
-      // Generate a card for the top struggle
-      const topStruggle = struggles[0];
-      const struggleAdvice: Record<string, string> = {
-        "gave-up": `You've been hitting walls with @${topStruggle.agentId}. Want to work on prompt strategies that get better results?`,
-        "high-correction": `Lots of back-and-forth with @${topStruggle.agentId}. A more structured prompt upfront could save time — want me to show you?`,
-      };
-      cards.push({
-        title: "Coaching Moment",
-        description: struggleAdvice[topStruggle.pattern] || topStruggle.detail,
-        type: "tip",
-        cta: "Help me",
-        ctaAction: `I've been struggling with @${topStruggle.agentId}. Can you help me communicate with it better?`,
-      });
-    }
-
-    // Re-update profile with struggle patterns
-    if (struggles.length > 0) {
       try {
         await apiPut(port, "/api/gym/learner-profile", profileUpdate);
         log.info("[Gym Digest] Learner profile updated with struggle patterns");
@@ -506,54 +428,11 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
       }
     }
 
-    // ── Capability Gap Analysis ──
-    const allPlatformFeatures = ["chat", "file-ops", "bash", "web", "mcps", "goals", "cron", "delegation", "webhooks", "multi-model", "wiki", "advanced-memory", "canvas", "projects"];
-    const gapFeatures = allPlatformFeatures.filter((f) => !featuresUsed.has(f));
-
-    // Identify highest-value unused capability based on current patterns
-    const featureValue: Record<string, { value: number; reason: string }> = {
-      "goals": { value: 5, reason: "Automate recurring tasks — your agents can work while you sleep." },
-      "mcps": { value: 5, reason: "Connect to external services (Slack, GitHub, APIs) for powerful workflows." },
-      "projects": { value: 4, reason: "Organize multi-agent initiatives with tasks and tracking." },
-      "cron": { value: 4, reason: "Schedule regular agent check-ins, reports, or maintenance." },
-      "wiki": { value: 3, reason: "Let agents learn and remember facts across sessions." },
-      "advanced-memory": { value: 3, reason: "Semantic search across past conversations for deeper context." },
-      "canvas": { value: 2, reason: "Preview and edit files directly in the chat interface." },
-      "multi-model": { value: 2, reason: "Use different AI models for different tasks." },
-      "delegation": { value: 2, reason: "Let agents hand off work to each other for complex workflows." },
-    };
-
-    const topGap = gapFeatures
-      .filter((f) => featureValue[f])
-      .sort((a, b) => (featureValue[b]?.value || 0) - (featureValue[a]?.value || 0))[0];
-
-    if (topGap && cards.length < 3) {
-      cards.push({
-        title: `Unlock ${topGap}`,
-        description: featureValue[topGap].reason,
-        type: "tip",
-        cta: "Tell me more",
-        ctaAction: `Tell me about ${topGap} and how to set it up on this platform`,
-      });
-    }
-
-    // Post cards (max 3)
-    for (const card of cards.slice(0, 3)) {
-      try {
-        await apiPost(port, "/api/gym/cards", {
-          ...card,
-          isNew: true,
-          generatedAt: today,
-        });
-      } catch (err) {
-        log.warn(`[Gym Digest] Failed to create gym card: ${err}`);
-      }
-    }
-
     // ── Step 9: Generate insights for "You tell me" mode ──
     const insights: Array<{ category: string; text: string; priority: number }> = [];
 
     // Insight from weakest dimension
+    const weakest = (Object.entries(scores) as [string, number][]).sort((a, b) => a[1] - b[1])[0];
     if (weakest && weakest[1] < 3) {
       const dimTips: Record<string, string> = {
         application: "You're not yet using agents for real work tasks regularly. Bringing a real task to an agent — even a small one — builds the strongest intuition.",
@@ -591,6 +470,20 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
     }
 
     // Insight from unused high-value feature
+    const featureValue: Record<string, { value: number; reason: string }> = {
+      "goals": { value: 5, reason: "Automate recurring tasks — your agents can work while you sleep." },
+      "mcps": { value: 5, reason: "Connect to external services (Slack, GitHub, APIs) for powerful workflows." },
+      "projects": { value: 4, reason: "Organize multi-agent initiatives with tasks and tracking." },
+      "cron": { value: 4, reason: "Schedule regular agent check-ins, reports, or maintenance." },
+      "wiki": { value: 3, reason: "Let agents learn and remember facts across sessions." },
+      "advanced-memory": { value: 3, reason: "Semantic search across past conversations for deeper context." },
+      "multi-model": { value: 2, reason: "Use different AI models for different tasks." },
+      "delegation": { value: 2, reason: "Let agents hand off work to each other for complex workflows." },
+    };
+    const topGap = neverUsed
+      .filter((f) => featureValue[f])
+      .sort((a, b) => (featureValue[b]?.value || 0) - (featureValue[a]?.value || 0))[0];
+
     if (topGap) {
       insights.push({
         category: "feature-gap",
@@ -621,7 +514,7 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
       log.warn(`[Gym Digest] Failed to update insights: ${err}`);
     }
 
-    log.info(`[Gym Digest] Complete. ${cards.length} cards generated.`);
+    log.info("[Gym Digest] Complete.");
   } catch (err) {
     log.error(`[Gym Digest] Failed: ${err}`);
   }

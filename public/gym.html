@@ -213,10 +213,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .gym-main.active{display:flex}
 
 /* Left sidebar */
-.gym-sidebar{width:520px;flex-shrink:0;background:var(--bg-surface);border-right:1px solid var(--border-dim);display:flex;flex-direction:column;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.gym-sidebar{width:320px;min-width:200px;max-width:600px;flex-shrink:0;background:var(--bg-surface);border-right:1px solid var(--border-dim);display:flex;flex-direction:column;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:relative}
 .gym-sidebar-inner{flex:1;overflow-y:auto;padding:16px}
 .gym-sidebar-inner::-webkit-scrollbar{width:3px}
 .gym-sidebar-inner::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
+.gym-resize-handle{position:absolute;top:0;right:-3px;width:6px;height:100%;cursor:col-resize;z-index:10;background:transparent;transition:background .2s}
+.gym-resize-handle:hover,.gym-resize-handle.active{background:var(--accent);opacity:.4}
 
 .streak-box{
   background:var(--accent-bg);border:1px solid var(--border-glow);border-radius:var(--radius);
@@ -243,35 +245,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .gym-nav-icon{font-size:15px;width:22px;text-align:center;flex-shrink:0}
 .gym-nav-label{flex:1}
 
-/* Gym cards */
-.gym-card{
-  background:var(--bg-card);border:1px solid var(--border-dim);border-radius:8px;
-  padding:8px 10px;margin-bottom:6px;position:relative;transition:all .2s;
-  backdrop-filter:blur(12px);
-}
-.gym-card:hover{border-color:var(--border-glow)}
-.gym-card-badge{
-  position:absolute;top:5px;right:5px;font-size:8px;font-weight:700;
-  padding:1px 5px;border-radius:4px;background:var(--accent-bg);color:var(--accent);
-}
-.gym-card-dismiss{
-  position:absolute;top:4px;right:4px;background:none;border:none;
-  color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 4px;transition:color .2s;z-index:2;line-height:1;
-}
-.gym-card-dismiss:hover{color:var(--text-primary)}
-.gym-card-insight{border-left:2px solid var(--accent)}
-.gym-card-title{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:2px;padding-right:16px}
-.gym-card-desc{font-size:10px;color:var(--text-muted);line-height:1.4;margin-bottom:4px}
-.gym-card-cta{
-  font-family:var(--font-sans);font-size:10px;font-weight:600;padding:3px 8px;
-  border-radius:5px;border:1px solid var(--accent);background:transparent;
-  color:var(--accent);cursor:pointer;transition:all .2s;
-}
-.gym-card-cta:hover{background:var(--accent-bg)}
-
 /* ─── Center Panel ────────────────────────── */
 .gym-center{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .gym-tabs{display:flex;border-bottom:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface)}
+.gym-tabs-right{display:flex;align-items:center;gap:2px;margin-right:8px}
 .gym-tab{
   font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-muted);
   padding:12px 20px;cursor:pointer;border:none;background:none;position:relative;transition:color .2s;
@@ -339,6 +316,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .chat-send:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
 .chat-input-wrap{display:flex;flex-direction:column;flex-shrink:0}
+.chat-action-btns{display:flex;gap:6px;padding:6px 14px 10px;flex-wrap:wrap}
+.chat-action-btns:empty{display:none}
+.chat-action-btn{
+  border:1px solid var(--border-dim);padding:5px 12px;border-radius:8px;
+  font-size:11px;font-family:var(--font-sans);font-weight:600;cursor:pointer;
+  background:transparent;color:var(--text-secondary);transition:all .2s;white-space:nowrap;
+}
+.chat-action-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.chat-action-btn.primary{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
 
 /* ─── Chat toolbar buttons ────────────────── */
 .gym-clip-btn,.gym-mic-btn,.gym-raw-btn{
@@ -547,7 +533,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 }
 .gv-ai-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
 .gv-chat{width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
-.gv-chat-context{padding:8px 16px;background:var(--accent-bg);border-bottom:1px solid var(--border-dim);font-size:11px;color:var(--accent);font-weight:600;flex-shrink:0}
+.gv-chat-header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.gv-chat-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+.gv-chat-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary)}
+.gv-chat-context{font-size:10px;color:var(--text-muted);font-weight:400}
 
 /* ─── AI Generator ───────────────────────── */
 .gen-wrapper{display:flex;flex:1;overflow:hidden}
@@ -572,43 +561,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .gen-module-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px;padding:6px 0;border-bottom:1px solid var(--border-dim)}
 .gen-step-preview{font-size:12px;color:var(--text-secondary);padding:4px 0 4px 12px;border-left:2px solid var(--border-dim)}
 
-/* ─── Feed Strip ─────────────────────────── */
-.gym-feed-strip{
-  height:auto;min-height:32px;max-height:200px;display:flex;flex-direction:column;
-  background:var(--bg-surface);border-top:1px solid var(--border-dim);flex-shrink:0;
-  overflow:hidden;transition:max-height .3s ease;
-}
-.feed-tabs{display:flex;border-bottom:1px solid var(--border-dim);flex-shrink:0}
-.feed-tab{
-  font-family:var(--font-display);font-size:10px;font-weight:700;color:var(--text-muted);
-  padding:6px 14px;cursor:pointer;border:none;background:none;position:relative;
-  text-transform:uppercase;letter-spacing:.06em;transition:color .2s;
-}
-.feed-tab:hover{color:var(--text-secondary)}
-.feed-tab.active{color:var(--accent)}
-.feed-tab.active::after{content:'';position:absolute;bottom:0;left:6px;right:6px;height:1.5px;background:var(--accent);border-radius:1px}
-.feed-panel{display:none;flex:1;overflow-y:auto;padding:8px 14px}
-.feed-panel.active{display:block}
-.feed-panel::-webkit-scrollbar{width:3px}
-.feed-panel::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:2px}
-.feed-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-dim)}
-.feed-item:last-child{border-bottom:none}
-.feed-item-icon{font-size:12px;flex-shrink:0;margin-top:1px}
-.feed-item-text{font-size:11px;color:var(--text-secondary);line-height:1.4}
-.feed-item-date{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-left:auto;flex-shrink:0}
-.feed-empty{font-size:10px;color:var(--text-muted);text-align:center;padding:12px}
-.gym-feed-strip.expanded{position:fixed;top:48px;left:0;right:0;bottom:0;max-height:none;z-index:100;background:var(--bg-surface)}
-.gym-feed-strip.expanded .feed-panel{padding:16px 24px}
-.feed-expand-btn{
-  position:absolute;top:4px;right:40px;background:none;border:none;
-  color:var(--text-muted);cursor:pointer;font-size:10px;font-weight:700;
-  padding:2px 8px;transition:color .2s;font-family:var(--font-mono);letter-spacing:.04em;
-}
-.feed-expand-btn:hover{color:var(--text-primary)}
-.feed-toggle{
-  position:absolute;top:4px;right:8px;background:none;border:none;
-  color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;
-}
 </style>
 </head>
 <body>
@@ -627,16 +579,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
       <a class="tab-btn" href="/library">Library</a>
       <a class="tab-btn" href="/lab">Lab</a>
     </nav>
-    <nav class="tab-group gym-tabs" id="gymTabs" style="display:none">
-      <button class="tab-btn active" data-gymtab="coach" onclick="switchView('coach')">Coach</button>
-      <button class="tab-btn" data-gymtab="progress" onclick="switchView('progress')">Progress</button>
-      <button class="tab-btn" data-gymtab="guides" onclick="switchView('guides')">Guides</button>
-      <button class="tab-btn" data-gymtab="generator" onclick="switchView('generator')">AI Generator</button>
-    </nav>
+    <nav class="tab-group gym-tabs" id="gymTabs" style="display:none"></nav>
     <div class="topbar-right">
-      <!-- Refresh Insights moved to sidebar, only shown in coach mode -->
-      <button class="gym-nav-btn" onclick="openConfigOverlay()" title="Configure gym agent" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-secondary)">&#x2699; Configure</button>
-      <a class="gym-nav-btn" href="/gym">Gym</a>
+      <nav class="tab-group gym-tabs-right" id="gymTabsRight" style="display:none">
+        <button class="tab-btn active" data-gymtab="coach" onclick="switchView('coach')">Chat</button>
+        <button class="tab-btn" data-gymtab="progress" onclick="switchView('progress')">Progress</button>
+        <button class="tab-btn" data-gymtab="guides" onclick="switchView('guides')">Guides</button>
+        <button class="tab-btn" data-gymtab="generator" onclick="switchView('generator')">Create</button>
+      </nav>
+      <a class="gym-nav-btn" href="/gym" style="font-weight:700">Gym</a>
+      <button class="gym-nav-btn" onclick="openConfigOverlay()" title="Configure" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-secondary);padding:4px 8px;font-size:16px;line-height:1">&#x2699;</button>
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#x1F319;</button>
     </div>
   </div>
@@ -734,21 +686,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   <div class="gym-main" id="gymMain">
 
     <!-- Left sidebar -->
-    <div class="gym-sidebar">
+    <div class="gym-sidebar" id="gymSidebar">
       <div class="gym-sidebar-inner">
         <div class="streak-box" id="streakBox">
           <div class="streak-fire">&#x1F525;</div>
           <div class="streak-count" id="streakCount">0</div>
           <div class="streak-label">day streak</div>
         </div>
-
-        <div id="sidebarRefreshInsights" style="display:none;margin-bottom:12px">
-          <button class="gym-nav-btn" id="refreshInsightsBtn" onclick="refreshInsights()" title="Regenerate insights now" style="width:100%;background:transparent;border:1px solid var(--border-dim);color:var(--text-secondary);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:var(--font-sans)">&#x1F504; Refresh Insights</button>
-        </div>
-        <div class="sidebar-section-title" id="cardsSectionTitle">Gym Cards</div>
-        <div id="gymCards"></div>
-        <div id="sidebarGuides" style="display:none"></div>
+        <div id="sidebarGuides"></div>
       </div>
+      <div class="gym-resize-handle" id="gymResizeHandle"></div>
     </div>
 
     <!-- Center panel -->
@@ -777,6 +724,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
               oninput="autoResizeChat(this)"></textarea>
             <button class="chat-send" id="chatSend" onclick="sendMessage()">&#x2192;</button>
           </div>
+          <div class="chat-action-btns" id="chatActionBtns"></div>
           <div class="gym-raw-drawer" id="gymRawDrawer">
             <div class="gym-raw-header">
               <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Activity</span>
@@ -862,9 +810,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
             </div>
           </div>
           <div class="gv-chat">
-            <div class="gv-chat-context" id="gvChatContext">Coach</div>
+            <div class="gv-chat-header">
+              <div class="gv-chat-avatar" id="gvChatAvatar"></div>
+              <div>
+                <div class="gv-chat-name" id="gvChatName">Coach</div>
+                <div class="gv-chat-context" id="gvChatContext">Asking about this step</div>
+              </div>
+            </div>
             <div class="chat-messages" id="gvChatMessages"></div>
             <div class="chat-input-area">
+              <button class="gym-clip-btn" id="gvClipBtn" onclick="gvToggleFileZone()" title="Attach files">&#x1F4CE;</button>
+              <button class="gym-mic-btn" id="gvMicBtn" onclick="gvToggleVoice()" title="Click to speak">&#x1F3A4;</button>
+              <button class="gym-mic-btn" id="gvVoiceModeBtn" onclick="gvToggleVoiceMode()" title="Read responses aloud" style="font-size:14px">&#x1F507;</button>
+              <button class="gym-raw-btn" id="gvRawBtn" onclick="gvToggleRawLogs()" title="Raw logs">&#x2318;</button>
               <textarea class="chat-textarea" id="gvChatInput" placeholder="Ask about this step..." rows="1"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGuideMessage()}"
                 oninput="autoResizeChat(this)"></textarea>
@@ -906,20 +864,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
     </div>
   </div>
 
-  <!-- Bottom strip -->
-  <div class="gym-feed-strip" id="feedStrip" style="display:none">
-    <div style="position:relative">
-      <div class="feed-tabs">
-        <button class="feed-tab active" onclick="switchFeedTab('tips')" data-feed="tips">Tips</button>
-        <button class="feed-tab" onclick="switchFeedTab('updates')" data-feed="updates">Platform Updates</button>
-        <button class="feed-tab" onclick="switchFeedTab('briefing')" data-feed="briefing">AI Briefing</button>
-      </div>
-      <button class="feed-expand-btn" id="feedExpandBtn" onclick="toggleFeedExpand()">EXPAND</button>
-    </div>
-    <div class="feed-panel active" id="feedTips"></div>
-    <div class="feed-panel" id="feedUpdates"></div>
-    <div class="feed-panel" id="feedBriefing"></div>
-  </div>
+  <!-- Bottom feed strip removed — guides sidebar replaced it -->
 
 </div>
 
@@ -1006,11 +951,10 @@ function toggleTheme() {
 /* ─── Init ───────────────────────────────── */
 async function init() {
   try {
-    const [profileRes, planRes, progressRes, cardsRes, programsRes, insightsRes] = await Promise.all([
+    const [profileRes, planRes, progressRes, programsRes, insightsRes] = await Promise.all([
       fetch(`${API}/api/gym/learner-profile`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/plan`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/progress`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${API}/api/gym/cards`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/programs`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/insights`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
@@ -1018,7 +962,6 @@ async function init() {
     state.profile = profileRes;
     state.plan = planRes;
     state.progress = progressRes;
-    state.cards = Array.isArray(cardsRes) ? cardsRes : (cardsRes?.cards || []);
     state.programs = Array.isArray(programsRes) ? programsRes : (programsRes?.programs || []);
     state.insights = insightsRes || { insights: [], topRecommendation: null };
 
@@ -1052,13 +995,13 @@ function showOnboarding() {
   document.getElementById('onboarding').classList.remove('hidden');
   document.getElementById('modePicker').classList.remove('active');
   document.getElementById('gymMain').classList.remove('active');
-  document.getElementById('feedStrip').style.display = 'none';
+  /* feedStrip removed */
 }
 
 function showMainGym() {
   document.getElementById('onboarding').classList.add('hidden');
   document.getElementById('gymMain').classList.remove('active');
-  document.getElementById('feedStrip').style.display = 'none';
+  /* feedStrip removed */
   // Show mode picker instead of going straight to gym
   showModePicker();
 }
@@ -1066,7 +1009,7 @@ function showMainGym() {
 function showModePicker() {
   document.getElementById('modePicker').classList.add('active');
   document.getElementById('gymMain').classList.remove('active');
-  document.getElementById('feedStrip').style.display = 'none';
+  /* feedStrip removed */
   // Greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -1085,7 +1028,6 @@ function enterMode(mode) {
   state.currentMode = mode;
   document.getElementById('modePicker').classList.remove('active');
   document.getElementById('gymMain').classList.add('active');
-  document.getElementById('feedStrip').style.display = 'flex';
   renderMainGym();
   // Switch to coach view for all modes
   switchView('coach');
@@ -1113,42 +1055,7 @@ async function primeCoachForMode(mode) {
   if (mode === 'task') {
     primerText = "What are you working on? Describe the task and I'll help you get it done — I'll point out what you're learning along the way.";
   } else if (mode === 'coach') {
-    // Fetch pre-computed insights from the weekly goal, plus learner profile for stats
-    appendCoachMessage("Let me pull up your latest insights...", trainer, 'mode-primer');
-    showTyping();
-    try {
-      const [insightsRes, profileRes] = await Promise.all([
-        fetch(`${API}/api/gym/insights`).then(r => r.json()).catch(() => ({ insights: [], topRecommendation: null })),
-        fetch(`${API}/api/gym/learner-profile`).then(r => r.json()).catch(() => ({})),
-      ]);
-      const hasInsights = insightsRes.topRecommendation || (insightsRes.insights && insightsRes.insights.length > 0);
-      let systemText;
-      if (hasInsights) {
-        systemText = `[SYSTEM: The user selected "You tell me" mode. Here are the pre-computed insights from the weekly analysis:\n\nTop recommendation: ${insightsRes.topRecommendation || 'none'}\nInsights: ${JSON.stringify(insightsRes.insights || [])}\nSummary: ${insightsRes.summary || 'none'}\nGenerated: ${insightsRes.generatedAt || 'never'}\n\nLearner profile stats: dimensions=${JSON.stringify(profileRes.dimensions || {})}, streak=${profileRes.streak?.current || 0}, neverUsed=${JSON.stringify(profileRes.features?.neverUsed || [])}, struggles=${JSON.stringify(profileRes.patterns?.struggles || [])}\n\nPresent the top recommendation conversationally. Reference the specific insight data. If the user wants a fresh analysis, tell them you can run one now.]`;
-      } else {
-        systemText = `[SYSTEM: The user selected "You tell me" mode. No pre-computed insights are available yet (the weekly analysis hasn't run). Fall back to live analysis: call get_learner_profile for dimensions/stats, then get_agent_activity_summary for the most-used agents, and give ONE specific recommendation. Keep it quick.]`;
-      }
-      const res = await fetch(`${API}/api/chat/gym/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: systemText, senderId: 'web' })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.jobId) {
-          hideTyping();
-          const msgDiv = addChatMessage('assistant', '');
-          await consumeSSE(data.jobId, (chunk) => {
-            msgDiv.innerHTML = formatMessage(chunk);
-            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
-          });
-        }
-      }
-    } catch (e) {
-      hideTyping();
-      console.warn('Failed to prime coach mode:', e);
-    }
-    return;
+    primerText = "I'm here when you're ready. Ask me anything, or hit **Trigger Insights** below the chat to get a fresh analysis of your activity.";
   } else if (mode === 'learn') {
     // Check for in-progress programs
     const inProgress = findInProgressProgram();
@@ -1415,10 +1322,9 @@ async function enterGym() {
 /* ─── Main Gym Rendering ─────────────────── */
 function renderMainGym() {
   renderStreak();
-  renderGymCards();
+  renderSidebarForMode();
   renderCoachHeader();
   renderProgress();
-  renderFeed();
 }
 
 function renderStreak() {
@@ -1431,8 +1337,8 @@ function renderStreak() {
 /* ─── View Switching ─────────────────────── */
 function switchView(view) {
   state.activeView = view;
-  // Update topbar gym tabs
-  document.querySelectorAll('#gymTabs .tab-btn[data-gymtab]').forEach(n =>
+  // Update topbar gym tabs (both left and right nav)
+  document.querySelectorAll('#gymTabs .tab-btn[data-gymtab], #gymTabsRight .tab-btn[data-gymtab]').forEach(n =>
     n.classList.toggle('active', n.dataset.gymtab === view || (view === 'guide-viewer' && n.dataset.gymtab === 'guides'))
   );
   ['coachView','progressView','guidesView','guideViewerView','generatorView'].forEach(id => {
@@ -1447,72 +1353,42 @@ function switchView(view) {
   if (view === 'generator' && !state._generatorSeeded) seedGenerator();
 }
 
-function renderGymCards() {
-  const container = document.getElementById('gymCards');
-  const titleEl = document.getElementById('cardsSectionTitle');
+function renderSidebarForMode() {
   const guidesEl = document.getElementById('sidebarGuides');
-  const refreshEl = document.getElementById('sidebarRefreshInsights');
+  if (!guidesEl) return;
   const mode = state.currentMode;
 
-  // Show refresh insights only in coach ("You tell me") mode
-  if (refreshEl) refreshEl.style.display = mode === 'coach' ? '' : 'none';
-
-  // ── Task mode: hide cards, hide guides ──
-  if (mode === 'task') {
-    container.innerHTML = '';
-    if (titleEl) titleEl.style.display = 'none';
-    if (guidesEl) { guidesEl.style.display = 'none'; guidesEl.innerHTML = ''; }
-    return;
-  }
-
-  // ── Learn mode: show guides in sidebar ──
+  // Set the default filter based on mode
   if (mode === 'learn') {
-    container.innerHTML = '';
-    if (titleEl) titleEl.style.display = 'none';
-    if (guidesEl) {
-      guidesEl.style.display = '';
-      renderSidebarGuides(guidesEl);
-    }
-    return;
+    sidebarGuidesFilter = 'platform';
+  } else if (mode === 'coach') {
+    sidebarGuidesFilter = 'coach';
+  } else if (mode === 'task') {
+    sidebarGuidesFilter = 'all';
   }
 
-  // ── Coach mode ("You tell me"): insight + heuristic cards ──
-  if (guidesEl) { guidesEl.style.display = 'none'; guidesEl.innerHTML = ''; }
-  if (titleEl) {
-    titleEl.style.display = '';
-    titleEl.textContent = 'Insights';
-  }
+  guidesEl.style.display = '';
+  renderSidebarGuides(guidesEl);
+  renderChatActionButtons();
+}
 
-  // ── Coach mode (default): AI insight cards + heuristic cards ──
-  const insightCards = (state.insights?.insights || []).filter(ins => ins.text).map((ins, i) => `
-    <div class="gym-card gym-card-insight" id="insightCard${i}" data-insight-id="${ins.id || ''}">
-      <span class="gym-card-badge" style="background:var(--accent);color:#fff;right:22px">Insight</span>
-      <button class="gym-card-dismiss" onclick="dismissInsight('${ins.id}', 'cancelled', this)" title="Dismiss">&times;</button>
-      <div class="gym-card-title">${ins.category === 'dimension' ? '📊 Dimension' : ins.category === 'struggle' ? '⚡ Pattern' : ins.category === 'dormant' ? '💤 Dormant' : ins.category === 'feature-gap' ? '🔓 Feature' : '💡 Insight'}</div>
-      <div class="gym-card-desc">${ins.text || ''}</div>
-      <div style="display:flex;gap:4px;margin-top:6px">
-        <button class="gym-card-cta" onclick="dismissInsight('${ins.id}', 'done', this)" style="flex:1;font-size:10px;padding:3px 6px">✓ Done</button>
-        <button class="gym-card-cta" onclick="dismissInsight('${ins.id}', 'cancelled', this)" style="flex:1;font-size:10px;padding:3px 6px;background:var(--bg-input);color:var(--text-secondary)">✗ Not relevant</button>
-      </div>
-    </div>
-  `).join('');
+function renderChatActionButtons() {
+  const container = document.getElementById('chatActionBtns');
+  if (!container) return;
+  const mode = state.currentMode;
 
-  const heuristicCards = state.cards.map((c, i) => `
-    <div class="gym-card" id="gymCard${i}">
-      ${c.isNew ? '<span class="gym-card-badge" style="right:22px">New</span>' : ''}
-      <button class="gym-card-dismiss" onclick="dismissCard(${i}, event)">&times;</button>
-      <div class="gym-card-title">${c.title || 'Tip'}</div>
-      <div class="gym-card-desc">${c.description || c.text || ''}</div>
-      ${c.cta ? `<button class="gym-card-cta" onclick="handleCardCta('${c.ctaAction || ''}')">${c.cta}</button>` : ''}
-    </div>
-  `).join('');
+  const buttons = {
+    coach: [
+      { label: '\u{1F504} Trigger Insights', action: 'insights', primary: true },
+    ],
+    learn: [],
+    task: [],
+  };
 
-  const allCards = insightCards + heuristicCards;
-  if (!allCards.trim()) {
-    container.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 2px">No cards right now</div>';
-    return;
-  }
-  container.innerHTML = allCards;
+  const btns = buttons[mode] || [];
+  container.innerHTML = btns.map(b =>
+    `<button class="chat-action-btn${b.primary ? ' primary' : ''}" onclick="handleSidebarAction('${b.action}')">${b.label}</button>`
+  ).join('');
 }
 
 function buildLearnCards() {
@@ -1594,63 +1470,29 @@ function buildLearnCards() {
   return cards;
 }
 
-function dismissCard(index, e) {
-  e.stopPropagation();
-  const el = document.getElementById(`gymCard${index}`);
-  if (el) {
-    el.style.transition = 'opacity 0.3s, transform 0.3s';
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(-10px)';
-  }
-  // Persist dismiss on server and remove from local state
-  const card = state.cards[index];
-  if (card?.id) {
-    fetch(`${API}/api/gym/cards/${card.id}/dismiss`, { method: 'POST' }).catch(() => {});
-  }
-  // Remove from local state so re-renders don't bring it back
-  state.cards.splice(index, 1);
-  setTimeout(() => { if (el) el.remove(); }, 300);
-}
-
-async function dismissInsight(id, status, btn) {
-  if (!id) return;
-  // Animate out
-  const card = btn.closest('.gym-card-insight');
-  if (card) {
-    card.style.transition = 'opacity 0.3s, transform 0.3s';
-    card.style.opacity = '0';
-    card.style.transform = 'translateX(-10px)';
-  }
-  try {
-    await fetch(`${API}/api/gym/insights/${id}/dismiss`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
-    });
-    // Remove from local state
-    if (state.insights?.insights) {
-      state.insights.insights = state.insights.insights.filter(ins => ins.id !== id);
-    }
-  } catch (e) {
-    console.warn('Failed to dismiss insight:', e);
-  }
-  // Remove card after animation
-  setTimeout(() => { if (card) card.remove(); }, 300);
-}
+/* dismissInsight removed — insights delivered through chat now */
 
 /* ─── Sidebar Guides (Learn mode) ────────── */
 let sidebarGuidesFilter = 'all';
 
 function renderSidebarGuides(container) {
-  const q = '';
+  const mode = state.currentMode;
   let filtered = state.programs || [];
   if (sidebarGuidesFilter !== 'all') {
     filtered = filtered.filter(p => (p.source || 'platform') === sidebarGuidesFilter);
   }
 
+  // Mode-specific titles
+  const modeTitles = {
+    learn: 'Training Guides',
+    coach: 'Coach Guides',
+    task: 'Session Guides',
+  };
+  const title = modeTitles[mode] || 'Guides';
+
   const filterHtml = `
     <div style="margin-bottom:12px">
-      <div class="sidebar-section-title" style="margin-bottom:8px">Training Guides</div>
+      <div class="sidebar-section-title" style="margin-bottom:8px">${title}</div>
       <input type="text" id="sidebarGuidesSearch" placeholder="Search guides..." oninput="filterSidebarGuides()"
         style="width:100%;padding:8px 10px;border:1px solid var(--border-dim);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-size:12px;font-family:var(--font-sans);box-sizing:border-box;margin-bottom:8px">
       <div style="display:flex;gap:4px;flex-wrap:wrap">
@@ -1663,8 +1505,14 @@ function renderSidebarGuides(container) {
     </div>
   `;
 
+  const emptyMessages = {
+    learn: 'No platform guides available yet.',
+    coach: 'No coaching guides yet — start a "You tell me" session to generate personalized guides.',
+    task: 'Guides from your work sessions will appear here as you complete tasks.',
+  };
+  const emptyMsg = emptyMessages[mode] || 'No guides yet.';
   const cardsHtml = filtered.length === 0
-    ? '<div style="font-size:12px;color:var(--text-muted);padding:20px 4px;text-align:center">No guides yet. Use the AI Generator to create one.</div>'
+    ? `<div style="font-size:12px;color:var(--text-muted);padding:20px 4px;text-align:center">${emptyMsg}</div>`
     : filtered.map(p => {
         const slug = p.slug || p.id;
         const moduleCount = p.modules?.length || 0;
@@ -1719,10 +1567,6 @@ function filterSidebarGuides() {
   renderSidebarGuides(guidesEl);
 }
 
-function handleCardCta(action) {
-  if (action) sendMessage(action);
-}
-
 /* ─── Coach Header ───────────────────────── */
 function renderCoachHeader() {
   const trainer = TRAINERS.find(t => t.id === state.selectedTrainer) || TRAINERS[0];
@@ -1734,6 +1578,60 @@ function renderCoachHeader() {
     </div>
   `;
 }
+
+/* ─── Sidebar Actions ────────────────────── */
+function handleSidebarAction(action) {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const actionMessages = {
+    insights: 'Run a fresh analysis of my activity and give me your coaching insights.',
+    explain: 'Explain what we just covered — break it down simply.',
+    quiz: 'Quiz me on what I should know so far.',
+    ask: '',
+  };
+  const msg = actionMessages[action];
+  if (msg) {
+    input.value = msg;
+    sendMessage();
+  } else {
+    input.focus();
+  }
+}
+
+/* ─── Resize Handle ──────────────────────── */
+(function initResizeHandle() {
+  let isResizing = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  document.addEventListener('mousedown', (e) => {
+    if (e.target.id !== 'gymResizeHandle') return;
+    isResizing = true;
+    const sidebar = document.getElementById('gymSidebar');
+    startX = e.clientX;
+    startWidth = sidebar.offsetWidth;
+    e.target.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const sidebar = document.getElementById('gymSidebar');
+    const newWidth = startWidth + (e.clientX - startX);
+    sidebar.style.width = Math.max(200, Math.min(600, newWidth)) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!isResizing) return;
+    isResizing = false;
+    const handle = document.getElementById('gymResizeHandle');
+    if (handle) handle.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
 
 /* ─── Guides Grid ────────────────────────── */
 let guidesActiveSource = 'all';
@@ -1839,6 +1737,13 @@ function renderGuideViewer() {
   const gv = state.guideViewer;
   const p = gv.program;
   document.getElementById('gvTitle').textContent = p.title || p.name || 'Guide';
+
+  // Set trainer identity in chat header
+  const trainer = TRAINERS.find(t => t.id === state.selectedTrainer) || TRAINERS[0];
+  const avatarEl = document.getElementById('gvChatAvatar');
+  const nameEl = document.getElementById('gvChatName');
+  if (avatarEl) { avatarEl.textContent = trainer.initials; avatarEl.style.background = trainer.color; }
+  if (nameEl) nameEl.textContent = trainer.name;
 
   // Module tabs
   const modulesEl = document.getElementById('gvModules');
@@ -2180,14 +2085,6 @@ async function importGeneratedGuide() {
     btn.textContent = 'Import Failed';
     setTimeout(() => { btn.textContent = 'Import Guide'; btn.disabled = false; }, 2000);
   }
-}
-
-/* ─── Feed Expand/Collapse ───────────────── */
-function toggleFeedExpand() {
-  const strip = document.getElementById('feedStrip');
-  const btn = document.getElementById('feedExpandBtn');
-  const expanded = strip.classList.toggle('expanded');
-  btn.textContent = expanded ? 'COLLAPSE' : 'EXPAND';
 }
 
 /* ─── Shared Chat Helpers ────────────────── */
@@ -2532,6 +2429,12 @@ function gymToggleRawLogs() {
   }
 }
 
+/* ─── Guide Viewer toolbar delegates ────── */
+function gvToggleFileZone() { gymToggleFileZone(); }
+function gvToggleVoice() { gymToggleVoice(); }
+function gvToggleVoiceMode() { gymToggleVoiceMode(); }
+function gvToggleRawLogs() { gymToggleRawLogs(); }
+
 async function gymStreamRawLogs(jobId) {
   const el = document.getElementById('gymRawContent');
   if (!el) return;
@@ -2793,65 +2696,6 @@ async function renderHistoryChart() {
   }
 }
 
-/* ─── Feed ───────────────────────────────── */
-function switchFeedTab(tab) {
-  document.querySelectorAll('.feed-tab').forEach(t => t.classList.toggle('active', t.dataset.feed === tab));
-  document.getElementById('feedTips').classList.toggle('active', tab === 'tips');
-  document.getElementById('feedUpdates').classList.toggle('active', tab === 'updates');
-  document.getElementById('feedBriefing').classList.toggle('active', tab === 'briefing');
-}
-
-async function renderFeed() {
-  try {
-    const res = await fetch(`${API}/api/gym/feed`);
-    const feed = await res.json();
-
-    // Tips
-    const tipsEl = document.getElementById('feedTips');
-    if (feed.tips && feed.tips.length > 0) {
-      tipsEl.innerHTML = feed.tips.map(t => `
-        <div class="feed-item">
-          <span class="feed-item-icon">${t.type === 'tip' ? '\u{1F4A1}' : t.type === 'discovery' ? '\u{1F50D}' : '\u{1F4CC}'}</span>
-          <span class="feed-item-text">${t.title ? '<strong>' + t.title + '</strong> — ' : ''}${t.description || ''}</span>
-          <span class="feed-item-date">${t.generatedAt || t.createdAt?.slice(0,10) || ''}</span>
-        </div>
-      `).join('');
-    } else {
-      tipsEl.innerHTML = '<div class="feed-empty">Tips will appear here as your coach observes your activity.</div>';
-    }
-
-    // Platform Updates
-    const updatesEl = document.getElementById('feedUpdates');
-    if (feed.platformUpdates && feed.platformUpdates.length > 0) {
-      updatesEl.innerHTML = feed.platformUpdates.map(u => `
-        <div class="feed-item">
-          <span class="feed-item-icon">\u{1F680}</span>
-          <span class="feed-item-text">${u.title ? '<strong>' + u.title + '</strong> — ' : ''}${u.description || ''}</span>
-          <span class="feed-item-date">${u.date || ''}</span>
-        </div>
-      `).join('');
-    } else {
-      updatesEl.innerHTML = '<div class="feed-empty">Platform updates will appear here when new features are released.</div>';
-    }
-
-    // AI Briefing
-    const briefingEl = document.getElementById('feedBriefing');
-    if (feed.briefing && feed.briefing.length > 0) {
-      briefingEl.innerHTML = feed.briefing.map(b => `
-        <div class="feed-item">
-          <span class="feed-item-icon">\u{1F4F0}</span>
-          <span class="feed-item-text">${b.title ? '<strong>' + b.title + '</strong> — ' : ''}${b.summary || b.description || ''}</span>
-          <span class="feed-item-date">${b.date || ''}</span>
-        </div>
-      `).join('');
-    } else {
-      briefingEl.innerHTML = '<div class="feed-empty">AI Briefing is off by default. Enable it in settings to get personalized AI news.</div>';
-    }
-  } catch (e) {
-    console.warn('Failed to load feed:', e);
-  }
-}
-
 /* ─── Gym-Only Mode ─────────────────────── */
 async function checkGymOnlyMode() {
   try {
@@ -2859,6 +2703,7 @@ async function checkGymOnlyMode() {
     const config = await res.json();
     // Gym page: always show gym tabs, always hide platform tabs
     document.getElementById('gymTabs').style.display = 'flex';
+    document.getElementById('gymTabsRight').style.display = 'flex';
     document.getElementById('platformTabs').style.display = 'none';
   } catch (e) {}
 }
@@ -2870,27 +2715,6 @@ function openConfigOverlay() {
   iframe.src = '/org?edit=gym';
   overlay.classList.add('show');
 }
-async function refreshInsights() {
-  const btn = document.getElementById('refreshInsightsBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Generating…';
-  try {
-    const res = await fetch(`${API}/api/gym/insights/generate`, { method: 'POST' });
-    const data = await res.json();
-    if (data.ok) {
-      btn.textContent = '✅ Done';
-      // Reload insights into state and re-render sidebar
-      state.insights = { insights: data.insights || [], topRecommendation: data.topRecommendation, summary: data.summary };
-      renderGymCards();
-    } else {
-      btn.textContent = '❌ Failed';
-    }
-  } catch (e) {
-    btn.textContent = '❌ Error';
-  }
-  setTimeout(() => { btn.textContent = '🔄 Refresh Insights'; btn.disabled = false; }, 3000);
-}
-
 function closeConfigOverlay() {
   const overlay = document.getElementById('configOverlay');
   const iframe = document.getElementById('configIframe');

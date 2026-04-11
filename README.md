@@ -27,17 +27,26 @@ Each agent has its own identity, workspace, system prompt, memory, tools, and MC
 - **Task kanban** — assign and track work across agents
 - **Agent Creator** — create new agents through conversation, no forms
 
-## Quick Start
+## Getting Started
+
+### Fastest path (have Node.js?)
 
 ```bash
-# Prerequisites: Node.js 22+, Claude Code CLI
-npm install -g @anthropic-ai/claude-code
+npx myaiforone
+```
 
-# Clone and install
-git clone https://github.com/agenticledger/channelToAgentToClaude.git
-cd channelToAgentToClaude
+One command. It checks for Claude Code CLI (installs if missing), authenticates, builds, and launches. If anything fails, it tells you exactly what to paste into Claude for help.
+
+### New to the command line?
+
+Open [claude.ai](https://claude.ai) and share the contents of [docs/CLAUDE-AI-SETUP.md](docs/CLAUDE-AI-SETUP.md). Claude will walk you through installing Node.js, Claude Code CLI, and everything else — step by step, conversationally.
+
+### Manual setup
+
+```bash
+git clone https://github.com/agenticledgerclient/myAIforOne.git
+cd myAIforOne
 npm install
-npm run build
 ```
 
 Then open Claude Code in this directory and run `/setup`. It walks you through:

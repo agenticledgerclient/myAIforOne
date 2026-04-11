@@ -1,12 +1,14 @@
 # Setup Guide
 
-Get your own phone-accessible Claude Code agents running on your Mac in ~15 minutes.
+Get your own phone-accessible Claude Code agents running in ~15 minutes.
+
+> **First time?** If you don't have Node.js or Claude Code CLI installed yet, see [CLAUDE-AI-SETUP.md](CLAUDE-AI-SETUP.md) — you can paste it into claude.ai and get walked through everything step by step.
 
 ## Prerequisites
 
-- **macOS** (Intel or Apple Silicon)
-- **Node.js 22+** — `brew install node` or [nodejs.org](https://nodejs.org)
-- **Claude Code CLI** — `npm install -g @anthropic-ai/claude-code` (requires an Anthropic API key or Claude Max subscription)
+- **macOS, Windows, or Linux**
+- **Node.js 22+** — `brew install node` (macOS), `winget install OpenJS.NodeJS.LTS` (Windows), or [nodejs.org](https://nodejs.org)
+- **Claude Code CLI** — `npm install -g @anthropic-ai/claude-code` (requires a Claude Pro/Max subscription or Anthropic API key)
 - At least one messaging channel (Telegram is the easiest to start with)
 
 ## 1. Clone & Install

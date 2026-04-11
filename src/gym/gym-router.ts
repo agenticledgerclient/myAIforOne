@@ -626,11 +626,18 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
   router.get("/api/gym/feed", (_req, res) => {
     ensureDir(memoryDir);
 
-    // Tips — cards tagged as type "tip"
-    const allCards: any[] = readJson(cardsPath(), []);
-    const tips = (Array.isArray(allCards) ? allCards : [])
-      .filter((c: any) => c.type === "tip" || c.type === "discovery" || c.type === "nudge")
-      .slice(-10);
+    // Tips — sourced from AI insights (replaces old heuristic cards)
+    const insightsData = readJson(join(memoryDir, "insights.json"), { insights: [], dismissed: [] });
+    const dismissed: string[] = insightsData.dismissed || [];
+    const tips = (insightsData.insights || [])
+      .filter((ins: any) => ins.text && !dismissed.includes(ins.id))
+      .slice(-10)
+      .map((ins: any) => ({
+        title: ins.category === "dimension" ? "Dimension" : ins.category === "struggle" ? "Pattern" : ins.category === "dormant" ? "Dormant" : ins.category === "feature-gap" ? "Feature" : "Insight",
+        description: ins.text,
+        type: "tip",
+        generatedAt: insightsData.generatedAt || null,
+      }));
 
     // Platform Updates — from changelog
     const changelogPath = join(baseDir, "data", "changelog.json");
