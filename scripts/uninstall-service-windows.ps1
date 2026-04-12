@@ -2,7 +2,7 @@
 # Run: powershell -ExecutionPolicy Bypass -File scripts/uninstall-service-windows.ps1
 
 $ErrorActionPreference = "Stop"
-$TaskName = "MyAgentGateway"
+$TaskName = "MyAIforOneGateway"
 
 Write-Host ""
 Write-Host "MyAgent — Uninstalling Windows Service" -ForegroundColor Yellow

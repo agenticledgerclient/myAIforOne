@@ -23,13 +23,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const baseDir = resolve(__dirname, "..");
 
 // dataDir: where config.json lives. Resolved in priority order:
-// 1. MYAGENT_DATA_DIR env var (set by CLI spawn)
-// 2. Desktop/MyAIforOne Platform (standard npx install location)
-// 3. baseDir/package root (dev/cloned-repo or last-resort fallback)
+// 1. MYAGENT_DATA_DIR env var (set by CLI spawn or user override)
+// 2. %APPDATA%\MyAIforOneGateway on Windows, ~/.myaiforone on Mac/Linux
+// 3. Legacy: Desktop/MyAIforOne Platform (previous location, kept for migration)
+// 4. baseDir/package root (dev/cloned-repo fallback)
 function resolveDataDir(): string {
   if (process.env.MYAGENT_DATA_DIR) return process.env.MYAGENT_DATA_DIR;
-  const desktopPlatform = join(homedir(), "Desktop", "MyAIforOne Platform");
-  if (existsSync(join(desktopPlatform, "config.json"))) return desktopPlatform;
+  const home = homedir();
+  const isWin = process.platform === "win32";
+  const appData = isWin ? (process.env.APPDATA || join(home, "AppData", "Roaming")) : home;
+  const primary = isWin ? join(appData, "MyAIforOneGateway") : join(home, ".myaiforone");
+  if (existsSync(join(primary, "config.json"))) return primary;
+  // Legacy Desktop location — kept for backward compat
+  const legacy = join(home, "Desktop", "MyAIforOne Platform");
+  if (existsSync(join(legacy, "config.json"))) return legacy;
   return baseDir;
 }
 const dataDir = resolveDataDir();

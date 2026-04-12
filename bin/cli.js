@@ -29,14 +29,18 @@ const IS_LINUX = PLATFORM === 'linux';
 const HOME = homedir();
 const PLATFORM_NAME = IS_MAC ? 'macOS' : IS_WIN ? 'Windows' : 'Linux';
 
-// DATA_DIR: where config.json, user agents, and logs live.
-// Kept on the Desktop alongside "MyAIforOne Drive" so users can find it.
-// Falls back to PROJECT_ROOT when running from the cloned repo (dev mode).
-const DESKTOP = join(HOME, 'Desktop');
-const DATA_DIR_NAME = 'MyAIforOne Platform';
+// DATA_DIR: where config.json and user data live.
+// - Windows: %APPDATA%\MyAIforOneGateway  (C:\Users\<user>\AppData\Roaming\MyAIforOneGateway)
+// - Mac/Linux: ~/.myaiforone
+// - Dev mode (cloned repo): PROJECT_ROOT (no change from before)
+const APP_DATA = IS_WIN
+  ? (process.env.APPDATA || join(HOME, 'AppData', 'Roaming'))
+  : HOME;
 const DATA_DIR = existsSync(join(PROJECT_ROOT, '.git'))
   ? PROJECT_ROOT  // dev/cloned-repo mode — use repo root as before
-  : join(DESKTOP, DATA_DIR_NAME);
+  : IS_WIN
+    ? join(APP_DATA, 'MyAIforOneGateway')
+    : join(HOME, '.myaiforone');
 
 const STEPS = [
   'Check Node.js',

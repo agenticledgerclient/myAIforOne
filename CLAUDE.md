@@ -52,9 +52,9 @@ launchctl unload ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude
 ### As a Task Scheduler service on Windows (auto-start on login)
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install-service-windows.ps1    # install
-schtasks /Run /TN MyAgentGateway                                                # start now
-schtasks /End /TN MyAgentGateway                                                # stop
-schtasks /Query /TN MyAgentGateway                                              # status
+schtasks /Run /TN MyAIforOneGateway                                                # start now
+schtasks /End /TN MyAIforOneGateway                                                # stop
+schtasks /Query /TN MyAIforOneGateway                                              # status
 powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1  # uninstall
 ```
 

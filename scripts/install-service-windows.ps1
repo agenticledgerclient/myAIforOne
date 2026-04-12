@@ -5,7 +5,7 @@
 # To uninstall: powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1
 
 $ErrorActionPreference = "Stop"
-$TaskName = "MyAgentGateway"
+$TaskName = "MyAIforOneGateway"
 
 $projectDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $scriptPath = Join-Path $projectDir "dist\index.js"
