@@ -229,9 +229,13 @@ async function main(): Promise<void> {
   if (drivers.length === 0) {
     log.warn("No channel drivers enabled — running in web-UI-only mode. Configure a channel to enable messaging.");
   } else {
-    // Start all drivers
+    // Start all drivers — catch per-channel failures so one bad token doesn't crash the gateway
     for (const driver of drivers) {
-      await driver.start();
+      try {
+        await driver.start();
+      } catch (err: any) {
+        log.warn(`Channel "${driver.channelId ?? "unknown"}" failed to start: ${err.message ?? err} — skipping`);
+      }
     }
   }
 

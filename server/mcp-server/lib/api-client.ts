@@ -145,6 +145,8 @@ export const deleteMcpConnection = (agentId: string, instanceName: string) =>
 export const listChannels = () => api("/api/channels");
 export const updateChannel = (name: string, body: any) =>
   api(`/api/channels/${name}`, { method: "PUT", body });
+export const setChannelCredentials = (name: string, credentials: any) =>
+  api(`/api/channels/${name}/credentials`, { method: "POST", body: credentials });
 export const addAgentRoute = (channelName: string, body: any) =>
   api(`/api/channels/${channelName}/agents`, { method: "POST", body });
 export const removeAgentRoute = (channelName: string, agentId: string) =>

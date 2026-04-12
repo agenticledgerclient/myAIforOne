@@ -367,6 +367,19 @@ server.tool("update_channel", "Update channel settings (sticky routing, enabled)
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+server.tool("set_channel_credentials", "Set channel authentication credentials (tokens, keys). Auto-enables the channel. Requires restart_service after.", {
+  channelName: z.string().describe("Channel name: slack, telegram, whatsapp, discord, or imessage"),
+  botToken: z.string().optional().describe("Bot token (Slack xoxb-..., Telegram from BotFather, Discord bot token)"),
+  appToken: z.string().optional().describe("Slack app-level token (xapp-...) — required for Slack Socket Mode"),
+  mode: z.string().optional().describe("Slack connection mode (default: 'socket')"),
+  authDir: z.string().optional().describe("WhatsApp auth directory (default: './data/whatsapp-auth')"),
+}, async ({ channelName, ...credentials }) => {
+  // Filter out undefined values
+  const creds = Object.fromEntries(Object.entries(credentials).filter(([_, v]) => v !== undefined));
+  const r = await api.setChannelCredentials(channelName, creds);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 server.tool("add_agent_route", "Add an agent route to a channel", {
   channelName: z.string().describe("Channel name"),
   agentId: z.string().describe("Agent ID"),

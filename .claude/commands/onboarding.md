@@ -42,16 +42,11 @@ Pick one or more, or type "skip" to set up channels later.
 
 ### Telegram
 1. Tell them: "Open Telegram, message @BotFather, send /newbot, follow the prompts, and paste the bot token here."
-2. When they paste the token, call `update_channel` with:
+2. When they paste the token, call `set_channel_credentials` with:
    - channelName: "telegram"
-   - config: { botToken: "<their token>" }
-3. Call `restart_service` to pick up the change.
-4. Tell them: "Telegram connected! Now send any message to your bot — I'll grab the chat ID."
-5. Wait for them to confirm they sent a message.
-6. Check logs for "No route for telegram:" to find the chat ID. Use Bash:
-   - **macOS / Linux:** `grep "No route for telegram:" logs/service.log | tail -5`
-   - **Windows:** `Select-String "No route for telegram:" logs\service.log | Select-Object -Last 5`
-7. Save the chat ID for Step 5.
+   - botToken: "<their token>"
+3. Tell them: "Token saved! We'll restart at the end to activate everything."
+4. Save the chat ID discovery for after restart.
 
 ### Slack
 1. Tell them:
@@ -60,24 +55,20 @@ Pick one or more, or type "skip" to set up channels later.
    - Add scopes: chat:write, channels:history, groups:history, im:history, files:read
    - Install to workspace
    - Copy Bot Token (xoxb-) and App Token (xapp-)
-2. When they paste both tokens, call `update_channel` with:
+2. When they paste both tokens, call `set_channel_credentials` with:
    - channelName: "slack"
-   - config: { botToken: "<xoxb>", appToken: "<xapp>", mode: "socket" }
-3. Call `restart_service`.
-4. Tell them: "Slack connected! Now invite the bot to a channel (/invite @botname) and send a message."
+   - botToken: "<xoxb>"
+   - appToken: "<xapp>"
+3. If they only paste one token, ask for the other before calling.
+4. Tell them: "Tokens saved! We'll restart at the end to activate everything."
 5. Ask them to paste the channel ID (right-click channel → View details → scroll to bottom).
 
 ### WhatsApp
-1. Tell them: "WhatsApp needs a QR code scan. I'll start the pairing process."
-2. Call `update_channel` with:
+1. Tell them: "WhatsApp needs a QR code scan. I'll set it up."
+2. Call `set_channel_credentials` with:
    - channelName: "whatsapp"
-   - config: { authDir: "./data/whatsapp-auth" }
-3. Call `restart_service`.
-4. Tell them: "Check your terminal — there should be a QR code. Open WhatsApp → Settings → Linked Devices → Link a Device → scan it."
-5. Once connected, tell them: "Send a message in the WhatsApp chat you want to use. I'll find the chat ID."
-6. Check logs for "No route for whatsapp:" to find the chat ID. Use Bash:
-   - **macOS / Linux:** `grep "No route for whatsapp:" logs/service.log | tail -5`
-   - **Windows:** `Select-String "No route for whatsapp:" logs\service.log | Select-Object -Last 5`
+   - authDir: "./data/whatsapp-auth"
+3. Tell them: "Config saved! After restart, check your terminal for a QR code. Open WhatsApp → Settings → Linked Devices → Link a Device → scan it."
 
 ### iMessage (macOS only)
 1. Tell them:
@@ -86,7 +77,7 @@ Pick one or more, or type "skip" to set up channels later.
    - Test: `imsg chats --json`
 2. Call `update_channel` with:
    - channelName: "imessage"
-   - config: { enabled: true }
+   - enabled: true
 3. Tell them: "Run `imsg chats --json` and paste the chat ID for the conversation you want."
 
 ## Step 4: Create First Agent
@@ -117,7 +108,9 @@ For each channel configured in Step 3, call `add_agent_route` with:
 - chatId: the chat ID discovered in Step 3
 - requireMention: true (for group chats) or false (for DMs)
 
-Then call `restart_service` one final time.
+Then tell the user: **"Go to Admin → Settings and click Restart to activate everything."**
+
+Do NOT call `restart_service` yourself — it kills the page connection.
 
 ## Step 6: Test
 
@@ -157,6 +150,6 @@ Enjoy your AI team!
 - One step at a time — don't dump all instructions at once
 - If they get stuck, offer to skip and come back later
 - If a channel fails, don't block the whole setup — move to the next step
-- Always call `restart_service` after channel config changes
+- NEVER call `restart_service` — tell the user to go to Admin → Settings and restart themselves
 - Always validate the agent was created before wiring routes
 - The "No route for {channel}:{chatId}" log pattern is how we discover chat IDs — it's a built-in feature

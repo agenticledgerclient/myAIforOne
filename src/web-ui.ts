@@ -4509,7 +4509,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     };
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       if (!rawConfig.channels[channelName]) {
@@ -4541,6 +4541,68 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       res.json({ ok: true, note: "Restart service for changes to take full effect." });
     } catch (err) {
       log.error(`[Channels] Failed to update ${channelName}: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/channels/:channelName/credentials — set channel credentials (tokens, auth config)
+  app.post("/api/channels/:channelName/credentials", (req, res) => {
+    const { channelName } = req.params;
+    const channelCfg = opts.config.channels[channelName];
+    if (!channelCfg) return res.status(404).json({ error: `Channel "${channelName}" not found` });
+
+    const credentials = req.body as Record<string, any>;
+    if (!credentials || Object.keys(credentials).length === 0) {
+      return res.status(400).json({ error: "No credentials provided" });
+    }
+
+    // Allowed fields per channel to prevent arbitrary config injection
+    const allowedFields: Record<string, string[]> = {
+      slack: ["botToken", "appToken", "mode"],
+      telegram: ["botToken"],
+      whatsapp: ["authDir"],
+      discord: ["botToken"],
+      imessage: ["cliPath", "includeAttachments", "debounceMs", "monitoredChatIds"],
+    };
+    const allowed = allowedFields[channelName];
+    if (allowed) {
+      const unknown = Object.keys(credentials).filter(k => !allowed.includes(k));
+      if (unknown.length > 0) {
+        return res.status(400).json({ error: `Unknown fields for ${channelName}: ${unknown.join(", ")}. Allowed: ${allowed.join(", ")}` });
+      }
+    }
+
+    try {
+      const configPath = configFilePath();
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      if (!rawConfig.channels[channelName]) {
+        return res.status(404).json({ error: `Channel "${channelName}" not in config.json` });
+      }
+
+      // Merge credentials into channel config
+      const cfg = rawConfig.channels[channelName].config;
+      for (const [key, value] of Object.entries(credentials)) {
+        cfg[key] = value;
+      }
+
+      // Auto-enable the channel when credentials are set
+      rawConfig.channels[channelName].enabled = true;
+
+      // Validate JSON before writing
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json);
+      writeFileSync(configPath, json);
+
+      // Update in-memory config
+      for (const [key, value] of Object.entries(credentials)) {
+        (opts.config.channels[channelName].config as any)[key] = value;
+      }
+      opts.config.channels[channelName].enabled = true;
+
+      log.info(`[Channels] Updated credentials for ${channelName}`);
+      res.json({ ok: true, channelName, fieldsSet: Object.keys(credentials), enabled: true, note: "Restart service for changes to take effect." });
+    } catch (err) {
+      log.error(`[Channels] Failed to set credentials for ${channelName}: ${err}`);
       res.status(500).json({ error: String(err) });
     }
   });
