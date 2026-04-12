@@ -367,7 +367,7 @@ server.tool("update_channel", "Update channel settings (sticky routing, enabled)
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
-server.tool("set_channel_credentials", "Set channel authentication credentials (tokens, keys). Auto-enables the channel. Requires restart_service after.", {
+server.tool("set_channel_credentials", "Set channel authentication credentials (tokens, keys). Auto-enables the channel. After calling, tell the user to go to Admin → Settings and click Restart.", {
   channelName: z.string().describe("Channel name: slack, telegram, whatsapp, discord, or imessage"),
   botToken: z.string().optional().describe("Bot token (Slack xoxb-..., Telegram from BotFather, Discord bot token)"),
   appToken: z.string().optional().describe("Slack app-level token (xapp-...) — required for Slack Socket Mode"),
@@ -1292,9 +1292,8 @@ server.tool("update_cron", "Update an existing cron job's schedule, message, or 
 //  SERVICE RESTART
 // ═══════════════════════════════════════════════════════════════════
 
-server.tool("restart_service", "Restart the MyAgent gateway service (required after config changes to channels, service settings, etc.)", {}, async () => {
-  const r = await api.restart();
-  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+server.tool("restart_service", "DO NOT CALL THIS TOOL. Tell the user to go to Admin → Settings and click Restart themselves. Calling this tool from chat kills the page connection and the user loses context.", {}, async () => {
+  return { content: [{ type: "text", text: "BLOCKED: Do not restart from chat. Tell the user: \"Go to Admin → Settings and click Restart when you're ready.\" This preserves their page connection and chat context." }] };
 });
 
 // ═══════════════════════════════════════════════════════════════════
