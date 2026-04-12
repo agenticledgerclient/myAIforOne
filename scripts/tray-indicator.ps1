@@ -5,7 +5,7 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# ── Icon generation (green/red circle, no external file needed) ──────────
+# --- Icon generation (green/red circle, no external file needed) ---
 function New-CircleIcon([System.Drawing.Color]$color) {
     $bmp = New-Object System.Drawing.Bitmap(16, 16)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
@@ -22,13 +22,13 @@ function New-CircleIcon([System.Drawing.Color]$color) {
 $greenIcon = New-CircleIcon ([System.Drawing.Color]::FromArgb(74, 222, 128))
 $redIcon   = New-CircleIcon ([System.Drawing.Color]::FromArgb(239, 68, 68))
 
-# ── Tray icon ────────────────────────────────────────────────────────────
+# --- Tray icon ---
 $notify = New-Object System.Windows.Forms.NotifyIcon
 $notify.Icon = $redIcon
 $notify.Visible = $true
-$notify.Text = "MyAIforOne — Checking..."
+$notify.Text = "MyAIforOne - Checking..."
 
-# ── Service process management ───────────────────────────────────────────
+# --- Service process management ---
 $script:serviceProc = $null
 $taskName = "MyAIforOneGateway"
 
@@ -68,7 +68,7 @@ function Stop-ServiceProcess {
         Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
-# ── Auto-start registry helpers ──────────────────────────────────────────
+# --- Auto-start registry helpers ---
 $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $regName = "MyAIforOne"
 
@@ -85,23 +85,23 @@ function Toggle-AutoStart {
         if (-not $scriptPath) { $scriptPath = $PSCommandPath }
         $cmd = "powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`""
         Set-ItemProperty -Path $regPath -Name $regName -Value $cmd
-        $autoStartItem.Text = "Start on Login  ✓"
+        $autoStartItem.Text = "Start on Login [ON]"
     }
 }
 
-# ── Health poll timer (every 10 seconds) ─────────────────────────────────
+# --- Health poll timer (every 10 seconds) ---
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 10000
 $timer.Add_Tick({
     if (Get-ServiceRunning) {
         $notify.Icon = $greenIcon
-        $notify.Text = "MyAIforOne — Running"
+        $notify.Text = "MyAIforOne - Running"
         $startItem.Visible = $false
         $stopItem.Visible = $true
         $restartItem.Visible = $true
     } else {
         $notify.Icon = $redIcon
-        $notify.Text = "MyAIforOne — Stopped"
+        $notify.Text = "MyAIforOne - Stopped"
         $startItem.Visible = $true
         $stopItem.Visible = $false
         $restartItem.Visible = $false
@@ -112,10 +112,10 @@ $timer.Start()
 # Do an initial check immediately
 if (Get-ServiceRunning) {
     $notify.Icon = $greenIcon
-    $notify.Text = "MyAIforOne — Running"
+    $notify.Text = "MyAIforOne - Running"
 }
 
-# ── Context menu ─────────────────────────────────────────────────────────
+# --- Context menu ---
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 
 # Open MyAIforOne
@@ -145,7 +145,7 @@ $startItem.Visible = $false
 $menu.Items.Add("-")
 
 # Start on Login
-$autoStartItem = $menu.Items.Add($(if (Get-AutoStartEnabled) { "Start on Login  ✓" } else { "Start on Login" }))
+$autoStartItem = $menu.Items.Add($(if (Get-AutoStartEnabled) { "Start on Login [ON]" } else { "Start on Login" }))
 $autoStartItem.Add_Click({ Toggle-AutoStart })
 
 $menu.Items.Add("-")
