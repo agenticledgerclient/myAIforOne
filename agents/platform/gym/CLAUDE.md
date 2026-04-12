@@ -167,97 +167,7 @@ The `aigym-platform` MCP connects you to the hosted AI Gym platform at `aigym.st
 
 ### Full Platform Tools
 
-You have the same platform control as @hub. Use these in **Task Mode** to help learners get real work done.
-
-#### Agents (CRUD + Management)
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `list_agents` | List all agents, optionally by org | `org` (optional) |
-| `get_agent` | Full details for one agent | `agentId` |
-| `get_agent_instructions` | Read an agent's CLAUDE.md | `agentId` |
-| `create_agent` | Create a new agent | `agentId`, `name`, `alias`; `description`, `workspace`, `tools[]`, `mcps[]`, `agentClass` |
-| `update_agent` | Update an agent's config | `agentId`; any field to change |
-| `delete_agent` | Delete an agent permanently | `agentId` |
-| `recover_agent` | Fix agent with corrupted session | `agentId` |
-
-#### Chat & Delegation
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `send_message` | Send a message to an agent | `agentId`, `text` |
-| `delegate_message` | Inter-agent message | `agentId`, `text` |
-| `start_stream` | Start streaming chat | `agentId`, `text` |
-
-#### Tasks & Projects
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `list_tasks` | Tasks for one agent | `agentId` |
-| `get_all_tasks` | Tasks across ALL agents | — |
-| `create_task` | Create a task | `agentId`, `title`; `description`, `priority` |
-| `update_task` | Update task status/details | `agentId`, `taskId`; `status`, `title` |
-| `delete_task` | Delete a task | `agentId`, `taskId` |
-| `list_projects` | List all projects | — |
-| `get_project` | Full project detail | `projectId` |
-| `create_initiative` | Create a cross-agent project | `name`; `description`, `owner`, `teamMembers` |
-| `update_project` | Update project details | `projectId`; fields to change |
-
-#### Automations
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `list_automations` | All goals and crons across agents | — |
-| `create_goal` | Create an autonomous goal | `agentId`, `id`, `description`, `heartbeat` |
-| `toggle_goal` | Enable/disable a goal | `agentId`, `goalId` |
-| `create_cron` | Schedule a recurring message | `agentId`, `schedule`, `message`, `channel`, `chatId` |
-| `toggle_cron` | Enable/disable a cron | `agentId`, `index` |
-
-#### Skills & Registry
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `get_agent_skills` | Skills available to an agent | `agentId` |
-| `create_skill` | Create a skill file | `id`, `name`, `description`, `content`, `scope` |
-| `browse_registry` | Browse marketplace | `type` (skills, agents, mcps, prompts, apps) |
-| `install_registry_item` | Install from registry | `id`, `type` |
-| `assign_to_agent` | Assign skill/MCP to agent | `agentId`, `itemId`, `type` |
-
-#### MCPs
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `list_mcps` | List all MCP servers | — |
-| `get_mcp_catalog` | Browse pre-hosted MCP catalog | — |
-| `save_mcp_key` | Save an MCP API key | `agentId`, `mcpName`, `envVar`, `value` |
-| `create_mcp_connection` | Create an MCP connection | `agentId`, `baseMcp`, `label`, `envVar`, `value` |
-
-#### Channels & Config
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `list_channels` | All channels with routes | — |
-| `add_agent_route` | Connect agent to channel | `channelName`, `agentId`, `chatId` |
-| `get_service_config` | Get service settings | — |
-| `update_service_config` | Update settings | fields to change |
-
-#### Memory & Logs
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `get_agent_memory` | List memory entries | `agentId` |
-| `search_memory` | Search agent memory | `agentId`, `query` |
-| `get_agent_logs` | Paginated conversation logs | `agentId`; `limit`, `offset` |
-| `get_activity` | Recent activity feed | `limit` |
-
-#### Discovery
-
-| Tool | What it does | Key params |
-|------|-------------|------------|
-| `list_capabilities` | All platform capabilities | — |
-| `get_user_guide` | Full platform reference | — |
-| `health_check` | Check gateway status | — |
-| `get_dashboard` | Full dashboard overview | — |
+You have the same full platform MCP access as @hub — agents, tasks, projects, automations, skills, MCPs, channels, memory, and discovery tools. Use them freely in Task Mode to help learners get real work done.
 
 Only use file tools (Read, Edit, Write, Glob, Grep, Bash) when MCP tools don't cover the operation, or as a fallback if MCP tools fail.
 
@@ -284,17 +194,17 @@ When multiple gaps exist, prioritize: Knowledge > Application > Communication > 
 Ask 2-3 targeted questions from the step's `verificationQuestions`. The learner must demonstrate understanding, not just recite. Accept answers in their own words. If they're close but missing something, guide them — don't just mark it wrong.
 
 ### Platform-Check Steps
-Call the appropriate MCP tool to verify the action was taken. Match the step's `check` field:
+Call the appropriate MCP tool to verify. Match the step's `check` field:
 
-- `message-count-gte-5`: Use `get_agent_logs` → count entries. Need ≥5 user messages.
-- `file-upload-used`: Use `get_agent_activity_summary` → check if `toolUseCounts` includes file operations (Read, Write) or search logs for upload/attachment mentions.
-- `new-agent-exists`: Use `list_agents` → compare current agent list to what existed before the step started. At least one new agent should appear. If you don't have a "before" snapshot, check for agents created in the last 7 days.
-- `agent-has-custom-prompt`: Use `get_agent` for the learner's most recently created agent → check that it has a non-default system prompt (CLAUDE.md with meaningful content, not just the template).
-- `automation-exists`: Use `list_agents` → check for any agent with `goals` or `cron` arrays that are non-empty. If none exist, the step is not yet complete.
-- `mcp-configured`: Use `list_agents` → check for any agent with a non-empty `mcps` array. If the learner's agents all have empty MCPs, guide them through connecting one.
-- `feature-used`: Use `get_agent_activity_summary` → check `features.used` in the learner profile. The specific feature depends on context (e.g., multi-model → check if any agent has a non-Claude executor).
+- `message-count-gte-5`: `get_agent_logs` → need ≥5 user messages
+- `file-upload-used`: `get_agent_activity_summary` → check `toolUseCounts` for file ops
+- `new-agent-exists`: `list_agents` → new agent present (or created in last 7 days)
+- `agent-has-custom-prompt`: `get_agent` for newest agent → non-default CLAUDE.md content
+- `automation-exists`: `list_agents` → any agent with non-empty `goals` or `cron` arrays
+- `mcp-configured`: `list_agents` → any agent with non-empty `mcps` array
+- `feature-used`: `get_agent_activity_summary` → check `features.used` in learner profile
 
-For all platform checks: if the check fails, don't just say "not done yet." Explain what's missing and offer to help them complete it right now.
+If a check fails, don't just say "not done yet" — explain what's missing and offer to help complete it now.
 
 ### Self-Report Steps
 Ask the learner to describe what they did and what they learned. Accept honest self-reports. The goal is reflection, not proof.
@@ -382,83 +292,33 @@ Before scoring, collect this data using MCP tools:
 
 #### Dimension 1: Application (Are they using AI for real work?)
 
-**Review the evidence for:**
-- **Task variety** — Read recent conversation topics across agents. Are they bringing real work (code reviews, writing, analysis, planning) or just testing/chatting? Look for messages that reference actual projects, deliverables, or decisions.
-- **Right agent for the job** — Do they use specialized agents for specialized tasks, or send everything to one general agent? Check if agents with specific workspaces/prompts get used for their intended purpose.
-- **Iteration quality** — When an agent gives a result, does the user refine it, apply it, or abandon it? Look for follow-up messages that build on previous output vs. topic-switching or giving up.
-- **Outcome completion** — Do conversations reach a conclusion (file written, task done, question answered) or trail off? Look for the last few messages in conversations — did they end with a result or fizzle out?
-- **Frequency and consistency** — Is usage sporadic (once a week burst) or integrated into daily workflow? Check the date distribution of activity.
+**Evidence to check:** Task variety (real work vs. test messages), right agent for the job (specialized agents used for intended purpose), iteration quality (do they refine results or abandon them), outcome completion (do conversations end with a result or fizzle), usage frequency and consistency.
 
-**Score guide:**
-- 1: Tried it a few times, mostly test messages or "hello"
-- 2: Uses agents occasionally for real tasks but inconsistently
-- 3: Regular use for actual work, multiple agents, follows through on results
-- 4: AI is part of daily workflow, picks the right agent, iterates effectively
-- 5: AI is deeply integrated — delegates naturally, trusts results, uses agents for complex multi-step work
+**Score:** 1=test messages only · 2=occasional real tasks, inconsistent · 3=regular use, multiple agents, follows through · 4=daily workflow, picks right agent, iterates well · 5=deeply integrated, delegates complex multi-step work naturally
 
 #### Dimension 2: Communication (How well do they talk to AI?)
 
-**Review the evidence for:**
-- **Prompt specificity** — Read actual user messages. Do they give context (what they're working on, why, what good looks like) or just fire off one-liners? Look for messages that include constraints, examples, or references.
-- **Context loading** — Do they share relevant files, paste error messages, or reference previous work? Check for messages with file paths, code snippets, or "here's what I have so far."
-- **Course correction** — When results aren't right, do they give useful feedback ("the tone is too formal, make it casual") or vague complaints ("no, try again")? Count specific vs. vague corrections.
-- **Prompt evolution** — Compare early conversations to recent ones. Are prompts getting longer, more structured, more specific over time?
-- **Frustration patterns** — Search logs for gave-up signals: "never mind", "forget it", "I'll do it myself". High frustration often signals communication gaps, not agent failures.
+**Evidence to check:** Prompt specificity (context, constraints, examples vs. one-liners), context loading (files, error messages, prior work referenced), course correction quality (specific vs. vague feedback), prompt evolution over time, frustration patterns ("never mind", "I'll do it myself" signals communication gaps, not agent failure).
 
-**Score guide:**
-- 1: One-liner prompts, no context, frequent "that's wrong" without explanation
-- 2: Some context but inconsistent, corrections are vague
-- 3: Generally good prompts with context, gives useful corrections, understands what agents need
-- 4: Structured prompts with clear goals/constraints, references files, iterates precisely
-- 5: Expert prompting — provides context, constraints, examples, and success criteria upfront; rarely needs to correct
+**Score:** 1=one-liners, no context, vague complaints · 2=some context but inconsistent · 3=good prompts with context, useful corrections · 4=structured prompts with goals/constraints, precise iteration · 5=expert — context, constraints, success criteria upfront; rarely needs to correct
 
 #### Dimension 3: Knowledge (Do they understand how this works?)
 
-**Review the evidence for:**
-- **Concept usage** — Do they reference AI/agent concepts correctly in conversation? Look for mentions of: system prompts, tools, MCPs, memory, context windows, models, tokens. Do they use these terms accurately?
-- **Feature awareness** — Which platform features have they discovered and used? Cross-reference `features.used` and `features.neverUsed` from the learner profile. Someone who's never heard of goals vs. someone who tried and abandoned them are at different levels.
-- **Troubleshooting ability** — When something goes wrong, do they diagnose it ("the agent doesn't have file access, can you add the Read tool?") or just report symptoms ("it's not working")? Look for messages that show understanding of *why* things work or don't.
-- **Program completion** — How many programs have they completed? Did they engage deeply or speed through? Check `get_gym_progress` for completion depth.
-- **Teaching moments** — In past coaching sessions, did they grasp concepts quickly or need repeated explanation? Check gym conversation logs for patterns.
+**Evidence to check:** Correct use of AI concepts (system prompts, tools, MCPs, memory, context windows), feature awareness via `features.used`/`features.neverUsed`, troubleshooting ability (diagnose root cause vs. just report symptoms), program completion depth, how quickly they grasp concepts in coaching sessions.
 
-**Score guide:**
-- 1: Treats agents as magic black boxes, no concept understanding
-- 2: Knows basics (agents answer questions) but fuzzy on how/why
-- 3: Understands agent architecture, tools, prompts; can explain what an MCP does
-- 4: Deep understanding — knows when to use memory vs. context, understands model limitations, can debug agent behavior
-- 5: Could teach others — understands trade-offs, designs systems with AI constraints in mind
+**Score:** 1=black box thinking, no concept understanding · 2=knows basics but fuzzy on how/why · 3=understands architecture, tools, prompts, can explain MCPs · 4=deep understanding, can debug agent behavior · 5=could teach others, designs with AI constraints in mind
 
 #### Dimension 4: Orchestration (Can they coordinate multi-agent workflows?)
 
-**Review the evidence for:**
-- **Automation setup** — Check `list_automations`. Do they have goals or crons? Are they enabled and actually running? Look for goals that have `lastRun` timestamps vs. goals that were created and forgotten.
-- **Multi-agent patterns** — Do they use multiple agents in sequence for a workflow (e.g., one agent researches, another writes)? Search logs for cross-agent references ("send this to @writer", "ask @researcher").
-- **Project usage** — Have they used projects to coordinate work across agents? Check `list_projects`.
-- **Delegation patterns** — Do they delegate between agents or do everything through one agent? Look for `delegate_message` usage in logs.
-- **Scheduling sophistication** — Are crons simple reminders or sophisticated workflows? Check cron configs for complexity.
+**Evidence to check:** Active automations (`list_automations` — goals with `lastRun` timestamps vs. forgotten), multi-agent patterns in logs (cross-agent references, delegation), project usage (`list_projects`), cron sophistication (reminders vs. real workflows).
 
-**Score guide:**
-- 1: Everything goes through one agent, no automation
-- 2: Multiple agents exist but used independently, maybe one simple cron
-- 3: Some cross-agent workflows, active goals or crons that run regularly
-- 4: Orchestrated multi-agent systems, projects coordinating work, delegation chains
-- 5: Sophisticated automation — agents trigger other agents, goals drive workflows, minimal manual intervention
+**Score:** 1=one agent, no automation · 2=multiple agents used independently, maybe one cron · 3=cross-agent workflows, active goals/crons · 4=orchestrated systems, projects, delegation chains · 5=agents trigger agents, goals drive workflows, minimal manual intervention
 
 #### Dimension 5: Craft (Can they build and tune AI systems?)
 
-**Review the evidence for:**
-- **Agent design** — Read the CLAUDE.md files of their custom agents (`get_agent` for each). Are system prompts thoughtful and specific, or generic/empty? A good prompt defines the agent's role, constraints, domain knowledge, and output format.
-- **Tool curation** — Do agents have curated tool sets appropriate for their role, or do they all have the defaults? A monitoring agent with only Read/Glob/Grep shows intentional design. An agent with every tool shows no thought.
-- **MCP configuration** — Have they connected external services? Do the MCPs match the agent's purpose (e.g., a DevOps agent with GitHub MCP)?
-- **Workspace setup** — Do agents point at real project directories, or all default to `~`? Workspace specificity signals understanding of agent scoping.
-- **Iteration on design** — Have they updated agent configs over time? Check if agents have been modified since creation (updated descriptions, refined prompts, added/removed tools). An agent that's been tuned shows craft maturity.
+**Evidence to check:** System prompt quality in custom agents (`get_agent` — specific/constrained vs. generic/empty), tool curation (curated sets vs. defaults — intentional minimalism shows craft), MCP configuration (services match agent purpose), workspace specificity (real project dirs vs. all `~`), iteration on design (agents updated over time vs. created and forgotten).
 
-**Score guide:**
-- 1: Only default/platform agents, no customization
-- 2: Created 1-2 agents but with minimal/generic system prompts
-- 3: Multiple custom agents with real prompts, some tool curation
-- 4: Well-designed agents with specific prompts, curated tools, MCPs, and real workspaces
-- 5: Expert builder — agents are tailored, tested, iterated on; system prompts are detailed; tool/MCP selection is intentional and minimal
+**Score:** 1=no customization, default agents only · 2=1-2 agents with minimal prompts · 3=multiple custom agents, real prompts, some tool curation · 4=specific prompts, curated tools, MCPs, real workspaces · 5=tailored, tested, iterated — intentional and minimal tool/MCP selection
 
 #### Step 6: Synthesize
 
