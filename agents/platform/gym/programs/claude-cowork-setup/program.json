@@ -1,0 +1,210 @@
+{
+  "id": "claude-cowork-setup",
+  "slug": "claude-cowork-setup",
+  "title": "Claude Cowork Setup: Done in 1 Hour",
+  "description": "Get Claude Cowork fully configured and running your first real task — in one sitting.",
+  "difficulty": "beginner",
+  "tier": "free",
+  "isPublic": true,
+  "isMarketplaceListed": false,
+  "source": "platform",
+  "sourceId": "9636397e-ff77-4e62-8746-9ccd431aa6f5",
+  "dimensions": ["application", "craft"],
+  "estimatedTime": "45-60 minutes",
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "modules": [
+    {
+      "id": "get-the-app-ready",
+      "title": "Get the App Ready",
+      "order": 1,
+      "agentInstructions": "Everything starts here before you touch anything else.",
+      "steps": [
+        {
+          "id": "download-claude-desktop",
+          "title": "Download Claude Desktop",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to claude.ai, download the desktop app, and install it. Open it and sign in.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "upgrade-to-pro",
+          "title": "Upgrade to Pro",
+          "order": 2,
+          "type": "self-report",
+          "content": "Go to Settings \u2192 Plan \u2192 Upgrade to Pro ($20/mo). You need this to access Cowork features. No Pro, no Cowork.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "find-the-cowork-tab",
+          "title": "Find the Cowork Tab",
+          "order": 3,
+          "type": "self-report",
+          "content": "Once you're on Pro, you'll see the **Cowork tab** at the top of the app. Click it. This is where everything lives.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "build-your-folder-structure",
+      "title": "Build Your Folder Structure",
+      "order": 2,
+      "agentInstructions": "Help the learner set up their local folder structure for Claude Cowork.",
+      "steps": [
+        {
+          "id": "create-your-main-folder",
+          "title": "Create Your Main Folder",
+          "order": 1,
+          "type": "self-report",
+          "content": "On your computer, create a folder called **CLAUDE COWORK**. This is where all your work will live.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "add-your-subfolders",
+          "title": "Add Your Subfolders",
+          "order": 2,
+          "type": "self-report",
+          "content": "Inside that folder, create these four folders:\n\n- **About Me**\n- **Projects**\n- **Templates**\n- **Output Files**",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "write-your-md-files",
+      "title": "Write Your .md Files",
+      "order": 3,
+      "agentInstructions": "These two files do the heavy lifting. They replace long prompts forever.",
+      "steps": [
+        {
+          "id": "create-about-me-md",
+          "title": "Create about-me.md",
+          "order": 1,
+          "type": "self-report",
+          "content": "Inside your **About Me** folder, create a file called `about-me.md`. Write:\n\n- Who you are\n- What you do\n- How you like to work\n- Your tone and communication style",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "create-anti-ai-style-md",
+          "title": "Create anti-ai-style.md",
+          "order": 2,
+          "type": "self-report",
+          "content": "Create a second file called `anti-ai-style.md`. Write every word, phrase, and sentence structure you never want Claude to use. Think:\n\n- *\"Delve into\"*\n- *\"It's important to note\"*\n- *\"Certainly!\"*\n- Any buzzwords that sound robotic",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "set-your-global-instructions",
+      "title": "Set Your Global Instructions",
+      "order": 4,
+      "agentInstructions": "Help the learner configure their global instructions so Claude reads their context files automatically.",
+      "steps": [
+        {
+          "id": "open-global-instructions",
+          "title": "Open Global Instructions",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to **Settings \u2192 Cowork \u2192 Edit Global Instructions.**",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "write-your-rules",
+          "title": "Write Your Rules",
+          "order": 2,
+          "type": "self-report",
+          "content": "Tell Claude:\n\n- Where your folders are\n- Your file naming conventions (e.g. `2024-01-task-name.docx`)\n- Which files to read before every task (`about-me.md`, `anti-ai-style.md`)\n\nYou write this once. It runs automatically every single time.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "create-your-first-project",
+      "title": "Create Your First Project",
+      "order": 5,
+      "agentInstructions": "Help the learner create their first Cowork project with scoped memory.",
+      "steps": [
+        {
+          "id": "start-a-new-project",
+          "title": "Start a New Project",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to **Cowork \u2192 Projects \u2192 +**. Name it after a task you do every week.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "why-this-matters",
+          "title": "Why This Matters",
+          "order": 2,
+          "type": "knowledge",
+          "content": "Projects have scoped memory. Claude remembers what it did last session. You stop re-explaining your context every time you open the app.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "knowledge",
+          "verificationQuestions": [
+            "What is the main benefit of using Cowork projects instead of regular chats?",
+            "Why does scoped memory reduce the need for long prompts?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "run-your-first-real-task",
+      "title": "Run Your First Real Task",
+      "order": 6,
+      "agentInstructions": "Guide the learner through running their first real task using the prompt structure and scheduling.",
+      "steps": [
+        {
+          "id": "use-this-prompt-structure",
+          "title": "Use This Prompt Structure",
+          "order": 1,
+          "type": "self-report",
+          "content": "Type: *\"I want to [your task]. Ask me questions first.\"*\n\nClaude will ask you clarifying questions before doing anything. You direct. It builds.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "add-askuserquestion-to-every-prompt",
+          "title": "Add AskUserQuestion to Every Prompt",
+          "order": 2,
+          "type": "self-report",
+          "content": "Always include *\"Use AskUserQuestion\"* in your prompts. Claude generates a clickable form to fill in \u2014 instead of you writing a long prompt every time.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        },
+        {
+          "id": "schedule-a-repeating-task",
+          "title": "Schedule a Repeating Task",
+          "order": 3,
+          "type": "self-report",
+          "content": "Tell Claude: *\"Every Monday at 8am, create my weekly work briefing.\"*\n\nYou wake up to a finished document in your Output Files folder. That's the whole point.",
+          "isCritical": false,
+          "trainerVariations": {},
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}
