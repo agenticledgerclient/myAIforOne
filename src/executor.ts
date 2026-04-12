@@ -19,6 +19,19 @@ import type { AppConfig } from "./config.js";
 let _appConfig: AppConfig | null = null;
 export function setAppConfig(config: AppConfig): void { _appConfig = config; }
 
+// Resolve the claude executable — on Windows, spawn("claude") fails if npm/bin
+// isn't in the subprocess PATH. Resolve it once at startup to the full path.
+function resolveClaudeBin(): string {
+  try {
+    const cmd = process.platform === "win32" ? "where.exe claude" : "which claude";
+    const result = execSync(cmd, { encoding: "utf8" }).trim().split("\n")[0].trim();
+    return result || "claude";
+  } catch {
+    return "claude";
+  }
+}
+const CLAUDE_BIN = resolveClaudeBin();
+
 // Cache memory managers per agent to avoid re-creating on every message
 const memoryManagers = new Map<string, MemoryManager>();
 
@@ -1433,7 +1446,7 @@ function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: s
     delete env.CLAUDE_CODE_ENTRYPOINT;
     if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
-    const proc = spawn("claude", args, {
+    const proc = spawn(CLAUDE_BIN, args, {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env,
@@ -1925,7 +1938,7 @@ export async function* executeAgentStreaming(
   delete env.CLAUDE_CODE_ENTRYPOINT;
   if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
-  const proc = spawn("claude", args, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env });
+  const proc = spawn(CLAUDE_BIN, args, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env });
 
   if (stdinPayload && proc.stdin) {
     proc.stdin.write(stdinPayload);
