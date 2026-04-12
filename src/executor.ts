@@ -19,9 +19,37 @@ import type { AppConfig } from "./config.js";
 let _appConfig: AppConfig | null = null;
 export function setAppConfig(config: AppConfig): void { _appConfig = config; }
 
-// Resolve the claude executable — on Windows, spawn("claude") fails if npm/bin
-// isn't in the subprocess PATH. Resolve it once at startup to the full path.
+// Resolve the claude executable.
+// Windows: npm shims (.cmd/.ps1) can't be spawned without shell:true.
+// Instead, find the actual cli.js and run it via node.exe directly.
+// macOS/Linux: use `which claude` as before — unchanged behavior.
+let _CLAUDE_CLI_JS: string | null = null;
+
 function resolveClaudeBin(): string {
+  if (process.platform === "win32") {
+    // Strategy 1: npm root -g → @anthropic-ai/claude-code/cli.js
+    try {
+      const npmRoot = execSync("npm root -g", { encoding: "utf8" }).trim();
+      const cliPath = resolve(npmRoot, "@anthropic-ai", "claude-code", "cli.js");
+      if (existsSync(cliPath)) {
+        _CLAUDE_CLI_JS = cliPath;
+        return process.execPath; // node.exe
+      }
+    } catch { /* fall through */ }
+    // Strategy 2: locate claude.cmd, derive cli.js from its directory
+    try {
+      const cmdPath = execSync("where.exe claude.cmd", { encoding: "utf8" })
+        .trim().split("\n")[0].trim();
+      if (cmdPath) {
+        const cliPath = resolve(cmdPath, "..", "node_modules", "@anthropic-ai", "claude-code", "cli.js");
+        if (existsSync(cliPath)) {
+          _CLAUDE_CLI_JS = cliPath;
+          return process.execPath;
+        }
+      }
+    } catch { /* fall through */ }
+  }
+  // macOS / Linux — use which claude
   try {
     const cmd = process.platform === "win32" ? "where.exe claude" : "which claude";
     const result = execSync(cmd, { encoding: "utf8" }).trim().split("\n")[0].trim();
@@ -1446,7 +1474,8 @@ function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: s
     delete env.CLAUDE_CODE_ENTRYPOINT;
     if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
-    const proc = spawn(CLAUDE_BIN, args, {
+    const spawnArgs = _CLAUDE_CLI_JS ? [_CLAUDE_CLI_JS, ...args] : args;
+    const proc = spawn(CLAUDE_BIN, spawnArgs, {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env,
@@ -1938,7 +1967,8 @@ export async function* executeAgentStreaming(
   delete env.CLAUDE_CODE_ENTRYPOINT;
   if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
-  const proc = spawn(CLAUDE_BIN, args, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env });
+  const spawnArgs = _CLAUDE_CLI_JS ? [_CLAUDE_CLI_JS, ...args] : args;
+  const proc = spawn(CLAUDE_BIN, spawnArgs, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env });
 
   if (stdinPayload && proc.stdin) {
     proc.stdin.write(stdinPayload);
