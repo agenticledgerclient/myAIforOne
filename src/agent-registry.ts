@@ -162,7 +162,7 @@ export function buildGroupAgentPrompt(
     lines.push("| Agent | Alias | Description | MCPs |");
     lines.push("|-------|-------|-------------|------|");
     for (const a of relevant) {
-      lines.push(`| **${a.name}** | ${a.aliases[0] || a.id} | ${a.description.slice(0, 100)} | ${a.mcps.slice(0, 5).join(", ")} |`);
+      lines.push(`| **${a.name}** | ${a.aliases[0] || a.id} | ${(a.description || "").slice(0, 100)} | ${(a.mcps || []).slice(0, 5).join(", ")} |`);
     }
     lines.push("");
   }
@@ -172,7 +172,7 @@ export function buildGroupAgentPrompt(
   lines.push("| ID | Name | Description | Org |");
   lines.push("|----|------|-------------|-----|");
   for (const a of allAgents) {
-    lines.push(`| ${a.id} | ${a.name} | ${a.description.slice(0, 80)} | ${a.org} |`);
+    lines.push(`| ${a.id} | ${a.name} | ${(a.description || "").slice(0, 80)} | ${a.org || ""} |`);
   }
   lines.push("");
 
