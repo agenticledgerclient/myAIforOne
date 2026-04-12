@@ -19,6 +19,7 @@ import { log } from "./logger.js";
 interface WebUIOptions {
   config: AppConfig;
   baseDir: string;
+  dataDir?: string; // where config.json lives (defaults to baseDir)
   port: number;
   webhookSecret?: string;
   onWebhookMessage?: (agentId: string, text: string, channel: string, chatId: string) => Promise<void>;
@@ -280,7 +281,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   // ─── API: Claude Accounts ────────────────────────────────────────
-  const configFilePath = () => join(opts.baseDir, "config.json");
+  const configFilePath = () => join(opts.dataDir || opts.baseDir, "config.json");
 
   app.get("/api/config/accounts", (_req, res) => {
     const accounts = opts.config.service.claudeAccounts || {};

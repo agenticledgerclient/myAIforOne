@@ -19,9 +19,12 @@ const isMac = process.platform === "darwin";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const baseDir = resolve(__dirname, "..");
+// dataDir is where config.json and user data live. Defaults to baseDir (package root)
+// but can be overridden via MYAGENT_DATA_DIR for npx/global installs.
+const dataDir = process.env.MYAGENT_DATA_DIR || baseDir;
 
 async function main(): Promise<void> {
-  const configPath = resolve(baseDir, "config.json");
+  const configPath = resolve(dataDir, "config.json");
   const config = loadConfig(configPath);
   setAppConfig(config);
 
@@ -195,6 +198,7 @@ async function main(): Promise<void> {
     startWebUI({
       config,
       baseDir,
+      dataDir,
       port: webUI.port || 8080,
       webhookSecret: webUI.webhookSecret,
       driverMap,

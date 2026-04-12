@@ -29,6 +29,15 @@ const IS_LINUX = PLATFORM === 'linux';
 const HOME = homedir();
 const PLATFORM_NAME = IS_MAC ? 'macOS' : IS_WIN ? 'Windows' : 'Linux';
 
+// DATA_DIR: where config.json, user agents, and logs live.
+// Kept on the Desktop alongside "MyAIforOne Drive" so users can find it.
+// Falls back to PROJECT_ROOT when running from the cloned repo (dev mode).
+const DESKTOP = join(HOME, 'Desktop');
+const DATA_DIR_NAME = 'MyAIforOne Platform';
+const DATA_DIR = existsSync(join(PROJECT_ROOT, '.git'))
+  ? PROJECT_ROOT  // dev/cloned-repo mode — use repo root as before
+  : join(DESKTOP, DATA_DIR_NAME);
+
 const STEPS = [
   'Check Node.js',
   'Check Claude Code CLI',
@@ -265,7 +274,8 @@ function createDrive() {
 function generateConfig() {
   printChecklist();
 
-  const configPath = join(PROJECT_ROOT, 'config.json');
+  mkdirp(DATA_DIR);
+  const configPath = join(DATA_DIR, 'config.json');
   if (existsSync(configPath)) {
     console.log('  config.json already exists — skipping generation.');
     stepDone('Config already exists');
@@ -319,7 +329,7 @@ function generateConfig() {
 function registerAgents() {
   printChecklist();
 
-  const configPath = join(PROJECT_ROOT, 'config.json');
+  const configPath = join(DATA_DIR, 'config.json');
   const config = JSON.parse(readFileSync(configPath, 'utf8'));
 
   const driveRoot = join(HOME, 'Desktop', 'MyAIforOne Drive');
@@ -455,6 +465,7 @@ function startAndOpen() {
     cwd: PROJECT_ROOT,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, MYAGENT_DATA_DIR: DATA_DIR },
   });
 
   let started = false;
