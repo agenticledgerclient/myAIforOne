@@ -2796,7 +2796,7 @@ function renderMessages() {
 
   // Thinking indicator
   if (isThinking && !streamingText) {
-    html += `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div>Thinking...</div>`;
+    html += `<div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div>I'm thinking... <span style="color:var(--text-muted);font-size:11px;margin-left:6px">(click <span style="cursor:pointer;text-decoration:underline" onclick="toggleLogs()">⌘</span> to see my thoughts)</span></div>`;
   }
 
   el.innerHTML = html;

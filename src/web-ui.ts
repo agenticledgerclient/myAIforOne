@@ -1750,7 +1750,7 @@ export function startWebUI(opts: WebUIOptions): void {
         log.info(`[Marketplace] Installed prompt ${id} → ${destPath}`);
 
       } else if (type === "mcp") {
-        const configPath = join(opts.baseDir, "config.json");
+        const configPath = configFilePath();
         const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
         if (!rawConfig.mcps) rawConfig.mcps = {};
 
@@ -1812,7 +1812,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(400).json({ error: "type must be skill, mcp, or prompt" });
     }
 
-    const configPath = join(opts.baseDir, "config.json");
+    const configPath = configFilePath();
     let rawConfig: any;
     try {
       rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
@@ -1845,7 +1845,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(400).json({ error: "Missing type, id, or agentIds" });
     }
 
-    const configPath = join(opts.baseDir, "config.json");
+    const configPath = configFilePath();
     let rawConfig: any;
     try {
       rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
@@ -2158,10 +2158,10 @@ export function startWebUI(opts: WebUIOptions): void {
             agentClass: meta.agentClass || "standard",
           };
           (opts.config.agents as any)[agentId] = agentCfg;
-          const rawConfig = JSON.parse(readFileSync(join(opts.baseDir, "config.json"), "utf-8"));
+          const rawConfig = JSON.parse(readFileSync(configFilePath(), "utf-8"));
           rawConfig.agents = rawConfig.agents || {};
           rawConfig.agents[agentId] = agentCfg;
-          writeFileSync(join(opts.baseDir, "config.json"), JSON.stringify(rawConfig, null, 2));
+          writeFileSync(configFilePath(), JSON.stringify(rawConfig, null, 2));
 
           imported.push({ type: "agent", id: agentId, name: agentName });
         }
@@ -2258,7 +2258,7 @@ export function startWebUI(opts: WebUIOptions): void {
   app.post("/api/marketplace/prompt-trigger", (req, res) => {
     const { trigger } = req.body as { trigger?: string };
     if (!trigger || trigger.length !== 1) return res.status(400).json({ error: "trigger must be a single character" });
-    const configPath = join(opts.baseDir, "config.json");
+    const configPath = configFilePath();
     try {
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       rawConfig.promptTrigger = trigger;
@@ -2279,7 +2279,7 @@ export function startWebUI(opts: WebUIOptions): void {
     };
     if (!id || !name || !mcpType) return res.status(400).json({ error: "Missing id, name, or mcpType" });
 
-    const configPath = join(opts.baseDir, "config.json");
+    const configPath = configFilePath();
     const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
     if (!rawConfig.mcps) rawConfig.mcps = {};
 
@@ -2734,7 +2734,7 @@ export function startWebUI(opts: WebUIOptions): void {
       }
 
       // Update config.json
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       rawConfig.agents[agentId] = agentConfig;
       writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
@@ -2805,7 +2805,7 @@ export function startWebUI(opts: WebUIOptions): void {
     }
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const existing = rawConfig.agents[agentId];
 
@@ -2972,7 +2972,7 @@ export function startWebUI(opts: WebUIOptions): void {
     }
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       if (!rawConfig.agents[agentId]) {
@@ -3154,7 +3154,7 @@ export function startWebUI(opts: WebUIOptions): void {
     }
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       // Ensure the base MCP is in the agent's mcps array (don't add named instance)
@@ -3225,7 +3225,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const instanceName = req.params.instanceName;
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       // Remove from mcps registry
@@ -3400,7 +3400,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const goalId = req.params.goalId;
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -3428,7 +3428,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const index = parseInt(req.params.index);
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -3639,7 +3639,7 @@ export function startWebUI(opts: WebUIOptions): void {
   app.delete("/api/agents/:id/goals/:goalId", (req, res) => {
     const agentId = req.params.id;
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -3669,7 +3669,7 @@ export function startWebUI(opts: WebUIOptions): void {
     const agentId = req.params.id;
     const index = parseInt(req.params.index);
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -3700,7 +3700,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(400).json({ error: "Missing id, description, or heartbeat" });
     }
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -3732,7 +3732,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(400).json({ error: "Missing schedule, message, channel, or chatId" });
     }
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -4370,7 +4370,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     };
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[ownerAgentId];
       if (!agent) return res.status(404).json({ error: "Agent not found in config" });
@@ -4421,7 +4421,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     const goalId = "project-exec-" + projectId;
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[ownerAgentId];
       if (!agent) return res.status(404).json({ error: "Agent not found in config" });
@@ -4630,7 +4630,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       const agentCfg = rawConfig.agents[agentId];
@@ -4693,7 +4693,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     if (!chatId) return res.status(400).json({ error: "Missing chatId in body" });
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       const agentCfg = rawConfig.agents[agentId];
@@ -4749,7 +4749,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     if (chatId == null || isNaN(chatId)) return res.status(400).json({ error: "Missing or invalid chatId (must be number)" });
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       const monitored = rawConfig.channels.imessage?.config?.monitoredChatIds || [];
@@ -4779,7 +4779,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     if (chatId == null || isNaN(chatId)) return res.status(400).json({ error: "Missing or invalid chatId (must be number)" });
 
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 
       let monitored = rawConfig.channels.imessage?.config?.monitoredChatIds || [];
@@ -5333,7 +5333,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     const { id: agentId, goalId } = req.params;
     const updates = req.body as any;
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -5361,7 +5361,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     const index = parseInt(req.params.index, 10);
     const updates = req.body as any;
     try {
-      const configPath = join(opts.baseDir, "config.json");
+      const configPath = configFilePath();
       const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
       const agent = rawConfig.agents[agentId];
       if (!agent) return res.status(404).json({ error: "Agent not found" });
