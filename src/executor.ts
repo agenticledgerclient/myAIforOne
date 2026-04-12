@@ -1,7 +1,7 @@
 import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync, existsSync, unlinkSync, mkdirSync, rmdirSync, readdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import type { McpServerConfig, McpServerHttp } from "./config.js";
 import { getPersonalAgentsDir } from "./config.js";
@@ -69,7 +69,7 @@ function buildSystemPromptArgs(
   agentId: string
 ): { args: string[]; cleanup: (() => void) | null } {
   if (process.platform === "win32" && systemPrompt.length > WIN_CMD_LIMIT) {
-    const tmpDir = resolve(__dirname, "..", "tmp", "system-prompts", `${agentId}-${Date.now()}`);
+    const tmpDir = join(tmpdir(), "myaiforone-system-prompts", `${agentId}-${Date.now()}`);
     mkdirSync(tmpDir, { recursive: true });
     writeFileSync(join(tmpDir, "CLAUDE.md"), systemPrompt, "utf-8");
     return {
