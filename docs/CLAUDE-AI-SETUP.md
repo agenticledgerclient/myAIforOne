@@ -22,6 +22,7 @@ Here's what we'll do:
   □ 3. Log into Claude Code
   □ 4. Download MyAgent
   □ 5. Hand off to the setup wizard
+  □ 6. Activate your license
 
 Let's start with Step 1.
 ```
@@ -116,26 +117,24 @@ If it says "authenticated" or shows an account, move on.
 
 ---
 
-### Step 4: Download MyAgent
+### Step 4: Install & Launch MyAgent
 
 Tell the user:
 
 ```
-Paste these lines one at a time:
+Paste this to install MyAgent:
 
-git clone https://github.com/agenticledgerclient/myAIforOne.git
+npx myaiforone
 
-cd myAIforOne
-
-npm install
+This downloads and runs the setup automatically. Follow the prompts.
 ```
 
-If they get "git: command not found":
-- **Mac:** `xcode-select --install` — then retry
-- **Windows:** `winget install Git.Git` — close and reopen PowerShell, then retry
-- **Linux:** `sudo apt-get install git` — then retry
+If they get a permissions error on Mac/Linux:
+```
+sudo npx myaiforone
+```
 
-Once `npm install` finishes, move on.
+Once it finishes, it will open Claude Code in the project directory. Move on.
 
 ---
 
@@ -144,17 +143,40 @@ Once `npm install` finishes, move on.
 Tell the user:
 
 ```
-You're ready! Now paste this:
-
-claude
-
-Once Claude Code loads, type:
+Claude Code should now be open in the MyAgent directory. Type:
 
 /setup
 
 The setup wizard handles everything from here — config, build, and
 launching the app in your browser.
 ```
+
+If Claude Code didn't open automatically, tell them:
+```
+cd myaiforone && claude
+```
+Then type `/setup`.
+
+---
+
+### Step 6: Activate Your License
+
+Tell the user:
+
+```
+Once the web UI opens in your browser, you'll see a license activation popup.
+
+Enter the license key you received when you purchased MyAIforOne. It looks like:
+
+MA1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+Click "Activate" and you're done.
+
+If you don't have a license key yet, you can also enter it later
+in Admin → Settings → License.
+```
+
+If they don't have a key, they can still browse the web UI — agents won't execute until a valid key is entered.
 
 ---
 

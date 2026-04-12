@@ -3,6 +3,66 @@
 > **Status:** Ready to Build
 > **Architecture:** [SharedAgentArchitecture.md](SharedAgentArchitecture.md)
 > **Date:** 2026-04-11
+> **License Feature Flag:** `sharedAgents` (default: off)
+
+---
+
+## Phase 0 — Feature Gating — License Integration
+
+Shared agents are a licensed feature gated behind `sharedAgents: boolean` in the license. By default this is **off** — users must have a license with `sharedAgents: true` to use this feature. The code must be organized so that every entry point checks the flag before proceeding.
+
+### 0.1 Service-level config flag
+**File:** `src/config.ts`
+
+- [ ] **0.1.1** Add `sharedAgentsEnabled?: boolean` to `ServiceConfig` — default `false`. This is the local kill switch. The platform checks BOTH this flag AND the license feature.
+- [ ] **0.1.2** In `loadConfig()`, default `sharedAgentsEnabled` to `false`
+
+### 0.2 Gate check utility
+**File:** `src/license.ts`
+
+The `isFeatureEnabled("sharedAgents")` function already exists. Use it at every gate point below. The pattern:
+
+```typescript
+import { isFeatureEnabled } from "./license.js";
+
+function isSharedAgentsAllowed(config: AppConfig): boolean {
+  return (config.service as any).sharedAgentsEnabled !== false && isFeatureEnabled("sharedAgents");
+}
+```
+
+### 0.3 Gate points (where to check)
+
+Every place the shared agent feature is exposed must check the gate. If the gate is closed, the feature is invisible — not errored, just hidden/absent.
+
+| Gate Point | File | Behavior When Off |
+|------------|------|-------------------|
+| **Agent creation API** | `src/web-ui.ts` (`POST /api/agents`) | Reject with 403 if `storage: "drive"` or `conversationLogMode: "per-user"` and feature is off |
+| **Agent update API** | `src/web-ui.ts` (`PUT /api/agents/:id`) | Reject changes to `storage`/`conversationLogMode` if feature is off |
+| **Org page UI** | `public/org.html` | Hide storage/drive config, conversation log mode selector |
+| **Agent dashboard UI** | `public/agent-dashboard.html` | Hide storage info panel, per-user log viewer |
+| **MCP tools** | `server/mcp-server/` | `get_storage_info`, `update_storage_config`, `get_conversation_senders` return error if feature is off |
+| **Auth system** | `src/web-ui.ts` | Auth middleware only activates if `service.auth.enabled` AND `sharedAgentsEnabled` (auth is a shared-agent concern) |
+
+### 0.4 Capabilities endpoint
+**File:** `src/web-ui.ts`
+
+- [ ] **0.4.1** Update `GET /api/capabilities` to include `sharedAgents: boolean` in the response. Frontend reads this to show/hide shared-agent UI elements.
+
+### 0.5 Frontend feature detection
+**Files:** All frontend pages that reference shared agent features
+
+- [ ] **0.5.1** On page load, call `GET /api/capabilities` (same call as super agents — one endpoint, all flags)
+- [ ] **0.5.2** Conditionally show/hide shared agent UI elements (storage config, conversation log mode, auth) based on `capabilities.sharedAgents`
+
+### 0.6 Admin settings toggle
+**File:** `public/admin.html` (Settings tab, Feature Modules section)
+
+- [ ] **0.6.1** Add "Shared Agents" toggle to the Feature Modules section (same pattern as AI Gym / Super Agents toggles)
+- [ ] **0.6.2** Toggle saves `sharedAgentsEnabled` via `PUT /api/config/service`
+- [ ] **0.6.3** If the license doesn't have `sharedAgents: true`, show the toggle as disabled with a "Requires license" note
+
+### Build order note
+Phase 0 must be built **first** (before Phases 1-16). Every subsequent phase wraps its code in the gate check. This ensures the feature can be built, tested, and merged without being visible to users who don't have it licensed.
 
 ---
 
@@ -385,16 +445,17 @@ The conversation log is written at two locations (sync executor ~line 1394-1404,
 The agent should execute phases in this order to avoid dependency issues:
 
 ```
+0. Phase 0  — Feature Gating (gate check utility, capabilities endpoint, admin toggle). MUST BE FIRST.
 1. Phase 1  — Config & Types (foundation — everything depends on this)
-2. Phase 2  — Auth backend (middleware before other API changes)
-3. Phase 3  — Per-user conversation logging (executor changes)
-4. Phase 4  — Agent creation/update API changes
-5. Phase 9  — MCP tools (depends on API being done)
-6. Phase 7  — Web UI auth integration (depends on auth backend)
-7. Phase 5  — Frontend creation modal (depends on API accepting new fields)
-8. Phase 6  — Frontend dashboard updates
+2. Phase 2  — Auth backend (middleware before other API changes — wrap in gate check)
+3. Phase 3  — Per-user conversation logging (executor changes — wrap in gate check)
+4. Phase 4  — Agent creation/update API changes (wrap in gate check)
+5. Phase 9  — MCP tools (depends on API being done — wrap in gate check)
+6. Phase 7  — Web UI auth integration (depends on auth backend — conditional on capabilities.sharedAgents)
+7. Phase 5  — Frontend creation modal (depends on API accepting new fields — conditional on capabilities.sharedAgents)
+8. Phase 6  — Frontend dashboard updates (conditional on capabilities.sharedAgents)
 9. Phase 8  — Verify all API endpoints (integration check)
-10. Phase 15 — Tests (validate everything)
+10. Phase 15 — Tests (validate everything INCLUDING feature gate on/off behavior)
 11. Phase 10 — API docs
 12. Phase 11 — MCP docs
 13. Phase 12 — User guide
@@ -404,9 +465,14 @@ The agent should execute phases in this order to avoid dependency issues:
 ```
 
 ### Critical path notes for the building agent:
+- **Feature is OFF by default.** `sharedAgentsEnabled: false` in config, `sharedAgents: false` in license. Both must be true for the feature to be visible.
+- **When the feature is off**, all shared agent UI elements are hidden (storage config, conversation log mode, auth), all shared-agent-specific API fields return 403, the auth system doesn't activate. The feature is invisible to unlicensed users.
+- **When the feature is on**, everything works as described in Phases 1-16.
 - **Do NOT modify existing personal agent behavior.** All changes must be backward-compatible. When `storage` is undefined, everything works exactly as before.
 - **`conversationLogMode` defaults to `"shared"`** — which is identical to current behavior (single log file).
 - **`auth.enabled` defaults to `false`** — personal gateways are unaffected.
-- **Test after each phase** before moving to the next. Run `node "Comprehensive Test Suite/run-all-tests.js"` after Phases 1-4 and again after Phase 15.
+- **The capabilities endpoint** (`GET /api/capabilities`) is the single source of truth for the frontend. All feature visibility decisions flow from this endpoint.
+- **Test both states** — every test file should have cases for feature-on and feature-off behavior.
+- **Test after each phase** before moving to the next. Run `node "Comprehensive Test Suite/run-all-tests.js"` after Phases 0-4 and again after Phase 15.
 - **Theme compliance:** All new UI elements must use CSS variables (`var(--bg-primary)`, `var(--text-primary)`, etc.) — never hardcode colors.
 - **After all code changes:** Run `/opappbuild_agentready_trueup` and `/opappbuild_testsuite_trueup` per CLAUDE.md standing orders.

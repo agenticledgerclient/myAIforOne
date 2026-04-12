@@ -108,6 +108,12 @@ npm start                    # Run directly
 # Or install as auto-start service — see /setup
 ```
 
+## Licensing
+
+MyAIforOne requires a license key to activate agents. When you first open the web UI, a license activation popup will appear. Enter your key (`MA1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) to activate. You can also enter it later in Admin → Settings → License.
+
+Without a license key, you can browse the web UI but agents won't execute.
+
 ## License
 
 MIT

@@ -3,6 +3,80 @@
 > **Status:** Ready to Build
 > **Architecture:** [CrossAgentObserverArchitecture.md](CrossAgentObserverArchitecture.md)
 > **Date:** 2026-04-11
+> **License Feature Flag:** `superAgents` (default: off)
+
+---
+
+## 0. Feature Gating — License Integration
+
+Super agents are a licensed feature gated behind `superAgents: boolean` in the license. By default this is **off** — users must have a license with `superAgents: true` to use this feature. The code must be organized so that every entry point checks the flag before proceeding.
+
+### 0.1 Service-level config flag
+**File:** `src/config.ts`
+
+- [ ] **0.1.1** Add `superAgentsEnabled?: boolean` to `ServiceConfig` — default `false`. This is the local kill switch. The platform checks BOTH this flag AND the license feature.
+- [ ] **0.1.2** In `loadConfig()`, default `superAgentsEnabled` to `false`
+
+### 0.2 Gate check utility
+**File:** `src/license.ts`
+
+The `isFeatureEnabled("superAgents")` function already exists. Use it at every gate point below. The pattern:
+
+```typescript
+import { isFeatureEnabled } from "./license.js";
+
+function isSuperAgentsAllowed(config: AppConfig): boolean {
+  // Both the local config flag AND the license feature must be true
+  return (config.service as any).superAgentsEnabled !== false && isFeatureEnabled("superAgents");
+}
+```
+
+### 0.3 Gate points (where to check)
+
+Every place the super agent feature is exposed must check the gate. If the gate is closed, the feature is invisible — not errored, just hidden/absent.
+
+| Gate Point | File | Behavior When Off |
+|------------|------|-------------------|
+| **Agent creation API** | `src/web-ui.ts` (`POST /api/agents`) | Reject with 403 if `agentClass: "super"` and feature is off |
+| **Agent update API** | `src/web-ui.ts` (`PUT /api/agents/:id`) | Reject changes to `observes`/`observeScope` if feature is off |
+| **Executor** | `src/executor.ts` | If agent has `agentClass: "super"` but feature is off, return "Super agents are not enabled on this platform" |
+| **Org page UI** | `public/org.html` | Hide "Super Agent" option from class selector |
+| **Agent dashboard UI** | `public/agent-dashboard.html` | Hide observer config / soul sections if feature is off |
+| **MCP tools** | `server/mcp-server/` | `get_observed_agents`, `read_agent_file`, `search_across_agents`, etc. return error if feature is off |
+| **API: observed-agents** | `src/web-ui.ts` (`GET /api/agents/:id/observed-agents`) | Return 403 if feature is off |
+| **API: soul** | `src/web-ui.ts` (`GET/PUT /api/agents/:id/soul`) | Return 403 if feature is off |
+
+### 0.4 Capabilities endpoint
+**File:** `src/web-ui.ts`
+
+- [ ] **0.4.1** Update `GET /api/capabilities` (or create if it doesn't exist) to include `superAgents: boolean` in the response. The frontend reads this to show/hide UI elements.
+
+```typescript
+app.get("/api/capabilities", (_req, res) => {
+  res.json({
+    superAgents: isSuperAgentsAllowed(opts.config),
+    sharedAgents: isSharedAgentsAllowed(opts.config),
+    // ... other feature flags
+  });
+});
+```
+
+### 0.5 Frontend feature detection
+**Files:** All frontend pages that reference super agents
+
+- [ ] **0.5.1** On page load, call `GET /api/capabilities`. Cache the result.
+- [ ] **0.5.2** Conditionally show/hide super agent UI elements based on `capabilities.superAgents`
+- [ ] **0.5.3** The class selector in org.html only shows "Super Agent" option if `capabilities.superAgents === true`
+
+### 0.6 Admin settings toggle
+**File:** `public/admin.html` (Settings tab, Feature Modules section)
+
+- [ ] **0.6.1** Add "Super Agents" toggle to the Feature Modules section (same pattern as AI Gym toggle)
+- [ ] **0.6.2** Toggle saves `superAgentsEnabled` via `PUT /api/config/service`
+- [ ] **0.6.3** If the license doesn't have `superAgents: true`, show the toggle as disabled with a "Requires license" note
+
+### Build order note
+Phase 0 must be built **first** (before Sections 1-16). Every subsequent section wraps its code in the gate check. This ensures the feature can be built, tested, and merged without being visible to users who don't have it licensed.
 
 ---
 
@@ -161,14 +235,22 @@ New tools to add to the `myaiforone` MCP server:
 
 ## Build Order (Recommended)
 
-1. **Config & types** (Section 1) — foundation everything else depends on
-2. **Drive folder setup** (Section 3) — needed before executor can resolve paths
-3. **Executor** (Section 2) — soul.md + observed-agents system prompt
-4. **API endpoints** (Sections 4, 8) — backend routes for create/update/read
-5. **MCP tools** (Section 9) — cross-agent query tools
-6. **Frontend — Org page** (Section 5) — creation UI
-7. **Frontend — Dashboard** (Section 6) — management UI
-8. **Frontend — Home** (Section 7) — verify chat works
-9. **Tests** (Section 16) — validate everything
-10. **Docs** (Sections 10–14) — API docs, MCP docs, user guide, agent CLAUDE.md updates
-11. **MCP mapping** (Section 15) — verify MCP auto-attachment
+1. **Feature gating** (Section 0) — gate check utility, capabilities endpoint, admin toggle. MUST BE FIRST.
+2. **Config & types** (Section 1) — foundation everything else depends on
+3. **Drive folder setup** (Section 3) — needed before executor can resolve paths
+4. **Executor** (Section 2) — soul.md + observed-agents system prompt (wrap in gate check)
+5. **API endpoints** (Sections 4, 8) — backend routes for create/update/read (wrap in gate check)
+6. **MCP tools** (Section 9) — cross-agent query tools (wrap in gate check)
+7. **Frontend — Org page** (Section 5) — creation UI (conditional on capabilities.superAgents)
+8. **Frontend — Dashboard** (Section 6) — management UI (conditional on capabilities.superAgents)
+9. **Frontend — Home** (Section 7) — verify chat works
+10. **Tests** (Section 16) — validate everything INCLUDING feature gate on/off behavior
+11. **Docs** (Sections 10–14) — API docs, MCP docs, user guide, agent CLAUDE.md updates
+12. **MCP mapping** (Section 15) — verify MCP auto-attachment
+
+### Critical path notes for the building agent:
+- **Feature is OFF by default.** `superAgentsEnabled: false` in config, `superAgents: false` in license. Both must be true for the feature to be visible.
+- **When the feature is off**, all super agent UI elements are hidden, all super agent API endpoints return 403, executor rejects super agent execution. The feature is invisible to unlicensed users.
+- **When the feature is on**, everything works as described in Sections 1-16.
+- **The capabilities endpoint** (`GET /api/capabilities`) is the single source of truth for the frontend. All feature visibility decisions flow from this endpoint.
+- **Test both states** — every test file should have cases for feature-on and feature-off behavior.
