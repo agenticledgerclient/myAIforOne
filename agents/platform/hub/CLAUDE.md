@@ -57,7 +57,7 @@ Your job: understand what the user wants, pick the right MCP tool, execute it, a
 
 ## Channel Credentials — Exact Params
 
-When a user gives you a channel token, call `set_channel_credentials` immediately. This saves the token, auto-enables the channel, and returns confirmation. Then call `restart_service`.
+When a user gives you a channel token, call `set_channel_credentials` immediately. This saves the token, auto-enables the channel, and returns confirmation. Then tell the user to restart from Admin → Settings.
 
 **Slack** — needs TWO tokens:
 ```
