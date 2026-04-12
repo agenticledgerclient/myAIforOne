@@ -222,15 +222,21 @@ export function loadConfig(configPath: string): AppConfig {
     agent.timeout = agent.timeout ?? 14_400_000;
   }
 
-  // Validate MCP definitions
+  // Validate MCP definitions — skip comment keys and entries with no type
   if (config.mcps) {
     for (const [mcpId, mcp] of Object.entries(config.mcps)) {
+      // Skip JSON comment keys (e.g., "_comment_platform_mcps") and non-object values
+      if (mcpId.startsWith("_") || !mcp || typeof mcp !== "object" || !mcp.type) {
+        delete config.mcps[mcpId];
+        continue;
+      }
       if (mcp.type === "stdio") {
         if (!mcp.command) throw new Error(`MCP "${mcpId}" (stdio) must have a "command" field`);
       } else if (mcp.type === "http" || mcp.type === "sse" || mcp.type === "streamable-http") {
         if (!(mcp as McpServerHttp).url) throw new Error(`MCP "${mcpId}" (${mcp.type}) must have a "url" field`);
       } else {
-        throw new Error(`MCP "${mcpId}" has unknown type "${(mcp as any).type}" — must be "stdio", "http", "sse", or "streamable-http"`);
+        console.warn(`[config] MCP "${mcpId}" has unknown type "${(mcp as any).type}" — skipping`);
+        delete config.mcps[mcpId];
       }
     }
   }
