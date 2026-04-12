@@ -537,6 +537,31 @@ function printFinal() {
 async function main() {
   printBanner();
 
+  // ── Version check — warn if running a stale cached version ───────
+  try {
+    const pkg = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf8'));
+    const localVersion = pkg.version;
+    const res = await fetch('https://registry.npmjs.org/myaiforone/latest', { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const data = await res.json();
+      const latestVersion = data.version;
+      if (localVersion !== latestVersion) {
+        console.log('  ⚠  You\'re running myaiforone@' + localVersion + ' but ' + latestVersion + ' is available.');
+        console.log('  ⚠  Run: npx myaiforone@latest');
+        console.log('  ⚠  Or:  npx clear-npx-cache && npx myaiforone');
+        console.log('');
+        const answer = await ask('  Continue with ' + localVersion + ' anyway? (y/n) ');
+        if (answer.toLowerCase() !== 'y') {
+          console.log('');
+          console.log('  Run: npx myaiforone@latest');
+          console.log('');
+          process.exit(0);
+        }
+        console.log('');
+      }
+    }
+  } catch { /* network unavailable — skip version check */ }
+
   console.log('  Here\'s what we\'ll do:');
   console.log('');
   for (let i = 0; i < STEPS.length; i++) {
