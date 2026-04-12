@@ -5409,6 +5409,84 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }, 500);
   });
 
+  // ─── API: Platform Updates ──────────────────────────────────────────
+
+  // GET /api/version — current + latest version
+  app.get("/api/version", async (_req, res) => {
+    try {
+      const pkgPath = join(opts.baseDir, "package.json");
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+      const current = pkg.version || "unknown";
+      // Fetch latest from npm registry
+      let latest = current;
+      let updateAvailable = false;
+      try {
+        const resp = await fetch("https://registry.npmjs.org/myaiforone/latest");
+        if (resp.ok) {
+          const data = await resp.json() as any;
+          latest = data.version || current;
+          updateAvailable = latest !== current;
+        }
+      } catch { /* offline — just report current */ }
+      res.json({ ok: true, current, latest, updateAvailable });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // POST /api/update — clear npx cache and restart with latest version
+  app.post("/api/update", async (_req, res) => {
+    try {
+      const platform = process.platform;
+      log.info("[Update] Platform update triggered via API");
+
+      // Clear npx cache for myaiforone
+      if (platform === "win32") {
+        const npxDir = join(process.env.LOCALAPPDATA || "", "npm-cache", "_npx");
+        if (existsSync(npxDir)) {
+          for (const d of readdirSync(npxDir)) {
+            const candidate = join(npxDir, d, "node_modules", "myaiforone");
+            if (existsSync(candidate)) {
+              rmSync(join(npxDir, d), { recursive: true, force: true });
+              log.info(`[Update] Cleared npx cache: ${d}`);
+            }
+          }
+        }
+      } else {
+        // macOS/Linux: ~/.npm/_npx
+        const home = process.env.HOME || "";
+        const npxDir = join(home, ".npm", "_npx");
+        if (existsSync(npxDir)) {
+          for (const d of readdirSync(npxDir)) {
+            const candidate = join(npxDir, d, "node_modules", "myaiforone");
+            if (existsSync(candidate)) {
+              rmSync(join(npxDir, d), { recursive: true, force: true });
+              log.info(`[Update] Cleared npx cache: ${d}`);
+            }
+          }
+        }
+      }
+
+      res.json({ ok: true, message: "Cache cleared. Restarting with latest version..." });
+
+      // Respawn via npx to pull latest, then exit current process
+      setTimeout(() => {
+        log.info("[Update] Spawning npx myaiforone to pull latest...");
+        const child = cpSpawn("npx", ["myaiforone"], {
+          cwd: process.cwd(),
+          env: { ...process.env },
+          stdio: "ignore",
+          detached: true,
+          shell: true,
+        });
+        child.unref();
+        process.exit(0);
+      }, 1000);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── API: Skills ────────────────────────────────────────────────────
 
   // GET /api/agents/:agentId/skills — list all skills available to an agent

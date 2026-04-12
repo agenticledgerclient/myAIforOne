@@ -257,6 +257,7 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
   <button class="type-tab" data-tab="channels" onclick="switchTab('channels')">Channels</button>
   <button class="type-tab" data-tab="activity" onclick="switchTab('activity')">Activity</button>
   <button class="type-tab active" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+  <button class="type-tab" data-tab="updates" onclick="switchTab('updates')">Updates</button>
   <button class="type-tab" data-tab="docs" onclick="switchTab('docs')">Docs</button>
 </div>
 
@@ -693,6 +694,52 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
   </div>
 
   <!-- ═══════════════════════════ DOCS TAB ═══════════════════════════ -->
+  <div class="tab-panel" id="panel-updates">
+    <div class="docs-page">
+      <div class="page-title">Platform Updates</div>
+      <div class="page-subtitle">Check for new versions and update MyAIforOne with one click.</div>
+      <div class="section" style="margin-top:24px">
+        <div class="section-header" style="padding:16px 20px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">&#x2B06;</span>
+          <span style="font-weight:700;font-size:14px">Version Status</span>
+        </div>
+        <div class="section-body" style="padding:20px" id="updatesPanel">
+          <div id="updateStatus" style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;color:var(--text-secondary)">Installed version:</span>
+              <span id="currentVersion" style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent)">--</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;color:var(--text-secondary)">Latest version:</span>
+              <span id="latestVersion" style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-primary)">--</span>
+            </div>
+            <div id="updateBadge" style="display:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600"></div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <button onclick="checkForUpdates()" id="checkBtn" style="font-family:var(--font-sans);font-size:13px;font-weight:600;padding:8px 20px;border-radius:8px;border:1px solid var(--border-glow);background:var(--bg-input);color:var(--text-primary);cursor:pointer;transition:all .2s">Check for Updates</button>
+              <button onclick="applyUpdate()" id="updateBtn" style="display:none;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:8px 20px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;transition:all .2s">Update Now</button>
+            </div>
+            <div id="updateLog" style="display:none;margin-top:12px;padding:12px 16px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border-dim);font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);white-space:pre-wrap"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section" style="margin-top:16px">
+        <div class="section-header" style="padding:16px 20px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">&#x2139;</span>
+          <span style="font-weight:700;font-size:14px">How Updates Work</span>
+        </div>
+        <div class="section-body" style="padding:20px;font-size:13px;color:var(--text-secondary);line-height:1.7">
+          <p>Clicking <strong style="color:var(--text-primary)">Update Now</strong> will:</p>
+          <ol style="margin:10px 0 0 20px">
+            <li>Clear the local npm/npx cache for MyAIforOne</li>
+            <li>Restart the service, pulling the latest version from npm</li>
+            <li>The page will reconnect automatically once the new version is running</li>
+          </ol>
+          <p style="margin-top:12px;color:var(--text-muted)">You can also update manually from the command line: <code style="font-family:var(--font-mono);color:var(--accent)">npx myaiforone@latest</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="tab-panel" id="panel-docs">
     <div class="docs-page">
       <div class="page-title">Docs</div>
@@ -766,10 +813,11 @@ function showToast(msg, type='ok', html=false) {
 }
 
 // ── Tab switching ──────────────────────────────────────────────────────
-const TABS = ['channels','activity','settings','docs'];
+const TABS = ['channels','activity','settings','updates','docs'];
 let channelsLoaded = false;
 let activityLoaded = false;
 let settingsLoaded = false;
+let updatesLoaded = false;
 
 function switchTab(name) {
   if (!TABS.includes(name)) name = 'settings';
@@ -781,6 +829,7 @@ function switchTab(name) {
   if (name === 'channels' && !channelsLoaded) loadChannels();
   if (name === 'activity' && !activityLoaded) initActivity();
   if (name === 'settings' && !settingsLoaded) { loadProfile(); loadAccounts(); loadService(); loadSaas(); settingsLoaded = true; }
+  if (name === 'updates' && !updatesLoaded) { checkForUpdates(); updatesLoaded = true; }
   // Update URL param
   const url = new URL(location.href);
   url.searchParams.set('tab', name);
@@ -793,6 +842,98 @@ function switchTab(name) {
   const tab = params.get('tab');
   switchTab(TABS.includes(tab) ? tab : 'settings');
 })();
+
+// ──────────────────────────────────────────────────────────────────────
+// ── PLATFORM UPDATES ─────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────
+
+async function checkForUpdates() {
+  const checkBtn = document.getElementById('checkBtn');
+  const badge = document.getElementById('updateBadge');
+  const updateBtn = document.getElementById('updateBtn');
+  const logEl = document.getElementById('updateLog');
+  checkBtn.textContent = 'Checking...';
+  checkBtn.disabled = true;
+  try {
+    const r = await fetch('/api/version');
+    const d = await r.json();
+    document.getElementById('currentVersion').textContent = 'v' + d.current;
+    document.getElementById('latestVersion').textContent = 'v' + d.latest;
+    if (d.updateAvailable) {
+      badge.style.display = 'block';
+      badge.style.background = 'var(--accent-bg)';
+      badge.style.color = 'var(--accent)';
+      badge.style.border = '1px solid var(--border-active)';
+      badge.textContent = 'Update available: v' + d.current + ' \u2192 v' + d.latest;
+      updateBtn.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'block';
+      badge.style.background = 'var(--green-bg)';
+      badge.style.color = 'var(--green)';
+      badge.style.border = '1px solid rgba(74,222,128,0.25)';
+      badge.textContent = 'You are running the latest version.';
+      updateBtn.style.display = 'none';
+    }
+    logEl.style.display = 'none';
+  } catch (e) {
+    badge.style.display = 'block';
+    badge.style.background = 'var(--red-bg)';
+    badge.style.color = 'var(--red)';
+    badge.style.border = '1px solid rgba(248,113,113,0.25)';
+    badge.textContent = 'Failed to check for updates: ' + e.message;
+  }
+  checkBtn.textContent = 'Check for Updates';
+  checkBtn.disabled = false;
+}
+
+async function applyUpdate() {
+  const updateBtn = document.getElementById('updateBtn');
+  const logEl = document.getElementById('updateLog');
+  const badge = document.getElementById('updateBadge');
+  updateBtn.disabled = true;
+  updateBtn.textContent = 'Updating...';
+  logEl.style.display = 'block';
+  logEl.textContent = 'Clearing cache and restarting with latest version...\n';
+  try {
+    const r = await fetch('/api/update', { method: 'POST' });
+    const d = await r.json();
+    logEl.textContent += d.message + '\n\nWaiting for service to come back online...';
+    badge.textContent = 'Updating...';
+    badge.style.background = 'var(--amber-bg)';
+    badge.style.color = 'var(--amber)';
+    badge.style.border = '1px solid rgba(251,191,36,0.25)';
+    // Poll health until service is back
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const h = await fetch('/health', { signal: AbortSignal.timeout(2000) });
+        if (h.ok) {
+          clearInterval(poll);
+          logEl.textContent += '\nService is back online!';
+          badge.textContent = 'Update complete! Reloading...';
+          badge.style.background = 'var(--green-bg)';
+          badge.style.color = 'var(--green)';
+          badge.style.border = '1px solid rgba(74,222,128,0.25)';
+          setTimeout(() => location.reload(), 1500);
+        }
+      } catch {
+        if (attempts > 30) {
+          clearInterval(poll);
+          logEl.textContent += '\nService did not come back after 60s. Check manually.';
+          updateBtn.textContent = 'Update Now';
+          updateBtn.disabled = false;
+        } else {
+          logEl.textContent += '.';
+        }
+      }
+    }, 2000);
+  } catch (e) {
+    logEl.textContent += 'Error: ' + e.message;
+    updateBtn.textContent = 'Update Now';
+    updateBtn.disabled = false;
+  }
+}
 
 // ──────────────────────────────────────────────────────────────────────
 // ── CHANNELS ──────────────────────────────────────────────────────────
