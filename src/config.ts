@@ -197,15 +197,21 @@ export function loadConfig(configPath: string): AppConfig {
       agent.agentHome = resolve(resolveTilde(agent.memoryDir), "..");
     }
 
-    // Validate MCP references
+    // Validate MCP references — warn and strip missing MCPs instead of crashing
     if (agent.mcps && agent.mcps.length > 0) {
       if (!config.mcps || Object.keys(config.mcps).length === 0) {
-        throw new Error(`Agent "${id}" references MCPs but no "mcps" registry is defined in config`);
-      }
-      for (const mcpName of agent.mcps) {
-        if (!config.mcps[mcpName]) {
-          throw new Error(`Agent "${id}" references MCP "${mcpName}" which is not defined in config.mcps`);
+        console.warn(`[config] Agent "${id}" references MCPs but no "mcps" registry is defined — stripping MCP list`);
+        agent.mcps = [];
+      } else {
+        const valid: string[] = [];
+        for (const mcpName of agent.mcps) {
+          if (config.mcps[mcpName]) {
+            valid.push(mcpName);
+          } else {
+            console.warn(`[config] Agent "${id}" references MCP "${mcpName}" which is not defined in config.mcps — skipping`);
+          }
         }
+        agent.mcps = valid;
       }
     }
 

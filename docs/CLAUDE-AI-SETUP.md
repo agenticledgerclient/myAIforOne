@@ -1,4 +1,4 @@
-# MyAgent — Pre-Setup Guide
+# MyAIforOne — Setup Guide
 
 This document is for Claude.ai to read. If a user shares this with you, walk them through it step by step.
 
@@ -6,127 +6,73 @@ This document is for Claude.ai to read. If a user shares this with you, walk the
 
 ## Instructions for Claude
 
-The user wants to install MyAgent. Walk them through the steps below exactly as written. Be direct — don't explain what things are unless they ask. Just tell them what to do and confirm it worked before moving on.
+The user wants to install MyAIforOne. The installation is a single command (`npx myaiforone`) that handles everything automatically. Your job is to get them to that command and explain what it does.
 
 ### Start Here
 
 Ask the user: **"Are you on Mac, Windows, or Linux?"**
 
-Then show them this:
+Then show them:
 
 ```
-Here's what we'll do:
+Here's the plan:
 
-  □ 1. Install Node.js
-  □ 2. Install Claude Code
-  □ 3. Log into Claude Code
-  □ 4. Download MyAgent
-  □ 5. Hand off to the setup wizard
-  □ 6. Activate your license
+  □ 1. Make sure Node.js is installed
+  □ 2. Run the installer
+  □ 3. Activate your license
 
-Let's start with Step 1.
+Step 1 is a quick check. Step 2 does everything — installs Claude Code,
+sets up the app, builds it, and opens it in your browser.
+
+Let's start.
 ```
 
 ---
 
-### Step 1: Install Node.js
+### Step 1: Check Node.js
 
-Tell the user:
+Ask them to paste this in their terminal:
+
+```
+node --version
+```
+
+**If it shows v22 or higher** — skip to Step 2.
+
+**If it's not installed or too old:**
 
 **Mac:**
 ```
-Open Terminal (Cmd+Space, type "Terminal", press Enter), then paste this:
-
 brew install node
-
-If that gives an error about "brew not found", paste this first, then try again:
-
+```
+If "brew not found":
+```
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
+Then retry `brew install node`.
 
 **Windows:**
 ```
-Open PowerShell (press Win+R, type "powershell", press Enter), then paste this:
-
 winget install OpenJS.NodeJS.LTS
 ```
 
 **Linux:**
 ```
-Open your terminal, then paste this:
-
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs
 ```
 
-Then say: **"Now paste this and tell me what it says:"**
-```
-node --version
-```
-
-If it shows v22 or higher, move on. If not, troubleshoot.
+Confirm with `node --version` before moving on.
 
 ---
 
-### Step 2: Install Claude Code
+### Step 2: Run the Installer
 
 Tell the user:
 
 ```
 Paste this into your terminal:
 
-npm install -g @anthropic-ai/claude-code
-```
-
-If they get a permissions error on Mac/Linux:
-```
-sudo npm install -g @anthropic-ai/claude-code
-```
-
-Then say: **"Now paste this and tell me what it says:"**
-```
-claude --version
-```
-
-If it shows a version number, move on.
-
----
-
-### Step 3: Log into Claude Code
-
-Tell the user:
-
-```
-Paste this:
-
-claude auth login
-```
-
-A browser window will open. Sign in with your Anthropic account.
-
-You need one of these:
-- Claude Pro subscription ($20/mo)
-- Claude Max subscription ($100/mo)
-- Anthropic API key with credits
-
-Then say: **"Now paste this and tell me what it says:"**
-```
-claude auth status
-```
-
-If it says "authenticated" or shows an account, move on.
-
----
-
-### Step 4: Install & Launch MyAgent
-
-Tell the user:
-
-```
-Paste this to install MyAgent:
-
 npx myaiforone
-
-This downloads and runs the setup automatically. Follow the prompts.
 ```
 
 If they get a permissions error on Mac/Linux:
@@ -134,46 +80,35 @@ If they get a permissions error on Mac/Linux:
 sudo npx myaiforone
 ```
 
-Once it finishes, it will open Claude Code in the project directory. Move on.
+**That's it.** The installer handles everything:
+
+1. Checks prerequisites (Node.js, Claude Code CLI)
+2. Installs Claude Code if missing
+3. Logs into Claude Code (opens browser for auth)
+4. Downloads MyAIforOne from npm
+5. Runs `npm install` for dependencies
+6. Opens Claude Code in the project directory
+7. Runs `/setup` which generates config, builds, and launches the web UI
+
+The user just follows the prompts. When the browser opens with the MyAIforOne dashboard, they're done with installation.
 
 ---
 
-### Step 5: Hand Off
+### Step 3: Activate Your License
 
 Tell the user:
 
 ```
-Claude Code should now be open in the MyAgent directory. Type:
+You should see a license activation popup in the browser.
 
-/setup
-
-The setup wizard handles everything from here — config, build, and
-launching the app in your browser.
-```
-
-If Claude Code didn't open automatically, tell them:
-```
-cd myaiforone && claude
-```
-Then type `/setup`.
-
----
-
-### Step 6: Activate Your License
-
-Tell the user:
-
-```
-Once the web UI opens in your browser, you'll see a license activation popup.
-
-Enter the license key you received when you purchased MyAIforOne. It looks like:
+Enter the license key you received. It looks like:
 
 MA1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
-Click "Activate" and you're done.
+Click "Activate" and you're all set.
 
-If you don't have a license key yet, you can also enter it later
-in Admin → Settings → License.
+If you don't have a key yet, you can enter it later at
+Admin → Settings → License.
 ```
 
 If they don't have a key, they can still browse the web UI — agents won't execute until a valid key is entered.
@@ -182,7 +117,8 @@ If they don't have a key, they can still browse the web UI — agents won't exec
 
 ### If Something Goes Wrong
 
-- Don't over-explain. Just give them the fix command.
-- If a step fails, troubleshoot that step before moving on.
-- If they're stuck, ask them to paste the exact error message.
-- Keep the running checklist updated with ✅ for completed steps.
+- If `npx myaiforone` fails, ask them to paste the exact error.
+- If Claude Code auth fails, have them run `claude auth login` manually.
+- If the build fails, have them run `npm run build` in the project directory.
+- If the web UI doesn't open, have them run `npm start` and go to `http://localhost:4888`.
+- Keep it simple — fix one thing at a time, confirm before moving on.
