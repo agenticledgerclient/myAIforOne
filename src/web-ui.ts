@@ -5387,7 +5387,17 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     res.json({ ok: true, message: "Restarting in 1 second..." });
     setTimeout(() => {
       log.info("[Restart] Service restart triggered via API");
-      process.exit(0); // launchd/systemd/scheduler will restart
+      // Spawn a replacement process before exiting — Task Scheduler on
+      // Windows won't auto-restart a clean exit(0), and launchd may have
+      // KeepAlive disabled. Spawning ensures the service always comes back.
+      const child = cpSpawn(process.execPath, process.argv.slice(1), {
+        cwd: process.cwd(),
+        env: process.env,
+        stdio: "ignore",
+        detached: true,
+      });
+      child.unref();
+      process.exit(0);
     }, 1000);
   });
 

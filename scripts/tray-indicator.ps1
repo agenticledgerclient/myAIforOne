@@ -42,29 +42,38 @@ function Get-ServiceRunning {
 }
 
 function Start-ServiceProcess {
-    try {
-        schtasks /Run /TN $taskName 2>$null
-    } catch {
-        # Fallback: direct spawn if no scheduled task
-        $dataDir = Join-Path $env:APPDATA "MyAIforOneGateway"
-        $npxCache = Get-ChildItem "$env:LOCALAPPDATA\npm-cache\_npx" -Directory -ErrorAction SilentlyContinue |
-            Where-Object { Test-Path (Join-Path $_.FullName "node_modules\myaiforone\dist\index.js") } |
-            Select-Object -First 1
-        if ($npxCache) {
-            $indexJs = Join-Path $npxCache.FullName "node_modules\myaiforone\dist\index.js"
-            $env:MYAGENT_DATA_DIR = $dataDir
-            Start-Process -FilePath "node" -ArgumentList $indexJs -WindowStyle Hidden
-        }
+    # Try scheduled task first
+    schtasks /Run /TN $taskName 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) { return }
+
+    # Fallback: direct spawn via node
+    $dataDir = Join-Path $env:APPDATA "MyAIforOneGateway"
+
+    # Check for dev install (project dist/index.js)
+    $scriptDir = Split-Path -Parent $PSCommandPath
+    $projectIndex = Join-Path (Split-Path -Parent $scriptDir) "dist\index.js"
+    if (Test-Path $projectIndex) {
+        $env:MYAGENT_DATA_DIR = $dataDir
+        Start-Process -FilePath "node" -ArgumentList "`"$projectIndex`"" -WorkingDirectory (Split-Path -Parent $scriptDir) -WindowStyle Hidden
+        return
+    }
+
+    # Check for npx install
+    $npxCache = Get-ChildItem "$env:LOCALAPPDATA\npm-cache\_npx" -Directory -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path (Join-Path $_.FullName "node_modules\myaiforone\dist\index.js") } |
+        Select-Object -First 1
+    if ($npxCache) {
+        $indexJs = Join-Path $npxCache.FullName "node_modules\myaiforone\dist\index.js"
+        $env:MYAGENT_DATA_DIR = $dataDir
+        Start-Process -FilePath "node" -ArgumentList "`"$indexJs`"" -WindowStyle Hidden
     }
 }
 
 function Stop-ServiceProcess {
-    try {
-        schtasks /End /TN $taskName 2>$null
-    } catch {}
-    # Also kill any node processes running index.js
+    schtasks /End /TN $taskName 2>$null | Out-Null
+    # Also kill any node processes running index.js (covers direct-spawn fallback)
     Get-Process -Name "node" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like "*myaiforone*index.js*" } |
+        Where-Object { $_.CommandLine -like "*myaiforone*" -or $_.CommandLine -like "*dist*index.js*" } |
         Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
@@ -109,10 +118,21 @@ $timer.Add_Tick({
 })
 $timer.Start()
 
+# --- Toast / balloon helper ---
+function Show-Balloon([string]$title, [string]$msg, [string]$type = "Info") {
+    $notify.BalloonTipTitle = $title
+    $notify.BalloonTipText = $msg
+    $notify.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::$type
+    $notify.ShowBalloonTip(3000)
+}
+
 # Do an initial check immediately
 if (Get-ServiceRunning) {
     $notify.Icon = $greenIcon
     $notify.Text = "MyAIforOne - Running"
+    Show-Balloon "MyAIforOne" "Service is running. Right-click for controls." "Info"
+} else {
+    Show-Balloon "MyAIforOne" "Service is stopped. Right-click this icon to start it." "Warning"
 }
 
 # --- Context menu ---
@@ -128,18 +148,39 @@ $menu.Items.Add("-")
 # Restart Service
 $restartItem = $menu.Items.Add("Restart Service")
 $restartItem.Add_Click({
+    Show-Balloon "MyAIforOne" "Restarting service..." "Info"
     Stop-ServiceProcess
     Start-Sleep -Seconds 2
     Start-ServiceProcess
+    Start-Sleep -Seconds 3
+    if (Get-ServiceRunning) {
+        Show-Balloon "MyAIforOne" "Service is running." "Info"
+    } else {
+        Show-Balloon "MyAIforOne" "Service failed to start. Check logs." "Error"
+    }
 })
 
 # Stop Service
 $stopItem = $menu.Items.Add("Stop Service")
-$stopItem.Add_Click({ Stop-ServiceProcess })
+$stopItem.Add_Click({
+    Show-Balloon "MyAIforOne" "Stopping service..." "Info"
+    Stop-ServiceProcess
+    Start-Sleep -Seconds 2
+    Show-Balloon "MyAIforOne" "Service stopped." "Info"
+})
 
 # Start Service
 $startItem = $menu.Items.Add("Start Service")
-$startItem.Add_Click({ Start-ServiceProcess })
+$startItem.Add_Click({
+    Show-Balloon "MyAIforOne" "Starting service..." "Info"
+    Start-ServiceProcess
+    Start-Sleep -Seconds 3
+    if (Get-ServiceRunning) {
+        Show-Balloon "MyAIforOne" "Service is running." "Info"
+    } else {
+        Show-Balloon "MyAIforOne" "Service failed to start. Check logs." "Error"
+    }
+})
 $startItem.Visible = $false
 
 $menu.Items.Add("-")
