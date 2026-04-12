@@ -168,6 +168,10 @@ export function loadConfig(configPath: string): AppConfig {
     const agent = config.agents[id];
     // Routes are optional — agents without channel routes are still reachable via web UI
     if (!agent.routes) agent.routes = [];
+    // Default optional string/array fields so downstream code never hits undefined
+    if (!agent.description) agent.description = agent.name || id;
+    if (!agent.mcps) agent.mcps = [];
+    if (!agent.org) agent.org = [];
     if (!agent.workspace) {
       throw new Error(`Agent "${id}" must have a workspace path`);
     }

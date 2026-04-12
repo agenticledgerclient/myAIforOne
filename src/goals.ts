@@ -227,7 +227,7 @@ export function startGoals(
       });
 
       activeTasks.push(task);
-      log.info(`Goal scheduled: ${agentId}/${goal.id} — "${goal.heartbeat}" — ${goal.description.slice(0, 60)}`);
+      log.info(`Goal scheduled: ${agentId}/${goal.id} — "${goal.heartbeat}" — ${(goal.description || "").slice(0, 60)}`);
     }
   }
 }
