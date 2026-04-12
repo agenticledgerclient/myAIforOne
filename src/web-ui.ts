@@ -5319,13 +5319,21 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }
   });
 
-  // ─── API: Service Restart ─────────────────────────────────────────
+  // ─── API: Service Restart / Shutdown ──────────────────────────────
   app.post("/api/restart", (_req, res) => {
     res.json({ ok: true, message: "Restarting in 1 second..." });
     setTimeout(() => {
       log.info("[Restart] Service restart triggered via API");
       process.exit(0); // launchd/systemd/scheduler will restart
     }, 1000);
+  });
+
+  app.post("/api/shutdown", (_req, res) => {
+    res.json({ ok: true, message: "Shutting down..." });
+    setTimeout(() => {
+      log.info("[Shutdown] Service shutdown triggered via API");
+      process.exit(0);
+    }, 500);
   });
 
   // ─── API: Skills ────────────────────────────────────────────────────

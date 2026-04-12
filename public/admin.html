@@ -663,6 +663,32 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
           <div id="indicatorInstallArea"></div>
         </div>
       </div>
+
+      <!-- ── System Control ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(239,68,68,0.12);border-color:#ef4444;color:#ef4444">&#9888;</div>
+          <div>
+            <div class="section-title" style="color:#ef4444">System Control</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Restart or shut down the MyAgent service</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">
+            <strong>Restart</strong> applies config changes and reloads all channels. The service will be back in a few seconds (requires launchd / Task Scheduler to be managing the process).<br>
+            <strong>Shutdown</strong> stops the service completely. You will need to start it again manually.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button id="btnRestart" onclick="serviceRestart()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--amber);background:rgba(245,158,11,0.1);color:var(--amber);font-size:13px;font-weight:600;cursor:pointer">
+              &#8635; Restart Service
+            </button>
+            <button id="btnShutdown" onclick="serviceShutdown()" style="padding:8px 20px;border-radius:8px;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;font-size:13px;font-weight:600;cursor:pointer">
+              &#9209; Shutdown Service
+            </button>
+          </div>
+          <div id="serviceControlMsg" style="margin-top:12px;font-size:12px;display:none"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1809,6 +1835,38 @@ async function installXbar() {
   } catch(e) {
     status.textContent = e.message; status.style.color = '#f87171';
     btn.textContent = 'Install xbar Plugin'; btn.disabled = false;
+  }
+}
+
+// ── System Control ────────────────────────────────────────────────────
+async function serviceRestart() {
+  const btn = document.getElementById('btnRestart');
+  const msg = document.getElementById('serviceControlMsg');
+  if (!confirm('Restart the MyAgent service? It will be unavailable for a few seconds.')) return;
+  btn.disabled = true; btn.textContent = 'Restarting…';
+  msg.style.display = 'block'; msg.style.color = 'var(--amber)'; msg.textContent = 'Sending restart signal…';
+  try {
+    await fetch('/api/restart', { method: 'POST' });
+    msg.textContent = 'Restarting… page will reload in 5 seconds.';
+    setTimeout(() => location.reload(), 5000);
+  } catch(e) {
+    msg.style.color = '#f87171'; msg.textContent = 'Error: ' + e.message;
+    btn.disabled = false; btn.textContent = '↻ Restart Service';
+  }
+}
+
+async function serviceShutdown() {
+  const btn = document.getElementById('btnShutdown');
+  const msg = document.getElementById('serviceControlMsg');
+  if (!confirm('Shut down the MyAgent service? You will need to start it again manually.')) return;
+  btn.disabled = true; btn.textContent = 'Shutting down…';
+  msg.style.display = 'block'; msg.style.color = '#ef4444'; msg.textContent = 'Sending shutdown signal…';
+  try {
+    await fetch('/api/shutdown', { method: 'POST' });
+    msg.textContent = 'Service is shutting down. This page will stop responding shortly.';
+  } catch(e) {
+    // fetch may throw because the server closed — that's expected
+    msg.textContent = 'Service stopped. This page will stop responding shortly.';
   }
 }
 
