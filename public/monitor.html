@@ -387,6 +387,14 @@ function renderSetup() {
     badge.style.display = 'none';
     btn.style.display = '';
     card.classList.remove('collapsed');
+    // Update button text and pass completed steps so hub knows where to pick up
+    const anyDone = hasChannel || hasAgent || hasMessage;
+    btn.textContent = anyDone ? 'Continue Setup' : 'Start Setup';
+    const steps = [];
+    if (hasChannel) steps.push('channel');
+    if (hasAgent) steps.push('agent');
+    if (hasMessage) steps.push('message');
+    btn.href = '/?setup=true' + (steps.length ? '&done=' + steps.join(',') : '');
   }
 }
 

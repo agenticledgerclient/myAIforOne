@@ -857,9 +857,24 @@ async function init() {
 
     // If coming from monitor "Start Setup" button, go straight to hub chat with onboarding prompt
     if (isSetupMode) {
+      const doneParam = new URLSearchParams(window.location.search).get('done') || '';
       history.replaceState(null, '', '/'); // clean URL
       transitionToChat();
-      const onboardingPrompt = "I just set up MyAIforOne for the first time. Please use the /onboarding skill to walk me through connecting a messaging channel and creating my first personal agent.";
+      const doneSteps = doneParam ? doneParam.split(',') : [];
+      let onboardingPrompt;
+      if (doneSteps.length === 0) {
+        onboardingPrompt = "I just set up MyAIforOne for the first time. Please use the /onboarding skill to walk me through connecting a messaging channel and creating my first personal agent.";
+      } else {
+        const completed = [];
+        const remaining = [];
+        if (doneSteps.includes('channel')) completed.push('connecting a messaging channel');
+        else remaining.push('connecting a messaging channel');
+        if (doneSteps.includes('agent')) completed.push('creating my first agent');
+        else remaining.push('creating my first agent');
+        if (doneSteps.includes('message')) completed.push('sending a test message');
+        else remaining.push('sending a test message');
+        onboardingPrompt = `I'm continuing my MyAIforOne setup. Already done: ${completed.join(', ')}. Still need: ${remaining.join(', ')}. Please use the /onboarding skill and skip to the next incomplete step.`;
+      }
       addMessage('user', onboardingPrompt);
       syncToActiveTab();
       executeHub(onboardingPrompt, homeActiveTabId);
