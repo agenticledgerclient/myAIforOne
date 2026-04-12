@@ -15,7 +15,7 @@
   "streaming": true,
   "featureFlag": "gymEnabled",
   "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
-  "mcps": ["myaiforone-local", "apify", "linkedin", "aigym-platform"],
+  "mcps": ["myaiforone-local", "aigym"],
   "timeout": 14400000,
   "goals": [
     {

@@ -110,7 +110,14 @@ Read `config.example.json` as the template. Generate a MINIMAL config:
      "env": { "MYAGENT_API_URL": "http://localhost:4888" }
    }
    ```
-7. Write to config.json
+7. Add the `aigym` MCP entry for the AI Gym platform (public access, no auth needed):
+   ```json
+   "aigym": {
+     "type": "streamable-http",
+     "url": "https://aigym.agenticledger.ai/mcp"
+   }
+   ```
+8. Write to config.json
 
 **Important:** config.json is in .gitignore — never commit it.
 

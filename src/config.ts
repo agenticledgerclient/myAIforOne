@@ -29,7 +29,7 @@ export interface McpServerStdio {
 }
 
 export interface McpServerHttp {
-  type: "http" | "sse";
+  type: "http" | "sse" | "streamable-http";
   url: string;
   headers?: Record<string, string>;
 }
@@ -227,10 +227,10 @@ export function loadConfig(configPath: string): AppConfig {
     for (const [mcpId, mcp] of Object.entries(config.mcps)) {
       if (mcp.type === "stdio") {
         if (!mcp.command) throw new Error(`MCP "${mcpId}" (stdio) must have a "command" field`);
-      } else if (mcp.type === "http" || mcp.type === "sse") {
+      } else if (mcp.type === "http" || mcp.type === "sse" || mcp.type === "streamable-http") {
         if (!(mcp as McpServerHttp).url) throw new Error(`MCP "${mcpId}" (${mcp.type}) must have a "url" field`);
       } else {
-        throw new Error(`MCP "${mcpId}" has unknown type "${(mcp as any).type}" — must be "stdio", "http", or "sse"`);
+        throw new Error(`MCP "${mcpId}" has unknown type "${(mcp as any).type}" — must be "stdio", "http", "sse", or "streamable-http"`);
       }
     }
   }
