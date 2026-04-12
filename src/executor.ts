@@ -2032,8 +2032,11 @@ export async function* executeAgentStreaming(
 
   // Buffer partial lines from stdout
   let lineBuffer = "";
+  let rawStdout = "";
   proc.stdout.on("data", (data: Buffer) => {
-    lineBuffer += data.toString();
+    const chunk = data.toString();
+    rawStdout += chunk;
+    lineBuffer += chunk;
     const lines = lineBuffer.split("\n");
     lineBuffer = lines.pop() || ""; // keep incomplete last line in buffer
 
@@ -2094,7 +2097,7 @@ export async function* executeAgentStreaming(
   }
 
   if (exitCode !== 0 && !fullResponse) {
-    log.error(`Agent ${agentId} exited with code ${exitCode}. stderr: ${stderrBuf.slice(0, 1000)}`);
+    log.error(`Agent ${agentId} exited with code ${exitCode}. stderr: ${stderrBuf.slice(0, 1000)} stdout: ${rawStdout.slice(0, 500)}`);
     const accountName = agentConfig.claudeAccount || "default";
     const combinedErr = stderrBuf.toLowerCase();
     const isAuthError = combinedErr.includes("not authenticated") ||

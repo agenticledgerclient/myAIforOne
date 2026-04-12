@@ -1,7 +1,12 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { LogLevel } from "./logger.js";
+
+// Package root — used to remap stale platform agent paths after npx cache clears
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const packageRoot = resolve(__dirname, "..");
 
 export interface RouteMatch {
   type: "chat_id" | "chat_guid" | "chat_identifier" | "channel_id" | "jid";
@@ -162,6 +167,30 @@ export function loadConfig(configPath: string): AppConfig {
   if (!config.agents) config.agents = {};
   if (!config.channels) config.channels = {};
 
+  // Remap stale MCP server command paths (e.g. myaiforone-local after cache clear)
+  if (config.mcps) {
+    for (const [name, mcp] of Object.entries(config.mcps)) {
+      if ((mcp as any).type === "stdio" && Array.isArray((mcp as any).args)) {
+        const args: string[] = (mcp as any).args;
+        const mcpMarker = /server[/\\]mcp-server[/\\]/;
+        const remapped = args.map(arg => {
+          if (mcpMarker.test(arg) && !existsSync(arg)) {
+            const m = arg.match(mcpMarker);
+            if (m) {
+              const candidate = join(packageRoot, arg.slice(m.index));
+              if (existsSync(candidate)) {
+                console.warn(`[config] Remapped stale MCP arg for "${name}" to current package`);
+                return candidate;
+              }
+            }
+          }
+          return arg;
+        });
+        (mcp as any).args = remapped;
+      }
+    }
+  }
+
   // Normalize each agent's paths and ensure routes is always an array
   const agentIds = Object.keys(config.agents);
   for (const id of agentIds) {
@@ -199,6 +228,28 @@ export function loadConfig(configPath: string): AppConfig {
     // Derive agentHome from memoryDir if not set
     if (!agent.agentHome) {
       agent.agentHome = resolve(resolveTilde(agent.memoryDir), "..");
+    }
+
+    // Remap stale platform agent paths — if workspace/claudeMd point to a
+    // non-existent path (e.g. old npx cache hash), re-anchor to current packageRoot.
+    // This prevents crashes after cache clears without requiring a re-run of setup.
+    if (agent.agentClass === "platform") {
+      const platformMarker = /agents[/\\]platform[/\\]/;
+      if (!existsSync(agent.claudeMd)) {
+        const m = agent.claudeMd.match(platformMarker);
+        if (m) {
+          const relative = agent.claudeMd.slice(m.index);
+          const candidate = join(packageRoot, relative);
+          if (existsSync(candidate)) {
+            console.warn(`[config] Remapped stale claudeMd for "${id}" to current package`);
+            agent.claudeMd = candidate;
+          }
+        }
+      }
+      if (!existsSync(agent.workspace)) {
+        agent.workspace = packageRoot;
+        console.warn(`[config] Remapped stale workspace for "${id}" to current package`);
+      }
     }
 
     // Validate MCP references — warn and strip missing MCPs instead of crashing
