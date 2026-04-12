@@ -463,6 +463,35 @@ function startAndOpen() {
     // Shortcut creation is non-critical
   }
 
+  // Install tray/menu bar indicator (non-blocking — skip silently on failure)
+  try {
+    if (IS_MAC) {
+      // Copy xbar plugin if xbar is installed
+      const xbarDir = join(HOME, 'Library', 'Application Support', 'xbar', 'plugins');
+      if (existsSync(xbarDir)) {
+        copyFileSync(
+          join(PROJECT_ROOT, 'scripts', 'xbar-myagent.5s.sh'),
+          join(xbarDir, 'xbar-myagent.5s.sh')
+        );
+        run(`chmod +x "${join(xbarDir, 'xbar-myagent.5s.sh')}"`);
+        console.log('  ✅ Menu bar indicator installed (xbar)');
+      }
+    } else if (IS_WIN) {
+      // Launch PowerShell tray app hidden
+      const trayScript = join(PROJECT_ROOT, 'scripts', 'tray-indicator.ps1');
+      if (existsSync(trayScript)) {
+        const tray = spawn('powershell', ['-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', trayScript], {
+          detached: true,
+          stdio: 'ignore',
+        });
+        tray.unref();
+        console.log('  ✅ System tray indicator launched');
+      }
+    }
+  } catch {
+    // Tray indicator is non-critical
+  }
+
   // Start the service — fully detached so it survives after this CLI exits
   console.log('  Starting service...');
   const child = spawn('node', ['dist/index.js'], {
@@ -524,6 +553,16 @@ function printFinal() {
   console.log('  Click "Start Setup" and the hub agent will walk you');
   console.log('  through connecting channels and creating your first agent.');
   console.log('');
+  if (IS_WIN) {
+    console.log('  Look for the green icon in your system tray (bottom-right');
+    console.log('  of your taskbar) — right-click it to restart, stop, or');
+    console.log('  open the app anytime.');
+    console.log('');
+  } else if (IS_MAC) {
+    console.log('  If you have xbar installed, look for the green dot in');
+    console.log('  your menu bar for quick service control.');
+    console.log('');
+  }
   console.log('  Quick commands:');
   console.log(`    cd "${PROJECT_ROOT}"`);
   console.log('    npm start              — start manually');
