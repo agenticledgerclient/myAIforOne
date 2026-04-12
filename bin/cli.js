@@ -463,52 +463,39 @@ function startAndOpen() {
     // Shortcut creation is non-critical
   }
 
-  // Start the service in background
+  // Start the service — fully detached so it survives after this CLI exits
   console.log('  Starting service...');
   const child = spawn('node', ['dist/index.js'], {
     cwd: PROJECT_ROOT,
     detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: 'ignore',
     env: { ...process.env, MYAGENT_DATA_DIR: DATA_DIR },
   });
+  child.unref();
 
-  let started = false;
+  // Poll /health until the service is ready (up to 20 seconds)
+  let attempts = 0;
+  const maxAttempts = 40;
+  const poll = setInterval(async () => {
+    attempts++;
+    try {
+      const res = await fetch('http://localhost:4888/health', { signal: AbortSignal.timeout(800) });
+      if (res.ok) {
+        clearInterval(poll);
+        stepDone('Service running');
+        openBrowser();
+        printFinal();
+        return;
+      }
+    } catch { /* not ready yet */ }
 
-  // Wait for startup log
-  const timeout = setTimeout(() => {
-    if (!started) {
-      child.unref();
+    if (attempts >= maxAttempts) {
+      clearInterval(poll);
       console.log('  Service started (waiting for full init).');
       openBrowser();
       printFinal();
     }
-  }, 15000);
-
-  child.stdout.on('data', (data) => {
-    const line = data.toString();
-    if (line.includes('running') && !started) {
-      started = true;
-      clearTimeout(timeout);
-      child.unref();
-      stepDone('Service running');
-      openBrowser();
-      printFinal();
-    }
-  });
-
-  child.stderr.on('data', (data) => {
-    // Ignore stderr during startup — some deps emit warnings
-  });
-
-  child.on('error', () => {
-    if (!started) {
-      clearTimeout(timeout);
-      fail(7,
-        'Failed to start the service.',
-        `cd "${PROJECT_ROOT}" and run "npm start" manually.`
-      );
-    }
-  });
+  }, 500);
 }
 
 function openBrowser() {
