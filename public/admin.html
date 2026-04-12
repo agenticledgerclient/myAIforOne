@@ -887,6 +887,8 @@ async function checkForUpdates() {
 }
 
 async function applyUpdate() {
+  const latest = document.getElementById('latestVersion').textContent;
+  if (!confirm('Update MyAIforOne to ' + latest + '?\n\nThe service will restart and be briefly unavailable.')) return;
   const updateBtn = document.getElementById('updateBtn');
   const logEl = document.getElementById('updateLog');
   const badge = document.getElementById('updateBadge');
