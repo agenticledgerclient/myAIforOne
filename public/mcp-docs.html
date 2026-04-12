@@ -375,9 +375,9 @@ const TOOLS = [
 let selected = null;
 
 // ═══ THEME ═══════════════════════════════════════════════════════════
-function applyTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('mcp-docs-theme',t)}
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('theme',t)}
 function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')}
-applyTheme(localStorage.getItem('mcp-docs-theme')||'dark');
+applyTheme(localStorage.getItem('theme')||'dark');
 
 // ═══ SIDEBAR ═════════════════════════════════════════════════════════
 function getCats(){const c={};TOOLS.forEach(t=>{if(!c[t.cat])c[t.cat]=[];c[t.cat].push(t)});return c}

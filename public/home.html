@@ -481,7 +481,6 @@ text-decoration:none;}
       <a class="tab-btn" href="/lab">Lab</a>
     </nav>
     <div class="topbar-right">
-      <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
       <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
       <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
       <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
@@ -1530,27 +1529,19 @@ document.addEventListener('click', (e) => {
 
 // ─── Init ──────────────────────────────────────────────
 // ─── Theme Toggle ──────────────────────────────────────
-function toggleTheme() {
-  const html = document.documentElement;
-  const isLight = html.getAttribute('data-theme') === 'light';
-  html.setAttribute('data-theme', isLight ? '' : 'light');
-  const icon = isLight ? '🌙' : '☀️';
-  const btn1 = document.getElementById('themeBtn');
-  if (btn1) btn1.textContent = icon;
-  localStorage.setItem('theme', isLight ? 'dark' : 'light');
+function toggleTheme(){
+  var c = document.documentElement.getAttribute('data-theme') || 'dark';
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = n === 'dark' ? '☀' : '☾';
 }
-
-// Load saved theme
-(function() {
-  const saved = localStorage.getItem('theme');
-  if (saved === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-    setTimeout(() => {
-      const btn1 = document.getElementById('themeBtn');
-          if (btn1) btn1.textContent = '☀️';
-      if (btn2) btn2.textContent = '☀️';
-    }, 50);
-  }
+(function(){
+  var t = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = t === 'dark' ? '☀' : '☾';
 })();
 
 // ─── Drawer ────────────────────────────────────────────

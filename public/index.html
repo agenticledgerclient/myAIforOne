@@ -814,7 +814,6 @@ text-decoration:none;}
       <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
-    <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
     <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
@@ -1429,22 +1428,19 @@ function formatLogLine(data) {
 }
 
 // ─── Theme ─────────────────────────────────────────────────────
-function toggleTheme() {
-  const html = document.documentElement;
-  const current = html.getAttribute('data-theme');
-  const next = current === 'light' ? '' : 'light';
-  html.setAttribute('data-theme', next);
-  document.querySelector('.theme-toggle').textContent = next === 'light' ? '🌙' : '☀';
-  localStorage.setItem('theme', next);
+function toggleTheme(){
+  var c = document.documentElement.getAttribute('data-theme') || 'dark';
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  var btn = document.querySelector('.theme-toggle');
+  if(btn) btn.textContent = n === 'dark' ? '☀' : '☾';
 }
-
-// Init theme
-(function() {
-  const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const theme = saved !== null ? saved : (prefersDark ? '' : 'light');
-  if (theme) document.documentElement.setAttribute('data-theme', theme);
-  document.querySelector('.theme-toggle').textContent = theme === 'light' ? '🌙' : '☀';
+(function(){
+  var t = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  var btn = document.querySelector('.theme-toggle');
+  if(btn) btn.textContent = t === 'dark' ? '☀' : '☾';
 })();
 
 // ─── API ───────────────────────────────────────────────────────

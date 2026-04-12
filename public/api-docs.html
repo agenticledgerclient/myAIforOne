@@ -716,7 +716,7 @@ let apiHistory = JSON.parse(localStorage.getItem('api-docs-history') || '[]');
 
 // ═══ INIT ════════════════════════════════════════════════════════════
 function init() {
-  applyTheme(localStorage.getItem('api-docs-theme') || 'dark');
+  applyTheme(localStorage.getItem('theme') || 'dark');
   // Check URL hash
   const hash = window.location.hash.replace('#','');
   if (hash === 'mcp') {
@@ -727,7 +727,7 @@ function init() {
 }
 
 // ═══ THEME ═══════════════════════════════════════════════════════════
-function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('api-docs-theme', t); }
+function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('theme', t); }
 function toggleTheme() { applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
 
 // ═══ TAB SWITCHING ═══════════════════════════════════════════════════

@@ -166,7 +166,6 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
       <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
-    <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
     <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
@@ -263,16 +262,19 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
 
 <script>
 // ── Theme ──
-function applyTheme(t){
-  document.documentElement.setAttribute('data-theme',t);
-  localStorage.setItem('theme',t);
-  document.getElementById('themeBtn').textContent = t === 'light' ? '\u{1F319}' : '\u2600\uFE0F';
+function toggleTheme(){
+  var c = document.documentElement.getAttribute('data-theme') || 'dark';
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = n === 'dark' ? '☀' : '☾';
 }
-function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')}
 (function(){
-  const saved = localStorage.getItem('theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  setTimeout(() => { document.getElementById('themeBtn').textContent = saved === 'light' ? '\u{1F319}' : '\u2600\uFE0F'; }, 0);
+  var t = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = t === 'dark' ? '☀' : '☾';
 })();
 
 // ── Helpers ──

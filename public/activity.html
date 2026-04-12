@@ -130,7 +130,6 @@ text-decoration:none;}
     <a class="nav-link active" href="/org">Agents</a>
     <a class="nav-link" href="/ui">Chat</a>
     <a class="nav-link" href="/library">Library</a>
-    <a class="nav-link" href="/marketplace">Marketplace</a>
     <a class="nav-link" href="/lab">Lab</a>
     <div class="docs-dropdown" id="docsDropdown">
   <button class="gear-btn" onclick="document.getElementById('docsMenu').classList.toggle('open')" title="Documentation">&#9776;</button>
@@ -287,21 +286,19 @@ function formatDate(ts) {
   } catch { return ''; }
 }
 
-function toggleTheme() {
-  const html = document.documentElement;
-  const isLight = html.getAttribute('data-theme') === 'light';
-  html.setAttribute('data-theme', isLight ? '' : 'light');
-  document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
-  localStorage.setItem('theme', isLight ? 'dark' : 'light');
+function toggleTheme(){
+  var c = document.documentElement.getAttribute('data-theme') || 'dark';
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = n === 'dark' ? '☀' : '☾';
 }
-
-// Load saved theme
-(function() {
-  const saved = localStorage.getItem('theme');
-  if (saved === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-    setTimeout(() => { document.getElementById('themeBtn').textContent = '☀️'; }, 50);
-  }
+(function(){
+  var t = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = t === 'dark' ? '☀' : '☾';
 })();
 
 init();

@@ -349,7 +349,6 @@ text-decoration:none;}
   </div>
   <div class="topbar-right">
     <button class="add-task-btn" onclick="openNewTaskModal()">+ New Task</button>
-    <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
     <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
@@ -524,27 +523,22 @@ let editingTask = null; // { agentId, taskId } when editing
 let editingAgentId = null;
 
 // ─── Theme ──────────────────────────────────────────────────────
-function initTheme() {
-  const saved = localStorage.getItem('theme') || localStorage.getItem('myagent-theme');
-  if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
-  else if (saved === '' || saved === 'dark') document.documentElement.removeAttribute('data-theme');
-  else if (!saved && !window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'light');
-  updateThemeIcon();
-}
-function toggleTheme() {
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  if (isLight) {
-    document.documentElement.removeAttribute('data-theme');
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('theme', 'light');
-  }
-  updateThemeIcon();
+(function(){
+  var t = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+function toggleTheme(){
+  var c = document.documentElement.getAttribute('data-theme') || 'dark';
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = n === 'dark' ? '☀' : '☾';
 }
 function updateThemeIcon() {
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  document.getElementById('themeBtn').textContent = isLight ? '\u263E' : '\u2600';
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var btn = document.getElementById('themeBtn');
+  if(btn) btn.textContent = isLight ? '☾' : '☀';
 }
 
 // ─── Data Loading ───────────────────────────────────────────────
@@ -914,7 +908,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── Init ───────────────────────────────────────────────────────
-initTheme();
+updateThemeIcon();
 (async () => {
   await loadDashboard();
   await loadAllTasks();

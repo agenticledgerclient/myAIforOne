@@ -933,19 +933,19 @@ let state = {
 };
 
 /* ─── Theme ──────────────────────────────── */
-function toggleTheme() {
-  const html = document.documentElement;
-  const current = html.getAttribute('data-theme');
-  const next = current === 'light' ? 'dark' : 'light';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('gym-theme', next);
-  document.getElementById('themeBtn').textContent = next === 'light' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+function toggleTheme(){
+  var c = document.documentElement.getAttribute('data-theme') || 'dark';
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = n === 'dark' ? '\u2600' : '\u263E';
 }
-(function initTheme() {
-  const saved = localStorage.getItem('gym-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  const btn = document.getElementById('themeBtn');
-  if (btn) btn.textContent = saved === 'light' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+(function(){
+  var t = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = t === 'dark' ? '\u2600' : '\u263E';
 })();
 
 /* ─── Init ───────────────────────────────── */

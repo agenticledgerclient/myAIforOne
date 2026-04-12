@@ -244,7 +244,6 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
       <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
-    <a href="/marketplace" class="gear-btn" title="Marketplace" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Marketplace</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
     <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
@@ -297,6 +296,32 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
     <div class="settings-page">
       <div class="page-title">Settings</div>
       <div class="page-subtitle">Manage Claude accounts, service options, and global defaults.</div>
+
+      <!-- ── System Control ── -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(239,68,68,0.12);border-color:#ef4444;color:#ef4444">&#9888;</div>
+          <div>
+            <div class="section-title" style="color:#ef4444">System Control</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Restart or shut down the MyAgent service</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">
+            <strong>Restart</strong> applies config changes and reloads all channels. The service will be back in a few seconds (requires launchd / Task Scheduler to be managing the process).<br>
+            <strong>Shutdown</strong> stops the service completely. You will need to start it again manually.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button id="btnRestart" onclick="serviceRestart()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--amber);background:rgba(245,158,11,0.1);color:var(--amber);font-size:13px;font-weight:600;cursor:pointer">
+              &#8635; Restart Service
+            </button>
+            <button id="btnShutdown" onclick="serviceShutdown()" style="padding:8px 20px;border-radius:8px;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;font-size:13px;font-weight:600;cursor:pointer">
+              &#9209; Shutdown Service
+            </button>
+          </div>
+          <div id="serviceControlMsg" style="margin-top:12px;font-size:12px;display:none"></div>
+        </div>
+      </div>
 
       <!-- ── Profile ── -->
       <div class="section">
@@ -664,31 +689,6 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
-      <!-- ── System Control ── -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-icon" style="background:rgba(239,68,68,0.12);border-color:#ef4444;color:#ef4444">&#9888;</div>
-          <div>
-            <div class="section-title" style="color:#ef4444">System Control</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Restart or shut down the MyAgent service</div>
-          </div>
-        </div>
-        <div class="section-body">
-          <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">
-            <strong>Restart</strong> applies config changes and reloads all channels. The service will be back in a few seconds (requires launchd / Task Scheduler to be managing the process).<br>
-            <strong>Shutdown</strong> stops the service completely. You will need to start it again manually.
-          </p>
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <button id="btnRestart" onclick="serviceRestart()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--amber);background:rgba(245,158,11,0.1);color:var(--amber);font-size:13px;font-weight:600;cursor:pointer">
-              &#8635; Restart Service
-            </button>
-            <button id="btnShutdown" onclick="serviceShutdown()" style="padding:8px 20px;border-radius:8px;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;font-size:13px;font-weight:600;cursor:pointer">
-              &#9209; Shutdown Service
-            </button>
-          </div>
-          <div id="serviceControlMsg" style="margin-top:12px;font-size:12px;display:none"></div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -740,16 +740,19 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
 
 <script>
 // ── Theme ──────────────────────────────────────────────────────────────
-function applyTheme(t){
-  document.documentElement.setAttribute('data-theme',t);
-  localStorage.setItem('theme',t);
-  document.getElementById('themeBtn').textContent = t === 'light' ? '🌙' : '☀️';
+function toggleTheme(){
+  var c = document.documentElement.getAttribute('data-theme') || 'dark';
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('theme', n);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = n === 'dark' ? '☀' : '☾';
 }
-function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')}
 (function(){
-  const saved = localStorage.getItem('theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  setTimeout(() => { document.getElementById('themeBtn').textContent = saved === 'light' ? '🌙' : '☀️'; }, 0);
+  var t = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  var btn = document.querySelector('.theme-toggle') || document.getElementById('themeBtn');
+  if(btn) btn.textContent = t === 'dark' ? '☀' : '☾';
 })();
 
 // ── Toast ──────────────────────────────────────────────────────────────
