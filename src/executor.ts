@@ -1516,7 +1516,6 @@ function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: s
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env,
-      detached: true,
       windowsHide: true,
     });
 
@@ -2012,7 +2011,7 @@ export async function* executeAgentStreaming(
   if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
   const spawnArgs = _CLAUDE_CLI_JS ? [_CLAUDE_CLI_JS, ...args] : args;
-  const proc = spawn(CLAUDE_BIN, spawnArgs, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env, detached: true, windowsHide: true });
+  const proc = spawn(CLAUDE_BIN, spawnArgs, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env, windowsHide: true });
 
   if (stdinPayload && proc.stdin) {
     proc.stdin.write(stdinPayload);
