@@ -1,6 +1,6 @@
 import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, unlinkSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, unlinkSync, mkdirSync, rmdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve, join } from "node:path";
 import type { McpServerConfig, McpServerHttp } from "./config.js";
@@ -59,6 +59,29 @@ function resolveClaudeBin(): string {
   }
 }
 const CLAUDE_BIN = resolveClaudeBin();
+
+// Windows CreateProcessW has a hard 32,767-char command-line limit.
+// When the system prompt is too long, write it to a temp CLAUDE.md and
+// pass the directory via --add-dir instead of --system-prompt.
+const WIN_CMD_LIMIT = 28000;
+function buildSystemPromptArgs(
+  systemPrompt: string,
+  agentId: string
+): { args: string[]; cleanup: (() => void) | null } {
+  if (process.platform === "win32" && systemPrompt.length > WIN_CMD_LIMIT) {
+    const tmpDir = resolve(__dirname, "..", "tmp", "system-prompts", `${agentId}-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    writeFileSync(join(tmpDir, "CLAUDE.md"), systemPrompt, "utf-8");
+    return {
+      args: ["--add-dir", tmpDir],
+      cleanup: () => {
+        try { unlinkSync(join(tmpDir, "CLAUDE.md")); } catch { /* ignore */ }
+        try { rmdirSync(tmpDir); } catch { /* ignore */ }
+      },
+    };
+  }
+  return { args: ["--system-prompt", systemPrompt], cleanup: null };
+}
 
 // Cache memory managers per agent to avoid re-creating on every message
 const memoryManagers = new Map<string, MemoryManager>();
@@ -477,9 +500,12 @@ async function executeParallel(
 
   log.info(`[Parallel] Spawning ${tasks.length} workers...`);
 
+  // Pre-build system prompt args once (shared across all workers)
+  const sharedSpArgs = buildSystemPromptArgs(systemPrompt, agentConfig.id || "parallel");
+
   // Build shared args (no session — each worker is independent)
   const buildArgs = (taskPrompt: string): string[] => {
-    const args = ["-p", "-", "--system-prompt", systemPrompt, "--output-format", "text", "--add-dir", workspace];
+    const args = ["-p", "-", ...sharedSpArgs.args, "--output-format", "text", "--add-dir", workspace];
 
     // Tools
     const allowedTools = [...(agentConfig.allowedTools || [])];
@@ -518,6 +544,8 @@ async function executeParallel(
       }
     })
   );
+
+  if (sharedSpArgs.cleanup) sharedSpArgs.cleanup();
 
   // Format results
   const lines = [`**${tasks.length} parallel tasks completed:**\n`];
@@ -1224,6 +1252,7 @@ Rules:
 
   // Session management for persistent agents
   let session: SessionState | null = null;
+  let spCleanup: (() => void) | null = null;
   if (isPersistent) {
     session = loadSession(memoryDir, senderSessionKey);
     if (session) {
@@ -1235,7 +1264,9 @@ Rules:
       const newId = randomUUID();
       session = { sessionId: newId, createdAt: new Date().toISOString(), messageCount: 0 };
       args.push("--session-id", newId);
-      args.push("--system-prompt", systemPrompt);
+      const spArgs = buildSystemPromptArgs(systemPrompt, agentId);
+      args.push(...spArgs.args);
+      spCleanup = spArgs.cleanup;
       log.info(`Starting new session ${newId} for ${agentId}`);
     }
 
@@ -1243,7 +1274,9 @@ Rules:
     args.push("--output-format", "json");
   } else {
     // Non-persistent: always pass system prompt, text output
-    args.push("--system-prompt", systemPrompt);
+    const spArgs = buildSystemPromptArgs(systemPrompt, agentId);
+    args.push(...spArgs.args);
+    spCleanup = spArgs.cleanup;
     args.push("--output-format", "text");
   }
 
@@ -1382,15 +1415,18 @@ Rules:
         if (args[i] === "--resume") { i++; continue; } // skip --resume and its value
         cleanArgs.push(args[i]);
       }
-      cleanArgs.push("--session-id", newId, "--system-prompt", systemPrompt);
+      const retrySpArgs = buildSystemPromptArgs(systemPrompt, agentId);
+      cleanArgs.push("--session-id", newId, ...retrySpArgs.args);
       try {
         rawOutput = await spawnClaude(cleanArgs, workspace, timeout, stdinPayload, claudeConfigDir);
         saveSession(memoryDir, session, senderSessionKey);
         log.info(`Fresh session ${newId} created for ${agentId}`);
       } catch (retryErr) {
         log.error(`Agent ${agentId} execution failed on retry: ${retryErr}`);
+        if (retrySpArgs.cleanup) retrySpArgs.cleanup();
         return `Sorry, I ran into an error processing that request.`;
       }
+      if (retrySpArgs.cleanup) retrySpArgs.cleanup();
     } else {
       log.error(`Agent ${agentId} execution failed: ${err}`);
       return `Sorry, I ran into an error processing that request.`;
@@ -1399,6 +1435,7 @@ Rules:
     if (mcpConfigPath) {
       try { unlinkSync(mcpConfigPath); } catch { /* ignore */ }
     }
+    if (spCleanup) spCleanup();
   }
 
   // ── Parse response ──
@@ -1846,6 +1883,7 @@ export async function* executeAgentStreaming(
   if (modelOverride) args.push("--model", modelOverride);
 
   let session: SessionState | null = null;
+  let spCleanup: (() => void) | null = null;
   const forceNewSession = (agentConfig as any).forceNewSession ?? false;
   if (isPersistent) {
     session = forceNewSession ? null : loadSession(memoryDir, senderSessionKey);
@@ -1855,10 +1893,14 @@ export async function* executeAgentStreaming(
       const newId = randomUUID();
       session = { sessionId: newId, createdAt: new Date().toISOString(), messageCount: 0 };
       args.push("--session-id", newId);
-      args.push("--system-prompt", systemPrompt);
+      const spArgs = buildSystemPromptArgs(systemPrompt, agentId);
+      args.push(...spArgs.args);
+      spCleanup = spArgs.cleanup;
     }
   } else {
-    args.push("--system-prompt", systemPrompt);
+    const spArgs = buildSystemPromptArgs(systemPrompt, agentId);
+    args.push(...spArgs.args);
+    spCleanup = spArgs.cleanup;
   }
 
   // Key difference: stream-json output (requires --verbose)
@@ -2134,10 +2176,11 @@ export async function* executeAgentStreaming(
     }
   }
 
-  // Clean up MCP config
+  // Clean up MCP config and temp system prompt dir
   if (mcpConfigPath) {
     try { unlinkSync(mcpConfigPath); } catch { /* ignore */ }
   }
+  if (spCleanup) spCleanup();
 
   if (exitCode !== 0 && !fullResponse) {
     log.error(`Agent ${agentId} exited with code ${exitCode}. stderr: ${stderrBuf.slice(0, 1000)} stdout: ${rawStdout.slice(0, 500)}`);
