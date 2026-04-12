@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 
 // ─── Gym Router ──────────────────────────────────────────────────────
@@ -32,9 +32,7 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
   }
 
   function writeJson(path: string, data: any): void {
-    ensureDir(join(path, "..").replace(/\/\.\.$/, ""));
-    const dir = path.substring(0, path.lastIndexOf("/"));
-    ensureDir(dir);
+    ensureDir(dirname(path));
     writeFileSync(path, JSON.stringify(data, null, 2), "utf-8");
   }
 

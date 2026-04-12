@@ -1048,6 +1048,16 @@ export async function executeAgent(
     return `Error: Could not load agent configuration for ${agentId}.`;
   }
 
+  // ── Workspace boundary rule ──
+  // Agents must never write outside their designated directories.
+  const agentHome = agentConfig.agentHome ? resolve(baseDir, expandTilde(agentConfig.agentHome)) : null;
+  const boundaryDirs = [workspace, memoryDir, agentHome].filter(Boolean);
+  systemPrompt += `\n\n## CRITICAL: Workspace Boundary Rule
+You must NEVER create, edit, write, or delete files outside the following directories:
+${boundaryDirs.map(d => `- ${d}`).join("\n")}
+
+This is a hard rule. Do not modify files in the MyAIforOne platform installation directory, npm cache, or any other system directory. If a task requires writing to a location outside these directories, ask the user for permission first and explain why.\n`;
+
   // ── Prepend soul.md for gym agents (trainer personality layer) ──
   if (agentConfig.agentClass === "gym") {
     try {
@@ -1735,6 +1745,15 @@ export async function* executeAgentStreaming(
     yield { type: "error", data: `Could not load agent configuration for ${agentId}.` };
     return;
   }
+
+  // ── Workspace boundary rule ──
+  const streamAgentHome = agentConfig.agentHome ? resolve(baseDir, expandTilde(agentConfig.agentHome)) : null;
+  const streamBoundaryDirs = [workspace, memoryDir, streamAgentHome].filter(Boolean);
+  systemPrompt += `\n\n## CRITICAL: Workspace Boundary Rule
+You must NEVER create, edit, write, or delete files outside the following directories:
+${streamBoundaryDirs.map(d => `- ${d}`).join("\n")}
+
+This is a hard rule. Do not modify files in the MyAIforOne platform installation directory, npm cache, or any other system directory. If a task requires writing to a location outside these directories, ask the user for permission first and explain why.\n`;
 
   // Prepend soul.md for gym agents (trainer personality layer)
   if (agentConfig.agentClass === "gym") {

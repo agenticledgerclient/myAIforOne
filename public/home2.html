@@ -2178,7 +2178,8 @@ async function init() {
     }
 
     // ─── Fresh install detection ─────────────────────────
-    const personalAgents = agents.filter(a => a.agentClass !== 'platform' && !a.subAgents);
+    const _pc = new Set(['platform', 'gym']);
+    const personalAgents = agents.filter(a => !_pc.has(a.agentClass) && !a.subAgents);
     const channelList = data.channels || [];
     const hasChannels = channelList.length > 0;
     const hasPersonalAgents = personalAgents.length > 0;

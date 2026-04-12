@@ -363,8 +363,9 @@ function renderSetup() {
 
   // Check 1: channels connected
   const hasChannel = channels.length > 0;
-  // Check 2: personal agents (not platform, no subAgents)
-  const personalAgents = agents.filter(a => a.agentClass !== 'platform' && !a.subAgents);
+  // Check 2: personal agents (exclude platform/gym classes and hub-like agents)
+  const platformClasses = new Set(['platform', 'gym']);
+  const personalAgents = agents.filter(a => !platformClasses.has(a.agentClass) && !a.subAgents);
   const hasAgent = personalAgents.length > 0;
   // Check 3: any personal agent has messages
   const hasMessage = personalAgents.some(a => (a.messageCount || 0) > 0);
@@ -420,7 +421,8 @@ function renderStatus() {
   const d = dashboardData;
   const agents = d.agents || [];
   const channels = d.channels || [];
-  const personalAgents = agents.filter(a => a.agentClass !== 'platform' && !a.subAgents);
+  const _pc = new Set(['platform', 'gym']);
+  const personalAgents = agents.filter(a => !_pc.has(a.agentClass) && !a.subAgents);
 
   const channelPills = channels.length > 0
     ? channels.map(c => '<span class="channel-pill">' + (c.name || c.type || c) + '</span>').join('')
@@ -450,7 +452,7 @@ function renderAgents() {
   if (!dashboardData) return;
   const searchQuery = (document.getElementById('agentSearch')?.value || '').toLowerCase().trim();
   let agents = (dashboardData.agents || [])
-    .filter(a => a.agentClass !== 'platform' && !a.subAgents)
+    .filter(a => !new Set(['platform','gym']).has(a.agentClass) && !a.subAgents)
     .sort((a, b) => {
       const ta = a.lastMessage ? new Date(a.lastMessage).getTime() : 0;
       const tb = b.lastMessage ? new Date(b.lastMessage).getTime() : 0;
