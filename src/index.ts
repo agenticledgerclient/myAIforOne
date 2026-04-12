@@ -1,4 +1,6 @@
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
 import { configureLogger, log } from "./logger.js";
@@ -19,9 +21,18 @@ const isMac = process.platform === "darwin";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const baseDir = resolve(__dirname, "..");
-// dataDir is where config.json and user data live. Defaults to baseDir (package root)
-// but can be overridden via MYAGENT_DATA_DIR for npx/global installs.
-const dataDir = process.env.MYAGENT_DATA_DIR || baseDir;
+
+// dataDir: where config.json lives. Resolved in priority order:
+// 1. MYAGENT_DATA_DIR env var (set by CLI spawn)
+// 2. Desktop/MyAIforOne Platform (standard npx install location)
+// 3. baseDir/package root (dev/cloned-repo or last-resort fallback)
+function resolveDataDir(): string {
+  if (process.env.MYAGENT_DATA_DIR) return process.env.MYAGENT_DATA_DIR;
+  const desktopPlatform = join(homedir(), "Desktop", "MyAIforOne Platform");
+  if (existsSync(join(desktopPlatform, "config.json"))) return desktopPlatform;
+  return baseDir;
+}
+const dataDir = resolveDataDir();
 
 async function main(): Promise<void> {
   const configPath = resolve(dataDir, "config.json");
