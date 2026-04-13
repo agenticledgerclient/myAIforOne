@@ -210,12 +210,21 @@ text-decoration:none;}
 .chat-messages-home::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
 
 .msg{padding:12px 16px;border-radius:14px;max-width:75%;line-height:1.6;font-size:14px;word-wrap:break-word;position:relative}
+.msg .msg-copy{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:5px;border:1px solid var(--border-dim);background:var(--bg-surface);color:var(--text-muted);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:12px;transition:all .15s;z-index:2}
+.msg:hover .msg-copy{display:flex}
+.msg .msg-copy:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.msg .msg-copy.copied{border-color:var(--green);color:var(--green);background:rgba(74,222,128,0.1)}
 .msg-user{background:rgba(56,189,248,0.08);align-self:flex-end;border-bottom-right-radius:4px}
 .msg-agent{background:rgba(139,92,246,0.06);align-self:flex-start;border-bottom-left-radius:4px}
 .msg-time{font-size:10px;color:var(--text-muted);margin-top:6px;display:flex;align-items:center;gap:6px}
 .msg code{background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:12px}
 .msg pre{background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;overflow-x:auto;margin:8px 0}
 .msg pre code{background:none;padding:0}
+.msg table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px}
+.msg th{text-align:left;padding:6px 10px;border-bottom:2px solid var(--border-glow);color:var(--text-primary);font-weight:700;font-size:11px;letter-spacing:.03em}
+.msg td{padding:5px 10px;border-bottom:1px solid var(--border-dim);color:var(--text-secondary);vertical-align:top}
+.msg tr:last-child td{border-bottom:none}
+.msg tbody tr:hover td{background:rgba(255,255,255,.02)}
 
 .via-badge{
   display:inline-flex;align-items:center;gap:3px;
@@ -417,6 +426,7 @@ text-decoration:none;}
 .gv-chat-messages::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
 .gv-chat-msg{margin-bottom:12px;font-size:12px;line-height:1.6}
 .gv-chat-msg.user{text-align:right}
+.gv-chat-msg:hover .msg-copy{display:flex}
 .gv-chat-msg.user .gv-chat-bubble{background:var(--accent-bg);color:var(--text-primary);display:inline-block;padding:8px 12px;border-radius:12px 12px 2px 12px;max-width:85%;text-align:left}
 .gv-chat-msg.assistant .gv-chat-bubble{background:var(--bg-card);border:1px solid var(--border-dim);display:inline-block;padding:8px 12px;border-radius:12px 12px 12px 2px;max-width:85%;color:var(--text-secondary)}
 .gv-chat-input-area{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border-dim);background:var(--bg-surface);flex-shrink:0;align-items:flex-end}
@@ -1829,7 +1839,7 @@ function guideAiAction(action) {
 function renderGuideChatMessages() {
   const container = document.getElementById('gvChatMessages');
   container.innerHTML = guideChatMessages.map(m =>
-    `<div class="gv-chat-msg ${m.role}"><div class="gv-chat-bubble">${escapeHtml(m.text).replace(/\n/g, '<br>')}</div></div>`
+    `<div class="gv-chat-msg ${m.role}" style="position:relative"><button class="msg-copy" onclick="copyMsg(this, ${JSON.stringify(m.text).replace(/"/g, '&quot;')})" title="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button><div class="gv-chat-bubble">${escapeHtml(m.text).replace(/\n/g, '<br>')}</div></div>`
   ).join('');
   container.scrollTop = container.scrollHeight;
 }
@@ -2254,14 +2264,35 @@ async function init() {
     renderHomeTabBar();
   } catch { /* ignore */ }
 
-  // Check for ?agent= param (e.g. from Apps registry "@ Dev" button)
-  const agentParam = new URLSearchParams(window.location.search).get('agent');
-  if(agentParam) {
+  // Check for ?agent= and ?mode= and ?session= params (deep-link into a specific agent/session)
+  const urlParams = new URLSearchParams(window.location.search);
+  const agentParam = urlParams.get('agent');
+  const modeParam = urlParams.get('mode');   // 'coach' or 'work'
+  const sessionParam = urlParams.get('session');
+
+  // Switch mode if requested (e.g. ?mode=coach to land on gym)
+  if (modeParam === 'coach' && currentMode !== 'coach') switchMode('coach');
+  else if (modeParam === 'work' && currentMode !== 'work') switchMode('work');
+
+  // Switch to a specific session tab if requested
+  if (sessionParam) {
+    if (currentMode === 'coach') {
+      const tab = coachTabs.find(t => t.id === sessionParam);
+      if (tab) switchCoachTab(sessionParam);
+    } else {
+      const tab = homeTabs.find(t => t.id === sessionParam);
+      if (tab) switchHomeTab(sessionParam);
+    }
+  }
+
+  if (agentParam) {
     const found = agents.find(a => a.id === agentParam);
     const alias = found?.aliases?.[0] || ('@' + agentParam);
     // Clean URL without reloading
     history.replaceState(null, '', '/');
     mentionAgent(alias);
+  } else if (modeParam || sessionParam) {
+    history.replaceState(null, '', '/');
   }
 }
 
@@ -2779,7 +2810,9 @@ function renderMessages() {
       const viaAgent = agents.find(a => a.id === viaMatch[1]);
       viaBadge = `<span class="via-badge">via ${viaAgent?.aliases?.[0] || '@'+viaMatch[1]}</span>`;
     }
-    return `<div class="msg ${cls}">${formatted}<div class="msg-time">${viaBadge}${time}</div></div>`;
+    const rawText = m.role === 'agent' ? m.text.replace(/\[via:\w[\w-]*\]/, '').trim() : m.text;
+    const copyBtn = `<button class="msg-copy" onclick="copyMsg(this, ${JSON.stringify(rawText).replace(/"/g, '&quot;')})" title="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>`;
+    return `<div class="msg ${cls}">${copyBtn}${formatted}<div class="msg-time">${viaBadge}${time}</div></div>`;
   }).join('');
 
   // Streaming message
@@ -2809,6 +2842,17 @@ function scrollChat() {
   }, 60);
 }
 
+function copyMsg(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+    }, 1500);
+  });
+}
+
 // ─── Formatting ────────────────────────────────────────
 function escapeHtml(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -2821,6 +2865,22 @@ function formatMarkdown(text) {
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Markdown links [text](url) — must run before bare URL linkify
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent);text-decoration:underline">$1</a>');
+  // Bare URLs not already inside an href
+  html = html.replace(/(?<!")(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color:var(--accent);text-decoration:underline">$1</a>');
+  // Markdown tables
+  html = html.replace(/((?:^|\n)\|.+\|(?:\n\|[-:| ]+\|)(?:\n\|.+\|)+)/g, function(table) {
+    const rows = table.trim().split('\n').filter(r => r.trim());
+    if (rows.length < 2) return table;
+    const parseRow = r => r.split('|').slice(1, -1).map(c => c.trim());
+    const headers = parseRow(rows[0]);
+    const dataRows = rows.slice(2); // skip header + separator
+    let t = '<table><thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+    dataRows.forEach(r => { t += '<tr>' + parseRow(r).map(c => `<td>${c}</td>`).join('') + '</tr>'; });
+    t += '</tbody></table>';
+    return t;
+  });
   // Detect file paths and add download/preview buttons (via Canvas module)
   html = Canvas.injectFileButtons(html, escapeHtml);
   html = html.replace(/\n/g, '<br>');
