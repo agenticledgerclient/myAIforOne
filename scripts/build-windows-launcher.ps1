@@ -3,7 +3,7 @@
 # Output: dist\MyAIforOne-Launcher.exe
 #
 # Creates a self-extracting launcher using PowerShell + .NET compilation.
-# No NSIS/Inno required — uses built-in C# compiler.
+# No NSIS/Inno required - uses built-in C# compiler.
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -12,7 +12,7 @@ $DistDir = Join-Path $ProjectRoot "dist\launcher"
 if (Test-Path $DistDir) { Remove-Item -Recurse -Force $DistDir }
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 
-# ── C# source for the launcher exe ───────────────────────────────────────
+# --- C# source for the launcher exe ------------------------------------
 $csharpSource = @'
 using System;
 using System.Diagnostics;
@@ -110,7 +110,7 @@ namespace MyAIforOne {
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
 
-            // Launch npx — must route through cmd.exe because npx is a .cmd
+            // Launch npx - must route through cmd.exe because npx is a .cmd
             // shim on Windows; CreateProcess cannot execute .cmd files directly.
             var npx = new Process();
             npx.StartInfo = new ProcessStartInfo("cmd.exe", "/c npx myaiforone@latest") {
@@ -146,7 +146,7 @@ namespace MyAIforOne {
                 } catch { }
             }
 
-            // Timeout — close splash, let npx continue in background
+            // Timeout - close splash, let npx continue in background
             if (splashForm != null && !splashForm.IsDisposed) {
                 splashForm.Invoke(new Action(() => splashForm.Close()));
             }
@@ -155,7 +155,7 @@ namespace MyAIforOne {
 }
 '@
 
-# ── Compile the exe ───────────────────────────────────────────────────────
+# --- Compile the exe ---------------------------------------------------
 $exePath = Join-Path $DistDir "MyAIforOne-Launcher.exe"
 
 # Use the built-in C# compiler from .NET Framework
@@ -177,7 +177,7 @@ if (Test-Path $cscPath) {
         Write-Host "     EXE: $exePath"
         Write-Host ""
     } else {
-        Write-Host "  Build failed — check that .NET Framework 4.x is installed"
+        Write-Host "  Build failed - check that .NET Framework 4.x is installed"
     }
 } else {
     # Fallback: save the source for manual compilation
