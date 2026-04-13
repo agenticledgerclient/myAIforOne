@@ -61,18 +61,23 @@ export function startWebUI(opts: WebUIOptions): void {
     extensions: ["svg", "png", "ico", "jpg", "jpeg", "gif", "webp", "js", "css"],
   }));
 
-  // Helper: serve an HTML page from public/ using root-relative path
-  // (avoids sendFile symlink/realpath issues on macOS npx cache)
-  // fallback: URL to redirect to if file missing, or null for 404
+  // Helper: serve an HTML page from public/ using readFileSync + res.send
+  // Bypasses Express 5 send module's realpath resolution which fails on
+  // macOS npx cache symlinked paths. HTML files are small enough that
+  // readFileSync has no meaningful performance impact.
   const servePage = (res: any, filename: string, fallback: string | null = null) => {
-    if (existsSync(join(publicDir, filename))) {
+    const filePath = join(publicDir, filename);
+    if (existsSync(filePath)) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(filename, { root: publicDir }, (err: any) => {
-        if (err && !res.headersSent) {
+      try {
+        const content = readFileSync(filePath, "utf8");
+        res.type("html").send(content);
+      } catch {
+        if (!res.headersSent) {
           if (fallback) res.redirect(fallback);
           else res.status(404).send(`${filename} not found.`);
         }
-      });
+      }
     } else if (fallback) {
       res.redirect(fallback);
     } else {
@@ -2448,9 +2453,12 @@ export function startWebUI(opts: WebUIOptions): void {
     res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
 
     log.info(`[Download] ${agentId}: ${fileName} from ${resolvedPath}`);
-    res.sendFile(basename(resolvedPath), { root: dirname(resolvedPath) }, (err: any) => {
-      if (err && !res.headersSent) res.status(404).json({ error: "File send failed" });
-    });
+    try {
+      const content = readFileSync(resolvedPath);
+      res.send(content);
+    } catch {
+      if (!res.headersSent) res.status(404).json({ error: "File send failed" });
+    }
   });
 
   // ─── API: Create agent ──────────────────────────────────────────
@@ -5490,9 +5498,13 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
   app.get("/user-guide", (_req, res) => servePage(res, "user-guide.html"));
 
   app.get("/docs/user-guide.md", (_req, res) => {
-    res.type("text/markdown").sendFile("user-guide.md", { root: join(opts.baseDir, "docs") }, (err: any) => {
-      if (err && !res.headersSent) res.status(404).send("User guide not found.");
-    });
+    const guidePath = join(opts.baseDir, "docs", "user-guide.md");
+    try {
+      const content = readFileSync(guidePath, "utf8");
+      res.type("text/markdown").send(content);
+    } catch {
+      if (!res.headersSent) res.status(404).send("User guide not found.");
+    }
   });
 
   // ─── API: User Guide ────────────────────────────────────────────
@@ -5814,6 +5826,15 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
   } catch (err) {
     log.warn(`[Registry Sync] Skill startup sync failed: ${err}`);
   }
+
+  // Global error handler — catch unhandled Express errors instead of
+  // dumping raw stack traces to the browser
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    log.warn(`[Web UI] Unhandled error: ${err.message}`);
+    if (!res.headersSent) {
+      res.status(err.status || 500).json({ error: err.message || "Internal server error" });
+    }
+  });
 
   app.listen(opts.port, () => {
     log.info(`Web UI running on http://localhost:${opts.port}/ui`);
