@@ -110,14 +110,24 @@ namespace MyAIforOne {
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
 
-            // Launch npx
+            // Launch npx — must route through cmd.exe because npx is a .cmd
+            // shim on Windows; CreateProcess cannot execute .cmd files directly.
             var npx = new Process();
-            npx.StartInfo = new ProcessStartInfo("npx", "myaiforone@latest") {
+            npx.StartInfo = new ProcessStartInfo("cmd.exe", "/c npx myaiforone@latest") {
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden
             };
-            npx.Start();
+            try {
+                npx.Start();
+            } catch (Exception ex) {
+                MessageBox.Show(
+                    "Failed to start MyAIforOne:\n\n" + ex.Message,
+                    "MyAIforOne", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (splashForm != null && !splashForm.IsDisposed)
+                    splashForm.Invoke(new Action(() => splashForm.Close()));
+                return;
+            }
 
             // Poll health endpoint
             for (int i = 0; i < 120; i++) {
