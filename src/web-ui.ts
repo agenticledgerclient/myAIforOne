@@ -63,14 +63,20 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // Helper: serve an HTML page from public/ using root-relative path
   // (avoids sendFile symlink/realpath issues on macOS npx cache)
-  const servePage = (res: any, filename: string, fallback = "/org") => {
+  // fallback: URL to redirect to if file missing, or null for 404
+  const servePage = (res: any, filename: string, fallback: string | null = null) => {
     if (existsSync(join(publicDir, filename))) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(filename, { root: publicDir }, (err: any) => {
-        if (err && !res.headersSent) res.redirect(fallback);
+        if (err && !res.headersSent) {
+          if (fallback) res.redirect(fallback);
+          else res.status(404).send(`${filename} not found.`);
+        }
       });
-    } else {
+    } else if (fallback) {
       res.redirect(fallback);
+    } else {
+      res.status(404).send(`${filename} not found.`);
     }
   };
 
@@ -5233,7 +5239,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       // KeepAlive disabled. Spawning ensures the service always comes back.
       const child = cpSpawn(process.execPath, process.argv.slice(1), {
         cwd: process.cwd(),
-        env: process.env,
+        env: { ...process.env },
         stdio: "ignore",
         detached: true,
       });
@@ -5262,13 +5268,19 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       let latest = current;
       let updateAvailable = false;
       try {
-        const resp = await fetch("https://registry.npmjs.org/myaiforone/latest");
+        const resp = await fetch("https://registry.npmjs.org/myaiforone/latest", {
+          signal: AbortSignal.timeout(5000),
+        });
         if (resp.ok) {
           const data = await resp.json() as any;
           latest = data.version || current;
-          updateAvailable = latest !== current;
+          // Semver comparison: only flag update if latest is actually newer
+          const parse = (v: string) => v.split(".").map(Number);
+          const [cMaj, cMin, cPat] = parse(current);
+          const [lMaj, lMin, lPat] = parse(latest);
+          updateAvailable = lMaj > cMaj || (lMaj === cMaj && lMin > cMin) || (lMaj === cMaj && lMin === cMin && lPat > cPat);
         }
-      } catch { /* offline — just report current */ }
+      } catch { /* offline or timeout */ }
       res.json({ ok: true, current, latest, updateAvailable });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -5282,38 +5294,27 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       log.info("[Update] Platform update triggered via API");
 
       // Clear npx cache for myaiforone
-      if (platform === "win32") {
-        const npxDir = join(process.env.LOCALAPPDATA || "", "npm-cache", "_npx");
-        if (existsSync(npxDir)) {
-          for (const d of readdirSync(npxDir)) {
-            const candidate = join(npxDir, d, "node_modules", "myaiforone");
-            if (existsSync(candidate)) {
-              rmSync(join(npxDir, d), { recursive: true, force: true });
-              log.info(`[Update] Cleared npx cache: ${d}`);
-            }
+      const npxDir = platform === "win32"
+        ? join(process.env.LOCALAPPDATA || "", "npm-cache", "_npx")
+        : join(process.env.HOME || "", ".npm", "_npx");
+      if (existsSync(npxDir)) {
+        for (const d of readdirSync(npxDir)) {
+          const candidate = join(npxDir, d, "node_modules", "myaiforone");
+          if (existsSync(candidate)) {
+            rmSync(join(npxDir, d), { recursive: true, force: true });
+            log.info(`[Update] Cleared npx cache: ${d}`);
           }
         }
       } else {
-        // macOS/Linux: ~/.npm/_npx
-        const home = process.env.HOME || "";
-        const npxDir = join(home, ".npm", "_npx");
-        if (existsSync(npxDir)) {
-          for (const d of readdirSync(npxDir)) {
-            const candidate = join(npxDir, d, "node_modules", "myaiforone");
-            if (existsSync(candidate)) {
-              rmSync(join(npxDir, d), { recursive: true, force: true });
-              log.info(`[Update] Cleared npx cache: ${d}`);
-            }
-          }
-        }
+        log.warn(`[Update] npx cache dir not found: ${npxDir}`);
       }
 
       res.json({ ok: true, message: "Cache cleared. Restarting with latest version..." });
 
       // Respawn via npx to pull latest, then exit current process
       setTimeout(() => {
-        log.info("[Update] Spawning npx myaiforone to pull latest...");
-        const child = cpSpawn("npx", ["myaiforone"], {
+        log.info("[Update] Spawning npx myaiforone@latest to pull latest...");
+        const child = cpSpawn("npx", ["myaiforone@latest"], {
           cwd: process.cwd(),
           env: { ...process.env },
           stdio: "ignore",

@@ -1,4 +1,4 @@
-# MyAgent — Windows Task Scheduler Installer
+# MyAgent - Windows Task Scheduler Installer
 # Registers the gateway to run at login via Windows Task Scheduler.
 # Run: powershell -ExecutionPolicy Bypass -File scripts\install-service-windows.ps1
 #
@@ -11,7 +11,7 @@ $projectDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Pat
 $scriptPath = Join-Path $projectDir "dist\index.js"
 
 Write-Host ""
-Write-Host "MyAgent — Windows Service Installer" -ForegroundColor Cyan
+Write-Host "MyAgent - Windows Service Installer" -ForegroundColor Cyan
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -28,11 +28,11 @@ try {
 
 # 2. Check if dist/index.js exists, build if not
 if (-not (Test-Path $scriptPath)) {
-    Write-Host '[INFO] dist/index.js not found — building project...' -ForegroundColor Yellow
+    Write-Host '[INFO] dist/index.js not found - building project...' -ForegroundColor Yellow
     Set-Location $projectDir
     npm run build
     if (-not (Test-Path $scriptPath)) {
-        Write-Host '[ERROR] Build failed — dist/index.js still missing.' -ForegroundColor Red
+        Write-Host '[ERROR] Build failed - dist/index.js still missing.' -ForegroundColor Red
         exit 1
     }
     Write-Host '[OK] Build complete.' -ForegroundColor Green
@@ -70,7 +70,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "MyAgent — Phone-accessible Claude Code agent gateway" | Out-Null
+    -Description "MyAgent - Phone-accessible Claude Code agent gateway" | Out-Null
 
 Write-Host ""
 Write-Host "===== SUCCESS =====" -ForegroundColor Green

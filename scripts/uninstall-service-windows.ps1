@@ -1,11 +1,11 @@
-# MyAgent — Windows Task Scheduler Uninstaller
+# MyAgent - Windows Task Scheduler Uninstaller
 # Run: powershell -ExecutionPolicy Bypass -File scripts/uninstall-service-windows.ps1
 
 $ErrorActionPreference = "Stop"
 $TaskName = "MyAIforOneGateway"
 
 Write-Host ""
-Write-Host "MyAgent — Uninstalling Windows Service" -ForegroundColor Yellow
+Write-Host "MyAgent - Uninstalling Windows Service" -ForegroundColor Yellow
 Write-Host ""
 
 $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -17,7 +17,7 @@ if ($existing) {
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
     Write-Host "[OK] Task '$TaskName' has been removed." -ForegroundColor Green
 } else {
-    Write-Host "[INFO] Task '$TaskName' not found — nothing to remove." -ForegroundColor Gray
+    Write-Host "[INFO] Task '$TaskName' not found - nothing to remove." -ForegroundColor Gray
 }
 
 Write-Host ""
