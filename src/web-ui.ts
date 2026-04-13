@@ -2442,7 +2442,9 @@ export function startWebUI(opts: WebUIOptions): void {
     res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
 
     log.info(`[Download] ${agentId}: ${fileName} from ${resolvedPath}`);
-    res.sendFile(resolvedPath);
+    res.sendFile(basename(resolvedPath), { root: dirname(resolvedPath) }, (err: any) => {
+      if (err && !res.headersSent) res.status(404).json({ error: "File send failed" });
+    });
   });
 
   // ─── API: Create agent ──────────────────────────────────────────
