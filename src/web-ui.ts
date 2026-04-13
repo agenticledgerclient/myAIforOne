@@ -54,11 +54,25 @@ export function startWebUI(opts: WebUIOptions): void {
   app.use(express.json());
 
   // ─── Serve static assets (SVGs, images, etc.) from public/ ─────
-  app.use(express.static(join(opts.baseDir, "public"), {
+  const publicDir = join(opts.baseDir, "public");
+  app.use(express.static(publicDir, {
     maxAge: "1h",
     index: false,
     extensions: ["svg", "png", "ico", "jpg", "jpeg", "gif", "webp", "js", "css"],
   }));
+
+  // Helper: serve an HTML page from public/ using root-relative path
+  // (avoids sendFile symlink/realpath issues on macOS npx cache)
+  const servePage = (res: any, filename: string, fallback = "/org") => {
+    if (existsSync(join(publicDir, filename))) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(filename, { root: publicDir }, (err: any) => {
+        if (err && !res.headersSent) res.redirect(fallback);
+      });
+    } else {
+      res.redirect(fallback);
+    }
+  };
 
   // ─── Mount Gym API routes (gated by gymEnabled in the router) ────
   if ((opts.config.service as any).gymEnabled) {
@@ -73,195 +87,28 @@ export function startWebUI(opts: WebUIOptions): void {
     }));
   }
 
-  // ─── Serve the Home page (home2 is now the default) ─────────────
-  const serveHome = (_req: any, res: any) => {
-    const htmlPath = join(opts.baseDir, "public", "home2.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.redirect("/org");
-    }
-  };
+  // ─── Serve pages from public/ ─────────────────────────────────────
+  const serveHome = (_req: any, res: any) => servePage(res, "home2.html", "/org");
   app.get("/", serveHome);
   app.get("/home", serveHome);
-  // Legacy home (old single-agent chat page)
-  app.get("/home-legacy", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "home.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.redirect("/org");
-    }
-  });
-
-  // ─── Serve Home v2 (also reachable at /home2) ──────────────────
-  app.get("/home2", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "home2.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.redirect("/");
-    }
-  });
-
-  // ─── Serve the Activity Logs page (redirects to admin) ──────────
-  app.get("/activity", (_req, res) => {
-    res.redirect("/admin?tab=activity");
-  });
-
-  // ─── Serve the UI HTML (no-cache to always get latest) ──────────
-  app.get("/ui", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "index.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("UI not found. Create public/index.html");
-    }
-  });
-
-  // ─── Serve the My Library page ──────────────────────────────────
-  app.get("/library", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "library.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.redirect("/marketplace");
-    }
-  });
-
-  // ─── Serve the Marketplace page ────────────────────────────────
-  app.get("/marketplace", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "marketplace.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Marketplace page not found.");
-    }
-  });
-
-  // ─── Serve the Org page ────────────────────────────────────────
-  app.get("/org", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "org.html");
-    if (existsSync(htmlPath)) {
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Org page not found.");
-    }
-  });
-
-  // ─── Serve the Monitor page ────────────────────────────────────
-  app.get("/monitor", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "monitor.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Monitor page not found.");
-    }
-  });
-
-  // ─── Serve the Admin page ──────────────────────────────────────
-  app.get("/admin", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "admin.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Admin page not found.");
-    }
-  });
-
-  // ─── Channels redirects to admin ───────────────────────────────
-  app.get("/channels", (_req, res) => {
-    res.redirect("/admin?tab=channels");
-  });
-
-  // ─── Serve the Tasks page ───────────────────────────────────────
-  app.get("/tasks", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "tasks.html");
-    if (existsSync(htmlPath)) {
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Tasks page not found.");
-    }
-  });
-
-  // ─── Serve the Projects page ──────────────────────────────────
-  app.get("/projects", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "projects.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Projects page not found.");
-    }
-  });
-
-  // ─── Serve the Lab page ──────────────────────────────────────────
-  app.get("/lab", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "lab.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Lab page not found.");
-    }
-  });
-
-  // /gym route removed — AI Gym is now integrated into the home2 Work/AI Gym toggle
-
-  // /apps route removed — Apps are now managed in the Registry (marketplace) Apps tab
-
-  // ─── Serve the Agent Dashboard page ────────────────────────────
-  app.get("/agent-dashboard", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "agent-dashboard.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.redirect("/org");
-    }
-  });
-
-  app.get("/mini", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "mini.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("Mini bar not found.");
-    }
-  });
-
-  app.get("/settings", (_req, res) => {
-    res.redirect("/admin?tab=settings");
-  });
-
-  app.get("/mcp-docs", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "mcp-docs.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("MCP docs not found.");
-    }
-  });
-
-  app.get("/api-docs", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "api-docs.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.status(404).send("API docs not found.");
-    }
-  });
+  app.get("/home-legacy", (_req, res) => servePage(res, "home.html", "/org"));
+  app.get("/home2", (_req, res) => servePage(res, "home2.html", "/"));
+  app.get("/activity", (_req, res) => res.redirect("/admin?tab=activity"));
+  app.get("/ui", (_req, res) => servePage(res, "index.html"));
+  app.get("/library", (_req, res) => servePage(res, "library.html", "/marketplace"));
+  app.get("/marketplace", (_req, res) => servePage(res, "marketplace.html"));
+  app.get("/org", (_req, res) => servePage(res, "org.html"));
+  app.get("/monitor", (_req, res) => servePage(res, "monitor.html"));
+  app.get("/admin", (_req, res) => servePage(res, "admin.html"));
+  app.get("/channels", (_req, res) => res.redirect("/admin?tab=channels"));
+  app.get("/tasks", (_req, res) => servePage(res, "tasks.html"));
+  app.get("/projects", (_req, res) => servePage(res, "projects.html"));
+  app.get("/lab", (_req, res) => servePage(res, "lab.html"));
+  app.get("/agent-dashboard", (_req, res) => servePage(res, "agent-dashboard.html", "/org"));
+  app.get("/mini", (_req, res) => servePage(res, "mini.html"));
+  app.get("/settings", (_req, res) => res.redirect("/admin?tab=settings"));
+  app.get("/mcp-docs", (_req, res) => servePage(res, "mcp-docs.html"));
+  app.get("/api-docs", (_req, res) => servePage(res, "api-docs.html"));
 
   // ─── API: Open folder in Finder / Explorer ─────────────────────────
   app.post("/api/open-folder", (req, res) => {
@@ -3754,15 +3601,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   // ─── Serve Automations page ───────────────────────────────────────
-  app.get("/automations", (_req, res) => {
-    const htmlPath = join(opts.baseDir, "public", "automations.html");
-    if (existsSync(htmlPath)) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.sendFile(htmlPath);
-    } else {
-      res.redirect("/ui");
-    }
-  });
+  app.get("/automations", (_req, res) => servePage(res, "automations.html", "/ui"));
 
   // ─── Task helpers ──────────────────────────────────────────────────
 
@@ -5644,16 +5483,13 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }
   });
 
-  app.get("/changelog", (_req, res) => {
-    res.sendFile(resolve(opts.baseDir, "public", "changelog.html"));
-  });
-
-  app.get("/user-guide", (_req, res) => {
-    res.sendFile(resolve(opts.baseDir, "public", "user-guide.html"));
-  });
+  app.get("/changelog", (_req, res) => servePage(res, "changelog.html"));
+  app.get("/user-guide", (_req, res) => servePage(res, "user-guide.html"));
 
   app.get("/docs/user-guide.md", (_req, res) => {
-    res.type("text/markdown").sendFile(resolve(opts.baseDir, "docs", "user-guide.md"));
+    res.type("text/markdown").sendFile("user-guide.md", { root: join(opts.baseDir, "docs") }, (err: any) => {
+      if (err && !res.headersSent) res.status(404).send("User guide not found.");
+    });
   });
 
   // ─── API: User Guide ────────────────────────────────────────────

@@ -1533,12 +1533,14 @@ async function fetchAgentMessages(agentId) {
     const res = await fetch(`/api/agents/${agentId}`);
     const data = await res.json();
     if (data.recentMessages && data.recentMessages.length > 0) {
-      // Load server history into the default tab only (other tabs are local-only)
-      const defaultKey = tabKey(agentId, 'default');
-      chatHistory[defaultKey] = data.recentMessages.map(m => ([
-        { role: 'user', text: m.text, time: m.ts, channel: m.channel || 'unknown' },
-        { role: 'agent', text: m.response, time: m.ts, channel: m.channel || 'unknown' },
-      ])).flat().filter(m => m.text);
+      // Load server history into the active tab so renderChat can find it
+      const key = activeTabKey(agentId);
+      if (!chatHistory[key] || chatHistory[key].length === 0) {
+        chatHistory[key] = data.recentMessages.map(m => ([
+          { role: 'user', text: m.text, time: m.ts, channel: m.channel || 'unknown' },
+          { role: 'agent', text: m.response, time: m.ts, channel: m.channel || 'unknown' },
+        ])).flat().filter(m => m.text);
+      }
     }
   } catch { /* ignore */ }
 }
