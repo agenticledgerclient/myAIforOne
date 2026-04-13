@@ -226,6 +226,31 @@ text-decoration:none;}
 .msg tr:last-child td{border-bottom:none}
 .msg tbody tr:hover td{background:rgba(255,255,255,.02)}
 
+/* ─── File Drawer ─────────────────────────────────────────── */
+.file-drawer{display:none;width:280px;border-left:1px solid var(--border-dim);background:var(--bg-surface);flex-shrink:0;overflow:hidden;flex-direction:column}
+.file-drawer.open{display:flex}
+.file-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.file-drawer-title{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-primary)}
+.file-drawer-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px}
+.file-drawer-close:hover{color:var(--text-primary);background:rgba(255,255,255,.05)}
+.file-drawer-filters{display:flex;gap:4px;padding:8px 14px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.file-drawer-filter{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--border-dim);background:none;color:var(--text-muted);cursor:pointer;font-family:var(--font-sans)}
+.file-drawer-filter:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.file-drawer-filter.active{border-color:var(--accent);color:var(--accent);background:rgba(34,211,238,0.08)}
+.file-drawer-list{flex:1;overflow-y:auto;padding:6px 0}
+.file-drawer-item{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;transition:background .15s}
+.file-drawer-item:hover{background:rgba(255,255,255,.03)}
+.file-drawer-icon{font-size:14px;flex-shrink:0;width:20px;text-align:center}
+.file-drawer-info{flex:1;min-width:0}
+.file-drawer-name{font-size:12px;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-drawer-meta{font-size:10px;color:var(--text-muted);display:flex;gap:6px}
+.file-drawer-source{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 4px;border-radius:3px}
+.file-drawer-source.permanent{color:var(--accent);background:rgba(34,211,238,0.08)}
+.file-drawer-source.temp{color:var(--text-muted);background:rgba(255,255,255,0.04)}
+.file-drawer-dl{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0}
+.file-drawer-dl:hover{color:var(--accent)}
+.file-drawer-empty{padding:24px 14px;text-align:center;font-size:12px;color:var(--text-muted)}
+
 .via-badge{
   display:inline-flex;align-items:center;gap:3px;
   padding:1px 8px;border-radius:4px;
@@ -757,6 +782,7 @@ text-decoration:none;}
         <select class="header-btn" id="accountSelect" style="padding:2px 6px;cursor:pointer;display:none" onchange="setAccountOverride(this.value)" title="Claude Account override"></select>
         <button class="header-btn danger" id="resetBtn" onclick="confirmResetSession()" title="Reset hub session">&#x21BA; Reset session</button>
         <button class="header-btn" id="configureHubLink" onclick="openConfigOverlay()" title="Configure hub agent">&#x2699; Configure</button>
+        <button class="canvas-toggle-btn" id="fileDrawerBtn" onclick="toggleFileDrawer()" title="Browse agent files"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> Files</button>
         <button class="canvas-toggle-btn" id="canvasBtn" onclick="Canvas.toggle()" title="Toggle preview panel">&#x25A8; Canvas</button>
       </div>
     </div>
@@ -853,6 +879,16 @@ text-decoration:none;}
           <div style="font-size:32px;opacity:.3;margin-bottom:8px">&#x25A8;</div>
           <div>Click "Preview" on a file path to open it here</div>
         </div>
+      </div>
+    </div>
+    <div class="file-drawer" id="fileDrawer">
+      <div class="file-drawer-header">
+        <span class="file-drawer-title">Agent Files</span>
+        <button class="file-drawer-close" onclick="toggleFileDrawer()" title="Close">&times;</button>
+      </div>
+      <div class="file-drawer-filters" id="fileDrawerFilters"></div>
+      <div class="file-drawer-list" id="fileDrawerList">
+        <div class="file-drawer-empty">Loading...</div>
       </div>
     </div>
     </div>
@@ -1181,6 +1217,9 @@ function switchMode(mode) {
   const canvasBtn = document.getElementById('canvasBtn');
   if (canvasBtn) canvasBtn.style.display = mode === 'work' ? '' : 'none';
   if (mode === 'coach') Canvas.close?.();
+
+  // Refresh file drawer if open
+  if (fileDrawerOpen) loadFileDrawer();
 
   // Toggle session tabs
   const sessionTabs = document.getElementById('homeSessionTabBar');
@@ -1550,10 +1589,11 @@ async function sendCoachMessage(text) {
   }
 
   try {
+    const coachSenderId = coachActiveTabId === 'coach-default' ? 'web' : coachActiveTabId;
     const res = await fetch('/api/chat/gym/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, senderId: 'web' })
+      body: JSON.stringify({ text, senderId: coachSenderId })
     });
     const data = await res.json();
 
@@ -1874,7 +1914,7 @@ async function sendGuideChat(overrideText) {
     const res = await fetch('/api/chat/gym/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: contextPrefix + text, senderId: 'web' })
+      body: JSON.stringify({ text: contextPrefix + text, senderId: coachActiveTabId === 'coach-default' ? 'web' : coachActiveTabId })
     });
     const data = await res.json();
 
@@ -2643,10 +2683,11 @@ async function executeHub(text, tabId) {
   renderHomeTabBar();
 
   try {
+    const senderId = homeActiveTabId === 'default' ? 'default' : homeActiveTabId;
     const startRes = await fetch(`/api/chat/${hubAgentId}/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, accountOverride }),
+      body: JSON.stringify({ text, accountOverride, senderId }),
     });
     const { jobId } = await startRes.json();
     if (!jobId) throw new Error('No jobId');
@@ -2840,6 +2881,102 @@ function scrollChat() {
     const el = document.getElementById('chatMessages');
     if (el) el.scrollTop = el.scrollHeight;
   }, 60);
+}
+
+// ─── File Drawer ──────────────────────────────────────────
+let fileDrawerOpen = false;
+let fileDrawerFilter = 'all';
+let fileDrawerFiles = [];
+
+function toggleFileDrawer() {
+  fileDrawerOpen = !fileDrawerOpen;
+  const drawer = document.getElementById('fileDrawer');
+  const btn = document.getElementById('fileDrawerBtn');
+  drawer.classList.toggle('open', fileDrawerOpen);
+  if (btn) btn.classList.toggle('active', fileDrawerOpen);
+  if (fileDrawerOpen) loadFileDrawer();
+}
+
+async function loadFileDrawer() {
+  const agentId = currentMode === 'coach' ? 'gym' : hubAgentId;
+  if (!agentId) return;
+  const list = document.getElementById('fileDrawerList');
+  list.innerHTML = '<div class="file-drawer-empty">Loading...</div>';
+  try {
+    const res = await fetch(`/api/agents/${agentId}/files`);
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    fileDrawerFiles = data.files || [];
+    renderFileDrawer();
+  } catch {
+    list.innerHTML = '<div class="file-drawer-empty">Could not load files</div>';
+  }
+}
+
+function renderFileDrawer() {
+  const icons = {csv:'📊',json:'📋',md:'📝',txt:'📝',html:'🌐',js:'⚡',ts:'⚡',py:'🐍',css:'🎨',pdf:'📄',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',svg:'🖼️',xlsx:'📊',docx:'📃',pptx:'📊'};
+  const filtered = fileDrawerFilter === 'all' ? fileDrawerFiles : fileDrawerFiles.filter(f => f.source === fileDrawerFilter);
+  const tempCount = fileDrawerFiles.filter(f => f.source === 'temp').length;
+  const permCount = fileDrawerFiles.filter(f => f.source === 'permanent').length;
+
+  document.getElementById('fileDrawerFilters').innerHTML = [
+    {key:'all', label:`All (${fileDrawerFiles.length})`},
+    {key:'permanent', label:`Permanent (${permCount})`},
+    {key:'temp', label:`Temp (${tempCount})`}
+  ].map(f => `<button class="file-drawer-filter${fileDrawerFilter===f.key?' active':''}" onclick="setFileDrawerFilter('${f.key}')">${f.label}</button>`).join('');
+
+  const list = document.getElementById('fileDrawerList');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="file-drawer-empty">No files</div>';
+    return;
+  }
+  const agentId = currentMode === 'coach' ? 'gym' : hubAgentId;
+  list.innerHTML = filtered.map(f => {
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    const icon = icons[ext] || '📁';
+    const enc = encodeURIComponent(f.path);
+    const size = f.size < 1024 ? f.size + ' B' : f.size < 1048576 ? (f.size/1024).toFixed(1) + ' KB' : (f.size/1048576).toFixed(1) + ' MB';
+    const ago = f.modified ? fileDrawerTimeAgo(f.modified) : '';
+    return `<div class="file-drawer-item" onclick="Canvas.openFile('${enc}')" title="${escapeHtml(f.path)}">
+      <span class="file-drawer-icon">${icon}</span>
+      <div class="file-drawer-info">
+        <div class="file-drawer-name">${escapeHtml(f.name)}</div>
+        <div class="file-drawer-meta">
+          <span>${size}</span>
+          <span>${ago}</span>
+          <span class="file-drawer-source ${f.source}">${f.source}</span>
+        </div>
+      </div>
+      <button class="file-drawer-dl" onclick="event.stopPropagation();fileDrawerDownload('${agentId}','${enc}')" title="Download">⬇</button>
+    </div>`;
+  }).join('');
+}
+
+function setFileDrawerFilter(f) {
+  fileDrawerFilter = f;
+  renderFileDrawer();
+}
+
+function fileDrawerDownload(agentId, encodedPath) {
+  const a = document.createElement('a');
+  a.href = '/api/agents/' + agentId + '/download?path=' + encodedPath;
+  a.download = decodeURIComponent(encodedPath).split('/').pop() || 'file';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function fileDrawerTimeAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 function copyMsg(btn, text) {
