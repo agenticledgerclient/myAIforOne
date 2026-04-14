@@ -168,12 +168,14 @@ export function loadConfig(configPath: string): AppConfig {
   if (!config.channels) config.channels = {};
 
   // Remap stale MCP server command paths (e.g. myaiforone-local after cache clear)
+  // Also normalize relative ./mcps/ paths to absolute (safe for launchd/Task Scheduler)
   if (config.mcps) {
     for (const [name, mcp] of Object.entries(config.mcps)) {
       if ((mcp as any).type === "stdio" && Array.isArray((mcp as any).args)) {
         const args: string[] = (mcp as any).args;
         const mcpMarker = /server[/\\]mcp-server[/\\]/;
         const remapped = args.map(arg => {
+          // Remap stale absolute paths from old npx cache
           if (mcpMarker.test(arg) && !existsSync(arg)) {
             const m = arg.match(mcpMarker);
             if (m) {
@@ -183,6 +185,11 @@ export function loadConfig(configPath: string): AppConfig {
                 return candidate;
               }
             }
+          }
+          // Normalize relative ./mcps/ paths to absolute
+          if (/^\.?\/?(mcps[\\/])/.test(arg)) {
+            const abs = join(packageRoot, arg.replace(/^\.\//, ""));
+            return abs;
           }
           return arg;
         });
@@ -321,6 +328,14 @@ export function loadConfig(configPath: string): AppConfig {
       console.log(`[config] Auto-added bundled MCP to defaultMcps: ${id}`);
     }
   }
+  // Validate defaultMcps — strip entries that don't exist in the registry
+  config.defaultMcps = config.defaultMcps.filter(id => {
+    if (!config.mcps![id]) {
+      console.warn(`[config] defaultMcps references "${id}" which is not in mcps registry — skipping`);
+      return false;
+    }
+    return true;
+  });
 
   // Defaults
   config.service = config.service ?? { logLevel: "info" };
