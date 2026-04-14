@@ -296,6 +296,32 @@ export function loadConfig(configPath: string): AppConfig {
     }
   }
 
+  // ─── Auto-inject bundled MCPs (ships with the repo under mcps/) ──────
+  // Ensures existing users who update via git pull get new bundled MCPs
+  // without manually editing config.json.  Only injects if not already present.
+  const bundledMcps: Record<string, McpServerStdio> = {
+    aiforone_computeruse: {
+      type: "stdio",
+      command: "node",
+      args: [`${packageRoot}/mcps/aiforone_computeruse/server.js`],
+    },
+  };
+  if (!config.mcps) config.mcps = {};
+  for (const [id, def] of Object.entries(bundledMcps)) {
+    if (!config.mcps[id]) {
+      config.mcps[id] = def;
+      console.log(`[config] Auto-registered bundled MCP: ${id}`);
+    }
+  }
+  // Ensure bundled MCPs are in defaultMcps so every agent gets them
+  if (!config.defaultMcps) config.defaultMcps = [];
+  for (const id of Object.keys(bundledMcps)) {
+    if (!config.defaultMcps.includes(id)) {
+      config.defaultMcps.push(id);
+      console.log(`[config] Auto-added bundled MCP to defaultMcps: ${id}`);
+    }
+  }
+
   // Defaults
   config.service = config.service ?? { logLevel: "info" };
   config.service.logLevel = config.service.logLevel ?? "info";

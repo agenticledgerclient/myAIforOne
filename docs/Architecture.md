@@ -337,6 +337,52 @@ MCP servers are registered once in the top-level `mcps` block of `config.json`, 
 
 Since everything runs locally on your Mac, stdio MCPs (local processes like context7, playwright) and HTTP/SSE MCPs (remote servers like granola) both work.
 
+### Platform-Local MCPs
+
+Two MCP servers ship with the platform and are auto-registered on every install.
+
+#### `myaiforone-local`
+
+The gateway's own MCP server. Exposes the full platform API as tools — agents, tasks, projects, orgs, skills, memory, channels, crons, goals, apps, and more. Registered in `config.json` pointing to `server/mcp-server/dist/index.js`. Requires `MYAGENT_API_URL` env var pointing to the running gateway (default: `http://localhost:4888`).
+
+Assign it to agents that need to manage the platform (e.g., the hub agent, `@agentcreator`). Not auto-assigned to all agents — add it per-agent via the MCPs tab or `mcps` array in config.
+
+Full tool list: see `docs/platform-mcp-audit.md` or the MCP Tools doc linked from Admin → Docs.
+
+---
+
+#### `aiforone_computeruse`
+
+Cross-platform computer control MCP. Lets agents see the screen, move the mouse, type, press keys, scroll, and open applications — on macOS, Windows, and Linux. Ships as `mcps/aiforone_computeruse/server.js`, installed silently via the `postinstall` hook when you run `npm install`.
+
+Added to `defaultMcps` — every agent gets it automatically.
+
+**Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `computer_screenshot` | Capture the screen. Returns a base64 PNG the agent can see inline. |
+| `computer_get_info` | Screen width, height, and platform. Call before clicking to understand coordinate space. |
+| `computer_check_permissions` | Verify accessibility permission is granted (macOS). Returns fix instructions if not. |
+| `computer_click` | Left/right/middle click at (x, y). |
+| `computer_double_click` | Double-click at (x, y). |
+| `computer_move` | Move cursor to (x, y) without clicking. |
+| `computer_scroll` | Scroll up/down/left/right at (x, y). |
+| `computer_type` | Type text at the current cursor position. |
+| `computer_key` | Press a key or combo: `enter`, `tab`, `cmd+c`, `ctrl+v`, `alt+tab`, etc. |
+| `computer_open` | Launch an application by name (cross-platform). |
+
+**Agent loop pattern:**
+```
+computer_screenshot() → see screen → computer_click(x,y) / computer_type(text) → computer_screenshot() → confirm
+```
+
+**macOS first-run:** On first use, `computer_check_permissions` detects whether Accessibility is granted. If not, the agent tells the user exactly where to grant it (System Settings → Privacy & Security → Accessibility). One-time setup, then it works forever.
+
+**Windows:** No permissions required — works out of the box.
+
+**Dependencies:** `@nut-tree-fork/nut-js` (native bindings, installed automatically). Screenshots use platform-native commands (`screencapture` on macOS, PowerShell on Windows, `scrot`/ImageMagick on Linux).
+
 ## Web UI — MyAgent
 
 Two pages served by the built-in Express server:

@@ -705,6 +705,18 @@ const TOOLS = [
 
   // AI Gym — Digest
   {cat:"AI Gym",name:"run_gym_digest",desc:"Manually trigger the activity digest (analyzes all activity, scores dimensions, generates cards)",params:[]},
+
+  // Computer Use (aiforone_computeruse MCP)
+  {cat:"Computer",name:"computer_screenshot",desc:"Capture the screen and return a base64 PNG image the agent can see inline. Use this to orient before clicking.",params:[]},
+  {cat:"Computer",name:"computer_get_info",desc:"Get screen width, height, and platform. Call before clicking to understand coordinate space.",params:[]},
+  {cat:"Computer",name:"computer_check_permissions",desc:"Verify the agent has accessibility permission to control the computer (macOS). Returns exact fix instructions if not granted. Windows/Linux always return ok.",params:[]},
+  {cat:"Computer",name:"computer_click",desc:"Click at screen coordinates. Take a screenshot first to identify the target.",params:[{n:"x",t:"number",r:true,d:"X coordinate in logical pixels"},{n:"y",t:"number",r:true,d:"Y coordinate in logical pixels"},{n:"button",t:"string",r:false,d:"Mouse button: left (default), right, or middle"}]},
+  {cat:"Computer",name:"computer_double_click",desc:"Double-click at screen coordinates.",params:[{n:"x",t:"number",r:true,d:"X coordinate in logical pixels"},{n:"y",t:"number",r:true,d:"Y coordinate in logical pixels"}]},
+  {cat:"Computer",name:"computer_move",desc:"Move the mouse cursor to coordinates without clicking.",params:[{n:"x",t:"number",r:true,d:"X coordinate"},{n:"y",t:"number",r:true,d:"Y coordinate"}]},
+  {cat:"Computer",name:"computer_scroll",desc:"Scroll at screen coordinates in a direction.",params:[{n:"x",t:"number",r:true,d:"X coordinate to scroll at"},{n:"y",t:"number",r:true,d:"Y coordinate to scroll at"},{n:"direction",t:"string",r:true,d:"Direction: up, down, left, or right"},{n:"amount",t:"number",r:false,d:"Number of scroll clicks (default: 3)"}]},
+  {cat:"Computer",name:"computer_type",desc:"Type text at the current cursor position. Click a text field first.",params:[{n:"text",t:"string",r:true,d:"Text to type"}]},
+  {cat:"Computer",name:"computer_key",desc:"Press a key or keyboard shortcut. Examples: enter, tab, escape, cmd+c, ctrl+v, ctrl+z, alt+tab.",params:[{n:"key",t:"string",r:true,d:"Key or combo using + separator. Modifiers: ctrl/cmd/alt/shift. Special keys: enter, tab, escape, space, backspace, delete, up, down, left, right, home, end, pageup, pagedown, f1-f12"}]},
+  {cat:"Computer",name:"computer_open",desc:"Open an application by name. Cross-platform: macOS, Windows, and Linux.",params:[{n:"app",t:"string",r:true,d:"App name. macOS: Spotify, Google Chrome, Terminal. Windows: notepad, calc, chrome.exe. Linux: firefox, gedit."}]},
 ];
 
 // ═══ STATE ═══════════════════════════════════════════════════════════

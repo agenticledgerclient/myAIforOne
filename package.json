@@ -25,6 +25,8 @@
     "!agents/platform/*/FileStorage/",
     "config.example.json",
     "mcp-catalog.json",
+    "mcps/",
+    "!mcps/*/node_modules/",
     "registry/",
     "scripts/",
     "docs/",
@@ -32,6 +34,7 @@
     "README.md"
   ],
   "scripts": {
+    "postinstall": "node scripts/install-mcps.js",
     "prepublishOnly": "npm run build",
     "build": "tsc && tsc -p server/mcp-server/tsconfig.json",
     "start": "node dist/index.js",

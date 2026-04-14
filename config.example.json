@@ -87,6 +87,12 @@
       "headers": { "Authorization": "Bearer ${AIGYM_API_KEY}" }
     },
 
+    "aiforone_computeruse": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./mcps/aiforone_computeruse/server.js"]
+    },
+
     "_comment_optional_mcps": "Optional MCPs below — add API keys for the services you use. Agents reference these by name in their mcps array.",
 
     "finney": {
@@ -318,7 +324,7 @@
     "sop_webartifactsbuilder",
     "sop_xlsx"
   ],
-  "defaultMcps": [],
+  "defaultMcps": ["aiforone_computeruse"],
   "deployment": {
     "provider": "railway",
     "deployToken": "",
