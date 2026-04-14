@@ -519,7 +519,7 @@ async function executeParallel(
       const memoryDir = agentConfig.memoryDir?.startsWith("~")
         ? agentConfig.memoryDir.replace("~", home) : agentConfig.memoryDir;
       const mcpConfigPath = buildMcpConfigFile(`parallel-${Date.now()}`, agentConfig.mcps, mcpRegistry, baseDir, memoryDir);
-      args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
+      args.push("--mcp-config", mcpConfigPath);
     }
 
     // Use bypassPermissions when agent has MCPs (headless can't approve MCP tool prompts)
@@ -1331,7 +1331,7 @@ Rules:
   let mcpConfigPath: string | null = null;
   if (effectiveMcps.length > 0 && mcpRegistry) {
     mcpConfigPath = buildMcpConfigFile(agentId, effectiveMcps, mcpRegistry, baseDir, memoryDir);
-    args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
+    args.push("--mcp-config", mcpConfigPath);
     log.debug(`MCP config for ${agentId}: ${mcpConfigPath} (servers: ${effectiveMcps.join(", ")})`);
   }
 
@@ -1947,7 +1947,7 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
   let mcpConfigPath: string | null = null;
   if (effectiveMcps.length > 0 && mcpRegistry) {
     mcpConfigPath = buildMcpConfigFile(agentId, effectiveMcps, mcpRegistry, baseDir, memoryDir);
-    args.push("--mcp-config", mcpConfigPath, "--strict-mcp-config");
+    args.push("--mcp-config", mcpConfigPath);
   }
 
   if (isPersistent) args.push("--permission-mode", effectiveMcps.length ? "bypassPermissions" : "acceptEdits");
