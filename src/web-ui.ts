@@ -5327,17 +5327,42 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       }
 
       if (isManagedService) {
-        // Update the global package so the service restarts with the new version
+        // Try to update the global package so the service manager restarts with new version
         log.info(`[Update] Managed service detected (${platform}) — running npm install -g myaiforone@latest`);
+        let globalUpdateOk = false;
         try {
           execSync("npm install -g myaiforone@latest", { timeout: 120_000, stdio: "ignore" });
           log.info("[Update] Global install updated successfully");
+          globalUpdateOk = true;
         } catch (installErr: any) {
-          log.warn(`[Update] Global install failed (continuing): ${installErr.message}`);
+          log.warn(`[Update] Global install failed: ${installErr.message}`);
         }
-        res.json({ ok: true, message: "Updated. Service will restart automatically..." });
-        // Just exit — launchd / Task Scheduler will restart with the updated package
-        setTimeout(() => process.exit(0), 1000);
+
+        if (globalUpdateOk) {
+          res.json({ ok: true, message: "Updated. Service will restart automatically..." });
+          // Just exit — launchd / Task Scheduler will restart with the updated package
+          setTimeout(() => process.exit(0), 1000);
+        } else if (isMacService) {
+          // Permissions issue — unload launchd so it doesn't restart the old version,
+          // then spawn npx to pull and run the latest
+          res.json({ ok: true, message: "Updating via npx (run `sudo npm install -g myaiforone@latest` in Terminal for faster updates)..." });
+          setTimeout(() => {
+            log.info("[Update] Unloading launchd service before npx spawn...");
+            try { execSync(`launchctl unload "${launchdPlist}"`, { timeout: 5_000, stdio: "ignore" }); } catch {}
+            const child = cpSpawn("npx", ["myaiforone@latest"], {
+              cwd: process.cwd(),
+              env: { ...process.env },
+              stdio: "ignore",
+              detached: true,
+              shell: true,
+            });
+            child.unref();
+            process.exit(0);
+          }, 1000);
+        } else {
+          // Windows with no write access — nothing we can do automatically
+          res.json({ ok: false, message: "Update failed: permission denied. Run `npm install -g myaiforone@latest` as Administrator." });
+        }
       } else {
         // Running via npx or direct node — clear cache and spawn new process
         res.json({ ok: true, message: "Clearing cache and restarting with latest version..." });
