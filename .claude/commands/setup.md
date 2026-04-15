@@ -46,6 +46,8 @@ Check these prerequisites. If any fail, help the user fix them before continuing
 
 Note: Claude Code CLI is already proven to work — the user is running this wizard inside it. No need to check.
 
+**Claude is optional.** If the user says they won't use Claude (they plan to use Venice, Ollama, or another provider), skip any Claude auth steps and continue. They can add provider API keys in Admin → Settings after setup.
+
 Detect platform via `process.platform` (darwin = Mac, win32 = Windows, linux = Linux).
 
 After checks pass, print:

@@ -92,6 +92,32 @@ sudo npx myaiforone
 
 The user just follows the prompts. When the browser opens with the MyAIforOne dashboard, they're done with installation.
 
+#### If Claude auth shows a link + code instead of opening a browser (common on Windows)
+
+Claude Code has two auth modes. On some Windows machines it won't auto-open Chrome — instead it prints a URL and asks for a code. This is normal. Tell the user:
+
+```
+Claude is asking you to authorize it. Here's what to do:
+
+1. Copy the URL it printed and open it in your browser
+2. Log in to your Anthropic account and approve access
+3. Anthropic will show you a short code — copy it
+4. Paste the code back into the terminal and press Enter
+```
+
+#### Claude is optional — you can skip it
+
+If the user doesn't plan to use Claude (they'll use Venice, Ollama, or another model), they can skip the Claude auth step entirely. Tell them:
+
+```
+If you're not planning to use Claude, you can skip this step.
+
+After setup, go to Admin → Settings → Provider Keys and add your Venice
+or other API key. Then set your preferred model as the Platform Default Executor.
+```
+
+The app works without Claude. Only Claude-based agents require a Claude account.
+
 ---
 
 ### Step 3: Activate Your License
