@@ -5375,6 +5375,44 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }
   });
 
+  // POST /api/open-terminal — open a system terminal with a pre-loaded command
+  app.post("/api/open-terminal", (req, res) => {
+    const { command } = req.body as { command?: string };
+    if (!command?.trim()) return res.status(400).json({ error: "command required" });
+    const platform = process.platform;
+    try {
+      if (platform === "darwin") {
+        // Open Terminal.app with the command pre-loaded (doesn't auto-run, user presses Enter)
+        const escaped = command.replace(/'/g, "'\\''");
+        cpSpawn("osascript", [
+          "-e", `tell application "Terminal" to do script "${escaped}"`,
+          "-e", `tell application "Terminal" to activate`,
+        ], { stdio: "ignore" }).unref();
+      } else if (platform === "win32") {
+        cpSpawn("cmd.exe", ["/c", "start", "cmd.exe", "/k", command], {
+          stdio: "ignore", detached: true, shell: false,
+        }).unref();
+      } else {
+        // Linux: try common terminal emulators
+        const terminals = ["gnome-terminal", "xterm", "konsole", "xfce4-terminal"];
+        let launched = false;
+        for (const term of terminals) {
+          try {
+            cpSpawn(term, ["--", "bash", "-c", `${command}; exec bash`], {
+              stdio: "ignore", detached: true,
+            }).unref();
+            launched = true;
+            break;
+          } catch { continue; }
+        }
+        if (!launched) return res.status(500).json({ error: "No terminal emulator found. Run the command manually." });
+      }
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── API: Skills ────────────────────────────────────────────────────
 
   // GET /api/agents/:agentId/skills — list all skills available to an agent

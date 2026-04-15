@@ -698,11 +698,11 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
     </div>
   </div>
 
-  <!-- ═══════════════════════════ DOCS TAB ═══════════════════════════ -->
+  <!-- ═══════════════════════════ UPDATES TAB ═══════════════════════════ -->
   <div class="tab-panel" id="panel-updates">
     <div class="docs-page">
       <div class="page-title">Platform Updates</div>
-      <div class="page-subtitle">Check for new versions and update MyAIforOne with one click.</div>
+      <div class="page-subtitle">Check for new versions of MyAIforOne.</div>
       <div class="section" style="margin-top:24px">
         <div class="section-header" style="padding:16px 20px;display:flex;align-items:center;gap:10px">
           <span style="font-size:18px">&#x2B06;</span>
@@ -719,27 +719,33 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
               <span id="latestVersion" style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-primary)">--</span>
             </div>
             <div id="updateBadge" style="display:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600"></div>
-            <div style="display:flex;gap:10px;margin-top:8px">
+            <div style="display:flex;gap:10px;margin-top:4px">
               <button onclick="checkForUpdates()" id="checkBtn" style="font-family:var(--font-sans);font-size:13px;font-weight:600;padding:8px 20px;border-radius:8px;border:1px solid var(--border-glow);background:var(--bg-input);color:var(--text-primary);cursor:pointer;transition:all .2s">Check for Updates</button>
-              <button onclick="applyUpdate()" id="updateBtn" style="display:none;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:8px 20px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;transition:all .2s">Update Now</button>
             </div>
-            <div id="updateLog" style="display:none;margin-top:12px;padding:12px 16px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border-dim);font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);white-space:pre-wrap"></div>
           </div>
         </div>
       </div>
-      <div class="section" style="margin-top:16px">
+
+      <!-- Update instructions panel — shown when update is available -->
+      <div class="section" id="updateStepsSection" style="margin-top:16px;display:none">
         <div class="section-header" style="padding:16px 20px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:18px">&#x2139;</span>
-          <span style="font-weight:700;font-size:14px">How Updates Work</span>
+          <span style="font-size:18px">&#x1F4BB;</span>
+          <span style="font-weight:700;font-size:14px">How to Update</span>
         </div>
-        <div class="section-body" style="padding:20px;font-size:13px;color:var(--text-secondary);line-height:1.7">
-          <p>Clicking <strong style="color:var(--text-primary)">Update Now</strong> will:</p>
-          <ol style="margin:10px 0 0 20px">
-            <li>Clear the local npm/npx cache for MyAIforOne</li>
-            <li>Restart the service, pulling the latest version from npm</li>
-            <li>The page will reconnect automatically once the new version is running</li>
+        <div class="section-body" style="padding:20px;font-size:13px;color:var(--text-secondary);line-height:1.8">
+          <p style="color:var(--text-primary);font-weight:600;margin-bottom:12px">Open a terminal and run this command:</p>
+          <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:12px 16px;margin-bottom:16px">
+            <code id="updateCmd" style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent);flex:1">npx myaiforone@latest</code>
+            <button onclick="copyUpdateCmd()" style="font-family:var(--font-sans);font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;border:1px solid var(--border-glow);background:var(--bg-card);color:var(--text-primary);cursor:pointer;white-space:nowrap;transition:all .2s" id="copyCmdBtn">Copy</button>
+            <button onclick="openTerminal()" style="font-family:var(--font-sans);font-size:12px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;white-space:nowrap;transition:all .2s" id="openTermBtn">Open Terminal</button>
+          </div>
+          <ol style="margin:0 0 0 18px;color:var(--text-secondary)">
+            <li>Click <strong style="color:var(--text-primary)">Open Terminal</strong> — it will open a terminal window with the command ready</li>
+            <li>Press <strong style="color:var(--text-primary)">Enter</strong> to run it</li>
+            <li>The service will restart with the new version — come back to this page after</li>
           </ol>
-          <p style="margin-top:12px;color:var(--text-muted)">You can also update manually from the command line: <code style="font-family:var(--font-mono);color:var(--accent)">npx myaiforone@latest</code></p>
+          <p style="margin-top:12px;color:var(--text-muted);font-size:12px">Or click <strong>Copy</strong> and paste into any terminal window yourself.</p>
+          <div id="openTermStatus" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
         </div>
       </div>
     </div>
@@ -855,8 +861,6 @@ function switchTab(name) {
 async function checkForUpdates() {
   const checkBtn = document.getElementById('checkBtn');
   const badge = document.getElementById('updateBadge');
-  const updateBtn = document.getElementById('updateBtn');
-  const logEl = document.getElementById('updateLog');
   checkBtn.textContent = 'Checking...';
   checkBtn.disabled = true;
   try {
@@ -870,16 +874,15 @@ async function checkForUpdates() {
       badge.style.color = 'var(--accent)';
       badge.style.border = '1px solid var(--border-active)';
       badge.textContent = 'Update available: v' + d.current + ' \u2192 v' + d.latest;
-      updateBtn.style.display = 'inline-block';
+      document.getElementById('updateStepsSection').style.display = 'block';
     } else {
       badge.style.display = 'block';
       badge.style.background = 'var(--green-bg)';
       badge.style.color = 'var(--green)';
       badge.style.border = '1px solid rgba(74,222,128,0.25)';
       badge.textContent = 'You are running the latest version.';
-      updateBtn.style.display = 'none';
+      document.getElementById('updateStepsSection').style.display = 'none';
     }
-    logEl.style.display = 'none';
   } catch (e) {
     badge.style.display = 'block';
     badge.style.background = 'var(--red-bg)';
@@ -891,16 +894,49 @@ async function checkForUpdates() {
   checkBtn.disabled = false;
 }
 
+async function copyUpdateCmd() {
+  const cmd = document.getElementById('updateCmd').textContent;
+  try {
+    await navigator.clipboard.writeText(cmd);
+    const btn = document.getElementById('copyCmdBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  } catch { showToast('Copy failed — select the command manually', 'err'); }
+}
+
+async function openTerminal() {
+  const cmd = document.getElementById('updateCmd').textContent;
+  const btn = document.getElementById('openTermBtn');
+  const status = document.getElementById('openTermStatus');
+  btn.disabled = true; btn.textContent = 'Opening...';
+  status.textContent = '';
+  try {
+    const res = await fetch('/api/open-terminal', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ command: cmd })
+    });
+    const d = await res.json();
+    if (d.ok) {
+      status.style.color = 'var(--green)';
+      status.textContent = 'Terminal opened. Press Enter to run the command, then come back here after the service restarts.';
+    } else {
+      status.style.color = 'var(--red)';
+      status.textContent = d.error || 'Could not open terminal. Copy the command and paste it manually.';
+    }
+  } catch (e) {
+    status.style.color = 'var(--red)';
+    status.textContent = 'Could not open terminal: ' + e.message;
+  }
+  btn.disabled = false; btn.textContent = 'Open Terminal';
+}
+
+// kept for backwards compat but no longer called from UI
 async function applyUpdate() {
   const latest = document.getElementById('latestVersion').textContent;
   if (!confirm('Update MyAIforOne to ' + latest + '?\n\nThe service will restart and be briefly unavailable.')) return;
-  const updateBtn = document.getElementById('updateBtn');
-  const logEl = document.getElementById('updateLog');
-  const badge = document.getElementById('updateBadge');
-  updateBtn.disabled = true;
-  updateBtn.textContent = 'Updating...';
+  const logEl = document.getElementById('updateLog') || document.createElement('div');
   logEl.style.display = 'block';
-  logEl.textContent = 'Clearing cache and restarting with latest version...\n';
+  logEl.textContent = 'Starting update...\n';
   try {
     const r = await fetch('/api/update', { method: 'POST' });
     const d = await r.json();
@@ -928,8 +964,6 @@ async function applyUpdate() {
         if (attempts > 30) {
           clearInterval(poll);
           logEl.textContent += '\nService did not come back after 60s. Check manually.';
-          updateBtn.textContent = 'Update Now';
-          updateBtn.disabled = false;
         } else {
           logEl.textContent += '.';
         }
@@ -937,8 +971,6 @@ async function applyUpdate() {
     }, 2000);
   } catch (e) {
     logEl.textContent += 'Error: ' + e.message;
-    updateBtn.textContent = 'Update Now';
-    updateBtn.disabled = false;
   }
 }
 
