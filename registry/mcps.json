@@ -503,24 +503,19 @@
     {
       "id": "granola",
       "name": "Granola",
-      "provider": "AgenticLedger",
-      "description": "Meeting notes — transcripts, summaries, action items",
+      "provider": "Granola",
+      "description": "Meeting notes — search transcripts, get summaries, pull action items from your Granola meetings. Requires Business or Enterprise plan. Uses OAuth on first connect.",
       "category": "productivity",
       "verified": true,
-      "source": "agenticledger/platform",
+      "source": "granola-ai/mcp",
       "tags": [
-        "productivity"
+        "productivity",
+        "meetings"
       ],
-      "requiredKeys": [
-        {
-          "env": "GRANOLA_API_KEY",
-          "label": "Granola API Key",
-          "hint": "API key from Granola settings"
-        }
-      ],
+      "requiredKeys": [],
       "fetch": {
         "type": "http",
-        "url": "https://granolamcp.agenticledger.ai/mcp"
+        "url": "https://mcp.granola.ai/mcp"
       }
     },
     {
