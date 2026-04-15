@@ -160,6 +160,21 @@ function checkNode() {
 async function checkClaude() {
   printChecklist();
 
+  // Claude is optional — users on Venice, Ollama, or other providers can skip it.
+  console.log('  Claude Code CLI is used to run AI agents locally.');
+  console.log('  If you plan to use Venice, Ollama, or another provider instead,');
+  console.log('  you can skip this step and add your API key in Admin → Settings later.');
+  console.log('');
+  const useClaudeAnswer = await ask('  Set up Claude Code CLI? (y/n, default: y) ');
+  if (useClaudeAnswer.toLowerCase() === 'n') {
+    console.log('');
+    console.log('  Skipping Claude setup. You can add provider API keys in Admin → Settings after install.');
+    console.log('');
+    stepDone('Claude Code CLI (skipped — using another provider)');
+    return;
+  }
+  console.log('');
+
   const version = run('claude --version', { silent: true });
   if (version) {
     // Check auth
@@ -170,19 +185,7 @@ async function checkClaude() {
     }
 
     console.log('  Claude Code CLI is installed but not authenticated.');
-    console.log('  Running: claude auth login');
-    console.log('  A browser window will open — sign in with your Anthropic account.');
-    console.log('');
-
-    try {
-      execSync('claude auth login', { stdio: 'inherit' });
-    } catch {
-      fail(1,
-        'Claude Code authentication failed.',
-        'Run "claude auth login" manually. You need a Claude Pro/Max subscription or an Anthropic API key.'
-      );
-    }
-
+    await runClaudeAuth(1);
     stepDone(`Claude Code CLI ${version} (authenticated)`);
     return;
   }
@@ -204,21 +207,30 @@ async function checkClaude() {
   const newVersion = run('claude --version', { silent: true }) || 'installed';
   console.log(`  Installed Claude Code CLI ${newVersion}`);
   console.log('');
-  console.log('  Now we need to log you in.');
+  await runClaudeAuth(1);
+  stepDone(`Claude Code CLI ${newVersion} (authenticated)`);
+}
+
+async function runClaudeAuth(stepIndex) {
   console.log('  Running: claude auth login');
-  console.log('  A browser window will open — sign in with your Anthropic account.');
+  console.log('');
+  console.log('  This will either:');
+  console.log('    A) Open a browser window automatically — just sign in and come back');
+  console.log('    B) Print a URL + ask for a code (common on Windows):');
+  console.log('       1. Copy the URL and open it in your browser');
+  console.log('       2. Sign in and approve access');
+  console.log('       3. Copy the short code Anthropic shows you');
+  console.log('       4. Paste it back here and press Enter');
   console.log('');
 
   try {
     execSync('claude auth login', { stdio: 'inherit' });
   } catch {
-    fail(1,
+    fail(stepIndex,
       'Claude Code authentication failed.',
-      'Run "claude auth login" manually. You need a Claude Pro/Max subscription or an Anthropic API key.'
+      'Run "claude auth login" manually, or re-run the installer and choose "n" to skip Claude and use another provider.'
     );
   }
-
-  stepDone(`Claude Code CLI ${newVersion} (authenticated)`);
 }
 
 // ── Step 2: Install dependencies ─────────────────────────────────────────────
