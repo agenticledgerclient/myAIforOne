@@ -509,15 +509,25 @@ function startAndOpen() {
         console.log('  ✅ Menu bar indicator installed (xbar)');
       }
     } else if (IS_WIN) {
-      // Launch PowerShell tray app hidden
+      // Copy tray script to a stable data-dir location so it survives npx cache
+      // updates, then register it in the Windows registry auto-start so it
+      // comes back after every reboot.
       const trayScript = join(PROJECT_ROOT, 'scripts', 'tray-indicator.ps1');
       if (existsSync(trayScript)) {
-        const tray = spawn('powershell', ['-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', trayScript], {
+        mkdirSync(DATA_DIR, { recursive: true });
+        const stableTray = join(DATA_DIR, 'tray-indicator.ps1');
+        try { copyFileSync(trayScript, stableTray); } catch { /* non-critical */ }
+        const launchPath = existsSync(stableTray) ? stableTray : trayScript;
+        const launchPathEsc = launchPath.replace(/\\/g, '\\\\');
+        // Register in auto-start so it persists across reboots
+        run(`powershell -Command "Set-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run' -Name 'MyAIforOneTray' -Value 'powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File \\"${launchPathEsc}\\"'"`, { silent: true });
+        // Launch now
+        const tray = spawn('powershell', ['-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', launchPath], {
           detached: true,
           stdio: 'ignore',
         });
         tray.unref();
-        console.log('  ✅ System tray indicator launched');
+        console.log('  ✅ System tray indicator launched (auto-starts on login)');
       }
     }
   } catch {

@@ -42,31 +42,17 @@ function Get-ServiceRunning {
 }
 
 function Start-ServiceProcess {
-    # Try scheduled task first
+    # Try scheduled task first (for users who ran install-service-windows.ps1)
     schtasks /Run /TN $taskName 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) { return }
 
-    # Fallback: direct spawn via node
+    # Fallback: launch via npx — always fetches the right version regardless of
+    # cache location (works for all npx-based installs and after updates)
     $dataDir = Join-Path $env:APPDATA "MyAIforOneGateway"
-
-    # Check for dev install (project dist/index.js)
-    $scriptDir = Split-Path -Parent $PSCommandPath
-    $projectIndex = Join-Path (Split-Path -Parent $scriptDir) "dist\index.js"
-    if (Test-Path $projectIndex) {
-        $env:MYAGENT_DATA_DIR = $dataDir
-        Start-Process -FilePath "node" -ArgumentList "`"$projectIndex`"" -WorkingDirectory (Split-Path -Parent $scriptDir) -WindowStyle Hidden
-        return
-    }
-
-    # Check for npx install
-    $npxCache = Get-ChildItem "$env:LOCALAPPDATA\npm-cache\_npx" -Directory -ErrorAction SilentlyContinue |
-        Where-Object { Test-Path (Join-Path $_.FullName "node_modules\myaiforone\dist\index.js") } |
-        Select-Object -First 1
-    if ($npxCache) {
-        $indexJs = Join-Path $npxCache.FullName "node_modules\myaiforone\dist\index.js"
-        $env:MYAGENT_DATA_DIR = $dataDir
-        Start-Process -FilePath "node" -ArgumentList "`"$indexJs`"" -WindowStyle Hidden
-    }
+    $env:MYAGENT_DATA_DIR = $dataDir
+    Start-Process -FilePath "powershell" `
+        -ArgumentList "-WindowStyle Hidden -ExecutionPolicy Bypass -Command `"npx myaiforone@latest`"" `
+        -WindowStyle Hidden
 }
 
 function Stop-ServiceProcess {
