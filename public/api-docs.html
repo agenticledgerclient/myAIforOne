@@ -334,6 +334,7 @@ const CATALOG = [
   { cat: "Channels", method: "DELETE", path: "/api/channels/:channelName/agents/:agentId", summary: "Remove agent route from channel", params: [{ name: "channelName", in: "path", type: "string", required: true }, { name: "agentId", in: "path", type: "string", required: true }] },
   { cat: "Channels", method: "POST", path: "/api/channels/:channelName/monitored", summary: "Add monitored chat to channel", params: [{ name: "channelName", in: "path", type: "string", required: true }], body: { chatId: { type: "string", required: true } } },
   { cat: "Channels", method: "DELETE", path: "/api/channels/:channelName/monitored", summary: "Remove monitored chat", params: [{ name: "channelName", in: "path", type: "string", required: true }], body: { chatId: { type: "string", required: true } } },
+  { cat: "Channels", method: "POST", path: "/api/channels/:channelName/credentials", summary: "Set channel authentication credentials (tokens, keys). Auto-enables the channel.", params: [{ name: "channelName", in: "path", type: "string", required: true }], body: { token: { type: "string", desc: "Bot token (Telegram, Slack, Discord)" }, apiKey: { type: "string", desc: "API key if applicable" } } },
   { cat: "Channels", method: "GET", path: "/api/sticky-routing", summary: "Get sticky routing config for all channels" },
 
   // -- Marketplace / Registry --
@@ -428,6 +429,10 @@ const CATALOG = [
   { cat: "AI Gym", method: "POST", path: "/api/gym/guides", summary: "Create a coach-generated guide from a training session", body: { title: { type: "string", required: true }, description: { type: "string" }, difficulty: { type: "string" }, dimensions: { type: "array" }, estimatedTime: { type: "string" }, modules: { type: "array" }, content: { type: "string" } } },
   { cat: "AI Gym", method: "GET", path: "/api/gym/insights", summary: "Get pre-computed AI insights (generated weekly by the gym goal). Used by 'You tell me' mode." },
   { cat: "AI Gym", method: "POST", path: "/api/gym/insights", summary: "Save AI-generated insights from weekly analysis", body: { insights: { type: "array", required: true, desc: "Array of { title, description, dimension?, agentId? }" }, topRecommendation: { type: "string", desc: "Single best recommendation" }, summary: { type: "string", desc: "Brief summary of observations" } } },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/insights/:id/dismiss", summary: "Dismiss a specific AI insight by ID", params: [{ name: "id", in: "path", type: "string", required: true }] },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/insights/reset-dismissed", summary: "Reset all dismissed insights (make them visible again)" },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/insights/generate", summary: "Trigger on-demand AI insights generation (analyzes agent activity and produces insights)" },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/cards/:id/dismiss", summary: "Dismiss a gym card by ID (alias for DELETE /api/gym/cards/:id)", params: [{ name: "id", in: "path", type: "string", required: true }] },
 
   // -- Session Tabs --
   { cat: "Sessions", method: "GET", path: "/api/agents/:agentId/session-tabs", summary: "List all named session tabs (includes closed, with last message preview)", params: [{ name: "agentId", in: "path", type: "string", required: true }] },
@@ -456,6 +461,11 @@ const CATALOG = [
   // -- Config (continued) --
   { cat: "Config", method: "POST", path: "/api/config/provider-test", summary: "Test an API key for a cloud provider", body: { provider: { type: "string", required: true, desc: "openai | grok | gemini | groq | together | mistral" } } },
   { cat: "Config", method: "POST", path: "/api/restart", summary: "Restart the MyAgent gateway service" },
+  { cat: "Config", method: "POST", path: "/api/shutdown", summary: "Shut down the MyAgent gateway service" },
+  { cat: "Config", method: "GET", path: "/api/version", summary: "Get current platform version and check if an update is available", response: "{ version, latestVersion, updateAvailable }" },
+  { cat: "Config", method: "POST", path: "/api/update", summary: "Pull and apply the latest platform update (runs git pull + npm install + rebuild)" },
+  { cat: "Config", method: "GET", path: "/api/license", summary: "Get current license status (key, org, expiry, valid flag)", response: "{ valid, key, org, expiry }" },
+  { cat: "Config", method: "POST", path: "/api/license/check", summary: "Verify a license key against the licensing server", body: { licenseKey: { type: "string", required: true, desc: "License key in format MA1-xxxxxxxx-..." } } },
 
   // -- Utility --
   { cat: "Utility", method: "POST", path: "/api/open-folder", summary: "Open a folder in Finder (macOS), Explorer (Windows), or xdg-open (Linux)", body: { path: { type: "string", required: true, desc: "Absolute or ~ path to open" } } },
@@ -543,6 +553,7 @@ const TOOLS = [
   // Channels
   {cat:"Channels",name:"list_channels",desc:"List all messaging channels with config and routes",params:[]},
   {cat:"Channels",name:"update_channel",desc:"Update channel settings (sticky routing, enabled)",params:[{n:"channelName",t:"string",r:true},{n:"enabled",t:"boolean",r:false},{n:"stickyRouting",t:"enum",r:false,d:"none | sticky | prefix"},{n:"stickyPrefix",t:"string",r:false},{n:"stickyTimeoutMs",t:"number",r:false}]},
+  {cat:"Channels",name:"set_channel_credentials",desc:"Set channel authentication credentials (tokens, keys). Auto-enables the channel. After calling, tell the user to go to Admin → Settings and click Restart.",params:[{n:"channelName",t:"string",r:true,d:"Channel name (telegram, slack, discord, whatsapp, imessage)"},{n:"token",t:"string",r:false,d:"Bot token (Telegram, Slack, Discord)"},{n:"apiKey",t:"string",r:false,d:"API key if applicable"}]},
   {cat:"Channels",name:"add_agent_route",desc:"Add an agent route to a channel",params:[{n:"channelName",t:"string",r:true},{n:"agentId",t:"string",r:true},{n:"chatId",t:"string",r:true},{n:"requireMention",t:"boolean",r:false},{n:"allowFrom",t:"string[]",r:false}]},
   {cat:"Channels",name:"remove_agent_route",desc:"Remove an agent's route from a channel",params:[{n:"channelName",t:"string",r:true},{n:"agentId",t:"string",r:true}]},
   {cat:"Channels",name:"add_monitored_chat",desc:"Add a monitored chat ID",params:[{n:"channelName",t:"string",r:true},{n:"chatId",t:"string",r:true}]},
@@ -705,6 +716,10 @@ const TOOLS = [
 
   // AI Gym — Digest
   {cat:"AI Gym",name:"run_gym_digest",desc:"Manually trigger the activity digest (analyzes all activity, scores dimensions, generates cards)",params:[]},
+
+  // AI Gym — Insights
+  {cat:"AI Gym",name:"get_gym_insights",desc:"Get pre-computed AI insights (generated weekly by the gym goal). Used by 'You tell me' mode.",params:[]},
+  {cat:"AI Gym",name:"save_gym_insights",desc:"Save AI-generated insights from weekly analysis. Called by the weekly-insight goal after analyzing activity.",params:[{n:"insights",t:"array",r:true,d:"Array of { title, description, dimension?, agentId? }"},{n:"topRecommendation",t:"string",r:false,d:"Single best recommendation"},{n:"summary",t:"string",r:false,d:"Brief summary of observations"}]},
 
   // Computer Use (aiforone_computeruse MCP)
   {cat:"Computer",name:"computer_screenshot",desc:"Capture the screen and return a base64 PNG image the agent can see inline. Use this to orient before clicking.",params:[]},

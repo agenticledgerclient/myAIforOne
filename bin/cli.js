@@ -199,11 +199,26 @@ async function runClaudeAuth(version) {
   console.log('');
   console.log('  This will either:');
   console.log('    A) Open a browser window automatically — just sign in and come back');
-  console.log('    B) Show a URL + ask for a code (common on Windows):');
-  console.log('       1. Copy the URL and open it in your browser');
-  console.log('       2. Sign in and approve access');
-  console.log('       3. Copy the short code shown and paste it back here');
+  console.log('    B) Show a URL + code — copy the URL, open it, sign in, paste the code back');
   console.log('');
+
+  if (IS_WINDOWS) {
+    // On Windows, the code-paste prompt can get stuck. Give it 60 seconds —
+    // enough for the browser auto-open flow to complete. If stuck, times out
+    // and setup continues. User can run "claude auth login" later in a fresh terminal.
+    console.log('  (Windows: 60 second time limit — setup will continue automatically if not done)');
+    console.log('');
+    try {
+      execSync('claude auth login', { stdio: 'inherit', timeout: 60_000 });
+      stepDone(`Claude Code CLI ${version} (authenticated)`);
+    } catch {
+      console.log('');
+      console.log('  Authentication did not complete. You can run "claude auth login" in a new terminal later.');
+      console.log('');
+      stepDone('Claude Code CLI (skipped auth — run "claude auth login" later)');
+    }
+    return;
+  }
 
   let authenticated = false;
   while (!authenticated) {

@@ -194,6 +194,7 @@ const TOOLS = [
   // Channels
   {cat:"Channels",name:"list_channels",desc:"List all messaging channels with config and routes",params:[]},
   {cat:"Channels",name:"update_channel",desc:"Update channel settings (sticky routing, enabled)",params:[{n:"channelName",t:"string",r:true},{n:"enabled",t:"boolean",r:false},{n:"stickyRouting",t:"enum",r:false,d:"none | sticky | prefix"},{n:"stickyPrefix",t:"string",r:false},{n:"stickyTimeoutMs",t:"number",r:false}]},
+  {cat:"Channels",name:"set_channel_credentials",desc:"Set channel authentication credentials (tokens, keys). Auto-enables the channel. After calling, tell the user to go to Admin → Settings and click Restart.",params:[{n:"channelName",t:"string",r:true,d:"Channel name (telegram, slack, discord, whatsapp, imessage)"},{n:"token",t:"string",r:false,d:"Bot token (Telegram, Slack, Discord)"},{n:"apiKey",t:"string",r:false,d:"API key if applicable"}]},
   {cat:"Channels",name:"add_agent_route",desc:"Add an agent route to a channel",params:[{n:"channelName",t:"string",r:true},{n:"agentId",t:"string",r:true},{n:"chatId",t:"string",r:true},{n:"requireMention",t:"boolean",r:false},{n:"allowFrom",t:"string[]",r:false}]},
   {cat:"Channels",name:"remove_agent_route",desc:"Remove an agent's route from a channel",params:[{n:"channelName",t:"string",r:true},{n:"agentId",t:"string",r:true}]},
   {cat:"Channels",name:"add_monitored_chat",desc:"Add a monitored chat ID",params:[{n:"channelName",t:"string",r:true},{n:"chatId",t:"string",r:true}]},
@@ -326,6 +327,10 @@ const TOOLS = [
 
   // AI Gym — Digest
   {cat:"AI Gym",name:"run_gym_digest",desc:"Manually trigger the activity digest (analyzes all activity, scores dimensions, generates cards)",params:[]},
+
+  // AI Gym — Insights
+  {cat:"AI Gym",name:"get_gym_insights",desc:"Get pre-computed AI insights (generated weekly by the gym goal). Used by 'You tell me' mode.",params:[]},
+  {cat:"AI Gym",name:"save_gym_insights",desc:"Save AI-generated insights from weekly analysis. Called by the weekly-insight goal after analyzing activity.",params:[{n:"insights",t:"array",r:true,d:"Array of { title, description, dimension?, agentId? }"},{n:"topRecommendation",t:"string",r:false,d:"Single best recommendation"},{n:"summary",t:"string",r:false,d:"Brief summary of observations"}]},
 
   // AI Gym — Feed & Config
   {cat:"AI Gym",name:"get_gym_feed",desc:"Get the aggregated gym feed — tips/nudges from gym cards, platform updates from changelog, and AI briefing",params:[]},

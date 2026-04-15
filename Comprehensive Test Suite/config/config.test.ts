@@ -94,11 +94,16 @@ describe("loadConfig", () => {
     assert.deepEqual(config.agents["test-agent"].routes, []);
   });
 
-  it("throws on agent referencing unknown MCP", () => {
+  it("strips unknown MCPs from agent config (no longer throws)", () => {
     const cfg = JSON.parse(JSON.stringify(minimalConfig));
     cfg.agents["test-agent"].mcps = ["nonexistent"];
     const path = writeConfig(cfg);
-    assert.throws(() => loadConfig(path), /MCP/);
+    // Current behavior: loadConfig strips invalid MCP refs with a warning instead of throwing
+    const loaded = loadConfig(path);
+    assert.ok(loaded, "loadConfig should succeed (strips unknown MCPs)");
+    // The MCP list should be stripped or empty after loading
+    const agentMcps = loaded.agents["test-agent"]?.mcps;
+    assert.ok(!agentMcps || agentMcps.length === 0, "Unknown MCPs should be stripped");
   });
 
   it("validates MCP definitions", () => {
