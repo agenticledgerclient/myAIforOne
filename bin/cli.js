@@ -202,7 +202,7 @@ async function runClaudeAuth(version) {
   console.log('    B) Show a URL + code — copy the URL, open it, sign in, paste the code back');
   console.log('');
 
-  if (IS_WINDOWS) {
+  if (IS_WIN) {
     // On Windows, the code-paste prompt can get stuck. Give it 60 seconds —
     // enough for the browser auto-open flow to complete. If stuck, times out
     // and setup continues. User can run "claude auth login" later in a fresh terminal.
