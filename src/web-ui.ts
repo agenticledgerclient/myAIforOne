@@ -5312,19 +5312,10 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
         !opts.baseDir.includes("_npx");
       const isManagedService = isMacService || isWinService;
 
-      // Clear npx cache for myaiforone
-      const npxDir = platform === "win32"
-        ? join(process.env.LOCALAPPDATA || "", "npm-cache", "_npx")
-        : join(homedir(), ".npm", "_npx");
-      if (existsSync(npxDir)) {
-        for (const d of readdirSync(npxDir)) {
-          const candidate = join(npxDir, d, "node_modules", "myaiforone");
-          if (existsSync(candidate)) {
-            rmSync(join(npxDir, d), { recursive: true, force: true });
-            log.info(`[Update] Cleared npx cache: ${d}`);
-          }
-        }
-      }
+      // NOTE: We intentionally do NOT delete the npx cache here.
+      // Deleting it before the new version downloads can leave the app with no files at all
+      // if the download fails. npx myaiforone@latest already fetches the latest version from
+      // npm automatically — manual cache clearing is unnecessary and was causing data loss.
 
       if (isManagedService) {
         // Try to update the global package so the service manager restarts with new version
