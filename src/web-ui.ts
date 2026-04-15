@@ -5301,15 +5301,21 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       const platform = process.platform;
       log.info("[Update] Platform update triggered via API");
 
-      // Detect if running from a global npm install (vs npx cache)
-      const isGlobalInstall = opts.baseDir.includes("node_modules") &&
+      // Detect if managed by a system service (launchd on Mac, Task Scheduler on Windows)
+      // These services auto-restart the process when it exits, so we just need to update
+      // the global package and exit — no need to spawn a competing npx process.
+      const launchdPlist = join(homedir(), "Library", "LaunchAgents", "com.agenticledger.channelToAgentToClaude.plist");
+      const isMacService = platform === "darwin" && existsSync(launchdPlist);
+      const isWinService = platform === "win32" &&
+        opts.baseDir.includes("node_modules") &&
         (opts.baseDir.includes("npm") || opts.baseDir.includes("yarn")) &&
         !opts.baseDir.includes("_npx");
+      const isManagedService = isMacService || isWinService;
 
       // Clear npx cache for myaiforone
       const npxDir = platform === "win32"
         ? join(process.env.LOCALAPPDATA || "", "npm-cache", "_npx")
-        : join(process.env.HOME || "", ".npm", "_npx");
+        : join(homedir(), ".npm", "_npx");
       if (existsSync(npxDir)) {
         for (const d of readdirSync(npxDir)) {
           const candidate = join(npxDir, d, "node_modules", "myaiforone");
@@ -5318,37 +5324,36 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
             log.info(`[Update] Cleared npx cache: ${d}`);
           }
         }
-      } else {
-        log.warn(`[Update] npx cache dir not found: ${npxDir}`);
       }
 
-      // If running from a global install, update the global package too so
-      // the service (launchd / Task Scheduler) picks up the latest files on restart.
-      if (isGlobalInstall) {
-        log.info("[Update] Global install detected — running npm install -g myaiforone@latest");
+      if (isManagedService) {
+        // Update the global package so the service restarts with the new version
+        log.info(`[Update] Managed service detected (${platform}) — running npm install -g myaiforone@latest`);
         try {
           execSync("npm install -g myaiforone@latest", { timeout: 120_000, stdio: "ignore" });
           log.info("[Update] Global install updated successfully");
         } catch (installErr: any) {
           log.warn(`[Update] Global install failed (continuing): ${installErr.message}`);
         }
+        res.json({ ok: true, message: "Updated. Service will restart automatically..." });
+        // Just exit — launchd / Task Scheduler will restart with the updated package
+        setTimeout(() => process.exit(0), 1000);
+      } else {
+        // Running via npx or direct node — clear cache and spawn new process
+        res.json({ ok: true, message: "Clearing cache and restarting with latest version..." });
+        setTimeout(() => {
+          log.info("[Update] Spawning npx myaiforone@latest...");
+          const child = cpSpawn("npx", ["myaiforone@latest"], {
+            cwd: process.cwd(),
+            env: { ...process.env },
+            stdio: "ignore",
+            detached: true,
+            shell: true,
+          });
+          child.unref();
+          process.exit(0);
+        }, 1000);
       }
-
-      res.json({ ok: true, message: "Updating to latest version. Service will restart..." });
-
-      // Respawn via npx to pull latest, then exit current process
-      setTimeout(() => {
-        log.info("[Update] Spawning npx myaiforone@latest to pull latest...");
-        const child = cpSpawn("npx", ["myaiforone@latest"], {
-          cwd: process.cwd(),
-          env: { ...process.env },
-          stdio: "ignore",
-          detached: true,
-          shell: true,
-        });
-        child.unref();
-        process.exit(0);
-      }, 1000);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
