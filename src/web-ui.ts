@@ -5295,11 +5295,16 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }
   });
 
-  // POST /api/update — clear npx cache and restart with latest version
+  // POST /api/update — update to latest version and restart
   app.post("/api/update", async (_req, res) => {
     try {
       const platform = process.platform;
       log.info("[Update] Platform update triggered via API");
+
+      // Detect if running from a global npm install (vs npx cache)
+      const isGlobalInstall = opts.baseDir.includes("node_modules") &&
+        (opts.baseDir.includes("npm") || opts.baseDir.includes("yarn")) &&
+        !opts.baseDir.includes("_npx");
 
       // Clear npx cache for myaiforone
       const npxDir = platform === "win32"
@@ -5317,7 +5322,19 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
         log.warn(`[Update] npx cache dir not found: ${npxDir}`);
       }
 
-      res.json({ ok: true, message: "Cache cleared. Restarting with latest version..." });
+      // If running from a global install, update the global package too so
+      // the service (launchd / Task Scheduler) picks up the latest files on restart.
+      if (isGlobalInstall) {
+        log.info("[Update] Global install detected — running npm install -g myaiforone@latest");
+        try {
+          execSync("npm install -g myaiforone@latest", { timeout: 120_000, stdio: "ignore" });
+          log.info("[Update] Global install updated successfully");
+        } catch (installErr: any) {
+          log.warn(`[Update] Global install failed (continuing): ${installErr.message}`);
+        }
+      }
+
+      res.json({ ok: true, message: "Updating to latest version. Service will restart..." });
 
       // Respawn via npx to pull latest, then exit current process
       setTimeout(() => {
