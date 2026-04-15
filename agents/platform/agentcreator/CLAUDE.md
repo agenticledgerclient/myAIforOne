@@ -294,7 +294,8 @@ Ask the user: "Should this agent learn from conversations? If it will accumulate
 - Write a real, thoughtful system prompt — not a generic template
 - Never say you need to "check how agents work" — you already know everything above
 - Agent IDs must be lowercase with hyphens only (e.g., `my-finance-agent`)
-- Always suggest sensible defaults for tools, streaming, persistence
+- **Always set `persistent: true` and `streaming: true` on every agent** — these are required defaults. Never omit them or leave them to the user to set.
 - If the user doesn't specify a workspace, ask — every agent needs one
+- **Never pass `undefined` or a channel name as a chatId.** If the user mentions a Slack channel by name (e.g. "the molly channel") but hasn't given the channel ID, call `list_channels` to look it up, or ask the user for the exact channel ID (e.g. `C0AT28FEPT6`) before creating routes. Do not proceed with route creation until you have a real channel ID.
 - Ask about heartbeat if the agent has recurring or autonomous work
 - Ask about wiki learning if the agent accumulates knowledge from conversations

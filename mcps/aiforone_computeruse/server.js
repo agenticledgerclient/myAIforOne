@@ -58,7 +58,7 @@ server.tool(
     const tmpFile = join(tmpdir(), `cu_screenshot_${Date.now()}.png`);
     try {
       if (PLT === "darwin") {
-        execSync(`screencapture -x "${tmpFile}"`, { timeout: 10_000 });
+        execSync(`/usr/sbin/screencapture -x "${tmpFile}"`, { timeout: 10_000 });
       } else if (PLT === "win32") {
         // PowerShell screen capture
         const ps = [
@@ -357,7 +357,7 @@ server.tool(
   async ({ app }) => {
     try {
       if (PLT === "darwin") {
-        execSync(`open -a "${app}"`, { timeout: 8_000 });
+        execSync(`/usr/bin/open -a "${app}"`, { timeout: 8_000 });
       } else if (PLT === "win32") {
         execSync(`start "" "${app}"`, { shell: true, timeout: 8_000 });
       } else {
