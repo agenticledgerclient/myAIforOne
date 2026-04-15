@@ -1656,7 +1656,7 @@ async function loadPlatformDefaultExecutorOptions(currentValue, svc) {
   const sel = document.getElementById('svcPlatformDefaultExecutor');
   if (!sel) return;
   sel.innerHTML = '<option value="claude">Claude (default)</option>';
-  if (svc && svc.multiModelEnabled) {
+  if (svc) {
     const pk = svc.providerKeys || {};
     const cloudModels = [
       { key: 'openai', prefix: 'openai', label: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'o3-mini'] },
@@ -1741,7 +1741,7 @@ async function testProvider(provider) {
     });
     const data = await res.json();
     if (data.ok) {
-      showToast(`${provider}: Connected! ${data.models ? data.models.length + ' models available' : ''}`, 'ok');
+      showToast(`${provider}: Connected!`, 'ok');
     } else {
       showToast(`${provider}: ${data.error}`, 'err');
     }
