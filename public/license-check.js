@@ -144,6 +144,13 @@ function showLicenseModal(licenseData) {
         </button>
 
         <div style="text-align:center;margin-top:16px">
+          <p style="font-size:12px;color:var(--text-muted, #94a3b8);margin-bottom:8px">
+            Don&rsquo;t have a key?
+            <a href="https://aigym.agenticledger.ai/#download" target="_blank" style="color:var(--accent, #22d3ee);text-decoration:none;font-weight:600">
+              Generate one here &rarr;
+            </a>
+            <span style="color:var(--text-dim, #64748b);font-size:11px;display:block;margin-top:2px">(skip to Step 4)</span>
+          </p>
           <a href="/admin?tab=settings" style="font-size:11px;color:var(--text-muted, #94a3b8);text-decoration:none">
             or go to Admin Settings &rarr;
           </a>
