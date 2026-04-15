@@ -580,6 +580,11 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
               <input id="keyMistral" type="password" placeholder="..." autocomplete="off" />
               <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('mistral')">Test</button>
             </div>
+            <div class="field">
+              <label>Venice <span style="font-size:9px;color:var(--text-muted)">(venice:llama-3.3-70b)</span></label>
+              <input id="keyVenice" type="password" placeholder="..." autocomplete="off" />
+              <button class="btn-save" style="margin-top:4px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testProvider('venice')">Test</button>
+            </div>
           </div>
           <button class="btn-save" onclick="saveMultiModel()">Save</button>
         </div>
@@ -1549,6 +1554,7 @@ async function loadService() {
   document.getElementById('keyGroq').value = pk.groq || '';
   document.getElementById('keyTogether').value = pk.together || '';
   document.getElementById('keyMistral').value = pk.mistral || '';
+  document.getElementById('keyVenice').value = pk.venice || '';
   updateMultiModelFieldsVisibility();
   // License
   document.getElementById('svcLicenseKey').value = s.licenseKey || '';
@@ -1659,6 +1665,7 @@ async function loadPlatformDefaultExecutorOptions(currentValue, svc) {
       { key: 'groq',  prefix: 'groq',   label: 'Groq',   models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'] },
       { key: 'together', prefix: 'together', label: 'Together', models: ['meta-llama/Llama-3.3-70B-Instruct', 'mistralai/Mixtral-8x22B-Instruct-v0.1'] },
       { key: 'mistral',  prefix: 'mistral',  label: 'Mistral',  models: ['mistral-large-latest', 'mistral-small-latest', 'codestral-latest'] },
+      { key: 'venice',   prefix: 'venice',   label: 'Venice',   models: ['llama-3.3-70b', 'llama-3.1-405b', 'mistral-31-24b', 'qwen-2.5-vl-72b'] },
     ];
     for (const provider of cloudModels) {
       if (pk[provider.key]) {
@@ -1708,7 +1715,7 @@ async function saveMultiModel() {
   const ollamaBaseUrl = document.getElementById('svcOllamaBaseUrl').value.trim() || 'http://localhost:11434';
   // Collect provider keys — only send non-masked values
   const providerKeys = {};
-  const keyMap = { keyOpenai: 'openai', keyXai: 'xai', keyGoogle: 'google', keyGroq: 'groq', keyTogether: 'together', keyMistral: 'mistral' };
+  const keyMap = { keyOpenai: 'openai', keyXai: 'xai', keyGoogle: 'google', keyGroq: 'groq', keyTogether: 'together', keyMistral: 'mistral', keyVenice: 'venice' };
   for (const [elId, field] of Object.entries(keyMap)) {
     const val = document.getElementById(elId).value.trim();
     if (val && val !== '••••••••') providerKeys[field] = val;

@@ -1,9 +1,10 @@
 /**
- * OpenAI-compatible executor — handles OpenAI, xAI (Grok), Groq, Together, Mistral,
+ * OpenAI-compatible executor — handles OpenAI, xAI (Grok), Groq, Together, Mistral, Venice,
  * and any other provider that implements the OpenAI Chat Completions API.
  *
  * Executor format: "openai:gpt-4o", "grok:grok-3", "groq:llama-3.3-70b-versatile",
- *                  "together:meta-llama/Llama-3.3-70B-Instruct", "mistral:mistral-large-latest"
+ *                  "together:meta-llama/Llama-3.3-70B-Instruct", "mistral:mistral-large-latest",
+ *                  "venice:llama-3.3-70b"
  */
 
 import { log } from "./logger.js";
@@ -41,6 +42,11 @@ export const PROVIDERS: Record<string, ProviderConfig> = {
     name: "Mistral",
     baseUrl: "https://api.mistral.ai/v1",
     keyField: "mistral",
+  },
+  venice: {
+    name: "Venice",
+    baseUrl: "https://api.venice.ai/api/v1",
+    keyField: "venice",
   },
 };
 
