@@ -924,7 +924,9 @@ export async function executeAgent(
   const logPath = join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
-  const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
+  // Auto-isolate web UI session tabs — they always send senderId as "tab-{id}"
+  const isWebTab = typeof msg.sender === "string" && msg.sender.startsWith("tab-");
+  const senderSessionKey = (isPersistent && (perSender || isWebTab)) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
   const useWiki = agentConfig.wiki ?? false;
 
@@ -1618,7 +1620,9 @@ export async function* executeAgentStreaming(
   const logPath = join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
-  const senderSessionKey = (isPersistent && perSender) ? msg.sender : undefined;
+  // Auto-isolate web UI session tabs — they always send senderId as "tab-{id}"
+  const isWebTab = typeof msg.sender === "string" && msg.sender.startsWith("tab-");
+  const senderSessionKey = (isPersistent && (perSender || isWebTab)) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
   const useWiki = agentConfig.wiki ?? false;
 
