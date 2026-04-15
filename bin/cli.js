@@ -160,21 +160,6 @@ function checkNode() {
 async function checkClaude() {
   printChecklist();
 
-  // Claude is optional — users on Venice, Ollama, or other providers can skip it.
-  console.log('  Claude Code CLI is used to run AI agents locally.');
-  console.log('  If you plan to use Venice, Ollama, or another provider instead,');
-  console.log('  you can skip this step and add your API key in Admin → Settings later.');
-  console.log('');
-  const useClaudeAnswer = await ask('  Set up Claude Code CLI? (y/n, default: y) ');
-  if (useClaudeAnswer.toLowerCase() === 'n') {
-    console.log('');
-    console.log('  Skipping Claude setup. You can add provider API keys in Admin → Settings after install.');
-    console.log('');
-    stepDone('Claude Code CLI (skipped — using another provider)');
-    return;
-  }
-  console.log('');
-
   const version = run('claude --version', { silent: true });
   if (version) {
     // Check auth
@@ -185,8 +170,7 @@ async function checkClaude() {
     }
 
     console.log('  Claude Code CLI is installed but not authenticated.');
-    await runClaudeAuth(1);
-    stepDone(`Claude Code CLI ${version} (authenticated)`);
+    await runClaudeAuth(version);
     return;
   }
 
@@ -207,30 +191,41 @@ async function checkClaude() {
   const newVersion = run('claude --version', { silent: true }) || 'installed';
   console.log(`  Installed Claude Code CLI ${newVersion}`);
   console.log('');
-  await runClaudeAuth(1);
-  stepDone(`Claude Code CLI ${newVersion} (authenticated)`);
+  await runClaudeAuth(newVersion);
 }
 
-async function runClaudeAuth(stepIndex) {
+async function runClaudeAuth(version) {
   console.log('  Running: claude auth login');
   console.log('');
   console.log('  This will either:');
   console.log('    A) Open a browser window automatically — just sign in and come back');
-  console.log('    B) Print a URL + ask for a code (common on Windows):');
+  console.log('    B) Show a URL + ask for a code (common on Windows):');
   console.log('       1. Copy the URL and open it in your browser');
   console.log('       2. Sign in and approve access');
-  console.log('       3. Copy the short code Anthropic shows you');
-  console.log('       4. Paste it back here and press Enter');
+  console.log('       3. Copy the short code shown and paste it back here');
   console.log('');
 
-  try {
-    execSync('claude auth login', { stdio: 'inherit' });
-  } catch {
-    fail(stepIndex,
-      'Claude Code authentication failed.',
-      'Run "claude auth login" manually, or re-run the installer and choose "n" to skip Claude and use another provider.'
-    );
+  let authenticated = false;
+  while (!authenticated) {
+    try {
+      execSync('claude auth login', { stdio: 'inherit' });
+      authenticated = true;
+    } catch {
+      console.log('');
+      console.log('  Authentication did not complete.');
+      const retry = await ask('  Try again? (y/n) ');
+      if (retry.toLowerCase() !== 'y') {
+        console.log('');
+        console.log('  Skipping Claude authentication. You can run "claude auth login" later.');
+        console.log('');
+        stepDone('Claude Code CLI (skipped auth)');
+        return;
+      }
+      console.log('');
+    }
   }
+
+  stepDone(`Claude Code CLI ${version} (authenticated)`);
 }
 
 // ── Step 2: Install dependencies ─────────────────────────────────────────────
