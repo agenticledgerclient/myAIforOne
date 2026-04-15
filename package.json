@@ -1,6 +1,6 @@
 {
   "name": "myaiforone",
-  "version": "1.1.31",
+  "version": "1.1.32",
   "type": "module",
   "description": "Routes messages from phone channels to project-specific Claude Code agents",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "files": [
     ".claude/commands/",
+    "assets/",
     "bin/",
     "dist/",
     "!dist/launcher/",

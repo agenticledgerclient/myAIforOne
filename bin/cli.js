@@ -441,23 +441,33 @@ function startAndOpen() {
   // Create desktop shortcut silently
   try {
     if (IS_MAC) {
-      const appPath = join(HOME, 'Desktop', 'AIforOne.app');
+      const appPath = join(HOME, 'Desktop', 'MyAIforOne.app');
       mkdirp(join(appPath, 'Contents', 'MacOS'));
+      mkdirp(join(appPath, 'Contents', 'Resources'));
       writeFileSync(join(appPath, 'Contents', 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleExecutable</key><string>AIforOne</string>
-  <key>CFBundleName</key><string>AIforOne</string>
-  <key>CFBundleIdentifier</key><string>com.aiforone.launcher</string>
+  <key>CFBundleExecutable</key><string>MyAIforOne</string>
+  <key>CFBundleName</key><string>MyAIforOne</string>
+  <key>CFBundleDisplayName</key><string>MyAIforOne</string>
+  <key>CFBundleIdentifier</key><string>com.myaiforone.launcher</string>
   <key>CFBundleVersion</key><string>1.0</string>
+  <key>CFBundleIconFile</key><string>MyAIforOne</string>
 </dict>
 </plist>`);
-      writeFileSync(join(appPath, 'Contents', 'MacOS', 'AIforOne'), '#!/bin/bash\nopen "http://localhost:4888"\n');
-      run(`chmod +x "${join(appPath, 'Contents', 'MacOS', 'AIforOne')}"`);
+      writeFileSync(join(appPath, 'Contents', 'MacOS', 'MyAIforOne'), '#!/bin/bash\nopen "http://localhost:4888"\n');
+      run(`chmod +x "${join(appPath, 'Contents', 'MacOS', 'MyAIforOne')}"`);
+      // Copy icon if bundled with the package
+      const icnsSource = join(PROJECT_ROOT, 'assets', 'MyAIforOne.icns');
+      if (existsSync(icnsSource)) {
+        copyFileSync(icnsSource, join(appPath, 'Contents', 'Resources', 'MyAIforOne.icns'));
+      }
     } else if (IS_WIN) {
+      const icoSource = join(PROJECT_ROOT, 'assets', 'MyAIforOne.ico');
+      const iconArg = existsSync(icoSource) ? `$s.IconLocation = '${icoSource.replace(/\\/g, '\\\\')}'; ` : '';
       // Windows shortcut via PowerShell
-      run(`powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('${join(HOME, 'Desktop', 'AIforOne.lnk')}'); $s.TargetPath = 'http://localhost:4888'; $s.Description = 'Open AIforOne Web UI'; $s.Save()"`);
+      run(`powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('${join(HOME, 'Desktop', 'MyAIforOne.lnk').replace(/\\/g, '\\\\')}'); $s.TargetPath = 'http://localhost:4888'; $s.Description = 'Open MyAIforOne Web UI'; ${iconArg}$s.Save()"`);
     }
   } catch {
     // Shortcut creation is non-critical
