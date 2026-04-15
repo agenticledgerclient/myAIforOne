@@ -241,7 +241,7 @@ Opened by **+ New Agent** button or clicking an agent's Config button. Has 6 sta
 | **Description** | Short description of the agent's purpose. |
 | **Instructions (CLAUDE.md)** | System prompt written to the agent's CLAUDE.md file. Multi-line textarea. |
 | **Agent Class** | Dropdown: Standard, Builder, Platform, Gym. |
-| **Executor** | Dropdown: Platform Default, Claude, Ollama models, or cloud providers — OpenAI, Grok (xAI), Gemini, Groq, Together, Mistral (when multi-model is enabled). Format: `provider:model` (e.g., `openai:gpt-4o`, `gemini:gemini-2.5-flash`, `grok:grok-3`). Overrides the service-level default executor for this agent. |
+| **Executor** | Dropdown: Platform Default, Claude, Ollama models, or cloud providers — OpenAI, Grok (xAI), Gemini, Groq, Together, Mistral, Venice (when multi-model is enabled). Format: `provider:model` (e.g., `openai:gpt-4o`, `gemini:gemini-2.5-flash`, `grok:grok-3`, `venice:llama-3.3-70b`). Overrides the service-level default executor for this agent. |
 
 #### Organization Entries
 Each agent can belong to multiple organizations. Per entry:
@@ -1318,6 +1318,7 @@ Each account row shows:
 | **Groq** | `groq:<model>` | `groq` | `groq:llama-3.3-70b-versatile` |
 | **Together** | `together:<model>` | `together` | `together:meta-llama/Llama-3.3-70B-Instruct` |
 | **Mistral** | `mistral:<model>` | `mistral` | `mistral:mistral-large-latest` |
+| **Venice** | `venice:<model>` | `venice` | `venice:llama-3.3-70b`, `venice:mistral-31-24b` |
 
 API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "openai": "sk-...", "xai": "xai-...", "google": "AIza..." }`). Set them in Admin → Settings → Provider Keys.
 
@@ -1334,7 +1335,7 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Set provider API keys | `PUT /api/config/service` | `update_service_config` |
 | | **Body:** `{ providerKeys: { openai: "sk-...", xai: "xai-..." } }` | **Params:** `{ providerKeys: { ... } }` |
 | Test provider API key | `POST /api/config/provider-test` | `test_provider` |
-| | **Body:** `{ provider: "openai" }` — tests the configured key for that provider | **Params:** `provider` (string: openai, grok, gemini, groq, together, mistral) |
+| | **Body:** `{ provider: "openai" }` — tests the configured key for that provider | **Params:** `provider` (string: openai, grok, gemini, groq, together, mistral, venice) |
 | Proxy Ollama tag list | `GET /api/ollama-proxy?url=<ollamaUrl>/api/tags` | — (internal) |
 | | **Query:** `url` — only `/api/tags` proxy is allowed | N/A — used by the Settings UI to list local Ollama models |
 
@@ -1379,7 +1380,7 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 - **Save & Verify button** — saves the key to `config.json` and verifies against the licensing server immediately. Agents unblock without restart.
 - **Verify Only button** — checks current license status without saving
 
-**License popup:** If no valid license is configured, a full-screen modal appears on page load (all pages except Admin) prompting the user to enter their license key. The key is saved and verified inline — no restart needed.
+**License popup:** If no valid license is configured, a full-screen modal appears on page load (all pages except Admin) prompting the user to enter their license key. The key is saved and verified inline — no restart needed. The modal also shows a **"Don't have a key? Generate one here"** link pointing to the AI Gym download page (skip to Step 4) for users who haven't yet obtained a license.
 
 **Behavior:**
 
@@ -1418,6 +1419,19 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Test SaaS connection | `POST /api/saas/test` | `test_saas_connection` |
 | | **Body:** `{ baseUrl?, apiKey? }` | **Params:** `baseUrl?`, `apiKey?` |
 
+### Desktop Shortcut
+
+During first-time setup (`/setup`), MyAIforOne automatically creates a branded desktop shortcut with the MyAIforOne `A` logomark icon:
+
+| Platform | File | What it does |
+|----------|------|--------------|
+| **macOS** | `~/Desktop/MyAIforOne.app` | Opens `http://localhost:4888` in your browser |
+| **Windows** | `~/Desktop/MyAIforOne.lnk` | Opens `http://localhost:4888` in your browser |
+
+The shortcut is created silently — no confirmation required. It assumes the service is already running (via launchd on macOS or Task Scheduler on Windows). Double-clicking while the service is stopped will open the browser to a "connection refused" page until the service starts.
+
+> The shortcut is created once during setup and is not recreated on updates. If deleted, re-run `/setup` or create it manually.
+
 ### Status Indicator Section
 - **Description:** "Show a live status dot in your menu bar (Mac) or system tray (Windows)"
 - **Install xbar Plugin button** (macOS only) — installs the status bar indicator
@@ -1455,6 +1469,39 @@ Documentation cards:
 |--------|-----|-----|
 | Get changelog | `GET /api/changelog` | `get_changelog` |
 | | | *(no params)* |
+
+## 7.5 Platform Updates
+
+**Tab:** Updates
+
+Check the installed version of MyAIforOne and update to the latest release with one click.
+
+### Version Status Card
+
+| Field | Description |
+|-------|-------------|
+| **Installed version** | The currently running `myaiforone` npm package version (e.g., `1.1.34`) |
+| **Latest version** | The latest published version from the npm registry |
+| **Status badge** | **Up to date** (green) or **Update available** (cyan) |
+
+- Version comparison uses semver — a dev build (`1.1.34-dev`) will not falsely show as outdated.
+- Latest version is fetched from the npm registry with a 5-second timeout; if unreachable, the card shows "Unable to check".
+
+### Update Button
+
+- **Label:** "Update to vX.X.X"
+- **Visible:** Only when an update is available
+- **Confirmation dialog:** Shown before update begins — "This will update MyAIforOne to vX.X.X and restart the service. Continue?"
+- **What it does:** Runs `npx myaiforone@latest --yes` in the background, then restarts the service. The page reloads automatically after restart.
+
+> **Note:** The update runs as the same user that started the service. Ensure the user has npm write permissions.
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Check version | `GET /api/version` | — |
+| | Returns `{ current, latest, updateAvailable }` | |
+| Run update | `POST /api/update` | — |
+| | Triggers `npx myaiforone@latest` + service restart | |
 
 ---
 
