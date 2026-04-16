@@ -286,14 +286,8 @@
       "name": "Granola",
       "description": "Meeting notes — transcripts, summaries, action items",
       "category": "productivity",
-      "url": "https://granolamcp.agenticledger.ai/mcp",
-      "requiredKeys": [
-        {
-          "env": "GRANOLA_API_KEY",
-          "label": "Granola API Key",
-          "hint": "API key from Granola settings"
-        }
-      ]
+      "url": "https://mcp.granola.ai/mcp",
+      "requiredKeys": []
     },
     "fireflies": {
       "name": "Fireflies.ai",
