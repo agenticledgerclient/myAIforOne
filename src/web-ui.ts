@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, m
 import { homedir } from "node:os";
 import { join, resolve, basename, dirname, extname, relative, isAbsolute } from "node:path";
 import { execSync, spawn as cpSpawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import type { AppConfig } from "./config.js";
 import { getPersonalAgentsDir, getPersonalRegistryDir, getSharedAgentsDir } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
@@ -25,6 +26,12 @@ interface WebUIOptions {
   webhookSecret?: string;
   onWebhookMessage?: (agentId: string, text: string, channel: string, chatId: string) => Promise<void>;
   driverMap?: Map<string, import("./channels/types.js").ChannelDriver>;
+  /**
+   * Optional hook invoked just before app.listen() so callers can attach
+   * additional routes (e.g. the /mcp Streamable HTTP endpoint) to the same
+   * Express app / port.
+   */
+  attachExtraRoutes?: (app: import("express").Express) => void;
 }
 
 // ─── Job Store (event buffer for reconnectable streaming) ────────────
@@ -122,12 +129,67 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/mcp-docs", (_req, res) => servePage(res, "mcp-docs.html"));
   app.get("/api-docs", (_req, res) => servePage(res, "api-docs.html"));
 
-  // ─── Auth System (shared agents feature) ─────────────────────────────
+  // ─── Auth System — API Keys ──────────────────────────────────────────
   // Auth is only active when service.auth.enabled is true (default: false).
   // When disabled, all API routes are open — personal gateway behavior unchanged.
+  //
+  // v1: API keys with "*" scope (full access). Scoped keys are a future enhancement.
+  // Legacy auth.tokens[] still work for backcompat; they're auto-migrated to apiKeys
+  // on first successful match so existing deployments keep working.
 
   function getAuthConfig() {
     return (opts.config.service as any).auth as { enabled?: boolean; tokens?: string[]; webPassword?: string } | undefined;
+  }
+
+  function getApiKeys(): import("./config.js").ApiKey[] {
+    return ((opts.config.service as any).apiKeys as import("./config.js").ApiKey[]) || [];
+  }
+
+  // Generate a new API key secret — prefixed for recognizability.
+  function generateApiKeySecret(): string {
+    return "mai41team_" + randomBytes(32).toString("hex");
+  }
+
+  // Short opaque id used to reference a key in URLs (never the secret itself).
+  function generateApiKeyId(): string {
+    return "key_" + randomBytes(6).toString("hex");
+  }
+
+  // Show only the first 14 + last 4 chars of the key in list responses
+  function previewKey(key: string): string {
+    if (!key || key.length < 20) return key;
+    return `${key.slice(0, 14)}...${key.slice(-4)}`;
+  }
+
+  // Persist the current in-memory config to disk.
+  function saveConfigToDisk(): void {
+    try {
+      const configPath = configFilePath();
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      if (!rawConfig.service) rawConfig.service = {};
+      rawConfig.service.apiKeys = (opts.config.service as any).apiKeys || [];
+      rawConfig.service.teamGateways = (opts.config.service as any).teamGateways || [];
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+    } catch (err) {
+      log.warn(`Failed to persist config changes: ${err}`);
+    }
+  }
+
+  // Match a bearer token against apiKeys[] (preferred) or legacy auth.tokens[].
+  // Returns the matching ApiKey record if any, else null.
+  function matchToken(token: string | null): import("./config.js").ApiKey | null {
+    if (!token) return null;
+    const keys = getApiKeys();
+    for (const k of keys) {
+      if (k.key === token) return k;
+    }
+    // Legacy fallback: auth.tokens[] (pre-apiKeys installations)
+    const authCfg = getAuthConfig();
+    if (authCfg?.tokens?.includes(token)) {
+      // Synthesize a virtual ApiKey record so callers still get a reference
+      return { id: "legacy", name: "Legacy Token", key: token, createdAt: new Date(0).toISOString(), scopes: ["*"] };
+    }
+    return null;
   }
 
   function authMiddleware(req: any, res: any, next: any) {
@@ -138,14 +200,22 @@ export function startWebUI(opts: WebUIOptions): void {
     // Check Bearer token in Authorization header
     const authHeader = req.headers.authorization as string | undefined;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    if (token && authCfg.tokens?.includes(token)) return next();
+    const matched = matchToken(token);
+    if (matched) {
+      // Stamp lastUsedAt on real API keys (skip the synthesized legacy record)
+      if (matched.id !== "legacy") {
+        matched.lastUsedAt = new Date().toISOString();
+      }
+      (req as any).apiKey = matched;
+      return next();
+    }
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   // Apply auth middleware to all /api/* routes
   app.use("/api", authMiddleware);
 
-  // POST /api/auth/login — accepts password, returns bearer token
+  // POST /api/auth/login — accepts password, returns a Bearer API key
   app.post("/api/auth/login", (req, res) => {
     const authCfg = getAuthConfig();
     if (!authCfg?.enabled) return res.json({ ok: true, token: null, authEnabled: false });
@@ -153,8 +223,10 @@ export function startWebUI(opts: WebUIOptions): void {
     if (!authCfg.webPassword || password !== authCfg.webPassword) {
       return res.status(401).json({ error: "Invalid password" });
     }
-    const token = authCfg.tokens?.[0];
-    if (!token) return res.status(500).json({ error: "No auth token configured" });
+    // Prefer the first apiKey; fall back to legacy auth.tokens[0]
+    const keys = getApiKeys();
+    const token = keys[0]?.key || authCfg.tokens?.[0];
+    if (!token) return res.status(500).json({ error: "No API key configured" });
     return res.json({ ok: true, token });
   });
 
@@ -165,8 +237,303 @@ export function startWebUI(opts: WebUIOptions): void {
     if (!authEnabled) return res.json({ authEnabled: false, authenticated: true });
     const authHeader = req.headers.authorization as string | undefined;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    const authenticated = !!(token && authCfg?.tokens?.includes(token));
+    const authenticated = !!matchToken(token);
     return res.json({ authEnabled: true, authenticated });
+  });
+
+  // GET /api/auth/keys — list API keys (secret never returned, only preview)
+  app.get("/api/auth/keys", (_req, res) => {
+    const keys = getApiKeys();
+    const out = keys.map(k => ({
+      id: k.id,
+      name: k.name,
+      preview: previewKey(k.key),
+      createdAt: k.createdAt,
+      lastUsedAt: k.lastUsedAt,
+      scopes: k.scopes,
+    }));
+    // Opportunistic flush so lastUsedAt updates get persisted when admin views the page
+    saveConfigToDisk();
+    return res.json({ keys: out });
+  });
+
+  // POST /api/auth/keys {name} — create a new key; returns the full secret ONCE
+  app.post("/api/auth/keys", (req, res) => {
+    const { name } = req.body as { name?: string };
+    const label = (name || "").trim();
+    if (!label) return res.status(400).json({ error: "name is required" });
+    const keys = getApiKeys();
+    const apiKey: import("./config.js").ApiKey = {
+      id: generateApiKeyId(),
+      name: label,
+      key: generateApiKeySecret(),
+      createdAt: new Date().toISOString(),
+      scopes: ["*"],
+    };
+    keys.push(apiKey);
+    (opts.config.service as any).apiKeys = keys;
+    saveConfigToDisk();
+    // Return the full key — only time it'll ever be shown
+    return res.json({ ok: true, key: apiKey });
+  });
+
+  // DELETE /api/auth/keys/:id — revoke a key
+  app.delete("/api/auth/keys/:id", (req, res) => {
+    const id = req.params.id;
+    const keys = getApiKeys();
+    const idx = keys.findIndex(k => k.id === id);
+    if (idx < 0) return res.status(404).json({ error: "Key not found" });
+    // Prevent locking yourself out: refuse to delete the last remaining key
+    if (keys.length === 1) {
+      return res.status(400).json({ error: "Cannot delete the last API key — create another first" });
+    }
+    const removed = keys.splice(idx, 1)[0];
+    (opts.config.service as any).apiKeys = keys;
+    saveConfigToDisk();
+    return res.json({ ok: true, id: removed.id });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ─── Team Gateways ─────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // A Team Gateway is a remote MyAIforOne deployment (e.g. Railway) that this
+  // local install connects to via its HTTP MCP endpoint. Connecting a gateway
+  // registers an MCP in config.mcps, writes the API key to mcp-keys/, and
+  // auto-assigns the MCP to the Hub agent.
+
+  function getTeamGateways(): import("./config.js").TeamGateway[] {
+    return ((opts.config.service as any).teamGateways as import("./config.js").TeamGateway[]) || [];
+  }
+
+  // Slugify a display name into an id safe for filesystem + MCP registry use.
+  function slugifyGatewayId(name: string): string {
+    const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return slug || "team-gateway";
+  }
+
+  // Env var name for a gateway's API key in the mcp-keys .env file.
+  function gatewayEnvVarName(id: string): string {
+    return "TEAM_" + id.toUpperCase().replace(/[^A-Z0-9]/g, "_") + "_KEY";
+  }
+
+  // MCP name as it appears in config.mcps and on hub's mcps list.
+  function gatewayMcpName(id: string): string {
+    return "team-" + id;
+  }
+
+  // Write the API key + URL to mcp-keys/{mcpName}.env under the gateway data dir.
+  // These become env vars on the stdio MCP child process (via executor.ts key loader):
+  //   MYAGENT_API_URL   — so api-client.ts targets the remote gateway
+  //   MYAGENT_API_TOKEN — so api-client.ts sends the Bearer header (added earlier)
+  // The TEAM_<ID>_KEY var is kept as an alias so operators can cross-reference the
+  // gateway by id in logs/grep without exposing MYAGENT_API_TOKEN directly.
+  function writeGatewayKeyFile(id: string, apiKey: string, url: string): void {
+    const baseDir = opts.baseDir;
+    const keysDir = join(baseDir, "data", "mcp-keys");
+    mkdirSync(keysDir, { recursive: true });
+    const envPath = join(keysDir, `${gatewayMcpName(id)}.env`);
+    const envVarName = gatewayEnvVarName(id);
+    const trimmedUrl = (url || "").replace(/\/$/, "");
+    const contents = [
+      `# Team Gateway: ${id}`,
+      `MYAGENT_API_URL=${trimmedUrl}`,
+      `MYAGENT_API_TOKEN=${apiKey}`,
+      `${envVarName}=${apiKey}`,
+      "",
+    ].join("\n");
+    writeFileSync(envPath, contents);
+  }
+
+  // Remove the gateway's key file on disconnect.
+  function removeGatewayKeyFile(id: string): void {
+    const baseDir = opts.baseDir;
+    const envPath = join(baseDir, "data", "mcp-keys", `${gatewayMcpName(id)}.env`);
+    if (existsSync(envPath)) {
+      try { unlinkSync(envPath); } catch { /* ignore */ }
+    }
+  }
+
+  // Register the gateway as a STDIO MCP in config.mcps.
+  // We reuse the bundled MCP binary pointed at the remote gateway via env vars
+  // (MYAGENT_API_URL + MYAGENT_API_TOKEN loaded from mcp-keys/<mcpName>.env at
+  // execution time by executor.ts). This works today — no remote /mcp endpoint
+  // required on the target gateway. Future enhancement: if the remote gateway
+  // exposes /mcp we can switch type to "http" to avoid the local spawn.
+  function registerGatewayMcp(gw: import("./config.js").TeamGateway): void {
+    const name = gatewayMcpName(gw.id);
+    if (!opts.config.mcps) opts.config.mcps = {};
+    const mcpBinary = join(opts.baseDir, "server", "mcp-server", "dist", "index.js");
+    opts.config.mcps[name] = {
+      type: "stdio",
+      command: "node",
+      args: [mcpBinary],
+      // env values come from mcp-keys/<mcpName>.env at spawn time (see executor.ts)
+      env: {},
+    } as any;
+  }
+
+  // Remove the MCP entry when gateway is disconnected.
+  function unregisterGatewayMcp(id: string): void {
+    if (!opts.config.mcps) return;
+    delete opts.config.mcps[gatewayMcpName(id)];
+  }
+
+  // Auto-assign the new MCP to the Hub agent so it can invoke team gateway tools.
+  function assignGatewayMcpToHub(id: string): void {
+    const hub = opts.config.agents?.["hub"];
+    if (!hub) return; // no hub agent; nothing to do
+    const mcpName = gatewayMcpName(id);
+    if (!hub.mcps) hub.mcps = [];
+    if (!hub.mcps.includes(mcpName)) hub.mcps.push(mcpName);
+  }
+
+  // Remove the MCP from Hub on disconnect (also from any other agents that had it).
+  function detachGatewayMcpFromAgents(id: string): void {
+    const mcpName = gatewayMcpName(id);
+    for (const agent of Object.values(opts.config.agents || {})) {
+      if (agent.mcps) agent.mcps = agent.mcps.filter(m => m !== mcpName);
+    }
+  }
+
+  // Persist agents/mcps changes back to config.json.
+  function persistFullConfig(): void {
+    try {
+      const configPath = configFilePath();
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      if (!rawConfig.service) rawConfig.service = {};
+      rawConfig.service.apiKeys = (opts.config.service as any).apiKeys || [];
+      rawConfig.service.teamGateways = (opts.config.service as any).teamGateways || [];
+      if (opts.config.mcps) rawConfig.mcps = opts.config.mcps;
+      if (opts.config.agents) rawConfig.agents = opts.config.agents;
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+    } catch (err) {
+      log.warn(`Failed to persist config changes: ${err}`);
+    }
+  }
+
+  // Probe a remote gateway's /api/capabilities to validate URL + API key.
+  async function probeGateway(url: string, apiKey: string): Promise<{ ok: boolean; status?: number; platform?: string; sharedAgents?: boolean; error?: string }> {
+    const trimmed = url.replace(/\/$/, "");
+    try {
+      const r = await fetch(`${trimmed}/api/capabilities`, {
+        headers: { "Authorization": `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (r.status === 401) return { ok: false, status: 401, error: "Unauthorized — API key rejected" };
+      if (!r.ok) return { ok: false, status: r.status, error: `HTTP ${r.status}` };
+      const data: any = await r.json();
+      return { ok: true, status: r.status, platform: data.platform, sharedAgents: !!data?.features?.sharedAgents };
+    } catch (err: any) {
+      return { ok: false, error: err?.message || String(err) };
+    }
+  }
+
+  // GET /api/team-gateways — list connected gateways
+  app.get("/api/team-gateways", (_req, res) => {
+    const gws = getTeamGateways();
+    return res.json({ gateways: gws });
+  });
+
+  // POST /api/team-gateways/test {url, apiKey} — validate before save
+  app.post("/api/team-gateways/test", async (req, res) => {
+    const { url, apiKey } = req.body as { url?: string; apiKey?: string };
+    if (!url || !apiKey) return res.status(400).json({ error: "url and apiKey are required" });
+    const r = await probeGateway(url, apiKey);
+    if (!r.ok) return res.status(400).json({ ok: false, error: r.error, status: r.status });
+    return res.json({ ok: true, platform: r.platform, sharedAgents: r.sharedAgents });
+  });
+
+  // POST /api/team-gateways {name, url, apiKey} — save + auto-register MCP + auto-assign to hub
+  app.post("/api/team-gateways", async (req, res) => {
+    const { name, url, apiKey } = req.body as { name?: string; url?: string; apiKey?: string };
+    const label = (name || "").trim();
+    const trimmedUrl = (url || "").trim().replace(/\/$/, "");
+    const key = (apiKey || "").trim();
+    if (!label || !trimmedUrl || !key) return res.status(400).json({ error: "name, url, and apiKey are required" });
+
+    // Probe before saving (don't save broken connections)
+    const probe = await probeGateway(trimmedUrl, key);
+    if (!probe.ok) return res.status(400).json({ error: probe.error || "Connection test failed", status: probe.status });
+
+    // Derive a unique id from the name
+    const baseId = slugifyGatewayId(label);
+    const existing = getTeamGateways();
+    if (existing.some(g => g.id === baseId)) {
+      return res.status(409).json({ error: `A team gateway with id "${baseId}" already exists. Choose a different name.` });
+    }
+
+    const gw: import("./config.js").TeamGateway = {
+      id: baseId,
+      name: label,
+      url: trimmedUrl,
+      addedAt: new Date().toISOString(),
+      lastStatus: "ok",
+      lastStatusAt: new Date().toISOString(),
+    };
+
+    // 1. Write API key + URL to mcp-keys/team-{id}.env
+    writeGatewayKeyFile(baseId, key, trimmedUrl);
+    // 2. Register as stdio MCP (remote gateway URL wired via env vars in .env file)
+    registerGatewayMcp(gw);
+    // 3. Auto-assign to Hub
+    assignGatewayMcpToHub(baseId);
+    // 4. Save metadata
+    const updated = [...existing, gw];
+    (opts.config.service as any).teamGateways = updated;
+    persistFullConfig();
+
+    return res.json({ ok: true, gateway: gw });
+  });
+
+  // POST /api/team-gateways/:id/resync — re-test the connection and update status
+  app.post("/api/team-gateways/:id/resync", async (req, res) => {
+    const id = req.params.id;
+    const gws = getTeamGateways();
+    const gw = gws.find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+
+    // Read the key back from the .env file to test
+    const envPath = join(opts.baseDir, "data", "mcp-keys", `${gatewayMcpName(id)}.env`);
+    let key = "";
+    if (existsSync(envPath)) {
+      const content = readFileSync(envPath, "utf-8");
+      const m = content.match(new RegExp(`^${gatewayEnvVarName(id)}=(.+)$`, "m"));
+      if (m) key = m[1].trim();
+    }
+    if (!key) {
+      gw.lastStatus = "error";
+      gw.lastStatusMessage = "API key file missing";
+      gw.lastStatusAt = new Date().toISOString();
+      persistFullConfig();
+      return res.status(400).json({ status: "error", error: gw.lastStatusMessage });
+    }
+    const probe = await probeGateway(gw.url, key);
+    gw.lastStatus = probe.ok ? "ok" : (probe.status === 401 ? "unauthorized" : (probe.error ? "offline" : "error"));
+    gw.lastStatusMessage = probe.error;
+    gw.lastStatusAt = new Date().toISOString();
+    persistFullConfig();
+    return res.json({ status: gw.lastStatus, platform: probe.platform, sharedAgents: probe.sharedAgents });
+  });
+
+  // DELETE /api/team-gateways/:id — disconnect
+  app.delete("/api/team-gateways/:id", (req, res) => {
+    const id = req.params.id;
+    const gws = getTeamGateways();
+    const idx = gws.findIndex(g => g.id === id);
+    if (idx < 0) return res.status(404).json({ error: "Gateway not found" });
+
+    // 1. Remove from all agent mcp lists (including hub)
+    detachGatewayMcpFromAgents(id);
+    // 2. Remove MCP registry entry
+    unregisterGatewayMcp(id);
+    // 3. Remove mcp-keys file
+    removeGatewayKeyFile(id);
+    // 4. Remove metadata
+    gws.splice(idx, 1);
+    (opts.config.service as any).teamGateways = gws;
+    persistFullConfig();
+    return res.json({ ok: true, id });
   });
 
   // ─── API: Open folder in Finder / Explorer ─────────────────────────
@@ -188,6 +555,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Claude Accounts ────────────────────────────────────────
   const configFilePath = () => join(opts.dataDir || opts.baseDir, "config.json");
+
 
   app.get("/api/config/accounts", (_req, res) => {
     const accounts = opts.config.service.claudeAccounts || {};
@@ -2280,9 +2648,10 @@ export function startWebUI(opts: WebUIOptions): void {
     // If job finishes while connected, send done and close
     const checkDone = () => {
       if (job.done && !closed) {
-        res.write(`data: [DONE]\n\n`);
+        closed = true;
+        try { res.write(`data: [DONE]\n\n`); } catch {}
         cleanup();
-        res.end();
+        try { res.end(); } catch {}
       }
     };
     // Piggyback on the regular event listener to detect done
@@ -6008,6 +6377,16 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     log.warn(`[Registry Sync] Skill startup sync failed: ${err}`);
   }
 
+  // Let callers attach extra routes (e.g. /mcp Streamable HTTP) to the same
+  // Express app before the global error handler + listen.
+  if (opts.attachExtraRoutes) {
+    try {
+      opts.attachExtraRoutes(app);
+    } catch (err: any) {
+      log.warn(`[Web UI] attachExtraRoutes failed: ${err?.message || err}`);
+    }
+  }
+
   // Global error handler — catch unhandled Express errors instead of
   // dumping raw stack traces to the browser
   app.use((err: any, _req: any, res: any, _next: any) => {
@@ -6016,6 +6395,17 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       res.status(err.status || 500).json({ error: err.message || "Internal server error" });
     }
   });
+
+  // Hook for extra routes (e.g. /mcp) — runs after all core /api/* routes
+  // are registered but before listen(), so callers can attach sibling
+  // endpoints on the same port.
+  if (opts.attachExtraRoutes) {
+    try {
+      opts.attachExtraRoutes(app);
+    } catch (err) {
+      log.warn(`attachExtraRoutes failed: ${err}`);
+    }
+  }
 
   app.listen(opts.port, () => {
     log.info(`Web UI running on http://localhost:${opts.port}/ui`);

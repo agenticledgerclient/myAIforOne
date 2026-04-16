@@ -143,12 +143,40 @@ export interface ServiceConfig {
   gymOnlyMode?: boolean;
   sharedAgentsEnabled?: boolean;          // false (default) = shared agents feature hidden; true = enabled (also requires license feature "sharedAgents")
   auth?: {
-    enabled?: boolean;                    // false (default) — personal gateway is open; true = bearer token required for all /api/* requests
-    tokens?: string[];                    // bearer tokens that grant API access
+    enabled?: boolean;                    // false (default) — personal gateway is open; true = API key required for all /api/* requests
+    tokens?: string[];                    // LEGACY: bearer tokens that grant API access (migrated to apiKeys on first boot)
     webPassword?: string;                 // password for web UI login (POST /api/auth/login)
   };
+  apiKeys?: ApiKey[];                     // Named API keys for programmatic access (preferred over legacy auth.tokens)
+  teamGateways?: TeamGateway[];           // Connected remote gateways (this local install reaches out to them via MCP)
   licenseKey?: string;                    // MyAIforOne license key (validated against ai41license.agenticledger.ai)
   licenseUrl?: string;                    // Override license server URL (default: https://ai41license.agenticledger.ai)
+}
+
+// ─── API keys ────────────────────────────────────────────────────────
+// Named credentials that grant programmatic access to the gateway's /api/*
+// and /mcp endpoints. Each key is a full-access secret (scopes = ["*"]) for v1;
+// scoped keys are a future enhancement.
+export interface ApiKey {
+  id: string;              // short opaque id, e.g. "key_abc123"
+  name: string;            // human label, e.g. "Ore's MacBook", "Initial Bootstrap"
+  key: string;             // the secret — prefixed "mai41team_..." for recognizability
+  createdAt: string;       // ISO datetime
+  lastUsedAt?: string;     // ISO datetime (updated by auth middleware on successful match)
+  scopes: string[];        // ["*"] = full access; future: ["agents:read"] etc.
+}
+
+// ─── Team Gateways ───────────────────────────────────────────────────
+// Connections to remote (shared) MyAIforOne gateways. Each connected gateway
+// becomes available as an MCP that local agents can call.
+export interface TeamGateway {
+  id: string;                                              // slug derived from name
+  name: string;                                            // user display name
+  url: string;                                             // gateway URL (no trailing slash)
+  addedAt: string;                                         // ISO datetime
+  lastStatus?: "ok" | "offline" | "unauthorized" | "error"; // result of last connection test
+  lastStatusAt?: string;                                   // ISO datetime of last status check
+  lastStatusMessage?: string;                              // human-readable detail when not "ok"
 }
 
 export interface AppConfig {
@@ -350,6 +378,30 @@ export function loadConfig(configPath: string): AppConfig {
   config.service = config.service ?? { logLevel: "info" };
   config.service.logLevel = config.service.logLevel ?? "info";
   config.defaultAgent = config.defaultAgent ?? null;
+
+  // ─── Migration: legacy auth.tokens[] → apiKeys[] ──────────────────
+  // If this install has auth.tokens set but no apiKeys yet, synthesize an
+  // apiKey entry for each legacy token so the new UI shows something useful.
+  // The legacy tokens continue to work (matched by matchToken() fallback),
+  // but now they have metadata.
+  {
+    const svc = config.service as any;
+    const legacyTokens: string[] = Array.isArray(svc.auth?.tokens) ? svc.auth.tokens : [];
+    const apiKeys = Array.isArray(svc.apiKeys) ? svc.apiKeys : [];
+    if (legacyTokens.length > 0 && apiKeys.length === 0) {
+      const now = new Date().toISOString();
+      svc.apiKeys = legacyTokens.map((t: string, i: number) => ({
+        id: i === 0 ? "key_legacy" : `key_legacy_${i}`,
+        name: i === 0 ? "Legacy Token" : `Legacy Token ${i + 1}`,
+        key: t,
+        createdAt: now,
+        scopes: ["*"],
+      }));
+      console.log(`[config] Migrated ${legacyTokens.length} legacy auth.tokens → apiKeys`);
+    }
+    if (!svc.apiKeys) svc.apiKeys = [];
+    if (!svc.teamGateways) svc.teamGateways = [];
+  }
 
   const home = homedir();
   // Drive root — MYAGENT_DATA_DIR override takes priority (Railway/Linux containers)

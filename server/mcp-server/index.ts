@@ -1596,8 +1596,75 @@ server.tool("get_conversation_log", "Read an agent's conversation log with optio
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  API KEYS (named bearer tokens for this gateway)
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_api_keys", "List API keys that can authenticate against this gateway. The secret is never returned — only an id, name, preview, createdAt, lastUsedAt, and scopes.", {}, async () => {
+  const r = await api.listApiKeys();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_api_key", "Create a new named API key. The full secret is returned ONCE in the response — capture it immediately; it cannot be retrieved later.", {
+  name: z.string().describe("Human-readable label for the key (e.g. 'ci-deploy', 'claude-desktop')"),
+}, async ({ name }) => {
+  const r = await api.createApiKey(name);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_api_key", "Revoke an API key by id. Refuses to delete the last remaining key to prevent lock-out.", {
+  id: z.string().describe("Key id (from list_api_keys)"),
+}, async ({ id }) => {
+  const r = await api.deleteApiKey(id);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  TEAM GATEWAYS (remote MyAIforOne deployments)
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_team_gateways", "List connected team gateways (remote MyAIforOne deployments this install is wired to as MCPs).", {}, async () => {
+  const r = await api.listTeamGateways();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("test_team_gateway", "Probe a remote gateway's URL + API key BEFORE saving. Returns { ok, platform, sharedAgents } or an error.", {
+  url: z.string().describe("Remote gateway base URL (e.g. https://myteam.up.railway.app)"),
+  apiKey: z.string().describe("Bearer API key issued from the remote gateway's Admin → API Keys page"),
+}, async ({ url, apiKey }) => {
+  const r = await api.testTeamGateway(url, apiKey);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("connect_team_gateway", "Connect a remote team gateway. Writes key to mcp-keys/, registers it as an MCP in config, and auto-assigns it to the Hub agent. Fails (and saves nothing) if the probe doesn't succeed.", {
+  name: z.string().describe("Friendly name (also used to derive the gateway id)"),
+  url: z.string().describe("Remote gateway base URL"),
+  apiKey: z.string().describe("Bearer API key for the remote gateway"),
+}, async ({ name, url, apiKey }) => {
+  const r = await api.createTeamGateway(name, url, apiKey);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("resync_team_gateway", "Re-probe a connected team gateway using the saved API key and update its lastStatus (ok / unauthorized / offline / error).", {
+  id: z.string().describe("Gateway id (from list_team_gateways)"),
+}, async ({ id }) => {
+  const r = await api.resyncTeamGateway(id);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("disconnect_team_gateway", "Disconnect a team gateway: detaches its MCP from all agents, removes the MCP registry entry, deletes the mcp-keys/.env file, and drops the metadata entry.", {
+  id: z.string().describe("Gateway id (from list_team_gateways)"),
+}, async ({ id }) => {
+  const r = await api.deleteTeamGateway(id);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  START SERVER
 // ═══════════════════════════════════════════════════════════════════
+
+// Export the configured McpServer so in-process callers (e.g. the gateway's
+// own /mcp HTTP endpoint) can mount it on a different transport.
+export { server };
 
 async function main() {
   const transport = new StdioServerTransport();
@@ -1605,7 +1672,13 @@ async function main() {
   console.error("MyAIforOne MCP server running on stdio");
 }
 
-main().catch((err) => {
-  console.error("MCP server failed to start:", err);
-  process.exit(1);
-});
+// Only auto-start the stdio transport when this module is invoked directly
+// (not when it's imported as a library by the gateway).
+import { fileURLToPath } from "node:url";
+const _isMain = process.argv[1] ? fileURLToPath(import.meta.url) === process.argv[1].replace(/\\/g, "/") || import.meta.url === `file://${process.argv[1]}` : false;
+if (_isMain) {
+  main().catch((err) => {
+    console.error("MCP server failed to start:", err);
+    process.exit(1);
+  });
+}

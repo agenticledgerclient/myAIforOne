@@ -3,7 +3,14 @@
  * Wraps all REST API endpoints for use by MCP tools.
  */
 
-const BASE_URL = process.env.MYAGENT_API_URL || "http://localhost:4888";
+// Read env vars lazily on each request so the in-process gateway can
+// configure the MCP server's target URL + token AFTER module import.
+function getBaseUrl(): string {
+  return process.env.MYAGENT_API_URL || "http://localhost:4888";
+}
+function getApiToken(): string | undefined {
+  return process.env.MYAGENT_API_TOKEN;
+}
 
 interface RequestOptions {
   method?: string;
@@ -12,7 +19,7 @@ interface RequestOptions {
 }
 
 async function api(path: string, opts: RequestOptions = {}): Promise<any> {
-  let url = `${BASE_URL}${path}`;
+  let url = `${getBaseUrl()}${path}`;
   if (opts.query) {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(opts.query)) {
@@ -24,6 +31,8 @@ async function api(path: string, opts: RequestOptions = {}): Promise<any> {
 
   const headers: Record<string, string> = {};
   if (opts.body) headers["Content-Type"] = "application/json";
+  const apiToken = getApiToken();
+  if (apiToken) headers["Authorization"] = `Bearer ${apiToken}`;
 
   const res = await fetch(url, {
     method: opts.method || "GET",
@@ -338,6 +347,24 @@ export const browseDrive = (path?: string) => api("/api/drive/browse", { query: 
 export const readDriveFile = (path: string) => api("/api/drive/read", { query: { path } });
 export const searchDrive = (q: string, path?: string, limit?: number, types?: string) =>
   api("/api/drive/search", { query: { q, path, limit, types } });
+
+// ─── API Keys (named bearer tokens for this gateway) ───────────
+export const listApiKeys = () => api("/api/auth/keys");
+export const createApiKey = (name: string) =>
+  api("/api/auth/keys", { method: "POST", body: { name } });
+export const deleteApiKey = (id: string) =>
+  api(`/api/auth/keys/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+// ─── Team Gateways (remote MyAIforOne deployments wired as MCPs) ─
+export const listTeamGateways = () => api("/api/team-gateways");
+export const testTeamGateway = (url: string, apiKey: string) =>
+  api("/api/team-gateways/test", { method: "POST", body: { url, apiKey } });
+export const createTeamGateway = (name: string, url: string, apiKey: string) =>
+  api("/api/team-gateways", { method: "POST", body: { name, url, apiKey } });
+export const resyncTeamGateway = (id: string) =>
+  api(`/api/team-gateways/${encodeURIComponent(id)}/resync`, { method: "POST" });
+export const deleteTeamGateway = (id: string) =>
+  api(`/api/team-gateways/${encodeURIComponent(id)}`, { method: "DELETE" });
 
 // ─── Gym ─────────────────────────────────────────────────────────
 export const getGymLearnerProfile = () => api("/api/gym/learner-profile");

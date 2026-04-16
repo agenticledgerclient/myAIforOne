@@ -11,6 +11,7 @@ import { WhatsAppDriver } from "./channels/whatsapp.js";
 import { TelegramDriver } from "./channels/telegram.js";
 import { DiscordDriver } from "./channels/discord.js";
 import { startWebUI } from "./web-ui.js";
+import { attachMcpHttp } from "./mcp-http.js";
 import { startCronJobs, stopCronJobs } from "./cron.js";
 import { startGoals, stopGoals } from "./goals.js";
 import { startWikiSync, stopWikiSync } from "./wiki-sync.js";
@@ -58,6 +59,7 @@ async function main(): Promise<void> {
     }
     mkdirSync(dataDir, { recursive: true });
     const bootstrapPort = process.env.PORT ? Number(process.env.PORT) : 4888;
+    const nowIso = new Date().toISOString();
     const minimal = {
       service: {
         logLevel: "info",
@@ -66,9 +68,20 @@ async function main(): Promise<void> {
         sharedAgentsEnabled: true,
         auth: {
           enabled: true,
-          tokens: [authToken],
+          tokens: [authToken], // legacy field kept for backcompat
           webPassword: authPassword,
         },
+        // Seed an initial API key so the new key system has a usable secret
+        // without forcing operators to log in and create one by hand.
+        apiKeys: [
+          {
+            id: "key_bootstrap",
+            name: "Bootstrap",
+            key: authToken,
+            createdAt: nowIso,
+            scopes: ["*"],
+          },
+        ],
       },
       channels: {},
       agents: {},
@@ -246,16 +259,23 @@ async function main(): Promise<void> {
   let cronMessageHandler: (agentId: string, message: string, channel: string, chatId: string) => Promise<void>;
 
   if (webUI?.enabled) {
+    const webUIPort = process.env.PORT ? Number(process.env.PORT) : (webUI.port || 8080);
     // cronMessageHandler is defined below — bind via closure so webUI can reference it
     startWebUI({
       config,
       baseDir,
       dataDir,
-      port: process.env.PORT ? Number(process.env.PORT) : (webUI.port || 8080),
+      port: webUIPort,
       webhookSecret: webUI.webhookSecret,
       driverMap,
       onWebhookMessage: async (agentId, text, channel, chatId) => {
         if (cronMessageHandler) await cronMessageHandler(agentId, text, channel, chatId);
+      },
+      // Attach the Streamable HTTP /mcp endpoint on the same port so remote
+      // MCP clients (e.g. another MyAIforOne install) can reach this gateway
+      // via a single Bearer-authed URL.
+      attachExtraRoutes: (app) => {
+        attachMcpHttp(app, { config, baseDir, port: webUIPort });
       },
     });
   }

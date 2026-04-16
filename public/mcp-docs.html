@@ -381,6 +381,18 @@ const TOOLS = [
   {cat:"Drive",name:"read_drive_file",desc:"Read a file from the PersonalAgents data drive (max 1MB)",params:[{n:"path",t:"string",r:true,d:"Absolute path to the file"}]},
   {cat:"Drive",name:"search_drive",desc:"Full-text search across the PersonalAgents data drive",params:[{n:"q",t:"string",r:true,d:"Search query"},{n:"path",t:"string",r:false,d:"Scope to subdirectory"},{n:"limit",t:"number",r:false,d:"Max results (default 50)"},{n:"types",t:"string",r:false,d:"Comma-separated extensions (default: .md,.json,.jsonl,.txt)"}]},
 
+  // Auth / API Keys
+  {cat:"Auth",name:"list_api_keys",desc:"List API keys that can authenticate against this gateway. Secrets are never returned — only id, name, preview, createdAt, lastUsedAt, scopes.",params:[]},
+  {cat:"Auth",name:"create_api_key",desc:"Create a new named API key. The full secret is returned ONCE — capture it immediately; it cannot be retrieved later.",params:[{n:"name",t:"string",r:true,d:"Human-readable label (e.g. 'ci-deploy', 'claude-desktop')"}]},
+  {cat:"Auth",name:"delete_api_key",desc:"Revoke an API key by id. Refuses to delete the last remaining key to prevent lock-out.",params:[{n:"id",t:"string",r:true,d:"Key id (from list_api_keys)"}]},
+
+  // Team Gateways (remote MyAIforOne deployments)
+  {cat:"Team Gateways",name:"list_team_gateways",desc:"List connected team gateways (remote MyAIforOne deployments this install is wired to as MCPs).",params:[]},
+  {cat:"Team Gateways",name:"test_team_gateway",desc:"Probe a remote gateway's URL + API key BEFORE saving. Returns { ok, platform, sharedAgents } or an error.",params:[{n:"url",t:"string",r:true,d:"Remote gateway base URL (e.g. https://myteam.up.railway.app)"},{n:"apiKey",t:"string",r:true,d:"Bearer API key from the remote gateway's Admin → API Keys page"}]},
+  {cat:"Team Gateways",name:"connect_team_gateway",desc:"Connect a remote team gateway. Writes key to mcp-keys/, registers as MCP in config, and auto-assigns it to Hub. Fails (saves nothing) if probe doesn't succeed.",params:[{n:"name",t:"string",r:true,d:"Friendly name (also derives the gateway id)"},{n:"url",t:"string",r:true,d:"Remote gateway base URL"},{n:"apiKey",t:"string",r:true,d:"Bearer API key for the remote gateway"}]},
+  {cat:"Team Gateways",name:"resync_team_gateway",desc:"Re-probe a connected team gateway using the saved API key and update lastStatus (ok / unauthorized / offline / error).",params:[{n:"id",t:"string",r:true,d:"Gateway id (from list_team_gateways)"}]},
+  {cat:"Team Gateways",name:"disconnect_team_gateway",desc:"Disconnect a team gateway: detaches MCP from all agents, removes MCP registry entry, deletes mcp-keys/ .env file, drops metadata.",params:[{n:"id",t:"string",r:true,d:"Gateway id (from list_team_gateways)"}]},
+
   // Computer Use (aiforone_computeruse MCP)
   {cat:"Computer",name:"computer_screenshot",desc:"Capture the screen and return a base64 PNG image the agent can see inline. Use this to orient before clicking.",params:[]},
   {cat:"Computer",name:"computer_get_info",desc:"Get screen width, height, and platform. Call before clicking to understand coordinate space.",params:[]},

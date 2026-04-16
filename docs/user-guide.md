@@ -1453,6 +1453,49 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Login | `POST /api/auth/login` | N/A |
 | | **Body:** `{ password }` → returns `{ token }` | |
 
+### API Keys Tab
+- **Tab label:** "API Keys" (top-level admin tab)
+- **Purpose:** Manage named bearer tokens that authenticate programmatic access to this gateway (MCP clients, CI, remote installs connecting via Team Gateways).
+- **List view:** one row per key showing name, preview (first/last chars only — the full secret is never shown again), createdAt, lastUsedAt, and a Delete button.
+- **+ New Key button** — prompts for a name, then displays the full secret ONCE. Capture it immediately; it can't be retrieved later.
+- **Delete** — refuses to delete the last remaining key (prevents lock-out).
+- **Storage:** keys live in `config.json` under `service.apiKeys[]`. The auth middleware accepts any key from this list as a Bearer token. Legacy `service.auth.tokens[]` is still honored for back-compat.
+
+| Action | API | MCP |
+|--------|-----|-----|
+| List API keys | `GET /api/auth/keys` | `list_api_keys` |
+| | Returns `{ keys: [{ id, name, preview, createdAt, lastUsedAt, scopes }] }` — secrets never returned | *(no params)* |
+| Create API key | `POST /api/auth/keys` | `create_api_key` |
+| | **Body:** `{ name }` → returns `{ ok, key: { id, name, key, createdAt, scopes } }` (full secret shown ONCE) | **Params:** `name` |
+| Delete API key | `DELETE /api/auth/keys/:id` | `delete_api_key` |
+| | Refuses to delete the last remaining key | **Params:** `id` |
+
+### Team Gateways Tab
+- **Tab label:** "Team Gateways" (top-level admin tab)
+- **Purpose:** Connect this local install to a remote MyAIforOne deployment (e.g. a Railway-hosted team gateway) so Hub and other agents can call that gateway's tools via MCP.
+- **List view:** one card per connected gateway with name, URL, lastStatus (ok / unauthorized / offline / error), lastStatusAt, Resync button, and Disconnect button.
+- **+ Connect Team Gateway button** — opens a modal asking for Name, URL, and API Key (a Bearer secret issued from the remote gateway's Admin → API Keys page). Clicking Connect runs a probe first; if it fails, nothing is saved.
+- **What happens on connect:**
+  1. API key + URL written to `data/mcp-keys/team-<id>.env`
+  2. MCP registered in `config.mcps` (stdio wrapper that forwards to the remote gateway URL)
+  3. MCP auto-assigned to the Hub agent
+  4. Metadata saved to `service.teamGateways[]`
+- **Resync** — re-probes with the saved key and updates `lastStatus`.
+- **Disconnect** — detaches MCP from all agents, removes the MCP registry entry, deletes the mcp-keys `.env` file, and drops the metadata row.
+
+| Action | API | MCP |
+|--------|-----|-----|
+| List team gateways | `GET /api/team-gateways` | `list_team_gateways` |
+| | Returns `{ gateways: [{ id, name, url, addedAt, lastStatus, lastStatusAt, lastStatusMessage? }] }` | *(no params)* |
+| Test connection (before saving) | `POST /api/team-gateways/test` | `test_team_gateway` |
+| | **Body:** `{ url, apiKey }` → `{ ok, platform, sharedAgents }` or error | **Params:** `url`, `apiKey` |
+| Connect team gateway | `POST /api/team-gateways` | `connect_team_gateway` |
+| | **Body:** `{ name, url, apiKey }` — probes first, auto-registers MCP + assigns to Hub on success | **Params:** `name`, `url`, `apiKey` |
+| Resync status | `POST /api/team-gateways/:id/resync` | `resync_team_gateway` |
+| | Re-probes with stored key; updates `lastStatus` | **Params:** `id` |
+| Disconnect | `DELETE /api/team-gateways/:id` | `disconnect_team_gateway` |
+| | Detaches MCP, removes registry entry, deletes key file, drops metadata | **Params:** `id` |
+
 ### SaaS Publishing Section
 - **Description:** "Publish skills, prompts, agents, and apps from your Library to a shared SaaS workspace"
 - **Status dot** — green when connected, hidden otherwise
@@ -2168,3 +2211,11 @@ Quick reference — all MCP tools alphabetically:
 | 107 | `whoami` | Accounts |
 | -- | `get_gym_insights` | AI Gym |
 | -- | `save_gym_insights` | AI Gym |
+| -- | `list_api_keys` | Auth |
+| -- | `create_api_key` | Auth |
+| -- | `delete_api_key` | Auth |
+| -- | `list_team_gateways` | Team Gateways |
+| -- | `test_team_gateway` | Team Gateways |
+| -- | `connect_team_gateway` | Team Gateways |
+| -- | `resync_team_gateway` | Team Gateways |
+| -- | `disconnect_team_gateway` | Team Gateways |

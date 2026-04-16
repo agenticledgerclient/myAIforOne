@@ -394,6 +394,16 @@ const CATALOG = [
   // -- Auth --
   { cat: "Auth", method: "GET", path: "/api/auth/status", summary: "Check web UI auth status. Returns { authEnabled, authenticated }. No token required." },
   { cat: "Auth", method: "POST", path: "/api/auth/login", summary: "Authenticate with web password. Returns { token } on success.", body: { password: { type: "string", required: true, desc: "Web UI password (service.auth.webPassword)" } } },
+  { cat: "Auth", method: "GET", path: "/api/auth/keys", summary: "List API keys. Returns { keys: [{ id, name, preview, createdAt, lastUsedAt, scopes }] }. Secrets are never returned — only a short preview." },
+  { cat: "Auth", method: "POST", path: "/api/auth/keys", summary: "Create a new named API key. Returns the full secret ONCE as { ok, key: { id, name, key, createdAt, scopes } } — capture it immediately.", body: { name: { type: "string", required: true, desc: "Human-readable label (e.g. 'ci-deploy')" } } },
+  { cat: "Auth", method: "DELETE", path: "/api/auth/keys/:id", summary: "Revoke an API key. Refuses to delete the last remaining key to prevent lock-out.", params: [{ name: "id", in: "path", type: "string", required: true }] },
+
+  // -- Team Gateways --
+  { cat: "Team Gateways", method: "GET", path: "/api/team-gateways", summary: "List connected team gateways (remote MyAIforOne deployments wired as MCPs). Returns { gateways: [{ id, name, url, addedAt, lastStatus, lastStatusAt, lastStatusMessage? }] }." },
+  { cat: "Team Gateways", method: "POST", path: "/api/team-gateways/test", summary: "Probe a remote gateway BEFORE saving. Returns { ok, platform, sharedAgents } on success or { ok:false, error, status } on failure.", body: { url: { type: "string", required: true, desc: "Remote gateway base URL" }, apiKey: { type: "string", required: true, desc: "Bearer API key issued from the remote gateway's Admin → API Keys page" } } },
+  { cat: "Team Gateways", method: "POST", path: "/api/team-gateways", summary: "Connect a team gateway. Probes first; on success writes the key to mcp-keys/, registers the MCP in config, and auto-assigns it to the Hub agent. Returns { ok, gateway }.", body: { name: { type: "string", required: true, desc: "Friendly name (also used to derive the gateway id)" }, url: { type: "string", required: true }, apiKey: { type: "string", required: true } } },
+  { cat: "Team Gateways", method: "POST", path: "/api/team-gateways/:id/resync", summary: "Re-probe a saved gateway using its stored key; updates lastStatus to ok / unauthorized / offline / error.", params: [{ name: "id", in: "path", type: "string", required: true }] },
+  { cat: "Team Gateways", method: "DELETE", path: "/api/team-gateways/:id", summary: "Disconnect a gateway: detaches MCP from all agents, removes MCP registry entry, deletes mcp-keys/ .env file, and drops metadata.", params: [{ name: "id", in: "path", type: "string", required: true }] },
 
   // -- Shared Agents --
   { cat: "Shared Agents", method: "GET", path: "/api/capabilities", summary: "Get platform feature flags. Returns { features: { sharedAgents, gym } }. Use this to show/hide UI sections." },
