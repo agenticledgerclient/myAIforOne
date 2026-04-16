@@ -13,13 +13,15 @@ RUN npm install -g @anthropic-ai/claude-code
 
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (skip postinstall — it depends on scripts/ which isn't copied yet)
 COPY package*.json ./
-RUN npm ci --omit=dev || npm install --omit=dev
+RUN npm ci --omit=dev --ignore-scripts || npm install --omit=dev --ignore-scripts
 
-# Copy source and build
+# Copy source
 COPY . .
-RUN npm run build
+
+# Now run postinstall (installs nested MCP deps) and build
+RUN npm run postinstall && npm run build
 
 # Data directory (Railway Volume mounts here)
 RUN mkdir -p /data/SharedAgents /data/PersonalAgents
