@@ -921,7 +921,13 @@ export async function executeAgent(
   const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
   const learnedPath = join(memoryDir, "learned.md");
-  const logPath = join(memoryDir, "conversation_log.jsonl");
+  // Per-user conversation log: when conversationLogMode is "per-user", each sender gets their own log file.
+  const _logSenderId = (agentConfig as any).conversationLogMode === "per-user"
+    ? (msg.sender || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_")
+    : null;
+  const logPath = _logSenderId
+    ? join(memoryDir, `conversation_log_${_logSenderId}.jsonl`)
+    : join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
   // Auto-isolate web UI session tabs — they always send senderId as "tab-{id}"
@@ -1617,7 +1623,13 @@ export async function* executeAgentStreaming(
   const memoryDir = resolve(baseDir, expandTilde(agentConfig.memoryDir));
   const contextPath = join(memoryDir, "context.md");
   const learnedPath = join(memoryDir, "learned.md");
-  const logPath = join(memoryDir, "conversation_log.jsonl");
+  // Per-user conversation log: when conversationLogMode is "per-user", each sender gets their own log file.
+  const _logSenderId = (agentConfig as any).conversationLogMode === "per-user"
+    ? (msg.sender || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_")
+    : null;
+  const logPath = _logSenderId
+    ? join(memoryDir, `conversation_log_${_logSenderId}.jsonl`)
+    : join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
   // Auto-isolate web UI session tabs — they always send senderId as "tab-{id}"

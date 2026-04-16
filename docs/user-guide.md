@@ -270,9 +270,9 @@ Each agent can belong to multiple organizations. Per entry:
 | Action | API | MCP |
 |--------|-----|-----|
 | Create agent | `POST /api/agents` | `create_agent` |
-| | **Body:** `{ agentId, alias, name, description, instructions, agentClass, executor, orgs[], heartbeat{}, wiki, wikiSync{}, ... }` | **Params:** `agentId`, `alias`, `name`, `description`, `instructions`, `agentClass`, `executor`, `orgs`, `heartbeat`, `workspace`, `allowedTools`, `mcps`, `routes`, `persistent`, `streaming`, `advancedMemory`, `autonomousCapable`, `autoCommit`, `timeout`, `claudeAccount`, `wiki`, `wikiSync` |
+| | **Body:** `{ agentId, alias, name, description, instructions, agentClass, executor, orgs[], heartbeat{}, wiki, wikiSync{}, shared?, conversationLogMode?, ... }` | **Params:** `agentId`, `alias`, `name`, `description`, `instructions`, `agentClass`, `executor`, `orgs`, `heartbeat`, `workspace`, `allowedTools`, `mcps`, `routes`, `persistent`, `streaming`, `advancedMemory`, `autonomousCapable`, `autoCommit`, `timeout`, `claudeAccount`, `wiki`, `wikiSync`, `shared`, `conversationLogMode` |
 | Update agent | `PUT /api/agents/:id` | `update_agent` |
-| | **Body:** same fields as create | **Params:** `agentId`, plus any fields to update |
+| | **Body:** same fields as create | **Params:** `agentId`, plus any fields to update (incl. `conversationLogMode`) |
 | Get agent instructions | `GET /api/agents/:id/instructions` | `get_agent_instructions` |
 | | | **Params:** `agentId` |
 
@@ -1399,6 +1399,60 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Save license key | `PUT /api/config/service` | `update_service_config` |
 | | **Body:** `{ licenseKey: "MA1-..." }` | **Params:** `body` (object with `licenseKey`) |
 
+### Shared Agents Section
+- **Section label:** "Shared Agents" (purple highlight)
+- **Description:** "Allow multiple users to message agents from a shared gateway"
+- **Requires:** `sharedAgents` license feature + `sharedAgentsEnabled: true` in service config (dual gate)
+- **Toggle:** Enable Shared Agents — when off, all agents are personal only (default)
+
+| Field | Description |
+|-------|-------------|
+| **Enable Shared Agents** | Master toggle — off by default; requires license feature |
+
+- **Save button** — saves shared agents toggle to `config.json`
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Toggle shared agents (service) | `PUT /api/config/service` | `update_service_config` |
+| | **Body:** `{ sharedAgentsEnabled: true/false }` | **Params:** `{ sharedAgentsEnabled: true/false }` |
+| Check capabilities | `GET /api/capabilities` | N/A |
+| | Returns `features.sharedAgents` (boolean) | |
+| Get agent storage config | `GET /api/agents/:id` | `get_storage_info` |
+| | Returns `shared`, `conversationLogMode`, `agentHome` | **Params:** `agentId` |
+| Update agent log mode | `PUT /api/agents/:id` | `update_storage_config` |
+| | **Body:** `{ conversationLogMode: "shared" \| "per-user" }` | **Params:** `agentId`, `conversationLogMode` |
+| List conversation senders | `GET /api/agents/:id/logs?limit=500` | `get_conversation_senders` |
+| | Returns log entries (client aggregates by sender) | **Params:** `agentId` |
+| Get conversation log | `GET /api/agents/:id/logs?sender=&limit=` | `get_conversation_log` |
+| | Paginated logs, optional sender filter | **Params:** `agentId`, `sender?`, `since?`, `limit?` |
+
+### Web UI Authentication Section
+- **Section label:** "Web UI Authentication" (red highlight)
+- **Description:** "Protect the web dashboard with a password (for shared/public deployments)"
+- **Toggle:** Enable Auth — off by default (personal installs unaffected)
+- **Fields:**
+
+| Field | Description |
+|-------|-------------|
+| **Enable Auth** | Toggle — off by default; when on, all web UI pages require login |
+| **Web Password** | Password for the login overlay (used to derive a bearer token) |
+
+- **Save button** — saves auth config; takes effect immediately (no restart)
+
+**Auth behavior:**
+- `auth.js` is loaded on all pages. When `authEnabled: false`, it is a no-op
+- When enabled, `auth.js` checks `/api/auth/status` on every page load
+- If not authenticated, a login overlay appears and blocks the page
+- After login, `window.fetch` is patched to auto-attach the `Authorization: Bearer <token>` header on all requests
+- On 401, the login overlay reappears and retries the original request automatically
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Check auth status | `GET /api/auth/status` | N/A |
+| | Returns `{ authEnabled, authenticated }` | |
+| Login | `POST /api/auth/login` | N/A |
+| | **Body:** `{ password }` → returns `{ token }` | |
+
 ### SaaS Publishing Section
 - **Description:** "Publish skills, prompts, agents, and apps from your Library to a shared SaaS workspace"
 - **Status dot** — green when connected, hidden otherwise
@@ -1882,8 +1936,8 @@ Guides have two forms: human-readable (browsable in gym) and agent-executable (a
 | | **Body:** `{ markdown }` (H1=program, H2=module, H3=step) | **Params:** `markdown` |
 | Get agent activity summary | `GET /api/agents/:id/activity-summary` | `get_agent_activity_summary` |
 | | | **Params:** `agentId` |
-| Get agent logs (paginated) | `GET /api/agents/:id/logs?limit=50&offset=0` | `get_agent_logs` |
-| | | **Params:** `agentId`, `limit?`, `offset?` |
+| Get agent logs (paginated) | `GET /api/agents/:id/logs?limit=50&offset=0&sender=` | `get_agent_logs` |
+| | For per-user agents, `?sender=<senderId>` filters to one user's log. Omit for all logs (shared mode) or aggregated view (per-user mode). | **Params:** `agentId`, `limit?`, `offset?`, `sender?` (per-user filter) |
 | Search agent logs | `GET /api/agents/logs/search?q=keyword&agentIds=a,b` | `search_agent_logs` |
 | | | **Params:** `q`, `agentIds?` |
 | Run activity digest | `POST /api/gym/digest/run` | `run_gym_digest` |
@@ -2034,8 +2088,11 @@ Quick reference — all MCP tools alphabetically:
 | -- | `get_prompt_trigger` | Marketplace |
 | 53 | `get_saas_config` | SaaS |
 | 54 | `get_service_config` | Config |
+| -- | `get_storage_info` | Shared Agents |
 | 55 | `get_sticky_routing` | Channels |
 | 56 | `get_task_stats` | Tasks |
+| -- | `get_conversation_log` | Shared Agents |
+| -- | `get_conversation_senders` | Shared Agents |
 | 57 | `get_wiki_sync_history` | Wiki |
 | 58 | `health_check` | Dashboard |
 | -- | `import_program` | AI Gym |
@@ -2105,6 +2162,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `update_project` | Projects |
 | 103 | `update_saas_config` | SaaS |
 | 104 | `update_service_config` | Config |
+| -- | `update_storage_config` | Shared Agents |
 | 105 | `update_task` | Tasks |
 | 106 | `upload_file` | Files |
 | 107 | `whoami` | Accounts |

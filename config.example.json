@@ -27,7 +27,15 @@
     },
     "gymEnabled": true,
     "gymOnlyMode": false,
-    "aibriefingEnabled": false
+    "aibriefingEnabled": false,
+    "sharedAgentsEnabled": false,
+    "_comment_sharedAgentsDir": "Override SharedAgents folder path (default: ~/Desktop/MyAIforOne Drive/SharedAgents)",
+    "_comment_auth": "Enable auth for shared gateway deployments. Off by default — personal gateways stay open.",
+    "auth": {
+      "enabled": false,
+      "tokens": [],
+      "webPassword": null
+    }
   },
 
   "channels": {
@@ -298,7 +306,20 @@
     }
   },
 
-  "agents": {},
+  "agents": {
+    "_shared-agent-example (remove underscore to activate)": {
+      "name": "Finance Analyst",
+      "description": "Shared finance agent for the whole team",
+      "agentHome": "~/Desktop/MyAIforOne Drive/SharedAgents/FinanceDept/finance-analyst",
+      "workspace": "~/Desktop/MyAIforOne Drive/SharedAgents/FinanceDept/finance-analyst",
+      "claudeMd": "~/Desktop/MyAIforOne Drive/SharedAgents/FinanceDept/finance-analyst/CLAUDE.md",
+      "memoryDir": "~/Desktop/MyAIforOne Drive/SharedAgents/FinanceDept/finance-analyst/memory",
+      "shared": true,
+      "conversationLogMode": "shared",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "routes": []
+    }
+  },
 
   "defaultAgent": null,
   "defaultSkills": [

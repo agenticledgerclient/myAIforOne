@@ -168,8 +168,8 @@ export const deleteApp = (id: string) => api(`/api/apps/${id}`, { method: "DELET
 
 // ─── Activity & Logs ──────────────────────────────────────────────
 export const activity = (limit?: number) => api("/api/activity", { query: { limit } });
-export const agentLogs = (agentId: string, limit?: number, offset?: number, search?: string) =>
-  api(`/api/agents/${agentId}/logs`, { query: { limit, offset, search } });
+export const agentLogs = (agentId: string, limit?: number, offset?: number, search?: string, sender?: string) =>
+  api(`/api/agents/${agentId}/logs`, { query: { limit, offset, search, sender } });
 
 // ─── Memory ───────────────────────────────────────────────────────
 export const agentMemory = (agentId: string, limit?: number) =>

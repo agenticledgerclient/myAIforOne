@@ -25,9 +25,11 @@ A finance department with 5 people. They all need to talk to the same `@finance-
   ├── @tax2025 (private)                ├── @budget-tracker (shared)
   └── @ailead (private)                 └── @compliance-bot (shared)
        │                                     │
-  Local Drive                           Per-agent storage choice:
-  (unchanged)                             Server-local OR Google Drive
+  Local Drive folder                    Per-agent storage choice:
+  (~/Desktop/MyAIforOne Drive/)          Server-local OR Google Drive (cloud)
 ```
+
+> **Important clarification:** The current `~/Desktop/MyAIforOne Drive/` folder is a **plain local folder** on the user's Mac — it is NOT Google Drive or any cloud sync service. It's just a folder named "Drive". When this doc says "Google Drive storage" for shared agents, that refers to mounting **actual Google Drive** (the cloud service) via rclone or Drive for Desktop — a new capability being introduced with shared agents.
 
 | Layer | Personal | Shared |
 |-------|----------|--------|
@@ -35,7 +37,7 @@ A finance department with 5 people. They all need to talk to the same `@finance-
 | Agents | Private, single-user | Shared, multi-user |
 | Config | Local `config.json` | Server `config.json` |
 | Channels | User's own Slack/Telegram/etc. | Team Slack workspace, shared web UI URL |
-| Data | Local Drive | Per-agent: server-local or cloud Drive |
+| Data | Local folder (`~/Desktop/MyAIforOne Drive/`) | Per-agent: server-local or Google Drive (cloud) |
 
 ### What changes vs personal
 
@@ -53,6 +55,83 @@ Everything else. The shared gateway is the exact same MyAgent codebase — same 
 
 ---
 
+## Section 1b — Folder Hierarchy
+
+The shared agent folder structure mirrors the existing personal folder structure, with a `SharedAgents/` root as a sibling to `PersonalAgents/`.
+
+### Current personal structure (local Mac folder)
+
+```
+~/Desktop/MyAIforOne Drive/          ← local folder (NOT cloud)
+├── PersonalAgents/
+│   ├── <OrgName>/                   ← org folder (e.g., "AgenticLedger Builds")
+│   │   └── <agent-id>/              ← agent home
+│   │       ├── CLAUDE.md
+│   │       ├── memory/
+│   │       ├── tasks.json
+│   │       └── ...
+│   ├── skills/                      ← shared skills for personal agents
+│   ├── mcp-keys/                    ← shared API keys for personal agents
+│   ├── projects/                    ← cross-agent projects
+│   └── profile.json
+├── PersonalRegistry/                ← platform agents (hub, agentcreator, etc.)
+│   ├── hub/
+│   ├── agentcreator/
+│   ├── apps.json
+│   ├── mcps.json
+│   └── ...
+└── PlatformUtilities/
+```
+
+### Proposed shared structure (server-local or Google Drive)
+
+```
+SharedAgents/                        ← new root (on server disk or Google Drive)
+├── <OrgName>/                       ← org folder (mirrors PersonalAgents/ org structure)
+│   └── <agent-id>/                  ← agent home (identical internal structure)
+│       ├── CLAUDE.md
+│       ├── soul.md
+│       ├── memory/
+│       │   ├── context.md
+│       │   ├── conversation_log.jsonl
+│       │   ├── daily/
+│       │   └── vectors.json
+│       ├── FileStorage/
+│       │   ├── Temp/
+│       │   └── Permanent/
+│       ├── skills/
+│       ├── mcp-keys/
+│       ├── goals/
+│       └── tasks.json
+├── skills/                          ← shared skills for all shared agents (level 2 resolution)
+├── mcp-keys/                        ← shared API keys for all shared agents
+└── projects/                        ← cross-agent projects for the shared gateway
+```
+
+### Why the same hierarchy
+
+The 3-level skill/key resolution already works by walking up from agent → org → root. By keeping the same structure, all existing resolution logic works without changes:
+
+```
+Skill resolution order for a shared agent:
+  1. agent home:   SharedAgents/FinanceDept/finance-analyst/skills/
+  2. org level:    SharedAgents/FinanceDept/skills/             (future — add if needed)
+  3. shared root:  SharedAgents/skills/
+  4. platform:     PersonalRegistry/skills/                     (platform-wide)
+```
+
+### Where SharedAgents/ lives
+
+| Deployment | SharedAgents/ path |
+|-----------|-------------------|
+| Personal Mac (dev/test) | `~/Desktop/MyAIforOne Drive/SharedAgents/` (same local folder as PersonalAgents) |
+| Server-local | `/data/SharedAgents/` (or any server path) |
+| Google Drive | `SharedAgents/` on your Google Drive, mounted at `/mnt/gdrive/SharedAgents/` |
+
+The gateway's `agentHome` always resolves to an absolute path — the same executor code handles all three cases identically.
+
+---
+
 ## Section 2 — Per-Agent Storage Choice
 
 Each shared agent independently chooses where its data lives. This is a per-agent config, not a global setting.
@@ -64,14 +143,15 @@ Each shared agent independently chooses where its data lives. This is a per-agen
   "id": "finance-analyst",
   "agentClass": "standard",
   "storage": "local",
-  "agentHome": "/data/shared-agents/finance-analyst"
+  "agentHome": "/data/SharedAgents/FinanceDept/finance-analyst"
 }
 ```
 
 ```
 [Shared Server]
-  /data/shared-agents/
-  └── finance-analyst/
+  /data/SharedAgents/
+  └── FinanceDept/
+      └── finance-analyst/
       ├── CLAUDE.md
       ├── soul.md
       ├── memory/
@@ -97,15 +177,16 @@ Each shared agent independently chooses where its data lives. This is a per-agen
   "id": "budget-tracker",
   "agentClass": "standard",
   "storage": "drive",
-  "agentHome": "/mnt/gdrive/SharedAgents/budget-tracker",
+  "agentHome": "/mnt/gdrive/SharedAgents/FinanceDept/budget-tracker",
   "storageProvider": "google-drive"
 }
 ```
 
 ```
-[Google Drive / Dropbox / OneDrive] (shared with team)
-  SharedAgents/
-  └── budget-tracker/
+[Google Drive — actual cloud storage, new capability]
+  SharedAgents/                    ← root of shared agents on Drive
+  └── FinanceDept/                 ← org folder
+      └── budget-tracker/          ← agent home
       ├── CLAUDE.md
       ├── soul.md
       ├── memory/
@@ -135,17 +216,17 @@ A team with three shared agents, each with different storage:
     {
       "id": "finance-analyst",
       "storage": "local",
-      "agentHome": "/data/shared-agents/finance-analyst"
+      "agentHome": "/data/SharedAgents/FinanceDept/finance-analyst"
     },
     {
       "id": "budget-tracker",
       "storage": "drive",
-      "agentHome": "/mnt/gdrive/SharedAgents/budget-tracker"
+      "agentHome": "/mnt/gdrive/SharedAgents/FinanceDept/budget-tracker"
     },
     {
       "id": "compliance-bot",
       "storage": "drive",
-      "agentHome": "/mnt/team-dropbox/Agents/compliance-bot"
+      "agentHome": "/mnt/team-dropbox/SharedAgents/FinanceDept/compliance-bot"
     }
   ]
 }
@@ -275,7 +356,7 @@ The shared gateway is the same codebase. These things stay identical:
 | Where it runs | User's Mac | Server (Railway, VPS, always-on Mac) |
 | `config.json` agents | Personal agents | Shared agents |
 | Channel tokens | User's Slack/Telegram | Team Slack/Telegram |
-| Drive paths | User's local Drive | Server-local or mounted cloud Drive |
+| Drive paths | `~/Desktop/MyAIforOne Drive/` (local folder) | `/data/SharedAgents/` (server) or `/mnt/gdrive/SharedAgents/` (Google Drive cloud) |
 | Web UI port | `localhost:4888` | Public/internal URL |
 
 ---
@@ -402,14 +483,16 @@ Server-local: gateway writes → /data/shared-agents/finance-analyst/memory/...
   "id": "finance-analyst",
   "storage": "local",                    // "local" or "drive"
   "storageProvider": null,               // null for local
-  "agentHome": "/data/shared-agents/finance-analyst"
+  "agentHome": "/data/SharedAgents/FinanceDept/finance-analyst"
 }
 
 {
   "id": "budget-tracker",
   "storage": "drive",
   "storageProvider": "google-drive",     // "google-drive", "dropbox", "onedrive", "custom"
-  "agentHome": "/mnt/gdrive/SharedAgents/budget-tracker"
+  "agentHome": "/mnt/gdrive/SharedAgents/FinanceDept/budget-tracker"
+                                         // note: /mnt/gdrive/ is actual Google Drive (cloud),
+                                         //       NOT the local ~/Desktop/MyAIforOne Drive/ folder
 }
 ```
 

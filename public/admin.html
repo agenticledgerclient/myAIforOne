@@ -440,6 +440,21 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
         <div class="section-body">
           <div style="display:flex;flex-direction:column;gap:16px">
+            <!-- Shared Agents -->
+            <div style="padding:14px 16px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border)">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div>
+                  <div style="font-weight:600;font-size:13px;color:var(--text-primary)">Shared Agents</div>
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Team agents shared across multiple users, with per-user conversation logging and gateway auth</div>
+                </div>
+                <label style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0">
+                  <input type="checkbox" id="svcSharedAgentsEnabled" onchange="saveSharedAgentsSettings()" style="opacity:0;width:0;height:0" />
+                  <span style="position:absolute;cursor:pointer;inset:0;background:var(--bg-tertiary,#333);border-radius:24px;transition:.2s"></span>
+                  <span class="flag-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;pointer-events:none"></span>
+                </label>
+              </div>
+            </div>
+
             <!-- AI Gym -->
             <div style="padding:14px 16px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border)">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -1570,6 +1585,7 @@ async function loadService() {
   document.getElementById('depGithubOrg').value = d.githubOrg || '';
   document.getElementById('depGithubToken').value = d.githubToken || '';
   // Feature flags
+  document.getElementById('svcSharedAgentsEnabled').checked = !!s.sharedAgentsEnabled;
   document.getElementById('svcGymEnabled').checked = !!s.gymEnabled;
   document.getElementById('svcGymOnlyMode').checked = !!s.gymOnlyMode;
   document.getElementById('svcAibriefingEnabled').checked = !!s.aibriefingEnabled;
@@ -1666,6 +1682,18 @@ async function reconfigureGym() {
     setTimeout(() => { window.location.href = '/gym'; }, 800);
   } catch (e) {
     showToast('Failed to reset gym: ' + e.message);
+  }
+}
+
+async function saveSharedAgentsSettings() {
+  const sharedAgentsEnabled = document.getElementById('svcSharedAgentsEnabled').checked;
+  const res = await fetch('/api/config/service', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ sharedAgentsEnabled })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    showToast(sharedAgentsEnabled ? 'Shared Agents enabled' : 'Shared Agents disabled');
   }
 }
 
@@ -2074,6 +2102,7 @@ document.addEventListener('click', function(e){
   if (dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
 });
 </script>
+<script src="/auth.js"></script>
 <script src="/license-check.js"></script>
 </body>
 </html>

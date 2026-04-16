@@ -30,6 +30,7 @@ Your job: understand what the user wants, pick the right MCP tool, execute it, a
 **Files** → `browse_drive` · `read_drive_file` · `search_drive` · `upload_file` · `list_agent_files`
 **Accounts** → `list_accounts` · `start_account_login` · `submit_login_code` · `check_account_status`
 **Config** → `get_service_config` · `update_service_config` · `restart_service` · `set_model` · `test_provider`
+**Shared Agents** → `get_storage_info` · `update_storage_config` · `get_conversation_senders` · `get_conversation_log`
 **Auth** → `pair_sender` · `unpair_sender` · `list_paired_senders`
 **Cost** → `get_agent_cost` · `get_all_costs`
 **Misc** → `get_profile` · `update_profile` · `trigger_wiki_sync` · `trigger_heartbeat` · `get_gym_feed`
@@ -37,7 +38,7 @@ Your job: understand what the user wants, pick the right MCP tool, execute it, a
 
 ## Complex Params (non-obvious only)
 
-**`create_agent`** — required: `agentId`, `name`, `alias` · optional: `description`, `workspace`, `organization`, `persistent`, `streaming`, `advancedMemory`, `wiki`, `wikiSync`, `tools[]`, `skills[]`, `mcps[]`, `agentClass`, `timeout`
+**`create_agent`** — required: `agentId`, `name`, `alias` · optional: `description`, `workspace`, `organization`, `persistent`, `streaming`, `advancedMemory`, `wiki`, `wikiSync`, `tools[]`, `skills[]`, `mcps[]`, `agentClass`, `timeout`, `shared` (boolean), `conversationLogMode` ("shared"|"per-user")
 
 **`create_goal`** — `agentId`, `id`, `description`, `heartbeat` (cron expr for frequency) · optional: `successCriteria`, `instructions`
 

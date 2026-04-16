@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { join, resolve, basename, dirname, extname, relative, isAbsolute } from "node:path";
 import { execSync, spawn as cpSpawn } from "node:child_process";
 import type { AppConfig } from "./config.js";
-import { getPersonalAgentsDir, getPersonalRegistryDir } from "./config.js";
+import { getPersonalAgentsDir, getPersonalRegistryDir, getSharedAgentsDir } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.js";
@@ -15,6 +15,7 @@ import { createGymRouter } from "./gym/gym-router.js";
 import { startActivityDigest } from "./gym/activity-digest.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
+import { isSharedAgentsAllowed } from "./license.js";
 
 interface WebUIOptions {
   config: AppConfig;
@@ -120,6 +121,53 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/settings", (_req, res) => res.redirect("/admin?tab=settings"));
   app.get("/mcp-docs", (_req, res) => servePage(res, "mcp-docs.html"));
   app.get("/api-docs", (_req, res) => servePage(res, "api-docs.html"));
+
+  // ─── Auth System (shared agents feature) ─────────────────────────────
+  // Auth is only active when service.auth.enabled is true (default: false).
+  // When disabled, all API routes are open — personal gateway behavior unchanged.
+
+  function getAuthConfig() {
+    return (opts.config.service as any).auth as { enabled?: boolean; tokens?: string[]; webPassword?: string } | undefined;
+  }
+
+  function authMiddleware(req: any, res: any, next: any) {
+    const authCfg = getAuthConfig();
+    if (!authCfg?.enabled) return next(); // auth disabled — open access (default)
+    // Skip auth for login and status endpoints themselves
+    if (req.path === "/auth/login" || req.path === "/auth/status") return next();
+    // Check Bearer token in Authorization header
+    const authHeader = req.headers.authorization as string | undefined;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (token && authCfg.tokens?.includes(token)) return next();
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  // Apply auth middleware to all /api/* routes
+  app.use("/api", authMiddleware);
+
+  // POST /api/auth/login — accepts password, returns bearer token
+  app.post("/api/auth/login", (req, res) => {
+    const authCfg = getAuthConfig();
+    if (!authCfg?.enabled) return res.json({ ok: true, token: null, authEnabled: false });
+    const { password } = req.body as any;
+    if (!authCfg.webPassword || password !== authCfg.webPassword) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+    const token = authCfg.tokens?.[0];
+    if (!token) return res.status(500).json({ error: "No auth token configured" });
+    return res.json({ ok: true, token });
+  });
+
+  // GET /api/auth/status — returns auth state (used by web UI on page load)
+  app.get("/api/auth/status", (req, res) => {
+    const authCfg = getAuthConfig();
+    const authEnabled = !!(authCfg?.enabled);
+    if (!authEnabled) return res.json({ authEnabled: false, authenticated: true });
+    const authHeader = req.headers.authorization as string | undefined;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const authenticated = !!(token && authCfg?.tokens?.includes(token));
+    return res.json({ authEnabled: true, authenticated });
+  });
 
   // ─── API: Open folder in Finder / Explorer ─────────────────────────
   app.post("/api/open-folder", (req, res) => {
@@ -354,6 +402,7 @@ export function startWebUI(opts: WebUIOptions): void {
       gymEnabled: (s as any).gymEnabled ?? false,
       aibriefingEnabled: (s as any).aibriefingEnabled ?? false,
       gymOnlyMode: (s as any).gymOnlyMode ?? false,
+      sharedAgentsEnabled: (s as any).sharedAgentsEnabled ?? false,
       licenseKey: (s as any).licenseKey ? `${(s as any).licenseKey.slice(0, 20)}...` : "",
       licenseUrl: (s as any).licenseUrl || "https://ai41license.agenticledger.ai",
     });
@@ -403,7 +452,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode, licenseKey, licenseUrl } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode, sharedAgentsEnabled, licenseKey, licenseUrl } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
@@ -437,6 +486,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (gymEnabled !== undefined) { raw.service.gymEnabled = gymEnabled; (opts.config.service as any).gymEnabled = gymEnabled; }
       if (aibriefingEnabled !== undefined) { raw.service.aibriefingEnabled = aibriefingEnabled; (opts.config.service as any).aibriefingEnabled = aibriefingEnabled; }
       if (gymOnlyMode !== undefined) { raw.service.gymOnlyMode = gymOnlyMode; (opts.config.service as any).gymOnlyMode = gymOnlyMode; }
+      if (sharedAgentsEnabled !== undefined) { raw.service.sharedAgentsEnabled = sharedAgentsEnabled; (opts.config.service as any).sharedAgentsEnabled = sharedAgentsEnabled; }
       if (licenseKey !== undefined && licenseKey !== "" && !licenseKey.endsWith("...")) {
         raw.service.licenseKey = licenseKey;
         (opts.config.service as any).licenseKey = licenseKey;
@@ -971,6 +1021,8 @@ export function startWebUI(opts: WebUIOptions): void {
         name: agent.name || id,
         skills: agent.skills || [],
         agentClass: agent.agentClass || (agent.platformAgent ? "platform" : "standard"),
+        shared: (agent as any).shared ?? false,
+        conversationLogMode: (agent as any).conversationLogMode ?? "shared",
       }));
     res.json({ agents });
   });
@@ -1018,6 +1070,9 @@ export function startWebUI(opts: WebUIOptions): void {
         aliases: agent.mentionAliases,
         workspace: agent.workspace,
         tools: agent.allowedTools,
+        shared: (agent as any).shared ?? false,
+        conversationLogMode: (agent as any).conversationLogMode ?? "shared",
+        agentHome: agent.agentHome,
       },
       recentMessages,
     });
@@ -2463,7 +2518,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, shared, conversationLogMode } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -2483,6 +2538,8 @@ export function startWebUI(opts: WebUIOptions): void {
       executor?: string;
       wiki?: boolean;
       wikiSync?: { enabled?: boolean; schedule?: string };
+      shared?: boolean;
+      conversationLogMode?: "shared" | "per-user";
     };
 
     if (!agentId || !name || !alias) {
@@ -2507,8 +2564,10 @@ export function startWebUI(opts: WebUIOptions): void {
     }
 
     try {
-      // Create agent directory
-      const agentHome = join(getPersonalAgentsDir(), agentId);
+      // Create agent directory — shared agents go under SharedAgents/<org>/<agentId> or SharedAgents/<agentId>
+      const orgName = org?.[0]?.organization;
+      const baseDir = shared ? getSharedAgentsDir(opts.config) : getPersonalAgentsDir();
+      const agentHome = orgName ? join(baseDir, orgName, agentId) : join(baseDir, agentId);
       const memoryDir = join(agentHome, "memory");
       mkdirSync(memoryDir, { recursive: true });
       mkdirSync(join(agentHome, "mcp-keys"), { recursive: true });
@@ -2539,15 +2598,16 @@ export function startWebUI(opts: WebUIOptions): void {
       writeFileSync(join(memoryDir, "context.md"), `# ${name} Context\n\nCreated ${new Date().toISOString().split("T")[0]}.\n`);
 
       // Build config entry — use ~ prefix for portability in config.json
-      const paDir = getPersonalAgentsDir();
-      const paDirTilde = paDir.startsWith(homedir()) ? paDir.replace(homedir(), "~") : paDir;
+      const cfgBaseDir = shared ? getSharedAgentsDir(opts.config) : getPersonalAgentsDir();
+      const cfgBaseDirTilde = cfgBaseDir.startsWith(homedir()) ? cfgBaseDir.replace(homedir(), "~") : cfgBaseDir;
+      const cfgAgentPath = orgName ? `${cfgBaseDirTilde}/${orgName}/${agentId}` : `${cfgBaseDirTilde}/${agentId}`;
       const agentConfig: any = {
         name,
         description: description || `Agent ${name}`,
-        agentHome: `${paDirTilde}/${agentId}`,
+        agentHome: cfgAgentPath,
         workspace: workspace || "~",
-        claudeMd: `${paDirTilde}/${agentId}/CLAUDE.md`,
-        memoryDir: `${paDirTilde}/${agentId}/memory`,
+        claudeMd: `${cfgAgentPath}/CLAUDE.md`,
+        memoryDir: `${cfgAgentPath}/memory`,
         persistent: persistent ?? true,
         streaming: streaming ?? true,
         advancedMemory: advancedMemory ?? true,
@@ -2572,6 +2632,8 @@ export function startWebUI(opts: WebUIOptions): void {
       if (executor) agentConfig.executor = executor;
       if (wiki) agentConfig.wiki = true;
       if (wikiSync) agentConfig.wikiSync = { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" };
+      if (shared) agentConfig.shared = true;
+      if (conversationLogMode) agentConfig.conversationLogMode = conversationLogMode;
 
       // Build routes
       agentConfig.routes = (routes || []).map(r => ({
@@ -2632,7 +2694,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, conversationLogMode } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -2652,6 +2714,7 @@ export function startWebUI(opts: WebUIOptions): void {
       executor?: string;
       wiki?: boolean;
       wikiSync?: { enabled?: boolean; schedule?: string };
+      conversationLogMode?: "shared" | "per-user";
     };
 
     if (!name || !alias) {
@@ -2698,6 +2761,8 @@ export function startWebUI(opts: WebUIOptions): void {
       if (goals !== undefined) existing.goals = goals;
       if (wiki !== undefined) existing.wiki = wiki;
       if (wikiSync !== undefined) existing.wikiSync = wikiSync ? { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" } : undefined;
+      if (conversationLogMode !== undefined) existing.conversationLogMode = conversationLogMode;
+      // Note: `shared` and `agentHome` cannot be changed after creation to prevent orphaning data.
 
       // Build routes if provided
       if (routes !== undefined) {
@@ -4923,13 +4988,23 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
 
   // GET /api/agents/:agentId/cost?period=today|week|all — cost summary
   app.get("/api/agents/:agentId/cost", (req, res) => {
-    const memDir = agentMemDir(req.params.agentId);
+    const agentId = req.params.agentId;
+    const memDir = agentMemDir(agentId);
     if (!memDir) return res.status(404).json({ error: "Agent not found" });
-    const logPath = join(memDir, "conversation_log.jsonl");
-    if (!existsSync(logPath)) return res.json({ today: 0, week: 0, allTime: 0, totalMessages: 0, entries: [] });
+    const agentCfg = opts.config.agents[agentId];
+    const isPerUser = (agentCfg as any)?.conversationLogMode === "per-user";
+    // For per-user mode, aggregate all per-user log files
+    const logFiles = isPerUser
+      ? (existsSync(memDir) ? readdirSync(memDir).filter(f => f.startsWith("conversation_log_") && f.endsWith(".jsonl")).map(f => join(memDir, f)) : [])
+      : [join(memDir, "conversation_log.jsonl")];
+    const anyExists = logFiles.some(f => existsSync(f));
+    if (!anyExists) return res.json({ today: 0, week: 0, allTime: 0, totalMessages: 0, entries: [] });
     try {
-      const entries = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean)
-        .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      const entries = logFiles.flatMap(logPath => {
+        if (!existsSync(logPath)) return [];
+        return readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean)
+          .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      });
       const sum = (arr: any[]) => arr.reduce((s: number, e: any) => s + (e.cost || 0), 0);
       const today = new Date().toISOString().slice(0, 10);
       const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
@@ -5019,36 +5094,62 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
 
   // ─── API: Conversation Logs ─────────────────────────────────────────
 
-  // GET /api/agents/:agentId/logs?limit=50&offset=0&search=keyword
+  // GET /api/agents/:agentId/logs?limit=50&offset=0&search=keyword&sender=<senderId>
+  // When conversationLogMode is "per-user", aggregates all per-user log files unless ?sender= is specified.
   app.get("/api/agents/:agentId/logs", (req, res) => {
-    const memDir = agentMemDir(req.params.agentId);
+    const agentId = req.params.agentId;
+    const memDir = agentMemDir(agentId);
     if (!memDir) return res.status(404).json({ error: "Agent not found" });
-    const logPath = join(memDir, "conversation_log.jsonl");
-    if (!existsSync(logPath)) return res.json({ entries: [], total: 0 });
-    try {
-      let entries = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean)
-        .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    const agentCfg = opts.config.agents[agentId];
+    const isPerUser = (agentCfg as any)?.conversationLogMode === "per-user";
+    const senderFilter = req.query.sender as string | undefined;
 
-      // Search filter
-      const search = req.query.search as string;
-      if (search) {
-        const q = search.toLowerCase();
-        entries = entries.filter((e: any) =>
-          (e.text || "").toLowerCase().includes(q) ||
-          (e.response || "").toLowerCase().includes(q)
-        );
+    const readLog = (path: string): any[] => {
+      if (!existsSync(path)) return [];
+      try {
+        return readFileSync(path, "utf-8").trim().split("\n").filter(Boolean)
+          .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      } catch { return []; }
+    };
+
+    let entries: any[];
+    if (isPerUser) {
+      // Collect all per-user log files, or just the specified sender's file
+      if (senderFilter) {
+        const sanitized = senderFilter.replace(/[^a-zA-Z0-9_-]/g, "_");
+        entries = readLog(join(memDir, `conversation_log_${sanitized}.jsonl`));
+      } else {
+        // Aggregate all per-user log files
+        const files = existsSync(memDir)
+          ? readdirSync(memDir).filter(f => f.startsWith("conversation_log_") && f.endsWith(".jsonl"))
+          : [];
+        entries = files.flatMap(f => readLog(join(memDir, f)));
+        // Sort by timestamp after aggregation
+        entries.sort((a, b) => (a.ts || "").localeCompare(b.ts || ""));
       }
+    } else {
+      entries = readLog(join(memDir, "conversation_log.jsonl"));
+    }
 
-      const total = entries.length;
-      const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
-      const offset = parseInt(req.query.offset as string) || 0;
+    // Search filter
+    const search = req.query.search as string;
+    if (search) {
+      const q = search.toLowerCase();
+      entries = entries.filter((e: any) =>
+        (e.text || "").toLowerCase().includes(q) ||
+        (e.response || "").toLowerCase().includes(q)
+      );
+    }
 
-      // Return newest first
-      entries.reverse();
-      entries = entries.slice(offset, offset + limit);
+    const total = entries.length;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const offset = parseInt(req.query.offset as string) || 0;
 
-      res.json({ entries, total, limit, offset });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    // Return newest first
+    entries.reverse();
+    entries = entries.slice(offset, offset + limit);
+
+    res.json({ entries, total, limit, offset, perUserMode: isPerUser });
   });
 
   // ─── API: Memory Management ─────────────────────────────────────────
@@ -5598,6 +5699,10 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     res.json({
       platform: "MyAIforOne",
       version: "1.0.0",
+      features: {
+        sharedAgents: isSharedAgentsAllowed(opts.config),
+        gym: !!(opts.config.service as any).gymEnabled,
+      },
       categories: {
         agents: {
           description: "Create, configure, and manage AI agents",

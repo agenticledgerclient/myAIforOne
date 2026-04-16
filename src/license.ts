@@ -162,6 +162,17 @@ export function isFeatureEnabled(feature: string): boolean {
 }
 
 /**
+ * Check if the shared agents feature is allowed.
+ * Requires BOTH the local service config flag AND the license feature to be true.
+ * Default is false — shared agents are off unless explicitly enabled.
+ */
+export function isSharedAgentsAllowed(config: any): boolean {
+  const localFlag = (config?.service as any)?.sharedAgentsEnabled;
+  if (!localFlag) return false; // local kill switch — off by default
+  return isFeatureEnabled("sharedAgents");
+}
+
+/**
  * Get a numeric limit from the license (e.g., maxAgents).
  * Returns Infinity if no license or limit not set.
  */

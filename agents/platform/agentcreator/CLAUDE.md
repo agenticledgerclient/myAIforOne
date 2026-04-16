@@ -63,6 +63,8 @@ Every agent in `config.json` has these fields:
 - `advancedMemory` — if true, enables semantic memory with daily journals + vector search
 - `wiki` — if true, enables wiki learning. The agent saves learned facts to `learned.md` after conversations. Use with `wikiSync` for automatic merging into `context.md`
 - `wikiSync` — `{ enabled: true, schedule: "0 0 * * *" }` — scheduled sync that merges `learned.md` into `context.md` on a cron schedule
+- `shared` — if true, agent is stored under `SharedAgents/` instead of `PersonalAgents/`. Requires `sharedAgentsEnabled: true` in service config AND a license with the `sharedAgents` feature
+- `conversationLogMode` — `"shared"` (default, one `conversation_log.jsonl` for all senders) or `"per-user"` (separate `conversation_log_<senderId>.jsonl` per user, for multi-user shared agents)
 - `autonomousCapable` — if true, agent can run without user approval for tool calls
 - `allowedTools` — which Claude tools the agent can use (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, etc.)
 - `mentionAliases` — how users address the agent in group chats (e.g., `@financer`)

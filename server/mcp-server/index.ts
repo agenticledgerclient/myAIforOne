@@ -84,6 +84,8 @@ server.tool("create_agent", "Create a new agent with full configuration", {
   executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
+  shared: z.boolean().optional().describe("Create as a shared agent (multi-user). Agent home is created under SharedAgents/ instead of PersonalAgents/."),
+  conversationLogMode: z.enum(["shared", "per-user"]).optional().describe("Conversation log mode: 'shared' (default, all users share one log) or 'per-user' (separate log per sender)."),
 }, async (args) => {
   const body: any = { ...args };
   if (args.organization) {
@@ -121,6 +123,7 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
+  conversationLogMode: z.enum(["shared", "per-user"]).optional().describe("Update conversation log mode: 'shared' (one log for all users) or 'per-user' (separate log per sender)."),
 }, async ({ agentId, ...body }) => {
   const payload: any = { ...body };
   if (body.organization !== undefined) {
@@ -1539,6 +1542,57 @@ server.tool("save_gym_insights", "Save AI-generated insights from weekly analysi
 }, async ({ insights, topRecommendation, summary }) => {
   const r = await api.saveGymInsights({ insights, topRecommendation, summary });
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ─── Shared Agent Tools ────────────────────────────────────────────
+
+server.tool("get_storage_info", "Get storage and sharing configuration for an agent (shared flag, conversationLogMode, agentHome path)", {
+  agentId: z.string().describe("Agent ID"),
+}, async ({ agentId }) => {
+  const r = await api.getAgent(agentId);
+  const cfg = r?.config || {};
+  return { content: [{ type: "text", text: JSON.stringify({
+    agentId,
+    shared: cfg.shared ?? false,
+    conversationLogMode: cfg.conversationLogMode ?? "shared",
+    agentHome: cfg.agentHome ?? null,
+  }, null, 2) }] };
+});
+
+server.tool("update_storage_config", "Update an agent's conversationLogMode (shared or per-user)", {
+  agentId: z.string().describe("Agent ID"),
+  conversationLogMode: z.enum(["shared", "per-user"]).describe("'shared' = one log for all users; 'per-user' = separate log per sender"),
+}, async ({ agentId, conversationLogMode }) => {
+  const r = await api.updateAgent(agentId, { conversationLogMode } as any);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_conversation_senders", "For per-user mode agents, list unique senders with message counts and last active time", {
+  agentId: z.string().describe("Agent ID"),
+}, async ({ agentId }) => {
+  const r = await api.agentLogs(agentId, 500);
+  const entries: any[] = r?.entries || [];
+  const senderMap: Record<string, { count: number; lastTs: string }> = {};
+  for (const e of entries) {
+    const s = e.from || e.sender || "unknown";
+    if (!senderMap[s]) senderMap[s] = { count: 0, lastTs: "" };
+    senderMap[s].count += 1;
+    if (!senderMap[s].lastTs || (e.ts && e.ts > senderMap[s].lastTs)) senderMap[s].lastTs = e.ts || "";
+  }
+  const senders = Object.entries(senderMap).map(([sender, data]) => ({ sender, ...data }));
+  return { content: [{ type: "text", text: JSON.stringify({ agentId, senders }, null, 2) }] };
+});
+
+server.tool("get_conversation_log", "Read an agent's conversation log with optional sender filter and date range", {
+  agentId: z.string().describe("Agent ID"),
+  sender: z.string().optional().describe("Filter to a specific sender (for per-user mode agents)"),
+  since: z.string().optional().describe("ISO date string — only return entries after this date"),
+  limit: z.number().optional().describe("Max number of entries to return (default 50, max 200)"),
+}, async ({ agentId, sender, since, limit }) => {
+  const r = await api.agentLogs(agentId, limit || 50, undefined, undefined, sender);
+  let entries: any[] = r?.entries || [];
+  if (since) entries = entries.filter((e: any) => !e.ts || e.ts >= since);
+  return { content: [{ type: "text", text: JSON.stringify({ agentId, total: r?.total, entries }, null, 2) }] };
 });
 
 // ═══════════════════════════════════════════════════════════════════

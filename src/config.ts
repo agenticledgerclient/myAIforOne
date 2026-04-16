@@ -106,6 +106,8 @@ export interface AgentConfig {
   platformAgent?: boolean;     // DEPRECATED — use agentClass instead
   agentClass?: "standard" | "platform" | "builder" | "gym";  // standard (default), platform (Lab creators), builder (app developer agents), gym (AI Gym agents)
   executor?: string;  // "claude" (default) or "ollama:modelname" (e.g., "ollama:gemma2")
+  shared?: boolean;   // true = shared agent (multi-user); agentHome lives under SharedAgents/ root
+  conversationLogMode?: "shared" | "per-user";  // "shared" (default) = one log for all users; "per-user" = separate log per sender
 }
 
 export interface ChannelConfig {
@@ -128,6 +130,7 @@ export interface ServiceConfig {
   pairingCode?: string;
   personalAgentsDir?: string;   // Override path to PersonalAgents dir (default: ~/Desktop/MyAIforOne Drive/PersonalAgents)
   personalRegistryDir?: string; // Override path to PersonalRegistry dir (default: ~/Desktop/MyAIforOne Drive/PersonalRegistry)
+  sharedAgentsDir?: string;     // Override path to SharedAgents dir (default: ~/Desktop/MyAIforOne Drive/SharedAgents)
   webUI?: WebUIConfig;
   claudeAccounts?: Record<string, string>;  // name → config dir path, e.g. {"main": "~/.claude"}
   defaultClaudeAccount?: string;    // account name to use when agent has no claudeAccount set (e.g. "main")
@@ -138,6 +141,12 @@ export interface ServiceConfig {
   gymEnabled?: boolean;                   // false = gym hidden, true = gym active
   aibriefingEnabled?: boolean;            // false = no AI briefing feed, true = weekly AI news via web search
   gymOnlyMode?: boolean;
+  sharedAgentsEnabled?: boolean;          // false (default) = shared agents feature hidden; true = enabled (also requires license feature "sharedAgents")
+  auth?: {
+    enabled?: boolean;                    // false (default) — personal gateway is open; true = bearer token required for all /api/* requests
+    tokens?: string[];                    // bearer tokens that grant API access
+    webPassword?: string;                 // password for web UI login (POST /api/auth/login)
+  };
   licenseKey?: string;                    // MyAIforOne license key (validated against ai41license.agenticledger.ai)
   licenseUrl?: string;                    // Override license server URL (default: https://ai41license.agenticledger.ai)
 }
@@ -388,4 +397,15 @@ export function getPersonalRegistryDir(config?: AppConfig): string {
   const driveRoot = resolve(homedir(), "Desktop", "MyAIforOne Drive");
   if (config) return config.service.personalRegistryDir || resolve(driveRoot, "PersonalRegistry");
   return resolve(driveRoot, "PersonalRegistry");
+}
+
+/**
+ * Resolve the SharedAgents directory.
+ * Defaults to ~/Desktop/MyAIforOne Drive/SharedAgents (sibling of PersonalAgents).
+ * Can be overridden via service.sharedAgentsDir in config.
+ */
+export function getSharedAgentsDir(config?: AppConfig): string {
+  const driveRoot = resolve(homedir(), "Desktop", "MyAIforOne Drive");
+  if (config) return (config.service as any).sharedAgentsDir || resolve(driveRoot, "SharedAgents");
+  return resolve(driveRoot, "SharedAgents");
 }

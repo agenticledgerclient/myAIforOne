@@ -311,7 +311,13 @@ html,body{
     <div class="section">
       <div class="section-header">
         <span class="section-title">Recent Activity</span>
-        <a class="header-btn" id="openChatLink" href="/ui" style="font-size:10px;padding:4px 10px">Open Chat →</a>
+        <div style="display:flex;align-items:center;gap:8px">
+          <!-- Sender filter — only shown for per-user shared agents -->
+          <select id="senderFilter" style="display:none;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer" onchange="filterBySender(this.value)">
+            <option value="">All Users</option>
+          </select>
+          <a class="header-btn" id="openChatLink" href="/ui" style="font-size:10px;padding:4px 10px">Open Chat →</a>
+        </div>
       </div>
       <div class="section-body" id="activityList">
         <div class="section-empty">Loading activity...</div>
@@ -409,7 +415,35 @@ async function loadDashboard(){
     document.getElementById('agentDesc').textContent=a.description||'';
     document.getElementById('agentAvatar').textContent=(a.name||agentId).slice(0,2).toUpperCase();
     document.title=`${a.name||agentId} — Dashboard`;
+    // Shared agent indicators
+    if(a.shared){
+      const sharedBadge=document.createElement('span');
+      sharedBadge.textContent='Shared';
+      sharedBadge.style.cssText='font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(99,102,241,0.15);color:#818cf8;margin-left:8px;font-family:var(--font-mono,monospace)';
+      document.getElementById('agentName').after(sharedBadge);
+      const logMode=a.conversationLogMode||'shared';
+      const modeBadge=document.createElement('span');
+      modeBadge.textContent=logMode==='per-user'?'Per-User Logs':'Shared Logs';
+      modeBadge.title=logMode==='per-user'?'Each user has a separate conversation log':'All users share one conversation log';
+      modeBadge.style.cssText='font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg-secondary);color:var(--text-muted);margin-left:4px;font-family:var(--font-mono,monospace);cursor:help';
+      sharedBadge.after(modeBadge);
+    }
 
+    // Per-user mode: load sender list for filter dropdown
+    if(a.shared && a.conversationLogMode==='per-user'){
+      try{
+        const logsR=await fetch(`/api/agents/${agentId}/logs?limit=200`);
+        if(logsR.ok){
+          const logsData=await logsR.json();
+          const senders=[...new Set((logsData.entries||[]).map(e=>e.from||e.sender).filter(Boolean))];
+          const sel=document.getElementById('senderFilter');
+          if(sel&&senders.length>0){
+            sel.style.display='block';
+            senders.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+          }
+        }
+      }catch{/* ignore */}
+    }
     // Render activity from recentMessages
     renderActivity(data.recentMessages||[]);
   }
@@ -663,12 +697,25 @@ function downloadAgentFile(encodedPath) {
 }
 
 // ── Init ──
+async function filterBySender(sender){
+  const agentId=new URLSearchParams(location.search).get('agent');
+  if(!agentId)return;
+  const url=sender?`/api/agents/${agentId}/logs?limit=50&sender=${encodeURIComponent(sender)}`:`/api/agents/${agentId}/logs?limit=50`;
+  try{
+    const r=await fetch(url);
+    if(!r.ok)return;
+    const data=await r.json();
+    renderActivity(data.entries||[]);
+  }catch{/* ignore */}
+}
+
 loadDashboard();
 document.addEventListener('click', function(e){
   const dd = document.getElementById('docsDropdown');
   if(dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
 });
 </script>
+<script src="/auth.js"></script>
 <script src="/license-check.js"></script>
 </body>
 </html>

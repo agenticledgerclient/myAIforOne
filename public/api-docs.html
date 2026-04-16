@@ -369,7 +369,7 @@ const CATALOG = [
 
   // -- Activity & Logs --
   { cat: "Activity", method: "GET", path: "/api/activity", summary: "Get activity feed (latest conversations across agents)", params: [{ name: "limit", in: "query", type: "number", desc: "Max entries (default 100)" }] },
-  { cat: "Activity", method: "GET", path: "/api/agents/:agentId/logs", summary: "Paginated conversation logs with search", params: [{ name: "agentId", in: "path", type: "string", required: true }, { name: "limit", in: "query", type: "number", desc: "Max entries (default 50)" }, { name: "offset", in: "query", type: "number" }, { name: "search", in: "query", type: "string", desc: "Keyword filter" }] },
+  { cat: "Activity", method: "GET", path: "/api/agents/:agentId/logs", summary: "Paginated conversation logs with search. For per-user agents, use ?sender= to filter to one sender's log.", params: [{ name: "agentId", in: "path", type: "string", required: true }, { name: "limit", in: "query", type: "number", desc: "Max entries (default 50)" }, { name: "offset", in: "query", type: "number" }, { name: "search", in: "query", type: "string", desc: "Keyword filter" }, { name: "sender", in: "query", type: "string", desc: "Filter to specific sender (per-user mode only)" }] },
 
   // -- Memory --
   { cat: "Memory", method: "GET", path: "/api/agents/:agentId/memory", summary: "List memory entries (context.md + daily files + index)", params: [{ name: "agentId", in: "path", type: "string", required: true }, { name: "limit", in: "query", type: "number", desc: "Max daily files (default 20)" }] },
@@ -388,8 +388,15 @@ const CATALOG = [
   { cat: "Config", method: "POST", path: "/api/config/accounts/login", summary: "Start login flow — spawns claude auth, returns OAuth URL", body: { name: { type: "string", required: true }, path: { type: "string", required: true } } },
   { cat: "Config", method: "POST", path: "/api/config/accounts/login/code", summary: "Submit auth code to waiting login process", body: { sessionId: { type: "string", required: true }, code: { type: "string", required: true } } },
   { cat: "Config", method: "GET", path: "/api/config/accounts/:name/status", summary: "Check if account is authenticated", params: [{ name: "name", in: "path", type: "string", required: true }] },
-  { cat: "Config", method: "GET", path: "/api/config/service", summary: "Get service settings (personalAgentsDir, personalRegistryDir, port, logLevel, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode)" },
-  { cat: "Config", method: "PUT", path: "/api/config/service", summary: "Update service settings (all fields optional, only provided fields are changed)", body: { personalAgentsDir: { type: "string" }, personalRegistryDir: { type: "string" }, webUIPort: { type: "number" }, logLevel: { type: "string" }, defaultClaudeAccount: { type: "string" }, multiModelEnabled: { type: "boolean" }, platformDefaultExecutor: { type: "string" }, ollamaBaseUrl: { type: "string" }, providerKeys: { type: "object", desc: "{ openai, xai, google, groq, together, mistral }" }, gymEnabled: { type: "boolean" }, aibriefingEnabled: { type: "boolean" }, gymOnlyMode: { type: "boolean" } } },
+  { cat: "Config", method: "GET", path: "/api/config/service", summary: "Get service settings (personalAgentsDir, personalRegistryDir, port, logLevel, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode, sharedAgentsEnabled)" },
+  { cat: "Config", method: "PUT", path: "/api/config/service", summary: "Update service settings (all fields optional, only provided fields are changed)", body: { personalAgentsDir: { type: "string" }, personalRegistryDir: { type: "string" }, webUIPort: { type: "number" }, logLevel: { type: "string" }, defaultClaudeAccount: { type: "string" }, multiModelEnabled: { type: "boolean" }, platformDefaultExecutor: { type: "string" }, ollamaBaseUrl: { type: "string" }, providerKeys: { type: "object", desc: "{ openai, xai, google, groq, together, mistral }" }, gymEnabled: { type: "boolean" }, aibriefingEnabled: { type: "boolean" }, gymOnlyMode: { type: "boolean" }, sharedAgentsEnabled: { type: "boolean", desc: "Enable shared agents feature (requires license)" } } },
+
+  // -- Auth --
+  { cat: "Auth", method: "GET", path: "/api/auth/status", summary: "Check web UI auth status. Returns { authEnabled, authenticated }. No token required." },
+  { cat: "Auth", method: "POST", path: "/api/auth/login", summary: "Authenticate with web password. Returns { token } on success.", body: { password: { type: "string", required: true, desc: "Web UI password (service.auth.webPassword)" } } },
+
+  // -- Shared Agents --
+  { cat: "Shared Agents", method: "GET", path: "/api/capabilities", summary: "Get platform feature flags. Returns { features: { sharedAgents, gym } }. Use this to show/hide UI sections." },
 
   // -- Changelog --
   { cat: "Dashboard", method: "GET", path: "/api/changelog", summary: "Get recent changelog parsed from git history (grouped by date)" },
@@ -672,6 +679,12 @@ const TOOLS = [
   // Config (continued)
   {cat:"Config",name:"test_provider",desc:"Test an API key for a cloud provider (OpenAI, Grok, Gemini, Groq, Together, Mistral)",params:[{n:"provider",t:"string",r:true,d:"openai | grok | gemini | groq | together | mistral"}]},
   {cat:"Config",name:"restart_service",desc:"Restart the MyAgent gateway service",params:[]},
+
+  // Shared Agents
+  {cat:"Shared Agents",name:"get_storage_info",desc:"Get an agent's storage/sharing config: shared flag, conversationLogMode, and agentHome path",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Shared Agents",name:"update_storage_config",desc:"Update an agent's conversationLogMode ('shared' = one log; 'per-user' = separate log per sender)",params:[{n:"agentId",t:"string",r:true},{n:"conversationLogMode",t:"enum",r:true,d:"shared | per-user"}]},
+  {cat:"Shared Agents",name:"get_conversation_senders",desc:"For per-user mode agents, list unique senders with message counts and last active time",params:[{n:"agentId",t:"string",r:true}]},
+  {cat:"Shared Agents",name:"get_conversation_log",desc:"Read an agent's conversation log with optional sender filter and date range",params:[{n:"agentId",t:"string",r:true},{n:"sender",t:"string",r:false,d:"Filter to one sender (per-user mode)"},{n:"since",t:"string",r:false,d:"ISO date — only return entries after this date"},{n:"limit",t:"number",r:false,d:"Max entries (default 50, max 200)"}]},
 
   // Discovery
   {cat:"Discovery",name:"list_capabilities",desc:"Get a structured summary of all platform capabilities grouped by category",params:[]},
@@ -1129,6 +1142,7 @@ window.addEventListener('hashchange', () => {
 
 init();
 </script>
+<script src="/auth.js"></script>
 <script src="/license-check.js"></script>
 </body>
 </html>

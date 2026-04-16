@@ -1121,6 +1121,28 @@ text-decoration:none;}
         <div class="form-hint">Override the platform default executor. Supports Claude, Ollama, OpenAI, Grok, Gemini, Groq, Together, Mistral. Requires multi-model enabled + API key in Admin → Settings.</div>
       </div>
 
+      <!-- Shared Agent (hidden when sharedAgents feature is off) -->
+      <div id="sharedAgentSection" style="display:none">
+        <div class="form-section" style="color:var(--accent)">Shared Agent</div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="f-shared" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" onchange="toggleSharedFields()" />
+            <span>Shared Agent (multi-user)</span>
+          </label>
+          <div class="form-hint">When enabled, this agent is accessible by multiple team members. Agent home is created under SharedAgents/ instead of PersonalAgents/.</div>
+        </div>
+        <div id="sharedAgentFields" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Conversation Log Mode</label>
+            <select class="form-input" id="f-conversationLogMode">
+              <option value="shared">Shared — one log for all users (agent sees everyone's history)</option>
+              <option value="per-user">Per-User — separate log per person (private conversations)</option>
+            </select>
+            <div class="form-hint">Shared: the agent builds knowledge from all conversations. Per-User: each user's conversation stays private.</div>
+          </div>
+        </div>
+      </div>
+
       <div class="form-section">Organization</div>
       <div id="orgEntries"></div>
       <button class="add-entry-btn" onclick="addOrgEntry()">+ Add Org Entry</button>
@@ -2084,7 +2106,7 @@ function renderListView(canvas) {
     html += `<td>${escapeHtml(a._org)}</td>`;
     html += `<td>${escapeHtml(dept)}</td>`;
     html += `<td>${escapeHtml(title)}</td>`;
-    html += `<td><span style="font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:4px;background:var(--accent-bg);color:var(--accent)">${cls}</span></td>`;
+    html += `<td><span style="font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:4px;background:var(--accent-bg);color:var(--accent)">${cls}</span>${a.shared ? '<span style="font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,0.15);color:#818cf8;margin-left:4px">shared</span>' : ''}</td>`;
     html += `<td>${renderAccountBadge(a)}</td>`;
     html += `<td><span class="row-status ${isActive ? 'active' : 'inactive'}"></span> ${isActive ? 'Active' : 'Idle'}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${formatRelativeTime(a.lastMessage)}</td>`;
@@ -3761,6 +3783,8 @@ async function saveAgent() {
   const claudeAccount = document.getElementById('f-claudeAccount')?.value || undefined;
   const agentClass = document.getElementById('f-agentClass')?.value || 'standard';
   const executor = document.getElementById('f-executor')?.value || undefined;
+  const shared = document.getElementById('f-shared')?.checked || false;
+  const conversationLogMode = document.getElementById('f-conversationLogMode')?.value || 'shared';
   const skills = getSelectedSkills();
   const agentSkills = [];
   const heartbeatInstructions = document.getElementById('f-heartbeatInstructions')?.value?.trim() || undefined;
@@ -3823,7 +3847,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled, shared: shared || undefined, conversationLogMode: shared ? conversationLogMode : undefined }),
     });
     const data = await res.json();
 
@@ -4291,11 +4315,32 @@ fetchData().then(() => {
   }
 });
 setInterval(fetchData, 30000);
+
+// ── Shared Agents feature gate ──
+(async function checkSharedAgentsCapability() {
+  try {
+    const r = await fetch('/api/capabilities');
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data?.features?.sharedAgents) {
+      const sec = document.getElementById('sharedAgentSection');
+      if (sec) sec.style.display = 'block';
+    }
+  } catch { /* ignore — feature stays hidden */ }
+})();
+
+function toggleSharedFields() {
+  const checked = document.getElementById('f-shared')?.checked;
+  const fields = document.getElementById('sharedAgentFields');
+  if (fields) fields.style.display = checked ? 'block' : 'none';
+}
+
 document.addEventListener('click', function(e){
   const dd = document.getElementById('docsDropdown');
   if(dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
 });
 </script>
+<script src="/auth.js"></script>
 <script src="/license-check.js"></script>
 </body>
 </html>
