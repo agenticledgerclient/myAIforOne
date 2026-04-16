@@ -1507,20 +1507,20 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | | **Body:** `{ url, apiKey }` → `{ ok, platform, sharedAgents }` or error | **Params:** `url`, `apiKey` |
 | Connect team gateway | `POST /api/team-gateways` | `connect_team_gateway` |
 | | **Body:** `{ name, url, apiKey }` — probes first, auto-registers MCP + assigns to Hub on success | **Params:** `name`, `url`, `apiKey` |
-| Get gateway detail | `GET /api/team-gateways/:id` | — |
-| | Returns `{ gateway, mcpName, attachedAgents[] }` — drives the Configure modal | — |
-| Key preview (masked) | `GET /api/team-gateways/:id/key-preview` | — |
+| Get gateway detail | `GET /api/team-gateways/:id` | `get_team_gateway` |
+| | Returns `{ gateway, mcpName, attachedAgents[] }` — drives the Configure modal | **Params:** `id` |
+| Key preview (masked) | `GET /api/team-gateways/:id/key-preview` | — *(UI-only, not exposed as MCP tool)* |
 | | Returns `{ prefix, last4, present }` — safe to call on every modal open | — |
-| Key reveal (plaintext) | `GET /api/team-gateways/:id/key-reveal` | — |
+| Key reveal (plaintext) | `GET /api/team-gateways/:id/key-reveal` | — *(UI-only, deliberately not exposed as MCP tool to avoid credential exfiltration)* |
 | | Returns `{ apiKey }` — called only on explicit Reveal/Copy action | — |
-| Rename gateway | `PATCH /api/team-gateways/:id` | — |
-| | **Body:** `{ name }` — updates display label; id stays immutable | — |
-| Rotate API key | `POST /api/team-gateways/:id/rotate-key` | — |
-| | **Body:** `{ apiKey }` — probes first; on success overwrites key file and refreshes status. On probe failure, existing key file is left untouched. | — |
-| Attach agent | `POST /api/team-gateways/:id/attach` | — |
-| | **Body:** `{ agentId }` — adds gateway's MCP to agent's `mcps[]` (idempotent) | — |
-| Detach agent | `POST /api/team-gateways/:id/detach` | — |
-| | **Body:** `{ agentId }` — removes gateway's MCP from agent's `mcps[]`. Refuses to detach the last attached agent (use Disconnect instead). | — |
+| Rename gateway | `PATCH /api/team-gateways/:id` | `rename_team_gateway` |
+| | **Body:** `{ name }` — updates display label; id stays immutable | **Params:** `id`, `name` |
+| Rotate API key | `POST /api/team-gateways/:id/rotate-key` | `rotate_team_gateway_key` |
+| | **Body:** `{ apiKey }` — probes first; on success overwrites key file and refreshes status. On probe failure, existing key file is left untouched. | **Params:** `id`, `apiKey` |
+| Attach agent | `POST /api/team-gateways/:id/attach` | `attach_team_gateway_to_agent` |
+| | **Body:** `{ agentId }` — adds gateway's MCP to agent's `mcps[]` (idempotent) | **Params:** `id`, `agentId` |
+| Detach agent | `POST /api/team-gateways/:id/detach` | `detach_team_gateway_from_agent` |
+| | **Body:** `{ agentId }` — removes gateway's MCP from agent's `mcps[]`. Refuses to detach the last attached agent (use Disconnect instead). | **Params:** `id`, `agentId` |
 | Resync status | `POST /api/team-gateways/:id/resync` | `resync_team_gateway` |
 | | Re-probes with stored key; updates `lastStatus` | **Params:** `id` |
 | Disconnect | `DELETE /api/team-gateways/:id` | `disconnect_team_gateway` |
@@ -2249,3 +2249,8 @@ Quick reference — all MCP tools alphabetically:
 | -- | `connect_team_gateway` | Team Gateways |
 | -- | `resync_team_gateway` | Team Gateways |
 | -- | `disconnect_team_gateway` | Team Gateways |
+| -- | `get_team_gateway` | Team Gateways |
+| -- | `rename_team_gateway` | Team Gateways |
+| -- | `rotate_team_gateway_key` | Team Gateways |
+| -- | `attach_team_gateway_to_agent` | Team Gateways |
+| -- | `detach_team_gateway_from_agent` | Team Gateways |

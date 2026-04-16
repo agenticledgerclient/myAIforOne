@@ -1658,6 +1658,45 @@ server.tool("disconnect_team_gateway", "Disconnect a team gateway: detaches its 
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+server.tool("get_team_gateway", "Get full detail for a single team gateway + derived attachedAgents[] (the local agents currently wired to its MCP). Returns { gateway, mcpName, attachedAgents }.", {
+  id: z.string().describe("Gateway id (from list_team_gateways)"),
+}, async ({ id }) => {
+  const r = await api.getTeamGateway(id);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("rename_team_gateway", "Rename a team gateway's display label. The gateway id is immutable — changing it requires disconnect + reconnect. Returns { ok, gateway }.", {
+  id: z.string().describe("Gateway id (from list_team_gateways)"),
+  name: z.string().describe("New display name (trimmed; empty string rejected with 400)"),
+}, async ({ id, name }) => {
+  const r = await api.renameTeamGateway(id, name);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("rotate_team_gateway_key", "Swap the API key used to reach a team gateway. Probes the new key against the stored URL first — if the probe fails, the existing .env file is left untouched so the gateway stays reachable. Returns { ok, status, gateway } on success.", {
+  id: z.string().describe("Gateway id (from list_team_gateways)"),
+  apiKey: z.string().describe("New Bearer API key from the remote gateway's Issued Keys page"),
+}, async ({ id, apiKey }) => {
+  const r = await api.rotateTeamGatewayKey(id, apiKey);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("attach_team_gateway_to_agent", "Give a local agent access to a team gateway's MCP by adding it to the agent's mcps[]. Idempotent (attaching twice = same state). Returns { ok, agentId, mcps, attachedAgents }.", {
+  id: z.string().describe("Gateway id (from list_team_gateways)"),
+  agentId: z.string().describe("Local agent id (from list_agents)"),
+}, async ({ id, agentId }) => {
+  const r = await api.attachTeamGateway(id, agentId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("detach_team_gateway_from_agent", "Revoke a local agent's access to a team gateway's MCP. Refuses to detach the last remaining attached agent (orphan guard) — use disconnect_team_gateway instead to remove the gateway entirely.", {
+  id: z.string().describe("Gateway id (from list_team_gateways)"),
+  agentId: z.string().describe("Local agent id to detach"),
+}, async ({ id, agentId }) => {
+  const r = await api.detachTeamGateway(id, agentId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 // ═══════════════════════════════════════════════════════════════════
 //  START SERVER
 // ═══════════════════════════════════════════════════════════════════

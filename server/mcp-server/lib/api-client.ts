@@ -365,6 +365,16 @@ export const resyncTeamGateway = (id: string) =>
   api(`/api/team-gateways/${encodeURIComponent(id)}/resync`, { method: "POST" });
 export const deleteTeamGateway = (id: string) =>
   api(`/api/team-gateways/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const getTeamGateway = (id: string) =>
+  api(`/api/team-gateways/${encodeURIComponent(id)}`);
+export const renameTeamGateway = (id: string, name: string) =>
+  api(`/api/team-gateways/${encodeURIComponent(id)}`, { method: "PATCH", body: { name } });
+export const rotateTeamGatewayKey = (id: string, apiKey: string) =>
+  api(`/api/team-gateways/${encodeURIComponent(id)}/rotate-key`, { method: "POST", body: { apiKey } });
+export const attachTeamGateway = (id: string, agentId: string) =>
+  api(`/api/team-gateways/${encodeURIComponent(id)}/attach`, { method: "POST", body: { agentId } });
+export const detachTeamGateway = (id: string, agentId: string) =>
+  api(`/api/team-gateways/${encodeURIComponent(id)}/detach`, { method: "POST", body: { agentId } });
 
 // ─── Gym ─────────────────────────────────────────────────────────
 export const getGymLearnerProfile = () => api("/api/gym/learner-profile");
