@@ -2171,17 +2171,25 @@ async function loadApiKeys() {
       root.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted)">No API keys yet. Click <b>+ New Key</b> to create one.</div>';
       return;
     }
+    // Lockout guard — don't offer Revoke when only one key remains, otherwise
+    // the user can accidentally lock themselves out. Backend also refuses
+    // (400) but the button shouldn't be there to tempt them in the first
+    // place. Show a subtle hint instead so they know why.
+    const isLastKey = keys.length === 1;
     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px"><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Name</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Key</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Created</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Last Used</th><th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right">&nbsp;</th></tr></thead><tbody>';
     for (const k of keys) {
       const created = k.createdAt ? new Date(k.createdAt).toLocaleString() : '—';
       const lastUsed = k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : 'Never';
+      const actionCell = isLastKey
+        ? `<span title="Can't revoke the last remaining key — create a new one first" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;cursor:not-allowed;opacity:0.55">Last key</span>`
+        : `<button onclick="deleteApiKey('${escHtml(k.id)}', '${escHtml(k.name)}')" style="padding:5px 10px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:11px;cursor:pointer">Revoke</button>`;
       html += `<tr>
         <td style="padding:12px;border-bottom:1px solid var(--border)"><b>${escHtml(k.name)}</b></td>
         <td style="padding:12px;border-bottom:1px solid var(--border);font-family:monospace;color:var(--text-muted)">${escHtml(k.preview)}</td>
         <td style="padding:12px;border-bottom:1px solid var(--border);color:var(--text-muted)">${escHtml(created)}</td>
         <td style="padding:12px;border-bottom:1px solid var(--border);color:var(--text-muted)">${escHtml(lastUsed)}</td>
         <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right">
-          <button onclick="deleteApiKey('${escHtml(k.id)}', '${escHtml(k.name)}')" style="padding:5px 10px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:11px;cursor:pointer">Revoke</button>
+          ${actionCell}
         </td>
       </tr>`;
     }

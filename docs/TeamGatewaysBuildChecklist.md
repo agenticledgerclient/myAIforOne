@@ -58,7 +58,7 @@
 - [x] "+ New Key" button → modal with a single name input
 - [x] On create: render the full key once in a modal with a Copy button and a clear "save this now, it won't be shown again" warning
 - [x] Revoke confirms before deleting
-- [~] Disable revoke on the last remaining key — backend refuses (400) but frontend still shows the button; should also hide UI-side
+- [x] Disable revoke on the last remaining key — frontend now renders a disabled "Last key" pill instead of a Revoke button when `keys.length === 1`; backend 400 remains as defense-in-depth
 - [x] All fetches use `authFetch()` so the page works when auth is enabled
 
 ### 1e — Bootstrap seeding
@@ -70,10 +70,10 @@
 ### 1 — Tests
 
 - [x] `Comprehensive Test Suite/api-keys/types.test.ts` — static shape + prefix format tests
-- [ ] `Comprehensive Test Suite/api-keys/create-list-revoke.test.ts`
-- [ ] `.../auth-middleware-legacy-backcompat.test.ts` (old `auth.tokens[]` still works)
-- [ ] `.../cannot-delete-last-key.test.ts`
-- [ ] `.../last-used-stamping.test.ts`
+- [x] `Comprehensive Test Suite/api-keys/crud.test.ts` + `api-keys.test.ts` — create/list/revoke round-trip, preview masking, 404 on unknown id, whitespace-name validation
+- [x] `Comprehensive Test Suite/api-keys/legacy-backcompat.test.ts` — unit tests for `matchToken()`: legacy fallback, apiKeys[] precedence, null inputs, lastUsedAt stamping
+- [x] `Comprehensive Test Suite/api-keys/crud.test.ts` + `api-keys.test.ts` — "refuses to delete the last remaining key" (both files cover it at different layers)
+- [x] `Comprehensive Test Suite/api-keys/last-used-stamping.test.ts` — in-memory mutation + persistence path
 
 ---
 
@@ -99,9 +99,9 @@
 
 ### 2 — Tests
 
-- [ ] `Comprehensive Test Suite/mcp-http/tool-listing.test.ts` (GET tool list returns same set as stdio server)
-- [ ] `.../bearer-required.test.ts` (401 without, 200 with)
-- [ ] `.../round-trip-agent-list.test.ts` (call `list_agents` via HTTP MCP against a seeded gateway)
+- [x] `Comprehensive Test Suite/mcp-http/tool-listing.test.ts` — initialize + tools/list handshake returns a non-empty catalog including `list_agents`/`list_projects`/`list_mcps`
+- [x] `Comprehensive Test Suite/mcp-http/endpoint.test.ts` — 401 without Bearer, 401 with bogus Bearer, consistency check that a token accepted at `/api/*` is also accepted at `/mcp`
+- [x] `Comprehensive Test Suite/mcp-http/tool-listing.test.ts` — round-trip `tools/call list_agents` returns a structured result/error envelope (exercises the full stdio-proxy path)
 
 ---
 
@@ -145,11 +145,11 @@
 
 ### 3 — Tests
 
-- [ ] `Comprehensive Test Suite/team-gateways/crud.test.ts`
-- [ ] `.../test-connection.test.ts` (mock remote; 200, 401, network error)
-- [ ] `.../auto-register-mcp.test.ts` (after add, MCP entry present in config)
-- [ ] `.../auto-assign-hub.test.ts` (hub gets the new MCP)
-- [ ] `.../delete-cleans-everywhere.test.ts` (config, mcp entry, mcp-keys file, all agent mcp arrays)
+- [x] `Comprehensive Test Suite/team-gateways/crud.test.ts` + `team-gateways.test.ts` — list/test/add/resync/delete end-to-end against a hermetic dummy remote
+- [x] `Comprehensive Test Suite/team-gateways/team-gateways.test.ts` — test-connection covers 200 / 401 / network-error paths with an in-process dummy gateway
+- [x] `Comprehensive Test Suite/team-gateways/auto-register-hub-cleanup.test.ts` — after add, `team-{id}` appears in `/api/mcps`
+- [x] `Comprehensive Test Suite/team-gateways/auto-register-hub-cleanup.test.ts` — hub's `config.mcps` includes `team-{id}` after auto-assign
+- [x] `Comprehensive Test Suite/team-gateways/auto-register-hub-cleanup.test.ts` — after delete, MCP stripped from `/api/mcps` AND from every agent's `config.mcps` (spot-checked across sample of agents)
 
 ---
 
@@ -216,25 +216,25 @@
 
 ---
 
-## Progress snapshot (updated 2026-04-16 after continued build)
+## Progress snapshot (updated 2026-04-16 after phases 1–4 complete + tests)
 
 ### Built and compiling
 - **Phase 1** (API Keys):
   - 1a types + storage — `src/config.ts`
   - 1b CRUD — `GET/POST/DELETE /api/auth/keys` in `src/web-ui.ts`
   - 1c auth middleware — `matchToken()` with legacy `auth.tokens[]` fallback
-  - 1d Admin UI — full "API Keys" tab in `public/admin.html` (table, + New Key modal, one-time secret reveal + copy)
+  - 1d Admin UI — full "API Keys" tab in `public/admin.html` (table, + New Key modal, one-time secret reveal + copy, **last-key lockout guard on frontend**)
   - 1e bootstrap — `src/index.ts` seeds `key_bootstrap` from `INITIAL_AUTH_TOKEN`
 - **Phase 2** (HTTP MCP): `/mcp` Streamable HTTP endpoint in `src/mcp-http.ts` + shared `src/auth-helper.ts`. Mounted via new `attachExtraRoutes` hook in `src/web-ui.ts`.
 - **Phase 3** (Team Gateways backend): 3a types, 3b CRUD (list/test/create/resync/delete), 3c auto-register HTTP MCP + write `mcp-keys/team-{id}.env`, 3d auto-assign to hub + strip from all agents on disconnect.
 - **Phase 4** (Team Gateways UI): tab + card grid + Connect modal + Test Connection gating + resync/disconnect actions.
-- Tests scaffold: `Comprehensive Test Suite/api-keys/types.test.ts`; empty dirs present for `team-gateways/` and `mcp-http/`.
+- **Tests**: 58/58 test files passing (up from 54). New files:
+  - `api-keys/last-used-stamping.test.ts`
+  - `api-keys/legacy-backcompat.test.ts`
+  - `mcp-http/tool-listing.test.ts`
+  - `team-gateways/auto-register-hub-cleanup.test.ts`
 - Full `npm run build` passes.
 
 ### Remaining
-- **Phase 1 tests**: create/list/revoke, legacy backcompat, cannot-delete-last-key, last-used stamping
-- **Phase 2 tests**: tool-listing, bearer-required, round-trip agent list
-- **Phase 3 tests**: crud, test-connection, auto-register-mcp, auto-assign-hub, delete-cleans-everywhere
-- **Phase 4 tests**: smoke + Playwright
-- **Phase 4 UI gaps**: per-card "# agents using", Edit (rename / rotate key), revoke-last-key lockout guard on frontend
-- **Phase 5**: run `/opappbuild_testsuite_trueup`, run full suite, commit + push both remotes, Railway redeploy + end-to-end validation from local Mac
+- **Phase 4 UI gaps**: per-card "# agents using" indicator, Edit action (rename / rotate key) — not blockers; disconnect + reconnect is a viable workaround
+- **Phase 5**: commit + push both remotes, Railway redeploy + end-to-end validation from local Mac (connect Railway gateway as first Team Gateway, call `list_agents` through the MCP)
