@@ -1453,9 +1453,10 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Login | `POST /api/auth/login` | N/A |
 | | **Body:** `{ password }` → returns `{ token }` | |
 
-### API Keys Tab
-- **Tab label:** "API Keys" (top-level admin tab)
-- **Purpose:** Manage named bearer tokens that authenticate programmatic access to this gateway (MCP clients, CI, remote installs connecting via Team Gateways).
+### Issued Keys Tab (feature-gated)
+- **Tab label:** "Issued Keys" (top-level admin tab) — previously labeled "API Keys".
+- **Visibility:** hidden unless `sharedAgentsEnabled === true` in service config. All `/api/auth/keys/*` endpoints return **403** when the flag is off so the issuance surface can't be reached via curl either.
+- **Purpose:** Manage the bearer tokens this install *issues* to inbound clients — remote MyAIforOne installs, MCP clients, and CI jobs that connect TO this gateway. It is the provider-side counterpart to Team Gateways (the consumer-side list of gateways this install connects OUT to).
 - **List view:** one row per key showing name, preview (first/last chars only — the full secret is never shown again), createdAt, lastUsedAt, and a Delete button.
 - **+ New Key button** — prompts for a name, then displays the full secret ONCE. Capture it immediately; it can't be retrieved later.
 - **Delete** — refuses to delete the last remaining key (prevents lock-out).
@@ -1464,24 +1465,39 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Action | API | MCP |
 |--------|-----|-----|
 | List API keys | `GET /api/auth/keys` | `list_api_keys` |
-| | Returns `{ keys: [{ id, name, preview, createdAt, lastUsedAt, scopes }] }` — secrets never returned | *(no params)* |
+| | Returns `{ keys: [{ id, name, preview, createdAt, lastUsedAt, scopes }] }` — secrets never returned. **403 when `sharedAgentsEnabled` is off.** | *(no params)* |
 | Create API key | `POST /api/auth/keys` | `create_api_key` |
-| | **Body:** `{ name }` → returns `{ ok, key: { id, name, key, createdAt, scopes } }` (full secret shown ONCE) | **Params:** `name` |
+| | **Body:** `{ name }` → returns `{ ok, key: { id, name, key, createdAt, scopes } }` (full secret shown ONCE). **403 when `sharedAgentsEnabled` is off.** | **Params:** `name` |
 | Delete API key | `DELETE /api/auth/keys/:id` | `delete_api_key` |
-| | Refuses to delete the last remaining key | **Params:** `id` |
+| | Refuses to delete the last remaining key. **403 when `sharedAgentsEnabled` is off.** | **Params:** `id` |
 
 ### Team Gateways Tab
 - **Tab label:** "Team Gateways" (top-level admin tab)
-- **Purpose:** Connect this local install to a remote MyAIforOne deployment (e.g. a Railway-hosted team gateway) so Hub and other agents can call that gateway's tools via MCP.
-- **List view:** one card per connected gateway with name, URL, lastStatus (ok / unauthorized / offline / error), lastStatusAt, Resync button, and Disconnect button.
-- **+ Connect Team Gateway button** — opens a modal asking for Name, URL, and API Key (a Bearer secret issued from the remote gateway's Admin → API Keys page). Clicking Connect runs a probe first; if it fails, nothing is saved.
+- **Purpose:** Connect this local install to one or more remote MyAIforOne deployments (e.g. Railway-hosted team gateways) so Hub and other agents can call each gateway's tools via MCP. Each gateway is independent — like being in multiple Slack workspaces.
+- **Header link (shown when `sharedAgentsEnabled === true`):** "This install also issues keys → Manage Issued Keys" — cross-link to the provider-side counterpart tab.
+- **List view:** one card per connected gateway with name, URL, MCP id, addedAt, lastStatus (ok / unauthorized / offline / error), Configure / Test / Disconnect buttons. The card itself is clickable (opens the Configure modal).
+- **+ Connect Team Gateway button** — opens a modal asking for Name, URL, and API Key (a Bearer secret issued from the remote gateway's Admin → Issued Keys page). Clicking Connect runs a probe first; if it fails, nothing is saved.
 - **What happens on connect:**
   1. API key + URL written to `data/mcp-keys/team-<id>.env`
   2. MCP registered in `config.mcps` (stdio wrapper that forwards to the remote gateway URL)
   3. MCP auto-assigned to the Hub agent
   4. Metadata saved to `service.teamGateways[]`
-- **Resync** — re-probes with the saved key and updates `lastStatus`.
+- **Configure button / clickable card** — opens the per-gateway modal with `Connection` and `Credentials` tabs. The persistent Disconnect button sits in the footer.
+- **Test** — re-probes with the saved key and updates `lastStatus`.
 - **Disconnect** — detaches MCP from all agents, removes the MCP registry entry, deletes the mcp-keys `.env` file, and drops the metadata row.
+
+#### Per-Gateway Configure Modal — Connection Tab
+- **Display name** — editable inline, saved via PATCH.
+- **URL** — read-only. To change, disconnect and reconnect.
+- **Status** — live pill + "Last checked X ago" + Test now button.
+- **MCP id** — read-only, copyable (for cross-referencing with the agent's `mcps[]` list).
+- **Added on** — timestamp.
+- **Gateway access section** — chip row of local agents currently attached to this gateway's MCP. `+ Add agent` dropdown adds an agent. Each chip's `×` detaches the agent. The last remaining attached agent cannot be detached here — use Disconnect in the footer to remove the gateway entirely.
+
+#### Per-Gateway Configure Modal — Credentials Tab
+- **API key** — masked as `<prefix>…<last4>` by default. Reveal button calls `key-reveal` and shows the full secret inline. Copy button copies the full secret without rendering it.
+- **Rotate key** — expands an inline form. Paste new key, click Test + Save. The gateway probes the new key; if it fails, the existing `.env` file is left untouched. On success, the `.env` is overwritten and status is refreshed.
+- **Last successful auth** — relative timestamp derived from `lastStatusAt` when `lastStatus === "ok"`.
 
 | Action | API | MCP |
 |--------|-----|-----|
@@ -1491,6 +1507,20 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | | **Body:** `{ url, apiKey }` → `{ ok, platform, sharedAgents }` or error | **Params:** `url`, `apiKey` |
 | Connect team gateway | `POST /api/team-gateways` | `connect_team_gateway` |
 | | **Body:** `{ name, url, apiKey }` — probes first, auto-registers MCP + assigns to Hub on success | **Params:** `name`, `url`, `apiKey` |
+| Get gateway detail | `GET /api/team-gateways/:id` | — |
+| | Returns `{ gateway, mcpName, attachedAgents[] }` — drives the Configure modal | — |
+| Key preview (masked) | `GET /api/team-gateways/:id/key-preview` | — |
+| | Returns `{ prefix, last4, present }` — safe to call on every modal open | — |
+| Key reveal (plaintext) | `GET /api/team-gateways/:id/key-reveal` | — |
+| | Returns `{ apiKey }` — called only on explicit Reveal/Copy action | — |
+| Rename gateway | `PATCH /api/team-gateways/:id` | — |
+| | **Body:** `{ name }` — updates display label; id stays immutable | — |
+| Rotate API key | `POST /api/team-gateways/:id/rotate-key` | — |
+| | **Body:** `{ apiKey }` — probes first; on success overwrites key file and refreshes status. On probe failure, existing key file is left untouched. | — |
+| Attach agent | `POST /api/team-gateways/:id/attach` | — |
+| | **Body:** `{ agentId }` — adds gateway's MCP to agent's `mcps[]` (idempotent) | — |
+| Detach agent | `POST /api/team-gateways/:id/detach` | — |
+| | **Body:** `{ agentId }` — removes gateway's MCP from agent's `mcps[]`. Refuses to detach the last attached agent (use Disconnect instead). | — |
 | Resync status | `POST /api/team-gateways/:id/resync` | `resync_team_gateway` |
 | | Re-probes with stored key; updates `lastStatus` | **Params:** `id` |
 | Disconnect | `DELETE /api/team-gateways/:id` | `disconnect_team_gateway` |

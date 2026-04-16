@@ -25,9 +25,21 @@ async function serviceUp(): Promise<boolean> {
   } catch { return false; }
 }
 
+// /api/auth/keys/* is gated behind service.sharedAgentsEnabled — when the flag
+// is off the gateway returns 403 on every keys endpoint. Tests here skip
+// gracefully in that state rather than asserting issuance UI behavior on an
+// install that doesn't act as a gateway.
+async function issuanceEnabled(): Promise<boolean> {
+  try {
+    const r = await fetch(`${BASE}/api/auth/keys`);
+    return r.status !== 403;
+  } catch { return false; }
+}
+
 describe("API Keys — list / create / delete", () => {
   it("GET /api/auth/keys returns a keys array (no secrets leaked)", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
     const res = await fetch(`${BASE}/api/auth/keys`);
     assert.equal(res.status, 200, "list endpoint should return 200 when auth disabled or authorized");
     const data = await res.json() as any;
@@ -46,6 +58,7 @@ describe("API Keys — list / create / delete", () => {
 
   it("POST /api/auth/keys with empty name returns 400", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
     const res = await fetch(`${BASE}/api/auth/keys`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -58,6 +71,7 @@ describe("API Keys — list / create / delete", () => {
 
   it("POST /api/auth/keys with whitespace name returns 400", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
     const res = await fetch(`${BASE}/api/auth/keys`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,6 +82,7 @@ describe("API Keys — list / create / delete", () => {
 
   it("POST /api/auth/keys with missing body returns 400", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
     const res = await fetch(`${BASE}/api/auth/keys`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,6 +93,7 @@ describe("API Keys — list / create / delete", () => {
 
   it("POST then DELETE round-trip: create, list shows it, delete removes it", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
 
     const label = `test-key-roundtrip-${Date.now()}`;
     // Create
@@ -124,6 +140,7 @@ describe("API Keys — list / create / delete", () => {
 
   it("DELETE /api/auth/keys/:id for unknown id returns 404", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
     const res = await fetch(`${BASE}/api/auth/keys/key_does_not_exist_xyz`, { method: "DELETE" });
     assert.equal(res.status, 404, "deleting unknown key id should return 404");
     const data = await res.json() as any;
@@ -132,6 +149,7 @@ describe("API Keys — list / create / delete", () => {
 
   it("DELETE refuses to remove the last remaining key (lockout guard)", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
 
     // Read current keys
     const list = await fetch(`${BASE}/api/auth/keys`);
@@ -153,6 +171,7 @@ describe("API Keys — list / create / delete", () => {
 
   it("preview field masks the actual secret", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
 
     // Create a throwaway key so we have a known raw secret to compare with preview.
     const label = `test-preview-${Date.now()}`;
@@ -223,6 +242,7 @@ describe("API Keys — auth middleware interaction", () => {
 
   it("when auth is disabled, all key operations are accessible without a token", async () => {
     if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
     const status = await fetch(`${BASE}/api/auth/status`);
     if (!status.ok) return;
     const statusData = await status.json() as any;

@@ -34,6 +34,7 @@ describe("GET /api/auth/keys", () => {
     const headers = await authHeaders();
     const r = await fetch(`${BASE}/api/auth/keys`, { headers });
     if (r.status === 401) return; // auth on but no test token — skip
+    if (r.status === 403) return; // sharedAgentsEnabled off — skip
     assert.ok(r.ok, `expected ok, got ${r.status}`);
     const data = await r.json() as { keys: unknown[] };
     assert.ok(Array.isArray(data.keys), "keys should be an array");
@@ -44,6 +45,7 @@ describe("GET /api/auth/keys", () => {
     const headers = await authHeaders();
     const r = await fetch(`${BASE}/api/auth/keys`, { headers });
     if (r.status === 401) return;
+    if (r.status === 403) return; // sharedAgentsEnabled off — skip
     if (!r.ok) return;
     const data = await r.json() as { keys: Array<{ preview: string; key?: string }> };
     for (const k of data.keys) {
@@ -66,6 +68,7 @@ describe("POST /api/auth/keys", () => {
       body: JSON.stringify({}),
     });
     if (r.status === 401) return;
+    if (r.status === 403) return; // sharedAgentsEnabled off — skip
     assert.equal(r.status, 400, "missing name should be rejected");
   });
 
@@ -79,6 +82,7 @@ describe("POST /api/auth/keys", () => {
       body: JSON.stringify({ name: label }),
     });
     if (createRes.status === 401) return;
+    if (createRes.status === 403) return; // sharedAgentsEnabled off — skip
     assert.ok(createRes.ok, `create should succeed, got ${createRes.status}`);
     const created = await createRes.json() as { key: { id: string; name: string; key: string } };
     assert.equal(created.key.name, label);
@@ -106,6 +110,7 @@ describe("DELETE /api/auth/keys/:id", () => {
       headers,
     });
     if (r.status === 401) return;
+    if (r.status === 403) return; // sharedAgentsEnabled off — skip
     assert.equal(r.status, 404);
   });
 

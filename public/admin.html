@@ -257,8 +257,11 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
   <button class="type-tab" data-tab="channels" onclick="switchTab('channels')">Channels</button>
   <button class="type-tab" data-tab="activity" onclick="switchTab('activity')">Activity</button>
   <button class="type-tab active" data-tab="settings" onclick="switchTab('settings')">Settings</button>
-  <button class="type-tab" data-tab="apikeys" onclick="switchTab('apikeys')">API Keys</button>
   <button class="type-tab" data-tab="teamgateways" onclick="switchTab('teamgateways')">Team Gateways</button>
+  <!-- Issued Keys tab — keys this install issues to inbound clients. Only meaningful
+       when this install is acting as a shared gateway. Hidden by default; unhidden
+       by loadService() when sharedAgentsEnabled === true. -->
+  <button class="type-tab" data-tab="apikeys" onclick="switchTab('apikeys')" id="tabBtnApikeys" style="display:none">Issued Keys</button>
   <button class="type-tab" data-tab="updates" onclick="switchTab('updates')">Updates</button>
   <button class="type-tab" data-tab="docs" onclick="switchTab('docs')">Docs</button>
 </div>
@@ -715,18 +718,21 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
     </div>
   </div>
 
-  <!-- ═══════════════════════════ API KEYS TAB ═══════════════════════════ -->
+  <!-- ═══════════════════════════ ISSUED KEYS TAB ═══════════════════════════
+       This tab is the *issuance* surface — keys this install issues to inbound
+       clients that connect TO it as a shared gateway. Only visible when
+       sharedAgentsEnabled === true (gated in loadService()). -->
   <div class="tab-panel" id="panel-apikeys">
     <div class="settings-page">
-      <div class="page-title">API Keys</div>
-      <div class="page-subtitle">Named credentials that grant programmatic access to this gateway's API and MCP endpoints. Issue one per device, team member, or automation so you can revoke individually.</div>
+      <div class="page-title">Issued Keys</div>
+      <div class="page-subtitle">Keys this gateway issues to inbound clients (other installs, automations, team members) so they can connect to it programmatically. Issue one per client so you can revoke individually.</div>
 
       <div class="section" style="margin-top:24px">
         <div class="section-header" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px">
           <div style="display:flex;align-items:center;gap:10px">
             <div class="section-icon" style="background:rgba(99,102,241,0.12);border-color:#6366f1;color:#6366f1">&#x1F511;</div>
             <div>
-              <div class="section-title">API Keys</div>
+              <div class="section-title">Issued Keys</div>
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Full-access keys (scopes = <code>*</code>). Scoped keys are a future enhancement.</div>
             </div>
           </div>
@@ -744,6 +750,12 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
     <div class="settings-page">
       <div class="page-title">Team Gateways</div>
       <div class="page-subtitle">Connect this local install to remote (shared) MyAIforOne gateways. Each connected gateway becomes available to your agents as an MCP, so Hub and others can create and manage shared agents on that remote gateway from here.</div>
+      <!-- Inline link to the issuance surface — only relevant when this install
+           is itself acting as a gateway (sharedAgentsEnabled=true). Hidden by default. -->
+      <div id="tgManageIssuedKeys" style="display:none;margin-top:8px;font-size:12px;color:var(--text-muted)">
+        This install also issues keys to inbound clients.
+        <a href="#" onclick="switchTab('apikeys');return false" style="color:var(--accent);text-decoration:none;font-weight:600">Manage Issued Keys &rarr;</a>
+      </div>
 
       <div class="section" style="margin-top:24px">
         <div class="section-header" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px">
@@ -1640,6 +1652,7 @@ async function loadService() {
   document.getElementById('depGithubToken').value = d.githubToken || '';
   // Feature flags
   document.getElementById('svcSharedAgentsEnabled').checked = !!s.sharedAgentsEnabled;
+  applySharedAgentsVisibility(!!s.sharedAgentsEnabled);
   document.getElementById('svcGymEnabled').checked = !!s.gymEnabled;
   document.getElementById('svcGymOnlyMode').checked = !!s.gymOnlyMode;
   document.getElementById('svcAibriefingEnabled').checked = !!s.aibriefingEnabled;
@@ -1748,6 +1761,26 @@ async function saveSharedAgentsSettings() {
   const data = await res.json();
   if (data.ok) {
     showToast(sharedAgentsEnabled ? 'Shared Agents enabled' : 'Shared Agents disabled');
+    applySharedAgentsVisibility(sharedAgentsEnabled);
+  }
+}
+
+// Toggle visibility of UI surfaces gated behind the Shared Agents feature flag.
+// Currently gates: the top-level "Issued Keys" tab button and the "Manage Issued
+// Keys" inline link inside the Team Gateways page. Backend /api/auth/keys/* is
+// also hard-gated to 403 when the flag is off, so this is UI affordance only.
+function applySharedAgentsVisibility(enabled) {
+  const tabBtn = document.getElementById('tabBtnApikeys');
+  if (tabBtn) tabBtn.style.display = enabled ? '' : 'none';
+  const manageLink = document.getElementById('tgManageIssuedKeys');
+  if (manageLink) manageLink.style.display = enabled ? '' : 'none';
+  // If the user is sitting on the Issued Keys panel when the flag flips off,
+  // bounce them back to Settings so the panel doesn't linger.
+  if (!enabled) {
+    const panel = document.getElementById('panel-apikeys');
+    if (panel && panel.classList.contains('active')) {
+      try { switchTab('settings'); } catch (_) { /* no-op */ }
+    }
   }
 }
 
@@ -2288,15 +2321,21 @@ async function loadTeamGateways() {
     for (const gw of gws) {
       const statusColor = gw.lastStatus === 'ok' ? '#10b981' : (gw.lastStatus === 'offline' ? '#f59e0b' : '#ef4444');
       const statusLabel = gw.lastStatus ? gw.lastStatus.toUpperCase() : 'UNKNOWN';
-      html += `<div style="padding:16px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border)">
+      const id = escHtml(gw.id);
+      const name = escHtml(gw.name);
+      // Whole card is clickable to open the per-gateway modal. Inner buttons
+      // stop propagation so clicks on Test / Disconnect don't also trigger
+      // the card-level open.
+      html += `<div class="tg-card" data-id="${id}" onclick="openTeamGatewayModal('${id}')" style="padding:16px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border);cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--accent, #6366f1)'" onmouseout="this.style.borderColor='var(--border)'">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
-          <div style="font-weight:700;font-size:14px;color:var(--text-primary)">${escHtml(gw.name)}</div>
+          <div style="font-weight:700;font-size:14px;color:var(--text-primary)">${name}</div>
           <span style="padding:3px 8px;border-radius:6px;background:${statusColor}1a;color:${statusColor};font-size:10px;font-weight:600;border:1px solid ${statusColor}">${escHtml(statusLabel)}</span>
         </div>
         <div style="font-size:11px;color:var(--text-muted);word-break:break-all;margin-bottom:10px">${escHtml(gw.url)}</div>
-        <div style="display:flex;gap:8px">
-          <button onclick="resyncTeamGateway('${escHtml(gw.id)}')" style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:12px;cursor:pointer">Test</button>
-          <button onclick="deleteTeamGateway('${escHtml(gw.id)}', '${escHtml(gw.name)}')" style="flex:1;padding:7px 10px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:12px;cursor:pointer">Disconnect</button>
+        <div style="display:flex;gap:6px">
+          <button onclick="event.stopPropagation();resyncTeamGateway('${id}')" style="flex:1;padding:7px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:12px;cursor:pointer">Test</button>
+          <button onclick="event.stopPropagation();openTeamGatewayModal('${id}')" style="flex:1;padding:7px 8px;border-radius:6px;border:1px solid var(--accent, #6366f1);background:transparent;color:var(--accent, #6366f1);font-size:12px;font-weight:600;cursor:pointer">Configure</button>
+          <button onclick="event.stopPropagation();deleteTeamGateway('${id}', '${name}')" style="flex:1;padding:7px 8px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:12px;cursor:pointer">Disconnect</button>
         </div>
       </div>`;
     }
@@ -2381,7 +2420,8 @@ async function saveTeamGateway() {
 
 async function resyncTeamGateway(id) {
   try {
-    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/test', { method: 'POST' });
+    // Server endpoint is /resync (re-runs the probe against the stored URL+key).
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/resync', { method: 'POST' });
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     showToast('Status: ' + (d.status || (d.ok ? 'ok' : 'unknown')));
@@ -2396,8 +2436,465 @@ async function deleteTeamGateway(id, name) {
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     showToast('Disconnected');
+    // Ensure the modal is closed if it was open for this gateway
+    closeTeamGatewayModal();
     loadTeamGateways();
   } catch (e) { showToast('Error: ' + e.message); }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ── PER-GATEWAY MODAL ───────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════
+// Tabbed modal (Connection | Credentials) scoped to a single connected
+// gateway. Backed by /api/team-gateways/:id and related endpoints.
+
+// Which gateway id the modal is currently showing (used by tab switching +
+// close/refresh helpers). Null when the modal is closed.
+let tgModalCurrentId = null;
+// Cached agents list so the "+ Add agent" dropdown can filter locally.
+let tgModalAllAgents = [];
+
+// Convert an ISO timestamp to a short relative string ("3m ago", "2d ago").
+function tgRelTime(iso) {
+  if (!iso) return 'never';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return 'never';
+  const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (sec < 60) return sec + 's ago';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+  if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+  return Math.floor(sec / 86400) + 'd ago';
+}
+
+function tgStatusPill(status) {
+  const s = (status || 'unknown').toString().toLowerCase();
+  const color = s === 'ok' ? '#10b981' : (s === 'offline' ? '#f59e0b' : (s === 'unauthorized' ? '#f59e0b' : '#ef4444'));
+  return `<span style="padding:3px 8px;border-radius:6px;background:${color}1a;color:${color};font-size:10px;font-weight:700;border:1px solid ${color};text-transform:uppercase;letter-spacing:.04em">${escHtml(s)}</span>`;
+}
+
+function closeTeamGatewayModal() {
+  tgModalCurrentId = null;
+  document.getElementById('tgPerGwModal')?.remove();
+}
+
+// Open the per-gateway modal for a given id. Builds chrome first, then kicks
+// off the detail fetch asynchronously — so the modal appears instantly with a
+// spinner instead of blocking on the network round-trip.
+async function openTeamGatewayModal(id) {
+  tgModalCurrentId = id;
+  // Remove any existing instance (defensive — e.g. double-click on a card)
+  document.getElementById('tgPerGwModal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'tgPerGwModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px';
+  // Dismiss on backdrop click (but not on inner card click — stopPropagation below)
+  modal.onclick = () => closeTeamGatewayModal();
+  modal.innerHTML = `
+    <div onclick="event.stopPropagation()" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;width:640px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+      <!-- Header -->
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="min-width:0;flex:1">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div id="tgModalTitle" style="font-size:18px;font-weight:700;color:var(--text-primary)">Loading…</div>
+            <div id="tgModalStatus"></div>
+          </div>
+          <div id="tgModalUrl" style="font-size:11px;color:var(--text-muted);margin-top:4px;word-break:break-all;font-family:var(--font-mono, monospace)"></div>
+        </div>
+        <button onclick="closeTeamGatewayModal()" aria-label="Close" style="background:transparent;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
+      </div>
+      <!-- Tabs -->
+      <div style="padding:0 24px;border-bottom:1px solid var(--border);display:flex;gap:4px">
+        <button class="tg-modal-tab active" data-tab="connection" onclick="switchTgModalTab('connection')" style="padding:12px 14px;background:transparent;border:none;border-bottom:2px solid var(--accent, #6366f1);color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer">Connection</button>
+        <button class="tg-modal-tab" data-tab="credentials" onclick="switchTgModalTab('credentials')" style="padding:12px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:13px;font-weight:600;cursor:pointer">Credentials</button>
+      </div>
+      <!-- Body -->
+      <div style="padding:20px 24px;overflow-y:auto;flex:1">
+        <div id="tgModalPanelConnection" class="tg-modal-panel"><div class="loading-msg">Loading…</div></div>
+        <div id="tgModalPanelCredentials" class="tg-modal-panel" style="display:none"></div>
+      </div>
+      <!-- Footer -->
+      <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <button onclick="disconnectFromModal()" style="padding:8px 14px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer">Disconnect</button>
+        <button onclick="closeTeamGatewayModal()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:13px;cursor:pointer">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  // Fetch details + agent list in parallel. Any failure surfaces in the panel.
+  try {
+    const [detailRes, agentsRes] = await Promise.all([
+      fetch('/api/team-gateways/' + encodeURIComponent(id)),
+      fetch('/api/agents'),
+    ]);
+    if (detailRes.status === 404) throw new Error('Gateway not found');
+    if (!detailRes.ok) throw new Error('HTTP ' + detailRes.status);
+    const detail = await detailRes.json();
+    tgModalAllAgents = agentsRes.ok ? ((await agentsRes.json()).agents || []) : [];
+    renderTgModalDetail(detail);
+  } catch (e) {
+    const p = document.getElementById('tgModalPanelConnection');
+    if (p) p.innerHTML = '<div style="padding:24px;color:#ef4444">Failed to load: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+// Render the body of both tabs once the detail fetch lands. Keeping it in one
+// function makes sure both panels reflect a consistent snapshot of server state.
+function renderTgModalDetail(detail) {
+  const gw = detail.gateway || {};
+  const mcpName = detail.mcpName || ('team-' + gw.id);
+  const attached = detail.attachedAgents || [];
+
+  // Header chrome
+  const title = document.getElementById('tgModalTitle');
+  if (title) title.textContent = gw.name || gw.id || '';
+  const statusWrap = document.getElementById('tgModalStatus');
+  if (statusWrap) statusWrap.innerHTML = tgStatusPill(gw.lastStatus);
+  const urlWrap = document.getElementById('tgModalUrl');
+  if (urlWrap) urlWrap.textContent = gw.url || '';
+
+  // ── Connection panel ────────────────────────────────────────────────
+  const addedLabel = gw.addedAt ? new Date(gw.addedAt).toLocaleString() : '—';
+  const lastChecked = tgRelTime(gw.lastStatusAt);
+  const attachableAgents = tgModalAllAgents.filter(a => !attached.includes(a.id));
+
+  const chipsHtml = attached.length === 0
+    ? '<span style="font-size:12px;color:var(--text-muted);font-style:italic">No agents attached</span>'
+    : attached.map(aid => {
+        const safeId = escHtml(aid);
+        return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:var(--bg-secondary);border:1px solid var(--border);font-size:12px;color:var(--text-primary);margin:0 6px 6px 0">
+          <code style="background:transparent;padding:0;color:inherit;font-family:var(--font-mono, monospace);font-size:12px">${safeId}</code>
+          <button onclick="detachAgentFromGateway('${safeId}')" title="Detach" aria-label="Detach ${safeId}" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0">&times;</button>
+        </span>`;
+      }).join('');
+
+  const addDropdown = attachableAgents.length > 0
+    ? `<div style="display:flex;gap:6px;align-items:center;margin-top:10px">
+        <select id="tgAttachAgentSelect" style="flex:1;padding:7px 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:12px">
+          <option value="">+ Add agent...</option>
+          ${attachableAgents.map(a => `<option value="${escHtml(a.id)}">${escHtml(a.name || a.id)}</option>`).join('')}
+        </select>
+        <button onclick="attachAgentFromDropdown()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--accent, #6366f1);background:var(--accent, #6366f1);color:#fff;font-size:12px;font-weight:600;cursor:pointer">Attach</button>
+      </div>`
+    : '<div style="font-size:11px;color:var(--text-muted);margin-top:8px;font-style:italic">All local agents are already attached.</div>';
+
+  const connPanel = document.getElementById('tgModalPanelConnection');
+  if (connPanel) {
+    connPanel.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:18px">
+
+        <!-- Display name — editable -->
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">Display name</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <input id="tgEditName" value="${escHtml(gw.name || '')}" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:13px" />
+            <button onclick="renameGateway()" style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;font-weight:600;cursor:pointer">Save</button>
+          </div>
+        </div>
+
+        <!-- URL — read-only -->
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">URL</label>
+          <div style="padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;font-family:var(--font-mono, monospace);margin-top:6px;word-break:break-all">${escHtml(gw.url || '')}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">To change the URL, disconnect and reconnect.</div>
+        </div>
+
+        <!-- Status + test -->
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">Status</label>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+            ${tgStatusPill(gw.lastStatus)}
+            <span style="font-size:12px;color:var(--text-muted)">Last checked ${escHtml(lastChecked)}</span>
+            <button onclick="resyncFromModal()" style="margin-left:auto;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;cursor:pointer">Test now</button>
+          </div>
+          ${gw.lastStatusMessage ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px">${escHtml(gw.lastStatusMessage)}</div>` : ''}
+        </div>
+
+        <!-- MCP id -->
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">MCP id</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+            <code style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;font-family:var(--font-mono, monospace)">${escHtml(mcpName)}</code>
+            <button onclick="copyPlain('${escHtml(mcpName)}')" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;cursor:pointer">Copy</button>
+          </div>
+        </div>
+
+        <!-- Added on -->
+        <div style="font-size:12px;color:var(--text-muted)">Added on: ${escHtml(addedLabel)}</div>
+
+        <!-- Gateway access -->
+        <div style="border-top:1px solid var(--border);padding-top:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Gateway access</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">These local agents can use this gateway as an MCP.</div>
+          <div id="tgAttachedChips">${chipsHtml}</div>
+          <div id="tgAttachDropdownWrap">${addDropdown}</div>
+        </div>
+
+      </div>
+    `;
+  }
+
+  // ── Credentials panel ───────────────────────────────────────────────
+  const credPanel = document.getElementById('tgModalPanelCredentials');
+  if (credPanel) {
+    const lastOk = gw.lastStatus === 'ok' ? tgRelTime(gw.lastStatusAt) : '—';
+    credPanel.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:18px">
+
+        <!-- API key row -->
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">API Key</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+            <code id="tgKeyDisplay" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:13px;font-family:var(--font-mono, monospace)">Loading…</code>
+            <button id="tgRevealBtn" onclick="revealGatewayKey()" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;cursor:pointer">Reveal</button>
+            <button onclick="copyGatewayKey()" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;cursor:pointer">Copy</button>
+          </div>
+        </div>
+
+        <!-- Rotate -->
+        <div>
+          <button id="tgRotateToggleBtn" onclick="toggleRotateKeyForm()" style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer">Rotate key</button>
+          <div id="tgRotateForm" style="display:none;margin-top:12px;padding:14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary)">
+            <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">Paste new API key</label>
+            <input id="tgNewKey" type="password" placeholder="mai41team_..." style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:13px;font-family:var(--font-mono, monospace);margin-top:6px" />
+            <div id="tgRotateStatus" style="font-size:12px;min-height:16px;margin-top:8px"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+              <button onclick="toggleRotateKeyForm()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:12px;cursor:pointer">Cancel</button>
+              <button onclick="submitRotateKey()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--accent, #6366f1);background:var(--accent, #6366f1);color:#fff;font-size:12px;font-weight:600;cursor:pointer">Test &amp; Save</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-muted)">Last successful auth: ${escHtml(lastOk)}</div>
+        <div style="font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:12px">Get a new key from this gateway's Admin &rarr; Issued Keys page.</div>
+      </div>
+    `;
+  }
+
+  // Load the masked key preview so the credentials tab renders immediately
+  // with the masked form, without exposing plaintext.
+  loadKeyPreview();
+}
+
+function switchTgModalTab(tab) {
+  const conn = document.getElementById('tgModalPanelConnection');
+  const cred = document.getElementById('tgModalPanelCredentials');
+  if (!conn || !cred) return;
+  conn.style.display = tab === 'connection' ? '' : 'none';
+  cred.style.display = tab === 'credentials' ? '' : 'none';
+  document.querySelectorAll('.tg-modal-tab').forEach(btn => {
+    const isActive = btn.dataset.tab === tab;
+    btn.style.borderBottomColor = isActive ? 'var(--accent, #6366f1)' : 'transparent';
+    btn.style.color = isActive ? 'var(--text-primary)' : 'var(--text-muted)';
+    btn.classList.toggle('active', isActive);
+  });
+}
+
+// Fetch the masked key preview from the server and render it in the
+// credentials tab. Safe to call on modal open — never returns plaintext.
+async function loadKeyPreview() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  const el = document.getElementById('tgKeyDisplay');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/key-preview');
+    if (!r.ok) { el.textContent = 'Key unavailable'; return; }
+    const d = await r.json();
+    if (!d.present) { el.textContent = 'No key on file'; return; }
+    const last4 = d.last4 || '';
+    el.textContent = (d.prefix || '') + '••••••••' + last4;
+  } catch (e) {
+    el.textContent = 'Key unavailable';
+  }
+}
+
+// Explicit reveal: calls /key-reveal to fetch plaintext and shows it in the
+// same `<code>` element. Flips the button to "Hide" to allow re-masking.
+async function revealGatewayKey() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  const btn = document.getElementById('tgRevealBtn');
+  const el = document.getElementById('tgKeyDisplay');
+  if (!el || !btn) return;
+  if (btn.textContent === 'Hide') {
+    // Re-mask
+    btn.textContent = 'Reveal';
+    loadKeyPreview();
+    return;
+  }
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/key-reveal');
+    if (!r.ok) { showToast('Failed to reveal key'); return; }
+    const d = await r.json();
+    el.textContent = d.apiKey || '';
+    btn.textContent = 'Hide';
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+// Copy the plaintext key without rendering it on screen.
+async function copyGatewayKey() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/key-reveal');
+    if (!r.ok) { showToast('Failed to read key'); return; }
+    const d = await r.json();
+    await copyPlain(d.apiKey || '');
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+// Shared tiny clipboard helper (keeps a single toast wording across the page).
+async function copyPlain(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Copied');
+  } catch (e) {
+    showToast('Copy failed: ' + e.message);
+  }
+}
+
+function toggleRotateKeyForm() {
+  const f = document.getElementById('tgRotateForm');
+  if (!f) return;
+  const isHidden = f.style.display === 'none';
+  f.style.display = isHidden ? '' : 'none';
+  if (isHidden) {
+    const input = document.getElementById('tgNewKey');
+    if (input) { input.value = ''; setTimeout(() => input.focus(), 30); }
+    const status = document.getElementById('tgRotateStatus');
+    if (status) status.innerHTML = '';
+  }
+}
+
+// POST the new key to /rotate-key. Server probes first; on failure the old
+// key file is left untouched and the error is surfaced inline.
+async function submitRotateKey() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  const input = document.getElementById('tgNewKey');
+  const status = document.getElementById('tgRotateStatus');
+  const newKey = (input?.value || '').trim();
+  if (!newKey) { if (status) status.innerHTML = '<span style="color:#ef4444">Paste a new key first.</span>'; return; }
+  if (status) status.innerHTML = '<span style="color:var(--text-muted)">Testing &amp; saving…</span>';
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/rotate-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: newKey }),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      if (status) status.innerHTML = '<span style="color:#ef4444">&#x2717; ' + escHtml(d.error || 'Rotate failed') + '</span>';
+      return;
+    }
+    if (status) status.innerHTML = '<span style="color:#10b981">&#x2713; Key rotated.</span>';
+    showToast('Key rotated');
+    // Refresh modal state + card state (status pill may have changed)
+    toggleRotateKeyForm();
+    loadKeyPreview();
+    loadTeamGateways();
+  } catch (e) {
+    if (status) status.innerHTML = '<span style="color:#ef4444">Error: ' + escHtml(e.message) + '</span>';
+  }
+}
+
+async function renameGateway() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  const input = document.getElementById('tgEditName');
+  const name = (input?.value || '').trim();
+  if (!name) { showToast('Name cannot be empty'); return; }
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
+    showToast('Renamed');
+    // Update in-modal title + refresh the card grid
+    const title = document.getElementById('tgModalTitle');
+    if (title) title.textContent = name;
+    loadTeamGateways();
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+// Re-run the probe against the stored URL+key. Updates the header pill + card.
+async function resyncFromModal() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/resync', { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) { showToast('Test failed: ' + (d.error || 'unknown')); return; }
+    showToast('Status: ' + (d.status || 'unknown'));
+    // Refresh modal + card
+    await refreshModal();
+    loadTeamGateways();
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+// Re-fetch detail + re-render both panels. Used after any mutation
+// (rename/attach/detach/rotate/test).
+async function refreshModal() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  try {
+    const [detailRes, agentsRes] = await Promise.all([
+      fetch('/api/team-gateways/' + encodeURIComponent(id)),
+      fetch('/api/agents'),
+    ]);
+    if (!detailRes.ok) return;
+    const detail = await detailRes.json();
+    tgModalAllAgents = agentsRes.ok ? ((await agentsRes.json()).agents || []) : tgModalAllAgents;
+    renderTgModalDetail(detail);
+  } catch (_) { /* keep current state */ }
+}
+
+async function attachAgentFromDropdown() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  const sel = document.getElementById('tgAttachAgentSelect');
+  const agentId = sel?.value || '';
+  if (!agentId) { showToast('Pick an agent first'); return; }
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/attach', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId }),
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
+    showToast('Attached ' + agentId);
+    await refreshModal();
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+async function detachAgentFromGateway(agentId) {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  try {
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/detach', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId }),
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
+    showToast('Detached ' + agentId);
+    await refreshModal();
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+function disconnectFromModal() {
+  const id = tgModalCurrentId;
+  if (!id) return;
+  // Look up the name from the cached card grid if available
+  const title = document.getElementById('tgModalTitle');
+  const name = title?.textContent || id;
+  deleteTeamGateway(id, name);
 }
 </script>
 <script src="/auth.js"></script>

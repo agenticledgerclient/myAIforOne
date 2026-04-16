@@ -241,6 +241,18 @@ export function startWebUI(opts: WebUIOptions): void {
     return res.json({ authEnabled: true, authenticated });
   });
 
+  // Guard: /api/auth/keys/* is the issuance surface — meaningful only when this
+  // install is acting as a shared gateway. Mirror the UI gating on the backend
+  // so a curl-wielding client can't sidestep the toggle.
+  function requireSharedAgents(_req: any, res: any, next: any) {
+    const enabled = !!((opts.config.service as any).sharedAgentsEnabled);
+    if (!enabled) {
+      return res.status(403).json({ error: "Shared Agents feature is disabled" });
+    }
+    next();
+  }
+  app.use("/api/auth/keys", requireSharedAgents);
+
   // GET /api/auth/keys — list API keys (secret never returned, only preview)
   app.get("/api/auth/keys", (_req, res) => {
     const keys = getApiKeys();
@@ -514,6 +526,167 @@ export function startWebUI(opts: WebUIOptions): void {
     gw.lastStatusAt = new Date().toISOString();
     persistFullConfig();
     return res.json({ status: gw.lastStatus, platform: probe.platform, sharedAgents: probe.sharedAgents });
+  });
+
+  // Helper: read the API key back from the mcp-keys .env file for a gateway id.
+  // Returns "" if the file is missing or unreadable.
+  function readGatewayKey(id: string): string {
+    const envPath = join(opts.baseDir, "data", "mcp-keys", `${gatewayMcpName(id)}.env`);
+    if (!existsSync(envPath)) return "";
+    try {
+      const content = readFileSync(envPath, "utf-8");
+      // Prefer MYAGENT_API_TOKEN (what the stdio MCP actually uses at spawn time)
+      const m = content.match(/^MYAGENT_API_TOKEN=(.+)$/m);
+      if (m) return m[1].trim();
+      // Fall back to the aliased TEAM_<ID>_KEY for older key files
+      const alias = content.match(new RegExp(`^${gatewayEnvVarName(id)}=(.+)$`, "m"));
+      return alias ? alias[1].trim() : "";
+    } catch {
+      return "";
+    }
+  }
+
+  // Helper: list local agent ids whose `mcps` array includes a given MCP name.
+  function agentsWithMcp(mcpName: string): string[] {
+    const out: string[] = [];
+    for (const [id, agent] of Object.entries(opts.config.agents || {})) {
+      if (Array.isArray((agent as any).mcps) && (agent as any).mcps.includes(mcpName)) {
+        out.push(id);
+      }
+    }
+    return out;
+  }
+
+  // GET /api/team-gateways/:id — full record + derived attached agents.
+  // Drives the per-gateway Configure modal.
+  app.get("/api/team-gateways/:id", (req, res) => {
+    const id = req.params.id;
+    const gw = getTeamGateways().find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+    const mcpName = gatewayMcpName(id);
+    return res.json({
+      gateway: gw,
+      mcpName,
+      attachedAgents: agentsWithMcp(mcpName),
+    });
+  });
+
+  // GET /api/team-gateways/:id/key-preview — masked rendering data only.
+  // Safe to call on every modal open; returns just prefix + last 4 chars.
+  app.get("/api/team-gateways/:id/key-preview", (req, res) => {
+    const id = req.params.id;
+    const gw = getTeamGateways().find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+    const key = readGatewayKey(id);
+    if (!key) return res.json({ prefix: "", last4: "", present: false });
+    const underscoreIdx = key.indexOf("_");
+    const prefix = underscoreIdx > 0 ? key.slice(0, underscoreIdx + 1) : "";
+    const last4 = key.length >= 4 ? key.slice(-4) : key;
+    return res.json({ prefix, last4, present: true });
+  });
+
+  // GET /api/team-gateways/:id/key-reveal — full plaintext key.
+  // Called explicitly via a Reveal/Copy action — never on modal open.
+  app.get("/api/team-gateways/:id/key-reveal", (req, res) => {
+    const id = req.params.id;
+    const gw = getTeamGateways().find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+    const key = readGatewayKey(id);
+    if (!key) return res.status(404).json({ error: "Key file missing for this gateway" });
+    return res.json({ apiKey: key });
+  });
+
+  // PATCH /api/team-gateways/:id { name } — rename the display label.
+  // Id stays immutable (changing the id would require rewriting mcp-keys +
+  // every agent's mcps array + the MCP registry name, which is a disconnect+reconnect flow).
+  app.patch("/api/team-gateways/:id", (req, res) => {
+    const id = req.params.id;
+    const gws = getTeamGateways();
+    const gw = gws.find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+    const { name } = req.body as { name?: string };
+    const label = (name || "").trim();
+    if (!label) return res.status(400).json({ error: "name is required" });
+    gw.name = label;
+    (opts.config.service as any).teamGateways = gws;
+    persistFullConfig();
+    return res.json({ ok: true, gateway: gw });
+  });
+
+  // POST /api/team-gateways/:id/rotate-key { apiKey } — swap the API key used
+  // to reach this gateway. We probe the new key against the existing URL first
+  // and refuse to overwrite the .env file if it fails — so the old key stays
+  // intact on bad rotate input.
+  app.post("/api/team-gateways/:id/rotate-key", async (req, res) => {
+    const id = req.params.id;
+    const gws = getTeamGateways();
+    const gw = gws.find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+    const { apiKey } = req.body as { apiKey?: string };
+    const newKey = (apiKey || "").trim();
+    if (!newKey) return res.status(400).json({ error: "apiKey is required" });
+
+    const probe = await probeGateway(gw.url, newKey);
+    if (!probe.ok) {
+      // Do NOT touch the existing key file. Report the error verbatim so the
+      // UI can surface it in the Rotate inline form.
+      return res.status(400).json({ error: probe.error || "New key failed connection test", status: probe.status });
+    }
+    // Overwrite the .env file + refresh status.
+    writeGatewayKeyFile(id, newKey, gw.url);
+    gw.lastStatus = "ok";
+    gw.lastStatusMessage = undefined;
+    gw.lastStatusAt = new Date().toISOString();
+    (opts.config.service as any).teamGateways = gws;
+    persistFullConfig();
+    return res.json({ ok: true, status: gw.lastStatus, gateway: gw });
+  });
+
+  // POST /api/team-gateways/:id/attach { agentId } — give an additional local
+  // agent access to this gateway's MCP. Idempotent: attaching twice = same state.
+  app.post("/api/team-gateways/:id/attach", (req, res) => {
+    const id = req.params.id;
+    const gw = getTeamGateways().find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+    const { agentId } = req.body as { agentId?: string };
+    const aid = (agentId || "").trim();
+    if (!aid) return res.status(400).json({ error: "agentId is required" });
+    const agent = opts.config.agents?.[aid];
+    if (!agent) return res.status(404).json({ error: `Agent '${aid}' not found` });
+    const mcpName = gatewayMcpName(id);
+    if (!agent.mcps) agent.mcps = [];
+    if (!agent.mcps.includes(mcpName)) agent.mcps.push(mcpName);
+    persistFullConfig();
+    return res.json({ ok: true, agentId: aid, mcps: agent.mcps, attachedAgents: agentsWithMcp(mcpName) });
+  });
+
+  // POST /api/team-gateways/:id/detach { agentId } — revoke a local agent's
+  // access to this gateway's MCP. Refuses to leave the gateway orphaned: if
+  // the caller is trying to remove the last attached agent we reject with 400
+  // so the user has to disconnect the whole gateway instead.
+  app.post("/api/team-gateways/:id/detach", (req, res) => {
+    const id = req.params.id;
+    const gw = getTeamGateways().find(g => g.id === id);
+    if (!gw) return res.status(404).json({ error: "Gateway not found" });
+    const { agentId } = req.body as { agentId?: string };
+    const aid = (agentId || "").trim();
+    if (!aid) return res.status(400).json({ error: "agentId is required" });
+    const agent = opts.config.agents?.[aid];
+    if (!agent) return res.status(404).json({ error: `Agent '${aid}' not found` });
+    const mcpName = gatewayMcpName(id);
+    const current = agentsWithMcp(mcpName);
+    // Orphan guard: if this agent is the last one holding the mcp, refuse.
+    // Use Disconnect from the Team Gateways page to remove entirely.
+    if (current.length <= 1 && current.includes(aid)) {
+      return res.status(400).json({
+        error: "Cannot detach the last attached agent — disconnect the gateway instead to remove it entirely.",
+      });
+    }
+    if (agent.mcps) {
+      agent.mcps = agent.mcps.filter(m => m !== mcpName);
+    }
+    persistFullConfig();
+    return res.json({ ok: true, agentId: aid, mcps: agent.mcps || [], attachedAgents: agentsWithMcp(mcpName) });
   });
 
   // DELETE /api/team-gateways/:id — disconnect
