@@ -2164,7 +2164,7 @@ async function loadApiKeys() {
   const root = document.getElementById('apiKeysTableRoot');
   if (!root) return;
   try {
-    const r = await authFetch('/api/auth/keys');
+    const r = await fetch('/api/auth/keys');
     const d = await r.json();
     const keys = d.keys || [];
     if (keys.length === 0) {
@@ -2227,7 +2227,7 @@ async function createApiKey() {
   const name = document.getElementById('newApiKeyName')?.value?.trim();
   if (!name) { showToast('Name is required'); return; }
   try {
-    const r = await authFetch('/api/auth/keys', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+    const r = await fetch('/api/auth/keys', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     closeApiKeyModal();
@@ -2261,7 +2261,7 @@ function copyApiKeySecret() {
 async function deleteApiKey(id, name) {
   if (!confirm(`Revoke "${name}"? Any device or automation using this key will stop working.`)) return;
   try {
-    const r = await authFetch('/api/auth/keys/' + encodeURIComponent(id), { method: 'DELETE' });
+    const r = await fetch('/api/auth/keys/' + encodeURIComponent(id), { method: 'DELETE' });
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     showToast('Key revoked');
@@ -2277,7 +2277,7 @@ async function loadTeamGateways() {
   const root = document.getElementById('teamGatewaysGridRoot');
   if (!root) return;
   try {
-    const r = await authFetch('/api/team-gateways');
+    const r = await fetch('/api/team-gateways');
     const d = await r.json();
     const gws = d.gateways || [];
     if (gws.length === 0) {
@@ -2350,7 +2350,7 @@ async function testTeamGatewayConnection() {
   if (!url || !apiKey) { out.innerHTML = '<span style="color:#ef4444">URL and API key are required</span>'; return; }
   out.innerHTML = '<span style="color:var(--text-muted)">Testing...</span>';
   try {
-    const r = await authFetch('/api/team-gateways/test', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ url, apiKey }) });
+    const r = await fetch('/api/team-gateways/test', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ url, apiKey }) });
     const d = await r.json();
     if (r.ok && d.ok) {
       const platform = d.capabilities?.platform || 'MyAIforOne';
@@ -2370,7 +2370,7 @@ async function saveTeamGateway() {
   const apiKey = document.getElementById('tgKey')?.value?.trim();
   if (!name || !url || !apiKey) { showToast('All 3 fields are required'); return; }
   try {
-    const r = await authFetch('/api/team-gateways', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, url, apiKey }) });
+    const r = await fetch('/api/team-gateways', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, url, apiKey }) });
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     closeTeamGwModal();
@@ -2381,7 +2381,7 @@ async function saveTeamGateway() {
 
 async function resyncTeamGateway(id) {
   try {
-    const r = await authFetch('/api/team-gateways/' + encodeURIComponent(id) + '/test', { method: 'POST' });
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id) + '/test', { method: 'POST' });
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     showToast('Status: ' + (d.status || (d.ok ? 'ok' : 'unknown')));
@@ -2392,7 +2392,7 @@ async function resyncTeamGateway(id) {
 async function deleteTeamGateway(id, name) {
   if (!confirm(`Disconnect "${name}"? Agents that depend on this gateway will lose access to it.`)) return;
   try {
-    const r = await authFetch('/api/team-gateways/' + encodeURIComponent(id), { method: 'DELETE' });
+    const r = await fetch('/api/team-gateways/' + encodeURIComponent(id), { method: 'DELETE' });
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     showToast('Disconnected');
