@@ -2254,3 +2254,5 @@ Quick reference — all MCP tools alphabetically:
 | -- | `rotate_team_gateway_key` | Team Gateways |
 | -- | `attach_team_gateway_to_agent` | Team Gateways |
 | -- | `detach_team_gateway_from_agent` | Team Gateways |
+
+<!-- Docs last synced: 2026-04-16 — per-gateway Configure modal + Issued Keys gating + 5 new Team Gateways MCP tools. -->
