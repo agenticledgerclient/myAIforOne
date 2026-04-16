@@ -1,5 +1,5 @@
 import { resolve, dirname, join } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
@@ -43,6 +43,40 @@ const dataDir = resolveDataDir();
 
 async function main(): Promise<void> {
   const configPath = resolve(dataDir, "config.json");
+  // First-run bootstrap — ONLY fires when MYAGENT_DATA_DIR is explicitly set
+  // (Railway/container deploys). On local Mac installs, the /setup wizard
+  // creates config.json; we never auto-generate one there.
+  if (process.env.MYAGENT_DATA_DIR && !existsSync(configPath)) {
+    const authToken = process.env.INITIAL_AUTH_TOKEN;
+    const authPassword = process.env.INITIAL_AUTH_PASSWORD;
+    if (!authToken || !authPassword) {
+      console.error(
+        "[bootstrap] Refusing to start a shared gateway without auth.\n" +
+          "Set both INITIAL_AUTH_TOKEN and INITIAL_AUTH_PASSWORD env vars before first boot."
+      );
+      process.exit(1);
+    }
+    mkdirSync(dataDir, { recursive: true });
+    const bootstrapPort = process.env.PORT ? Number(process.env.PORT) : 4888;
+    const minimal = {
+      service: {
+        logLevel: "info",
+        webUI: { enabled: true, port: bootstrapPort },
+        // Shared-gateway defaults — Railway deploys ARE shared gateways.
+        sharedAgentsEnabled: true,
+        auth: {
+          enabled: true,
+          tokens: [authToken],
+          webPassword: authPassword,
+        },
+      },
+      channels: {},
+      agents: {},
+      defaultAgent: null,
+    };
+    writeFileSync(configPath, JSON.stringify(minimal, null, 2));
+    console.log(`[bootstrap] Wrote shared-gateway config to ${configPath}`);
+  }
   const config = loadConfig(configPath);
   setAppConfig(config);
 
@@ -217,7 +251,7 @@ async function main(): Promise<void> {
       config,
       baseDir,
       dataDir,
-      port: webUI.port || 8080,
+      port: process.env.PORT ? Number(process.env.PORT) : (webUI.port || 8080),
       webhookSecret: webUI.webhookSecret,
       driverMap,
       onWebhookMessage: async (agentId, text, channel, chatId) => {

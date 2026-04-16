@@ -352,7 +352,10 @@ export function loadConfig(configPath: string): AppConfig {
   config.defaultAgent = config.defaultAgent ?? null;
 
   const home = homedir();
-  const driveRoot = resolve(home, "Desktop", "MyAIforOne Drive");
+  // Drive root — MYAGENT_DATA_DIR override takes priority (Railway/Linux containers)
+  const driveRoot = process.env.MYAGENT_DATA_DIR
+    ? resolve(process.env.MYAGENT_DATA_DIR)
+    : resolve(home, "Desktop", "MyAIforOne Drive");
 
   // Resolve personalAgentsDir (expand ~)
   if (config.service.personalAgentsDir) {
@@ -384,9 +387,15 @@ let _personalAgentsDir: string | null = null;
 let _personalRegistryDir: string | null = null;
 
 /** Resolve the PersonalAgents directory from config, falling back to ~/Desktop/MyAIforOne Drive/PersonalAgents */
+function _driveRoot(): string {
+  return process.env.MYAGENT_DATA_DIR
+    ? resolve(process.env.MYAGENT_DATA_DIR)
+    : resolve(homedir(), "Desktop", "MyAIforOne Drive");
+}
+
 export function getPersonalAgentsDir(config?: AppConfig): string {
   if (_personalAgentsDir) return _personalAgentsDir;
-  const driveRoot = resolve(homedir(), "Desktop", "MyAIforOne Drive");
+  const driveRoot = _driveRoot();
   if (config) return config.service.personalAgentsDir || resolve(driveRoot, "PersonalAgents");
   return resolve(driveRoot, "PersonalAgents");
 }
@@ -394,7 +403,7 @@ export function getPersonalAgentsDir(config?: AppConfig): string {
 /** Resolve the PersonalRegistry directory from config, falling back to ~/Desktop/MyAIforOne Drive/PersonalRegistry */
 export function getPersonalRegistryDir(config?: AppConfig): string {
   if (_personalRegistryDir) return _personalRegistryDir;
-  const driveRoot = resolve(homedir(), "Desktop", "MyAIforOne Drive");
+  const driveRoot = _driveRoot();
   if (config) return config.service.personalRegistryDir || resolve(driveRoot, "PersonalRegistry");
   return resolve(driveRoot, "PersonalRegistry");
 }
@@ -405,7 +414,7 @@ export function getPersonalRegistryDir(config?: AppConfig): string {
  * Can be overridden via service.sharedAgentsDir in config.
  */
 export function getSharedAgentsDir(config?: AppConfig): string {
-  const driveRoot = resolve(homedir(), "Desktop", "MyAIforOne Drive");
+  const driveRoot = _driveRoot();
   if (config) return (config.service as any).sharedAgentsDir || resolve(driveRoot, "SharedAgents");
   return resolve(driveRoot, "SharedAgents");
 }
