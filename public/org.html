@@ -1499,7 +1499,7 @@ text-decoration:none;}
 let agents = [];
 let visibleClasses = (function() {
   try { const s = JSON.parse(localStorage.getItem('orgVisibleClasses')); if (Array.isArray(s)) return new Set(s); } catch {}
-  return new Set(['standard', 'platform']);
+  return new Set(['standard', 'platform', 'gym']);
 })();
 let viewMode = localStorage.getItem('orgViewMode') || 'grid'; // 'grid' | 'compact' | 'list'
 let orgs = [];
