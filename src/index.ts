@@ -61,18 +61,23 @@ async function main(): Promise<void> {
     const bootstrapPort = process.env.PORT ? Number(process.env.PORT) : 4888;
     const nowIso = new Date().toISOString();
 
-    // Create hub agent directory on the volume so it has a home for memory/files
+    // Create platform agent directories on the volume
     const hubHome = join(dataDir, "PlatformUtilities", "hub");
-    mkdirSync(join(hubHome, "memory"), { recursive: true });
-    mkdirSync(join(hubHome, "FileStorage", "Temp"), { recursive: true });
-    mkdirSync(join(hubHome, "FileStorage", "Permanent"), { recursive: true });
+    const gymHome = join(dataDir, "PlatformUtilities", "gym");
+    for (const home of [hubHome, gymHome]) {
+      mkdirSync(join(home, "memory"), { recursive: true });
+      mkdirSync(join(home, "FileStorage", "Temp"), { recursive: true });
+      mkdirSync(join(home, "FileStorage", "Permanent"), { recursive: true });
+    }
 
+    const pkgRoot = resolve(__dirname, "..");
     const minimal = {
       service: {
         logLevel: "info",
         webUI: { enabled: true, port: bootstrapPort },
         // Shared-gateway defaults — Railway deploys ARE shared gateways.
         sharedAgentsEnabled: true,
+        gymEnabled: true,
         auth: {
           enabled: true,
           tokens: [authToken], // legacy field kept for backcompat
@@ -98,7 +103,7 @@ async function main(): Promise<void> {
           agentHome: hubHome,
           claudeMd: "agents/platform/hub/CLAUDE.md",
           memoryDir: join(hubHome, "memory"),
-          workspace: resolve(__dirname, ".."),
+          workspace: pkgRoot,
           persistent: true,
           streaming: true,
           agentClass: "platform",
@@ -110,18 +115,43 @@ async function main(): Promise<void> {
           routes: [],
           org: [{ organization: "Platform", function: "Operations", title: "Hub Agent", reportsTo: "" }],
         },
+        gym: {
+          name: "AI Gym Coach",
+          description: "Personal AI trainer — observes platform activity, delivers personalized training, and tracks skill growth.",
+          agentHome: gymHome,
+          claudeMd: "agents/platform/gym/CLAUDE.md",
+          memoryDir: join(gymHome, "memory"),
+          workspace: pkgRoot,
+          agentClass: "gym",
+          persistent: true,
+          streaming: true,
+          advancedMemory: true,
+          wiki: true,
+          featureFlag: "gymEnabled",
+          allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
+          mcps: ["myaiforone-local", "aigym-platform"],
+          timeout: 14400000,
+          autoCommit: false,
+          mentionAliases: ["gym", "coach"],
+          routes: [],
+          org: [{ organization: "Platform", function: "Training", title: "AI Gym Coach", reportsTo: "hub" }],
+        },
       },
       defaultAgent: "hub",
     };
     writeFileSync(configPath, JSON.stringify(minimal, null, 2));
     console.log(`[bootstrap] Wrote shared-gateway config to ${configPath}`);
   }
-  // Migration: ensure hub agent exists on server mode (Railway).
-  // Covers existing deployments that bootstrapped before hub seeding was added.
+  // Migration: ensure platform agents exist on server mode (Railway).
+  // Covers existing deployments that bootstrapped before agent seeding was added.
   if (process.env.MYAGENT_DATA_DIR && existsSync(configPath)) {
     try {
       const raw = JSON.parse(readFileSync(configPath, "utf-8"));
-      if (raw.agents && !raw.agents.hub) {
+      if (!raw.agents) raw.agents = {};
+      const pkgRoot = resolve(__dirname, "..");
+      let changed = false;
+
+      if (!raw.agents.hub) {
         const hubHome = join(dataDir, "PlatformUtilities", "hub");
         mkdirSync(join(hubHome, "memory"), { recursive: true });
         mkdirSync(join(hubHome, "FileStorage", "Temp"), { recursive: true });
@@ -132,7 +162,7 @@ async function main(): Promise<void> {
           agentHome: hubHome,
           claudeMd: "agents/platform/hub/CLAUDE.md",
           memoryDir: join(hubHome, "memory"),
-          workspace: resolve(__dirname, ".."),
+          workspace: pkgRoot,
           persistent: true,
           streaming: true,
           agentClass: "platform",
@@ -145,11 +175,48 @@ async function main(): Promise<void> {
           org: [{ organization: "Platform", function: "Operations", title: "Hub Agent", reportsTo: "" }],
         };
         if (!raw.defaultAgent) raw.defaultAgent = "hub";
+        changed = true;
+        console.log("[migration] Seeded hub agent");
+      }
+
+      if (!raw.agents.gym) {
+        const gymHome = join(dataDir, "PlatformUtilities", "gym");
+        mkdirSync(join(gymHome, "memory"), { recursive: true });
+        mkdirSync(join(gymHome, "FileStorage", "Temp"), { recursive: true });
+        mkdirSync(join(gymHome, "FileStorage", "Permanent"), { recursive: true });
+        raw.agents.gym = {
+          name: "AI Gym Coach",
+          description: "Personal AI trainer — observes platform activity, delivers personalized training, and tracks skill growth.",
+          agentHome: gymHome,
+          claudeMd: "agents/platform/gym/CLAUDE.md",
+          memoryDir: join(gymHome, "memory"),
+          workspace: pkgRoot,
+          agentClass: "gym",
+          persistent: true,
+          streaming: true,
+          advancedMemory: true,
+          wiki: true,
+          featureFlag: "gymEnabled",
+          allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
+          mcps: ["myaiforone-local", "aigym-platform"],
+          timeout: 14400000,
+          autoCommit: false,
+          mentionAliases: ["gym", "coach"],
+          routes: [],
+          org: [{ organization: "Platform", function: "Training", title: "AI Gym Coach", reportsTo: "hub" }],
+        };
+        if (!raw.service) raw.service = {};
+        if (raw.service.gymEnabled === undefined) raw.service.gymEnabled = true;
+        changed = true;
+        console.log("[migration] Seeded gym agent");
+      }
+
+      if (changed) {
         writeFileSync(configPath, JSON.stringify(raw, null, 2));
-        console.log("[migration] Seeded hub agent into existing server-mode config");
+        console.log("[migration] Updated server-mode config with platform agents");
       }
     } catch (e) {
-      console.warn("[migration] Failed to seed hub agent:", e);
+      console.warn("[migration] Failed to seed platform agents:", e);
     }
   }
 
