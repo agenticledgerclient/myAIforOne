@@ -245,7 +245,9 @@ export function startWebUI(opts: WebUIOptions): void {
   // install is acting as a shared gateway. Mirror the UI gating on the backend
   // so a curl-wielding client can't sidestep the toggle.
   function requireSharedAgents(_req: any, res: any, next: any) {
-    const enabled = !!((opts.config.service as any).sharedAgentsEnabled);
+    // Server mode (MYAGENT_DATA_DIR set) is always a shared gateway.
+    const isServer = !!process.env.MYAGENT_DATA_DIR;
+    const enabled = isServer || !!((opts.config.service as any).sharedAgentsEnabled);
     if (!enabled) {
       return res.status(403).json({ error: "Shared Agents feature is disabled" });
     }
@@ -918,7 +920,16 @@ export function startWebUI(opts: WebUIOptions): void {
     const s = opts.config.service || {};
     const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
     const deploy = raw.deployment || {};
+    // Deployment mode: "server" when MYAGENT_DATA_DIR is set (Railway/container),
+    // "local" otherwise (Mac/Windows local install).
+    const deploymentMode = process.env.MYAGENT_DATA_DIR ? "server" : "local";
+    // On server mode, sharedAgentsEnabled is always true by definition — the
+    // server IS a shared gateway regardless of what config.json says.
+    const sharedAgentsEnabled = deploymentMode === "server"
+      ? true
+      : (s as any).sharedAgentsEnabled ?? false;
     res.json({
+      deploymentMode,
       personalAgentsDir: (s as any).personalAgentsDir || "~/Desktop/MyAIforOne Drive/PersonalAgents",
       personalRegistryDir: (s as any).personalRegistryDir || "~/Desktop/MyAIforOne Drive/PersonalRegistry",
       webUIPort: (s as any).webUI?.port || 4888,
@@ -943,7 +954,7 @@ export function startWebUI(opts: WebUIOptions): void {
       gymEnabled: (s as any).gymEnabled ?? false,
       aibriefingEnabled: (s as any).aibriefingEnabled ?? false,
       gymOnlyMode: (s as any).gymOnlyMode ?? false,
-      sharedAgentsEnabled: (s as any).sharedAgentsEnabled ?? false,
+      sharedAgentsEnabled,
       licenseKey: (s as any).licenseKey ? `${(s as any).licenseKey.slice(0, 20)}...` : "",
       licenseUrl: (s as any).licenseUrl || "https://ai41license.agenticledger.ai",
     });

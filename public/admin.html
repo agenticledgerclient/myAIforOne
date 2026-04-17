@@ -261,7 +261,7 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
   <button class="type-tab" data-tab="channels" onclick="switchTab('channels')">Channels</button>
   <button class="type-tab" data-tab="activity" onclick="switchTab('activity')">Activity</button>
   <button class="type-tab active" data-tab="settings" onclick="switchTab('settings')">Settings</button>
-  <button class="type-tab" data-tab="teamgateways" onclick="switchTab('teamgateways')">Team Gateways</button>
+  <button class="type-tab" data-tab="teamgateways" onclick="switchTab('teamgateways')" id="tabBtnTeamgateways">Team Gateways</button>
   <!-- Issued Keys tab — keys this install issues to inbound clients. Only meaningful
        when this install is acting as a shared gateway. Hidden by default; unhidden
        by loadService() when sharedAgentsEnabled === true. -->
@@ -449,8 +449,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
         <div class="section-body">
           <div style="display:flex;flex-direction:column;gap:16px">
-            <!-- Shared Agents -->
-            <div style="padding:14px 16px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border)">
+            <!-- Shared Agents (local only — server mode is always shared) -->
+            <div id="sharedAgentsToggleRow" style="padding:14px 16px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border)">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
                 <div>
                   <div style="font-weight:600;font-size:13px;color:var(--text-primary)">Shared Agents</div>
@@ -1656,7 +1656,7 @@ async function loadService() {
   document.getElementById('depGithubToken').value = d.githubToken || '';
   // Feature flags
   document.getElementById('svcSharedAgentsEnabled').checked = !!s.sharedAgentsEnabled;
-  applySharedAgentsVisibility(!!s.sharedAgentsEnabled);
+  applyDeploymentMode(s.deploymentMode || 'local');
   document.getElementById('svcGymEnabled').checked = !!s.gymEnabled;
   document.getElementById('svcGymOnlyMode').checked = !!s.gymOnlyMode;
   document.getElementById('svcAibriefingEnabled').checked = !!s.aibriefingEnabled;
@@ -1765,25 +1765,50 @@ async function saveSharedAgentsSettings() {
   const data = await res.json();
   if (data.ok) {
     showToast(sharedAgentsEnabled ? 'Shared Agents enabled' : 'Shared Agents disabled');
-    applySharedAgentsVisibility(sharedAgentsEnabled);
+    // Re-apply deployment mode — on local, toggling shared agents doesn't change
+    // tab visibility (Issued Keys is server-only), but keep the call for future use.
+    applyDeploymentMode(_currentDeploymentMode);
   }
 }
 
-// Toggle visibility of UI surfaces gated behind the Shared Agents feature flag.
-// Currently gates: the top-level "Issued Keys" tab button and the "Manage Issued
-// Keys" inline link inside the Team Gateways page. Backend /api/auth/keys/* is
-// also hard-gated to 403 when the flag is off, so this is UI affordance only.
-function applySharedAgentsVisibility(enabled) {
-  const tabBtn = document.getElementById('tabBtnApikeys');
-  if (tabBtn) tabBtn.style.display = enabled ? '' : 'none';
+// ── Deployment-mode visibility ──────────────────────────────────────
+// Gates admin tabs and settings sections based on whether this install
+// is a local desktop app ("local") or a Railway/container server ("server").
+//   - "Issued Keys" tab          → server only  (you issue keys to clients)
+//   - "Team Gateways" tab        → local only   (you connect to remotes)
+//   - Shared Agents toggle       → local only   (server is always shared)
+// Future mode-dependent surfaces can be added here.
+let _currentDeploymentMode = 'local';
+function applyDeploymentMode(mode) {
+  _currentDeploymentMode = mode;
+  const isServer = mode === 'server';
+  const isLocal  = mode === 'local';
+
+  // Tab buttons
+  const tabApikeys = document.getElementById('tabBtnApikeys');
+  if (tabApikeys) tabApikeys.style.display = isServer ? '' : 'none';
+  const tabTeamGw = document.getElementById('tabBtnTeamgateways');
+  if (tabTeamGw) tabTeamGw.style.display = isLocal ? '' : 'none';
+
+  // Manage-Issued-Keys link inside Team Gateways panel (only when both visible)
   const manageLink = document.getElementById('tgManageIssuedKeys');
-  if (manageLink) manageLink.style.display = enabled ? '' : 'none';
-  // If the user is sitting on the Issued Keys panel when the flag flips off,
-  // bounce them back to Settings so the panel doesn't linger.
-  if (!enabled) {
-    const panel = document.getElementById('panel-apikeys');
-    if (panel && panel.classList.contains('active')) {
-      try { switchTab('settings'); } catch (_) { /* no-op */ }
+  if (manageLink) manageLink.style.display = isServer ? '' : 'none';
+
+  // Shared Agents toggle in Settings — hide on server (always true there)
+  const sharedAgentsRow = document.getElementById('sharedAgentsToggleRow');
+  if (sharedAgentsRow) sharedAgentsRow.style.display = isLocal ? '' : 'none';
+
+  // If user is on a tab that just got hidden, bounce to Settings
+  if (isServer) {
+    const tgPanel = document.getElementById('panel-teamgateways');
+    if (tgPanel && tgPanel.classList.contains('active')) {
+      try { switchTab('settings'); } catch (_) {}
+    }
+  }
+  if (isLocal) {
+    const akPanel = document.getElementById('panel-apikeys');
+    if (akPanel && akPanel.classList.contains('active')) {
+      try { switchTab('settings'); } catch (_) {}
     }
   }
 }
