@@ -1228,8 +1228,9 @@ async function sendMessage(){
       body:JSON.stringify({text}),
     });
     if(!startRes.ok)throw new Error(`HTTP ${startRes.status}`);
-    const{jobId}=await startRes.json();
-    if(!jobId)throw new Error('No jobId');
+    const startData=await startRes.json();
+    if(!startData.jobId)throw new Error(startData.error||`No jobId (HTTP ${startRes.status})`);
+    const{jobId}=startData;
     currentJobId=jobId;
     lastEventId=0;
     updateInputButtons();

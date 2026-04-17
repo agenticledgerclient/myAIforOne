@@ -283,8 +283,9 @@ async function send(){
       body: JSON.stringify({ text: text, channel: 'web', chatId: 'mini' })
     });
     if(!startRes.ok) throw new Error('Failed to start');
-    const { jobId } = await startRes.json();
-    if(!jobId) throw new Error('No jobId');
+    const startData = await startRes.json();
+    if(!startData.jobId) throw new Error(startData.error || `No jobId (HTTP ${startRes.status})`);
+    const { jobId } = startData;
 
     streamingText = '';
     let lastEventId = 0;

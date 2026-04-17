@@ -2690,8 +2690,9 @@ async function executeHub(text, tabId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, accountOverride, senderId }),
     });
-    const { jobId } = await startRes.json();
-    if (!jobId) throw new Error('No jobId');
+    const startData = await startRes.json();
+    if (!startData.jobId) throw new Error(startData.error || `No jobId (HTTP ${startRes.status})`);
+    const { jobId } = startData;
 
     // Track job for stop + raw logs
     ts.jobId = jobId;

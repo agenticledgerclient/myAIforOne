@@ -1712,8 +1712,9 @@ async function sendMessage(agentId, text, _tabKeyOverride) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, accountOverride: accountOverrides[agentId], senderId }),
       });
-      const { jobId } = await startRes.json();
-      if (!jobId) throw new Error('No jobId returned');
+      const startData = await startRes.json();
+      if (!startData.jobId) throw new Error(startData.error || `No jobId returned (HTTP ${startRes.status})`);
+      const { jobId } = startData;
       ss.jobId = jobId;
       // Re-render input area to show Stop button and Queue mode
       if (isViewing()) updateInputButtons(ss);
