@@ -11,7 +11,7 @@
 import { log } from "./logger.js";
 
 const ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1";
-const DEFAULT_MODEL = "claude-3-7-sonnet-latest";
+const DEFAULT_MODEL = "claude-3-5-sonnet-20241022";
 const API_VERSION = "2023-06-01";
 
 // ─── Options ────────────────────────────────────────────────────
@@ -194,7 +194,7 @@ export async function checkAnthropicHealth(
         "anthropic-version": API_VERSION,
       },
       body: JSON.stringify({
-        model: "claude-3-7-sonnet-latest",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 10,
         messages: [{ role: "user", content: "Hi" }],
       }),
@@ -219,9 +219,9 @@ export async function checkAnthropicHealth(
     return {
       ok: true,
       models: [
-        "claude-3-7-sonnet-latest",
-        "claude-3-5-haiku-latest",
-        "claude-3-5-sonnet-latest",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-20241022",
+        "claude-3-opus-20240229",
       ],
     };
   } catch (err) {
