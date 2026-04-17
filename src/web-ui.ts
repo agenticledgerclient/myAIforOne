@@ -1557,6 +1557,8 @@ export function startWebUI(opts: WebUIOptions): void {
       || Object.entries(opts.config.agents).find(([, a]) => a.subAgents)?.[0]
       || (opts.config.agents["hub"] ? "hub" : null);
 
+    log.info(`[Dashboard] defaultAgent=${(opts.config as any).defaultAgent} agentIds=${Object.keys(opts.config.agents).join(",")} resolved=${defaultGroupAgent}`);
+
     res.json({
       status: "running",
       uptime: process.uptime(),

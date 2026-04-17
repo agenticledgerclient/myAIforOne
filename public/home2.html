@@ -2211,6 +2211,7 @@ async function init() {
     hubAgentId = data.defaultGroupAgent
       || agents.find(a => a.subAgents)?.id
       || agents[0]?.id;
+    console.log('[Home2] defaultGroupAgent:', data.defaultGroupAgent, 'agents:', agents.map(a=>a.id), 'hubAgentId:', hubAgentId);
 
     // Update configure link to point to hub agent dashboard
     const configLink = document.getElementById('configureHubLink');
@@ -2667,6 +2668,10 @@ function handleChatKeydown(event) {
 
 // ─── Execute via hub agent (streaming) ─────────────────
 async function executeHub(text, tabId) {
+  if (!hubAgentId) {
+    addMessage('agent', 'No hub agent available. Check Admin → Settings or redeploy.', tabId || homeActiveTabId);
+    return;
+  }
   const tid = tabId || homeActiveTabId;
   const ts = getTabState(tid);
   const isActive = () => tid === homeActiveTabId;
