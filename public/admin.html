@@ -307,8 +307,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
       <div class="page-title">Settings</div>
       <div class="page-subtitle">Manage Claude accounts, service options, and global defaults.</div>
 
-      <!-- ── System Control ── -->
-      <div class="section">
+      <!-- ── System Control (local only) ── -->
+      <div class="section" id="sectionSystemControl">
         <div class="section-header">
           <div class="section-icon" style="background:rgba(239,68,68,0.12);border-color:#ef4444;color:#ef4444">&#9888;</div>
           <div>
@@ -374,8 +374,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
-      <!-- ── Claude Accounts ── -->
-      <div class="section">
+      <!-- ── Claude Accounts (local only) ── -->
+      <div class="section" id="sectionClaudeAccounts">
         <div class="section-header">
           <div class="section-icon">&#9881;</div>
           <div><div class="section-title">Claude Accounts</div></div>
@@ -401,8 +401,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
-      <!-- ── Service ── -->
-      <div class="section">
+      <!-- ── Service (local only) ── -->
+      <div class="section" id="sectionService">
         <div class="section-header">
           <div class="section-icon" style="background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">&#9670;</div>
           <div><div class="section-title" style="color:var(--purple)">Service</div></div>
@@ -614,8 +614,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
-      <!-- ── Deployment ── -->
-      <div class="section">
+      <!-- ── Deployment (local only — Railway manages its own deployment) ── -->
+      <div class="section" id="sectionDeployment">
         <div class="section-header">
           <div class="section-icon" style="background:var(--green-bg);border-color:var(--green);color:var(--green)">&#9652;</div>
           <div><div class="section-title" style="color:var(--green)">Deployment</div></div>
@@ -674,8 +674,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
-      <!-- ── SaaS Publishing ── -->
-      <div class="section">
+      <!-- ── SaaS Publishing (local only — server IS the SaaS) ── -->
+      <div class="section" id="sectionSaasPublishing">
         <div class="section-header">
           <div class="section-icon" style="background:var(--accent-bg);border-color:var(--accent);color:var(--accent)">&#8599;</div>
           <div>
@@ -702,8 +702,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
-      <!-- ── Status Indicator ── -->
-      <div class="section">
+      <!-- ── Status Indicator (local only) ── -->
+      <div class="section" id="sectionStatusIndicator">
         <div class="section-header">
           <div class="section-icon" style="background:rgba(168,85,247,0.15);border-color:#a855f7;color:#a855f7">&#9679;</div>
           <div>
@@ -1697,11 +1697,18 @@ async function saveService() {
 
 function updateMultiModelFieldsVisibility() {
   const on = document.getElementById('svcMultiModelEnabled').checked;
+  const isServer = _currentDeploymentMode === 'server';
   document.getElementById('multiModelFields').style.opacity = on ? '1' : '0.4';
   document.getElementById('multiModelFields').style.pointerEvents = on ? 'auto' : 'none';
-  document.getElementById('ollamaSetupGuide').style.display = on ? 'block' : 'none';
+  // Ollama setup guide: only show on local when multi-model is on (not useful on server)
+  document.getElementById('ollamaSetupGuide').style.display = (on && !isServer) ? 'block' : 'none';
+  // Provider API keys: always active on server (it's the primary way to use models)
   const pkf = document.getElementById('providerKeyFields');
-  if (pkf) { pkf.style.opacity = on ? '1' : '0.4'; pkf.style.pointerEvents = on ? 'auto' : 'none'; }
+  if (pkf) {
+    const keysActive = on || isServer;
+    pkf.style.opacity = keysActive ? '1' : '0.4';
+    pkf.style.pointerEvents = keysActive ? 'auto' : 'none';
+  }
 }
 document.addEventListener('DOMContentLoaded', async () => {
   const cb = document.getElementById('svcMultiModelEnabled');
@@ -1807,6 +1814,28 @@ function applyDeploymentMode(mode) {
   // Shared Agents toggle in Settings — hide on server (always true there)
   const sharedAgentsRow = document.getElementById('sharedAgentsToggleRow');
   if (sharedAgentsRow) sharedAgentsRow.style.display = isLocal ? '' : 'none';
+
+  // Settings sections that only apply to local installs
+  const localOnlySections = [
+    'sectionSystemControl',     // restart/shutdown (Railway manages lifecycle)
+    'sectionClaudeAccounts',    // no local CLI on server
+    'sectionService',           // paths, port, default account — server uses env vars
+    'sectionDeployment',        // Railway manages its own deployment
+    'sectionSaasPublishing',    // server IS the shared instance
+    'sectionStatusIndicator',   // Mac/Windows menu bar indicator
+  ];
+  for (const id of localOnlySections) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isLocal ? '' : 'none';
+  }
+
+  // Update page subtitle based on mode
+  const subtitle = document.querySelector('#panel-settings .page-subtitle');
+  if (subtitle) {
+    subtitle.textContent = isServer
+      ? 'Manage AI models, API keys, license, and feature flags.'
+      : 'Manage Claude accounts, service options, and global defaults.';
+  }
 
   // If user is on a tab that just got hidden, bounce to Settings
   if (isServer) {
