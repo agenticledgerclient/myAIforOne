@@ -440,6 +440,13 @@ function registerAgents() {
 function build() {
   printChecklist();
 
+  // If dist/ already exists (npm install from registry ships prebuilt), skip build.
+  // This avoids needing tsc (a devDependency) on consumer machines.
+  if (existsSync(join(PROJECT_ROOT, 'dist', 'index.js'))) {
+    stepDone('Build already present (prebuilt)');
+    return;
+  }
+
   console.log('  Running: npm run build');
   console.log('');
 

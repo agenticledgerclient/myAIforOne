@@ -602,6 +602,20 @@
         }
       ],
       "oauth": true
+    },
+    "youtube-transcript-http": {
+      "name": "YouTube Transcript",
+      "description": "Fetch transcripts, timestamps, metadata, and available languages from any public YouTube video",
+      "category": "media",
+      "url": "https://youtube-transcriptmcp.agenticledger.ai/mcp",
+      "requiredKeys": []
+    },
+    "youtube-transcript": {
+      "name": "YouTube Transcript",
+      "description": "Fetch transcripts, timestamps, metadata, and available caption languages from any public YouTube video. No API key required. 4 tools.",
+      "category": "media",
+      "url": "https://youtube-transcriptmcp.agenticledger.ai/mcp",
+      "requiredKeys": []
     }
   },
   "categories": {

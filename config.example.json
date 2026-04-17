@@ -37,7 +37,6 @@
       "webPassword": null
     }
   },
-
   "channels": {
     "imessage": {
       "enabled": false,
@@ -77,14 +76,14 @@
       }
     }
   },
-
   "mcps": {
     "_comment_platform_mcps": "REQUIRED: These platform MCPs must be registered on every installation. myaiforone-local is the gateway's own MCP server (agents, tasks, projects, orgs). aigym-platform connects to AI Gym for training programs and learner progress. Assign them to specific agents via each agent's mcps array — they are NOT auto-assigned to all agents.",
-
     "myaiforone-local": {
       "type": "stdio",
       "command": "node",
-      "args": ["./server/mcp-server/dist/index.js"],
+      "args": [
+        "./server/mcp-server/dist/index.js"
+      ],
       "env": {
         "MYAGENT_API_URL": "http://localhost:4888"
       }
@@ -92,21 +91,24 @@
     "aigym-platform": {
       "type": "http",
       "url": "https://app.aigym.studio/mcp",
-      "headers": { "Authorization": "Bearer ${AIGYM_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${AIGYM_API_KEY}"
+      }
     },
-
     "aiforone_computeruse": {
       "type": "stdio",
       "command": "node",
-      "args": ["./mcps/aiforone_computeruse/server.js"]
+      "args": [
+        "./mcps/aiforone_computeruse/server.js"
+      ]
     },
-
     "_comment_optional_mcps": "Optional MCPs below — add API keys for the services you use. Agents reference these by name in their mcps array.",
-
     "finney": {
       "type": "http",
       "url": "https://finneymcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${FINNEY_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${FINNEY_API_KEY}"
+      }
     },
     "lighthouse": {
       "type": "http",
@@ -115,182 +117,254 @@
     "stripe": {
       "type": "http",
       "url": "https://stripemcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${STRIPE_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${STRIPE_API_KEY}"
+      }
     },
     "quickbooks": {
       "type": "http",
       "url": "https://qbomcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${QBO_ACCESS_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${QBO_ACCESS_TOKEN}"
+      }
     },
     "xero": {
       "type": "http",
       "url": "https://xeromcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${XERO_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${XERO_AUTH}"
+      }
     },
     "netsuite": {
       "type": "http",
       "url": "https://netsuitemcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${NETSUITE_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${NETSUITE_AUTH}"
+      }
     },
     "plaid": {
       "type": "http",
       "url": "https://plaidmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${PLAID_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${PLAID_API_KEY}"
+      }
     },
     "mercury": {
       "type": "http",
       "url": "https://mercurymcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${MERCURY_API_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${MERCURY_API_TOKEN}"
+      }
     },
     "brex": {
       "type": "http",
       "url": "https://brexmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${BREX_API_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${BREX_API_TOKEN}"
+      }
     },
     "ramp": {
       "type": "http",
       "url": "https://rampmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${RAMP_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${RAMP_AUTH}"
+      }
     },
     "expensify": {
       "type": "http",
       "url": "https://expensifymcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${EXPENSIFY_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${EXPENSIFY_AUTH}"
+      }
     },
     "billcom": {
       "type": "http",
       "url": "https://billcommcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${BILLCOM_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${BILLCOM_AUTH}"
+      }
     },
     "paypal": {
       "type": "http",
       "url": "https://paypalmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${PAYPAL_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${PAYPAL_AUTH}"
+      }
     },
     "square": {
       "type": "http",
       "url": "https://squaremcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${SQUARE_ACCESS_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${SQUARE_ACCESS_TOKEN}"
+      }
     },
     "modern-treasury": {
       "type": "http",
       "url": "https://moderntreasurymcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${MODERN_TREASURY_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${MODERN_TREASURY_API_KEY}"
+      }
     },
     "avalara": {
       "type": "http",
       "url": "https://avalaramcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${AVALARA_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${AVALARA_AUTH}"
+      }
     },
     "gusto": {
       "type": "http",
       "url": "https://gustomcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${GUSTO_ACCESS_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${GUSTO_ACCESS_TOKEN}"
+      }
     },
     "chargebee": {
       "type": "http",
       "url": "https://chargebeemcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${CHARGEBEE_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${CHARGEBEE_AUTH}"
+      }
     },
     "hubspot": {
       "type": "http",
       "url": "https://hubspotmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${HUBSPOT_ACCESS_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${HUBSPOT_ACCESS_TOKEN}"
+      }
     },
     "karbon": {
       "type": "http",
       "url": "https://karbonmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${KARBON_BEARER_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${KARBON_BEARER_TOKEN}"
+      }
     },
     "smartsheets": {
       "type": "http",
       "url": "https://smartsheetsmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${SMARTSHEET_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${SMARTSHEET_API_KEY}"
+      }
     },
     "notion-finance": {
       "type": "http",
       "url": "https://notionfinancemcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${NOTION_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${NOTION_API_KEY}"
+      }
     },
     "granola": {
       "type": "http",
       "url": "https://granolamcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${GRANOLA_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${GRANOLA_API_KEY}"
+      }
     },
     "fireflies": {
       "type": "http",
       "url": "https://firefliesmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${FIREFLIES_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${FIREFLIES_API_KEY}"
+      }
     },
     "floqast": {
       "type": "http",
       "url": "https://floqastmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${FLOQAST_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${FLOQAST_API_KEY}"
+      }
     },
     "bitwave": {
       "type": "http",
       "url": "https://bitwavemcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${BITWAVE_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${BITWAVE_AUTH}"
+      }
     },
     "tres": {
       "type": "http",
       "url": "https://tresmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${TRES_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${TRES_AUTH}"
+      }
     },
     "fireblocks": {
       "type": "http",
       "url": "https://fireblocksmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${FIREBLOCKS_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${FIREBLOCKS_AUTH}"
+      }
     },
     "catalyx-wallet": {
       "type": "http",
       "url": "https://catalyxwalletmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${CATALYX_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${CATALYX_AUTH}"
+      }
     },
     "enterprise-wallet": {
       "type": "http",
       "url": "https://enterprisewalletmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${EWM_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${EWM_API_KEY}"
+      }
     },
     "lightspark-sdk": {
       "type": "http",
       "url": "https://lightsparksdkmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${LIGHTSPARK_SDK_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${LIGHTSPARK_SDK_AUTH}"
+      }
     },
     "lightspark-grid": {
       "type": "http",
       "url": "https://lightsparkgridmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${LIGHTSPARK_GRID_AUTH}" }
+      "headers": {
+        "Authorization": "Bearer ${LIGHTSPARK_GRID_AUTH}"
+      }
     },
     "ccview": {
       "type": "http",
       "url": "https://ccviewmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${CCVIEW_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${CCVIEW_API_KEY}"
+      }
     },
     "metabase": {
       "type": "http",
       "url": "https://metabasemcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${METABASE_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${METABASE_API_KEY}"
+      }
     },
     "cubedev": {
       "type": "http",
       "url": "https://cubedevmcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${CUBE_API_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${CUBE_API_TOKEN}"
+      }
     },
     "p2p-lambda": {
       "type": "http",
       "url": "https://p2plambdamcp.agenticledger.ai/mcp",
-      "headers": { "Authorization": "Bearer ${P2P_LAMBDA_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${P2P_LAMBDA_KEY}"
+      }
     },
     "github": {
       "type": "http",
       "url": "https://api.githubcopilot.com/mcp/",
-      "headers": { "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
     },
     "greptile": {
       "type": "http",
       "url": "https://api.greptile.com/mcp",
-      "headers": { "Authorization": "Bearer ${GREPTILE_API_KEY}" }
+      "headers": {
+        "Authorization": "Bearer ${GREPTILE_API_KEY}"
+      }
     },
     "gitlab": {
       "type": "http",
@@ -303,9 +377,15 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp"
+    },
+    "youtube-transcript": {
+      "type": "http",
+      "url": "https://youtube-transcriptmcp.agenticledger.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer youtube"
+      }
     }
   },
-
   "agents": {
     "_shared-agent-example (remove underscore to activate)": {
       "name": "Finance Analyst",
@@ -316,11 +396,17 @@
       "memoryDir": "~/Desktop/MyAIforOne Drive/SharedAgents/FinanceDept/finance-analyst/memory",
       "shared": true,
       "conversationLogMode": "shared",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "routes": []
     }
   },
-
   "defaultAgent": null,
   "defaultSkills": [
     "opProjectCreate",
@@ -345,7 +431,9 @@
     "sop_webartifactsbuilder",
     "sop_xlsx"
   ],
-  "defaultMcps": ["aiforone_computeruse"],
+  "defaultMcps": [
+    "aiforone_computeruse"
+  ],
   "deployment": {
     "provider": "railway",
     "deployToken": "",
