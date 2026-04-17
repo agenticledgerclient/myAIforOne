@@ -1,5 +1,5 @@
 import { resolve, dirname, join } from "node:path";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
   // Covers existing deployments that bootstrapped before hub seeding was added.
   if (process.env.MYAGENT_DATA_DIR && existsSync(configPath)) {
     try {
-      const raw = JSON.parse(require("node:fs").readFileSync(configPath, "utf-8"));
+      const raw = JSON.parse(readFileSync(configPath, "utf-8"));
       if (raw.agents && !raw.agents.hub) {
         const hubHome = join(dataDir, "PlatformUtilities", "hub");
         mkdirSync(join(hubHome, "memory"), { recursive: true });

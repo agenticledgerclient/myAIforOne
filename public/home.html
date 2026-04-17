@@ -822,6 +822,7 @@ async function init() {
     hubAgentId = data.defaultGroupAgent
       || agents.find(a => a.subAgents)?.id
       || agents[0]?.id;
+    console.log('[Home] defaultGroupAgent:', data.defaultGroupAgent, 'agents:', agents.length, 'hubAgentId:', hubAgentId);
 
     // Update configure link to point to hub agent dashboard
     const configLink = document.getElementById('configureHubLink');
