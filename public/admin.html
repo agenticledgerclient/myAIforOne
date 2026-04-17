@@ -1703,9 +1703,17 @@ function updateMultiModelFieldsVisibility() {
   const pkf = document.getElementById('providerKeyFields');
   if (pkf) { pkf.style.opacity = on ? '1' : '0.4'; pkf.style.pointerEvents = on ? 'auto' : 'none'; }
 }
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const cb = document.getElementById('svcMultiModelEnabled');
   if (cb) cb.addEventListener('change', updateMultiModelFieldsVisibility);
+  // Fetch deployment mode early so tab visibility is correct before user clicks anything
+  try {
+    const r = await fetch('/api/config/service');
+    if (r.ok) {
+      const s = await r.json();
+      applyDeploymentMode(s.deploymentMode || 'local');
+    }
+  } catch (_) {}
 });
 
 async function checkOllamaConnection() {
