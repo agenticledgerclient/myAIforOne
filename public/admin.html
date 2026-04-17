@@ -266,7 +266,7 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
        when this install is acting as a shared gateway. Hidden by default; unhidden
        by loadService() when sharedAgentsEnabled === true. -->
   <button class="type-tab" data-tab="apikeys" onclick="switchTab('apikeys')" id="tabBtnApikeys" style="display:none">Issued Keys</button>
-  <button class="type-tab" data-tab="updates" onclick="switchTab('updates')">Updates</button>
+  <button class="type-tab" data-tab="updates" onclick="switchTab('updates')" id="tabBtnUpdates">Updates</button>
   <button class="type-tab" data-tab="docs" onclick="switchTab('docs')">Docs</button>
 </div>
 
@@ -1789,6 +1789,8 @@ function applyDeploymentMode(mode) {
   if (tabApikeys) tabApikeys.style.display = isServer ? '' : 'none';
   const tabTeamGw = document.getElementById('tabBtnTeamgateways');
   if (tabTeamGw) tabTeamGw.style.display = isLocal ? '' : 'none';
+  const tabUpdates = document.getElementById('tabBtnUpdates');
+  if (tabUpdates) tabUpdates.style.display = isLocal ? '' : 'none';
 
   // Manage-Issued-Keys link inside Team Gateways panel (only when both visible)
   const manageLink = document.getElementById('tgManageIssuedKeys');
@@ -1802,6 +1804,10 @@ function applyDeploymentMode(mode) {
   if (isServer) {
     const tgPanel = document.getElementById('panel-teamgateways');
     if (tgPanel && tgPanel.classList.contains('active')) {
+      try { switchTab('settings'); } catch (_) {}
+    }
+    const upPanel = document.getElementById('panel-updates');
+    if (upPanel && upPanel.classList.contains('active')) {
       try { switchTab('settings'); } catch (_) {}
     }
   }
