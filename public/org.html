@@ -1493,6 +1493,8 @@ text-decoration:none;}
 <datalist id="dl-titles"></datalist>
 <datalist id="dl-aliases"></datalist>
 
+<script src="/auth.js"></script>
+<script src="/server-mode.js"></script>
 <script>
 let agents = [];
 let visibleClasses = (function() {
@@ -4340,7 +4342,6 @@ document.addEventListener('click', function(e){
   if(dd && !dd.contains(e.target)) document.getElementById('docsMenu')?.classList.remove('open');
 });
 </script>
-<script src="/auth.js"></script>
 <script src="/license-check.js"></script>
 </body>
 </html>

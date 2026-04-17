@@ -107,8 +107,10 @@ export function startWebUI(opts: WebUIOptions): void {
   }
 
   // ─── Serve pages from public/ ─────────────────────────────────────
+  const isServerMode = !!process.env.MYAGENT_DATA_DIR;
   const serveHome = (_req: any, res: any) => servePage(res, "home2.html", "/org");
-  app.get("/", serveHome);
+  // Server mode: landing page is the Library (resource center)
+  app.get("/", isServerMode ? (_req: any, res: any) => servePage(res, "library.html") : serveHome);
   app.get("/home", serveHome);
   app.get("/home-legacy", (_req, res) => servePage(res, "home.html", "/org"));
   app.get("/home2", (_req, res) => servePage(res, "home2.html", "/"));

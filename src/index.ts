@@ -61,6 +61,10 @@ async function main(): Promise<void> {
     const bootstrapPort = process.env.PORT ? Number(process.env.PORT) : 4888;
     const nowIso = new Date().toISOString();
 
+    // Create shared directories on the volume
+    mkdirSync(join(dataDir, "PersonalRegistry"), { recursive: true });
+    mkdirSync(join(dataDir, "PersonalAgents"), { recursive: true });
+
     // Create platform agent directories on the volume
     const hubHome = join(dataDir, "PlatformUtilities", "hub");
     const gymHome = join(dataDir, "PlatformUtilities", "gym");

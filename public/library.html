@@ -435,6 +435,8 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
   </div>
 </div>
 
+<script src="/auth.js"></script>
+<script src="/server-mode.js"></script>
 <script>
 // ─── State ────────────────────────────────────────────────────────
 let currentType = 'apps';
@@ -1435,7 +1437,6 @@ document.addEventListener('click', function(e){
   if(!e.target.closest('.pub-wrap')) document.querySelectorAll('.pub-menu.open').forEach(m=>m.classList.remove('open'));
 });
 </script>
-<script src="/auth.js"></script>
 <script src="/license-check.js"></script>
 </body>
 </html>
