@@ -60,6 +60,13 @@ async function main(): Promise<void> {
     mkdirSync(dataDir, { recursive: true });
     const bootstrapPort = process.env.PORT ? Number(process.env.PORT) : 4888;
     const nowIso = new Date().toISOString();
+
+    // Create hub agent directory on the volume so it has a home for memory/files
+    const hubHome = join(dataDir, "PlatformUtilities", "hub");
+    mkdirSync(join(hubHome, "memory"), { recursive: true });
+    mkdirSync(join(hubHome, "FileStorage", "Temp"), { recursive: true });
+    mkdirSync(join(hubHome, "FileStorage", "Permanent"), { recursive: true });
+
     const minimal = {
       service: {
         logLevel: "info",
@@ -84,12 +91,68 @@ async function main(): Promise<void> {
         ],
       },
       channels: {},
-      agents: {},
-      defaultAgent: null,
+      agents: {
+        hub: {
+          name: "Hub",
+          description: "The primary AI interface — handles all platform operations through natural conversation.",
+          agentHome: hubHome,
+          claudeMd: "agents/platform/hub/CLAUDE.md",
+          memoryDir: join(hubHome, "memory"),
+          workspace: resolve(__dirname, ".."),
+          persistent: true,
+          streaming: true,
+          agentClass: "platform",
+          subAgents: "*",
+          mcps: ["myaiforone-local"],
+          allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
+          timeout: 14400000,
+          autoCommit: false,
+          routes: [],
+          org: [{ organization: "Platform", function: "Operations", title: "Hub Agent", reportsTo: "" }],
+        },
+      },
+      defaultAgent: "hub",
     };
     writeFileSync(configPath, JSON.stringify(minimal, null, 2));
     console.log(`[bootstrap] Wrote shared-gateway config to ${configPath}`);
   }
+  // Migration: ensure hub agent exists on server mode (Railway).
+  // Covers existing deployments that bootstrapped before hub seeding was added.
+  if (process.env.MYAGENT_DATA_DIR && existsSync(configPath)) {
+    try {
+      const raw = JSON.parse(require("node:fs").readFileSync(configPath, "utf-8"));
+      if (raw.agents && !raw.agents.hub) {
+        const hubHome = join(dataDir, "PlatformUtilities", "hub");
+        mkdirSync(join(hubHome, "memory"), { recursive: true });
+        mkdirSync(join(hubHome, "FileStorage", "Temp"), { recursive: true });
+        mkdirSync(join(hubHome, "FileStorage", "Permanent"), { recursive: true });
+        raw.agents.hub = {
+          name: "Hub",
+          description: "The primary AI interface — handles all platform operations through natural conversation.",
+          agentHome: hubHome,
+          claudeMd: "agents/platform/hub/CLAUDE.md",
+          memoryDir: join(hubHome, "memory"),
+          workspace: resolve(__dirname, ".."),
+          persistent: true,
+          streaming: true,
+          agentClass: "platform",
+          subAgents: "*",
+          mcps: ["myaiforone-local"],
+          allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
+          timeout: 14400000,
+          autoCommit: false,
+          routes: [],
+          org: [{ organization: "Platform", function: "Operations", title: "Hub Agent", reportsTo: "" }],
+        };
+        if (!raw.defaultAgent) raw.defaultAgent = "hub";
+        writeFileSync(configPath, JSON.stringify(raw, null, 2));
+        console.log("[migration] Seeded hub agent into existing server-mode config");
+      }
+    } catch (e) {
+      console.warn("[migration] Failed to seed hub agent:", e);
+    }
+  }
+
   const config = loadConfig(configPath);
   setAppConfig(config);
 
