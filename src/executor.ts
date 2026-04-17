@@ -2031,6 +2031,15 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
           baseUrl: _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434",
           timeout: agentConfig.timeout ?? 300_000,
         });
+      } else if (prefix === "anthropic") {
+        const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+        const apiKey = providerKeys.anthropic;
+        if (!apiKey) { yield { type: "error", data: "No Anthropic API key configured. Add it in Admin → Settings → Provider Keys." } as StreamEvent; return; }
+        const { streamAnthropic } = await import("./anthropic-executor.js");
+        streamGen = streamAnthropic({
+          model: modelName, apiKey, systemPrompt, message: formattedMessage,
+          timeout: agentConfig.timeout ?? 300_000,
+        });
       } else if (prefix === "gemini") {
         const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
         const apiKey = providerKeys.google;
@@ -2079,7 +2088,45 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
     }
   }
 
-  // Spawn claude and stream output
+  // ── Server mode fallback: stream via Anthropic API when CLI is unavailable ──
+  const isServerModeStream = !!process.env.MYAGENT_DATA_DIR;
+  if (isServerModeStream) {
+    const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+    const anthropicKey = providerKeys.anthropic;
+    if (!anthropicKey) {
+      yield { type: "error", data: "No Anthropic API key configured. On server mode, add your API key in Admin → Settings → Provider Keys → Anthropic / Claude." } as StreamEvent;
+      return;
+    }
+    try {
+      const { streamAnthropic } = await import("./anthropic-executor.js");
+      yield { type: "status", data: "Starting..." } as StreamEvent;
+      let fullResponse = "";
+      for await (const chunk of streamAnthropic({
+        apiKey: anthropicKey, systemPrompt, message: formattedMessage,
+        timeout: agentConfig.timeout ?? 300_000,
+      })) {
+        fullResponse += chunk;
+        yield { type: "text", data: chunk } as StreamEvent;
+      }
+      yield { type: "done", data: fullResponse } as StreamEvent;
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+          response: fullResponse.slice(0, 2000), agentId, channel: msg.channel, executor: "anthropic-api",
+        }) + "\n");
+      } catch { /* ignore */ }
+      if (useAdvancedMemory && memoryMgr) {
+        memoryMgr.indexExchange(msg.text, fullResponse, msg.sender).catch(() => {});
+      }
+      return;
+    } catch (err) {
+      log.error(`[Anthropic] Server-mode streaming fallback failed for ${agentId}: ${err}`);
+      yield { type: "error", data: `Anthropic API error: ${err instanceof Error ? err.message : err}` } as StreamEvent;
+      return;
+    }
+  }
+
+  // Spawn claude and stream output (local mode only)
   yield { type: "status", data: "Starting..." };
 
   const env = { ...process.env };
