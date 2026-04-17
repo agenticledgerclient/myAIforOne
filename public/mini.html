@@ -140,6 +140,7 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:var(--font);ov
   <div class="status-line" id="statusLine">idle · select an agent above</div>
 </div>
 
+<script src="/auth.js"></script>
 <script>
 // ─── Theme ────────────────────────────────────────────
 (function(){
@@ -387,6 +388,5 @@ function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 // ─── Init ─────────────────────────────────────────────
 loadAgents();
 </script>
-<script src="/auth.js"></script>
 </body>
 </html>
