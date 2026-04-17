@@ -2,17 +2,17 @@
  * Anthropic executor — uses the Anthropic Messages API directly.
  *
  * Used on server deployments (Railway) where the `claude` CLI is not available,
- * or when explicitly selected via executor format: "anthropic:claude-sonnet-4-5",
- * "anthropic:claude-haiku-3-5", etc.
+ * or when explicitly selected via executor format: "anthropic:claude-sonnet-4-6",
+ * "anthropic:claude-haiku-4-5-20251001", etc.
  *
- * Default model: claude-sonnet-4-5-20250514
+ * Default model: claude-sonnet-4-6
  */
 
 import { log } from "./logger.js";
 
 const ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1";
-const DEFAULT_MODEL = "claude-3-5-sonnet-20241022";
-const API_VERSION = "2023-06-01";
+const DEFAULT_MODEL = "claude-sonnet-4-6";
+const API_VERSION = "2023-06-01"; // Stable API version — works with all models
 
 // ─── Options ────────────────────────────────────────────────────
 export interface AnthropicOptions {
@@ -194,7 +194,7 @@ export async function checkAnthropicHealth(
         "anthropic-version": API_VERSION,
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-6",
         max_tokens: 10,
         messages: [{ role: "user", content: "Hi" }],
       }),
@@ -219,9 +219,10 @@ export async function checkAnthropicHealth(
     return {
       ok: true,
       models: [
-        "claude-3-5-sonnet-20241022",
-        "claude-3-5-haiku-20241022",
-        "claude-3-opus-20240229",
+        "claude-opus-4-7",
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-4-5-20250929",
       ],
     };
   } catch (err) {
