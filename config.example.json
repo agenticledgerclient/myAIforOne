@@ -18,6 +18,7 @@
     "platformDefaultExecutor": "claude",
     "ollamaBaseUrl": "http://localhost:11434",
     "providerKeys": {
+      "anthropic": "",
       "openai": "",
       "xai": "",
       "google": "",

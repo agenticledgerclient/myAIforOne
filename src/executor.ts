@@ -1380,6 +1380,15 @@ Rules:
           baseUrl: _appConfig?.service?.ollamaBaseUrl || "http://localhost:11434",
           timeout: agentConfig.timeout ?? 300_000,
         });
+      } else if (prefix === "anthropic") {
+        const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+        const apiKey = providerKeys.anthropic;
+        if (!apiKey) return "Error: No Anthropic API key configured. Add it in Admin → Settings → Provider Keys.";
+        const { executeAnthropic } = await import("./anthropic-executor.js");
+        altResponse = await executeAnthropic({
+          model: modelName, apiKey, systemPrompt, message: formattedMessage,
+          timeout: agentConfig.timeout ?? 300_000,
+        });
       } else if (prefix === "gemini") {
         const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
         const apiKey = providerKeys.google;
@@ -1393,7 +1402,7 @@ Rules:
         // OpenAI-compatible providers (openai, grok, groq, together, mistral)
         const { resolveProvider, executeOpenAICompat } = await import("./openai-executor.js");
         const provider = resolveProvider(prefix);
-        if (!provider) return `Error: Unknown model provider "${prefix}". Supported: ollama, openai, grok, groq, together, mistral, gemini.`;
+        if (!provider) return `Error: Unknown model provider "${prefix}". Supported: ollama, anthropic, openai, grok, groq, together, mistral, gemini.`;
         const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
         const apiKey = providerKeys[provider.keyField];
         if (!apiKey) return `Error: No API key configured for ${provider.name}. Add it in Admin → Settings → Provider Keys.`;
@@ -1411,7 +1420,40 @@ Rules:
     }
   }
 
-  // ── Spawn claude ──
+  // ── Server mode fallback: use Anthropic API when CLI is unavailable ──
+  const isServerMode = !!process.env.MYAGENT_DATA_DIR;
+  if (isServerMode) {
+    const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
+    const anthropicKey = providerKeys.anthropic;
+    if (!anthropicKey) {
+      return "Error: No Anthropic API key configured. On server mode, add your API key in Admin → Settings → Provider Keys → Anthropic / Claude.";
+    }
+    try {
+      const { executeAnthropic } = await import("./anthropic-executor.js");
+      const apiResponse = await executeAnthropic({
+        apiKey: anthropicKey,
+        systemPrompt,
+        message: formattedMessage,
+        timeout: agentConfig.timeout ?? 300_000,
+      });
+      // Log + memory
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          ts: new Date().toISOString(), from: msg.sender, text: msg.text,
+          response: apiResponse.slice(0, 2000), agentId, channel: msg.channel, executor: "anthropic-api",
+        }) + "\n");
+      } catch { /* ignore */ }
+      if (useAdvancedMemory && memoryMgr) {
+        memoryMgr.indexExchange(msg.text, apiResponse, msg.sender).catch(() => {});
+      }
+      return apiResponse;
+    } catch (err) {
+      log.error(`[Anthropic] Server-mode fallback failed for ${agentId}: ${err}`);
+      return `Sorry, I ran into an error with the Anthropic API: ${err instanceof Error ? err.message : err}`;
+    }
+  }
+
+  // ── Spawn claude (local mode only) ──
   const timeout = agentConfig.timeout ?? 14_400_000;
   let rawOutput: string;
 

@@ -982,7 +982,15 @@ export function startWebUI(opts: WebUIOptions): void {
 
     const keys = (opts.config.service as any).providerKeys || {};
 
-    if (provider === "gemini") {
+    if (provider === "anthropic") {
+      const key = keys.anthropic;
+      if (!key) return res.json({ ok: false, error: "No Anthropic API key configured" });
+      try {
+        const { checkAnthropicHealth } = await import("./anthropic-executor.js");
+        const result = await checkAnthropicHealth(key);
+        res.json(result);
+      } catch (e: any) { res.json({ ok: false, error: e.message }); }
+    } else if (provider === "gemini") {
       const key = keys.google;
       if (!key) return res.json({ ok: false, error: "No Google API key configured" });
       try {
