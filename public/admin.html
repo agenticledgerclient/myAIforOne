@@ -2287,17 +2287,21 @@ async function loadApiKeys() {
     // (400) but the button shouldn't be there to tempt them in the first
     // place. Show a subtle hint instead so they know why.
     const isLastKey = keys.length === 1;
-    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px"><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Name</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Key</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Created</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Last Used</th><th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right">&nbsp;</th></tr></thead><tbody>';
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px"><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Name</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Email</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Role</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Key</th><th style="padding:10px 12px;border-bottom:1px solid var(--border)">Last Used</th><th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right">&nbsp;</th></tr></thead><tbody>';
     for (const k of keys) {
-      const created = k.createdAt ? new Date(k.createdAt).toLocaleString() : '—';
       const lastUsed = k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : 'Never';
+      const role = k.role || 'full';
+      const roleBadge = role === 'read'
+        ? '<span style="padding:2px 8px;border-radius:4px;background:rgba(59,130,246,0.15);color:#60a5fa;font-size:11px;font-weight:600">Read</span>'
+        : '<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#4ade80;font-size:11px;font-weight:600">Full</span>';
       const actionCell = isLastKey
         ? `<span title="Can't revoke the last remaining key — create a new one first" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;cursor:not-allowed;opacity:0.55">Last key</span>`
         : `<button onclick="deleteApiKey('${escHtml(k.id)}', '${escHtml(k.name)}')" style="padding:5px 10px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:11px;cursor:pointer">Revoke</button>`;
       html += `<tr>
         <td style="padding:12px;border-bottom:1px solid var(--border)"><b>${escHtml(k.name)}</b></td>
+        <td style="padding:12px;border-bottom:1px solid var(--border);color:var(--text-muted)">${escHtml(k.email || '—')}</td>
+        <td style="padding:12px;border-bottom:1px solid var(--border)">${roleBadge}</td>
         <td style="padding:12px;border-bottom:1px solid var(--border);font-family:monospace;color:var(--text-muted)">${escHtml(k.preview)}</td>
-        <td style="padding:12px;border-bottom:1px solid var(--border);color:var(--text-muted)">${escHtml(created)}</td>
         <td style="padding:12px;border-bottom:1px solid var(--border);color:var(--text-muted)">${escHtml(lastUsed)}</td>
         <td style="padding:12px;border-bottom:1px solid var(--border);text-align:right">
           ${actionCell}
@@ -2318,9 +2322,20 @@ function openNewApiKeyModal() {
   modal.innerHTML = `
     <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:28px;width:440px;max-width:92vw">
       <div style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:6px">Create API Key</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Give the key a descriptive name so you can tell them apart later (e.g. "Ore's MacBook", "Sarah's automation").</div>
-      <input id="newApiKeyName" placeholder="Key name" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:14px;box-sizing:border-box" autofocus />
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Issue a key to a team member. Choose <b>Full</b> for admins/operators, <b>Read</b> for browse-only access.</div>
+      <input id="newApiKeyName" placeholder="Name (e.g. Sarah's MacBook)" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:14px;box-sizing:border-box;margin-bottom:10px" autofocus />
+      <input id="newApiKeyEmail" placeholder="Email (optional)" type="email" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:14px;box-sizing:border-box;margin-bottom:10px" />
+      <div style="display:flex;gap:8px;margin-bottom:18px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:13px;color:var(--text-primary)">
+          <input type="radio" name="newApiKeyRole" value="full" checked style="accent-color:var(--accent-primary,#6366f1)" />
+          <div><b>Full</b><div style="font-size:11px;color:var(--text-muted);margin-top:2px">Chat, create, modify, admin</div></div>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;font-size:13px;color:var(--text-primary)">
+          <input type="radio" name="newApiKeyRole" value="read" style="accent-color:var(--accent-primary,#6366f1)" />
+          <div><b>Read</b><div style="font-size:11px;color:var(--text-muted);margin-top:2px">Browse agents, skills, prompts</div></div>
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
         <button onclick="closeApiKeyModal()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-primary);cursor:pointer">Cancel</button>
         <button onclick="createApiKey()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--accent-primary,#6366f1);background:var(--accent-primary,#6366f1);color:#fff;font-weight:600;cursor:pointer">Create</button>
       </div>
@@ -2336,9 +2351,11 @@ function closeApiKeyModal() {
 
 async function createApiKey() {
   const name = document.getElementById('newApiKeyName')?.value?.trim();
+  const email = document.getElementById('newApiKeyEmail')?.value?.trim();
+  const role = document.querySelector('input[name="newApiKeyRole"]:checked')?.value || 'full';
   if (!name) { showToast('Name is required'); return; }
   try {
-    const r = await fetch('/api/auth/keys', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+    const r = await fetch('/api/auth/keys', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, email, role }) });
     const d = await r.json();
     if (!r.ok) { showToast('Failed: ' + (d.error || 'unknown')); return; }
     closeApiKeyModal();

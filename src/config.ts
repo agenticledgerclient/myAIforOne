@@ -155,8 +155,8 @@ export interface ServiceConfig {
 
 // ─── API keys ────────────────────────────────────────────────────────
 // Named credentials that grant programmatic access to the gateway's /api/*
-// and /mcp endpoints. Each key is a full-access secret (scopes = ["*"]) for v1;
-// scoped keys are a future enhancement.
+// and /mcp endpoints. Each key carries a role ("full" or "read") that controls
+// what the holder can do. Full = admin/operator, Read = browse + view only.
 export interface ApiKey {
   id: string;              // short opaque id, e.g. "key_abc123"
   name: string;            // human label, e.g. "Ore's MacBook", "Initial Bootstrap"
@@ -164,6 +164,8 @@ export interface ApiKey {
   createdAt: string;       // ISO datetime
   lastUsedAt?: string;     // ISO datetime (updated by auth middleware on successful match)
   scopes: string[];        // ["*"] = full access; future: ["agents:read"] etc.
+  email?: string;          // user identity — ties this key to a person
+  role?: "full" | "read";  // "full" = admin/write access, "read" = browse only (default: "full")
 }
 
 // ─── Team Gateways ───────────────────────────────────────────────────

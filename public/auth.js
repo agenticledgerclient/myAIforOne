@@ -7,13 +7,18 @@
  * When auth is enabled (shared gateway deployments):
  * - Checks /api/auth/status on load
  * - Shows a login overlay if not authenticated
- * - Stores bearer token in localStorage
+ * - Stores bearer token + role in localStorage
  * - Patches window.fetch to auto-attach Authorization header
  * - Handles 401 responses by showing login again
+ * - Exposes window._ma1AuthRole ("full" | "read" | null) for page-level UI gating
  */
 
 (function () {
   const TOKEN_KEY = "ma1_auth_token";
+  const ROLE_KEY = "ma1_auth_role";
+
+  // Exposed to pages so they can gate UI by role
+  window._ma1AuthRole = null;
 
   function getStoredToken() {
     try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
@@ -23,8 +28,23 @@
     try { if (token) localStorage.setItem(TOKEN_KEY, token); } catch {}
   }
 
+  function storeRole(role) {
+    try {
+      if (role) localStorage.setItem(ROLE_KEY, role);
+      window._ma1AuthRole = role || "full";
+    } catch {}
+  }
+
+  function getStoredRole() {
+    try { return localStorage.getItem(ROLE_KEY) || "full"; } catch { return "full"; }
+  }
+
   function clearToken() {
-    try { localStorage.removeItem(TOKEN_KEY); } catch {}
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ROLE_KEY);
+      window._ma1AuthRole = null;
+    } catch {}
   }
 
   // ── Login overlay ──────────────────────────────────────────────────────────
@@ -71,6 +91,7 @@
           return;
         }
         storeToken(data.token);
+        storeRole(data.role || "full");
         overlay.remove();
         delete window._ma1Login;
         onSuccess(data.token);
@@ -125,18 +146,32 @@
 
   // ── On load: check auth status ─────────────────────────────────────────────
   async function initAuth() {
+    // Restore role from localStorage immediately (available before async check)
+    const cachedRole = getStoredRole();
+    if (getStoredToken()) {
+      window._ma1AuthRole = cachedRole;
+    }
+
     let status;
     try {
-      const r = await _originalFetch("/api/auth/status");
+      const r = await _originalFetch("/api/auth/status", {
+        headers: getStoredToken() ? { Authorization: `Bearer ${getStoredToken()}` } : {},
+      });
       if (!r.ok) return; // can't reach server — let page handle errors
       status = await r.json();
     } catch {
       return; // network error — don't block the page
     }
 
-    if (!status.authEnabled) return; // auth off — personal gateway, no-op
+    if (!status.authEnabled) {
+      window._ma1AuthRole = "full"; // auth off — personal gateway, full access
+      return;
+    }
 
-    if (status.authenticated) return; // already authenticated (unlikely without token, but handles session cookies)
+    if (status.authenticated) {
+      storeRole(status.role || "full");
+      return;
+    }
 
     const existingToken = getStoredToken();
     if (existingToken) {
@@ -146,11 +181,15 @@
           headers: { Authorization: `Bearer ${existingToken}` },
         });
         const data = await r.json();
-        if (data.authenticated) return; // token still good
+        if (data.authenticated) {
+          storeRole(data.role || "full");
+          return;
+        }
       } catch {}
     }
 
     // Need to log in
+    clearToken();
     showLoginOverlay(() => {
       // After login, reload so all page data loads with auth
       window.location.reload();

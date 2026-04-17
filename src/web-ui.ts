@@ -215,30 +215,56 @@ export function startWebUI(opts: WebUIOptions): void {
   // Apply auth middleware to all /api/* routes
   app.use("/api", authMiddleware);
 
+  // Role-based access: "read" keys can only GET (browse). Blocked from mutations + chat.
+  // Paths that read-only keys ARE allowed: GET on any endpoint, plus auth endpoints.
+  function requireFullAccess(req: any, res: any, next: any) {
+    const authCfg = getAuthConfig();
+    if (!authCfg?.enabled) return next(); // auth disabled — no restrictions
+    const apiKey = (req as any).apiKey as import("./config.js").ApiKey | undefined;
+    if (!apiKey) return next(); // no key (handled by authMiddleware already)
+    if ((apiKey.role || "full") === "read") {
+      return res.status(403).json({ error: "Read-only access — this action requires a full-access key" });
+    }
+    return next();
+  }
+
+  // Apply write protection: POST/PUT/PATCH/DELETE on /api/* require full role,
+  // except auth endpoints (login, status) which are always open.
+  app.use("/api", (req: any, res: any, next: any) => {
+    // Allow all GET/HEAD/OPTIONS requests (browsing)
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+    // Allow auth endpoints (login needs POST)
+    if (req.path.startsWith("/auth/")) return next();
+    // Everything else requires full access
+    return requireFullAccess(req, res, next);
+  });
+
   // POST /api/auth/login — accepts password, returns a Bearer API key
   app.post("/api/auth/login", (req, res) => {
     const authCfg = getAuthConfig();
-    if (!authCfg?.enabled) return res.json({ ok: true, token: null, authEnabled: false });
+    if (!authCfg?.enabled) return res.json({ ok: true, token: null, authEnabled: false, role: "full" });
     const { password } = req.body as any;
     if (!authCfg.webPassword || password !== authCfg.webPassword) {
       return res.status(401).json({ error: "Invalid password" });
     }
     // Prefer the first apiKey; fall back to legacy auth.tokens[0]
     const keys = getApiKeys();
-    const token = keys[0]?.key || authCfg.tokens?.[0];
+    const firstKey = keys[0];
+    const token = firstKey?.key || authCfg.tokens?.[0];
     if (!token) return res.status(500).json({ error: "No API key configured" });
-    return res.json({ ok: true, token });
+    return res.json({ ok: true, token, role: firstKey?.role || "full" });
   });
 
   // GET /api/auth/status — returns auth state (used by web UI on page load)
   app.get("/api/auth/status", (req, res) => {
     const authCfg = getAuthConfig();
     const authEnabled = !!(authCfg?.enabled);
-    if (!authEnabled) return res.json({ authEnabled: false, authenticated: true });
+    if (!authEnabled) return res.json({ authEnabled: false, authenticated: true, role: "full" });
     const authHeader = req.headers.authorization as string | undefined;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    const authenticated = !!matchToken(token);
-    return res.json({ authEnabled: true, authenticated });
+    const matched = matchToken(token);
+    if (!matched) return res.json({ authEnabled: true, authenticated: false });
+    return res.json({ authEnabled: true, authenticated: true, role: matched.role || "full", email: matched.email || null });
   });
 
   // Guard: /api/auth/keys/* is the issuance surface — meaningful only when this
@@ -265,17 +291,20 @@ export function startWebUI(opts: WebUIOptions): void {
       createdAt: k.createdAt,
       lastUsedAt: k.lastUsedAt,
       scopes: k.scopes,
+      email: k.email || null,
+      role: k.role || "full",
     }));
     // Opportunistic flush so lastUsedAt updates get persisted when admin views the page
     saveConfigToDisk();
     return res.json({ keys: out });
   });
 
-  // POST /api/auth/keys {name} — create a new key; returns the full secret ONCE
+  // POST /api/auth/keys {name, email?, role?} — create a new key; returns the full secret ONCE
   app.post("/api/auth/keys", (req, res) => {
-    const { name } = req.body as { name?: string };
+    const { name, email, role } = req.body as { name?: string; email?: string; role?: string };
     const label = (name || "").trim();
     if (!label) return res.status(400).json({ error: "name is required" });
+    const keyRole = role === "read" ? "read" : "full";
     const keys = getApiKeys();
     const apiKey: import("./config.js").ApiKey = {
       id: generateApiKeyId(),
@@ -283,6 +312,8 @@ export function startWebUI(opts: WebUIOptions): void {
       key: generateApiKeySecret(),
       createdAt: new Date().toISOString(),
       scopes: ["*"],
+      email: (email || "").trim() || undefined,
+      role: keyRole,
     };
     keys.push(apiKey);
     (opts.config.service as any).apiKeys = keys;
