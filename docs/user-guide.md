@@ -1,4 +1,5 @@
 # MyAIforOne — User Guide
+<!-- sync: 2026-04-17T01:49 -->
 
 > Master reference for every page, button, action, API endpoint, and MCP tool in the MyAIforOne platform.
 > Organized by UI page. Each action includes its API and MCP mapping.
