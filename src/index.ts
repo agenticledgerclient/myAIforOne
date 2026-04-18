@@ -110,14 +110,16 @@ async function main(): Promise<void> {
           workspace: pkgRoot,
           persistent: true,
           streaming: true,
+          advancedMemory: true,
           agentClass: "platform",
           subAgents: "*",
           mcps: ["myaiforone-local"],
           allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
           timeout: 14400000,
           autoCommit: false,
+          mentionAliases: ["hub"],
           routes: [],
-          org: [{ organization: "Platform", function: "Operations", title: "Hub Agent", reportsTo: "" }],
+          org: [{ organization: "Platform Creators", function: "Hub", title: "Hub Agent", reportsTo: "" }],
         },
         gym: {
           name: "AI Gym Coach",
@@ -169,14 +171,16 @@ async function main(): Promise<void> {
           workspace: pkgRoot,
           persistent: true,
           streaming: true,
+          advancedMemory: true,
           agentClass: "platform",
           subAgents: "*",
           mcps: ["myaiforone-local"],
           allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
           timeout: 14400000,
           autoCommit: false,
+          mentionAliases: ["hub"],
           routes: [],
-          org: [{ organization: "Platform", function: "Operations", title: "Hub Agent", reportsTo: "" }],
+          org: [{ organization: "Platform Creators", function: "Hub", title: "Hub Agent", reportsTo: "" }],
         };
         if (!raw.defaultAgent) raw.defaultAgent = "hub";
         changed = true;
@@ -213,6 +217,30 @@ async function main(): Promise<void> {
         if (raw.service.gymEnabled === undefined) raw.service.gymEnabled = true;
         changed = true;
         console.log("[migration] Seeded gym agent");
+      }
+
+      // Backfill missing fields on existing platform agents
+      if (raw.agents.hub) {
+        if (!raw.agents.hub.org || raw.agents.hub.org.length === 0 || raw.agents.hub.org[0].organization === "Platform") {
+          raw.agents.hub.org = [{ organization: "Platform Creators", function: "Hub", title: "Hub Agent", reportsTo: "" }];
+          changed = true;
+          console.log("[migration] Backfilled hub agent org");
+        }
+        if (!raw.agents.hub.advancedMemory) {
+          raw.agents.hub.advancedMemory = true;
+          changed = true;
+          console.log("[migration] Backfilled hub advancedMemory");
+        }
+        if (!raw.agents.hub.mentionAliases || raw.agents.hub.mentionAliases.length === 0) {
+          raw.agents.hub.mentionAliases = ["hub"];
+          changed = true;
+          console.log("[migration] Backfilled hub mentionAliases");
+        }
+      }
+      if (raw.agents.gym && (!raw.agents.gym.org || raw.agents.gym.org.length === 0)) {
+        raw.agents.gym.org = [{ organization: "Platform", function: "Training", title: "AI Gym Coach", reportsTo: "hub" }];
+        changed = true;
+        console.log("[migration] Backfilled gym agent org");
       }
 
       if (changed) {
