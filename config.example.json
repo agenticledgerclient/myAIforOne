@@ -89,6 +89,16 @@
         "MYAGENT_API_URL": "http://localhost:4888"
       }
     },
+    "myaiforone-remote": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./server/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "MYAGENT_API_URL": "https://your-railway-app.up.railway.app"
+      }
+    },
     "aigym-platform": {
       "type": "http",
       "url": "https://app.aigym.studio/mcp",
