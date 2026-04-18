@@ -12,7 +12,7 @@
 
 (function () {
   // Pages allowed on server mode
-  const SERVER_PAGES = new Set(["/", "/library", "/org", "/admin", "/api-docs", "/mcp-docs", "/user-guide"]);
+  const SERVER_PAGES = new Set(["/", "/library", "/org", "/admin", "/api-docs", "/mcp-docs", "/user-guide", "/mini", "/ui"]);
 
   // Nav links to hide on server mode (matched by href)
   const HIDDEN_HREFS = new Set(["/", "/ui", "/lab"]);
@@ -59,6 +59,14 @@
     document.querySelectorAll("a.gear-btn").forEach(function (el) {
       const href = el.getAttribute("href");
       if (HIDDEN_UTILS.has(href)) {
+        el.style.display = "none";
+      }
+    });
+
+    // Hide sub-nav links that point to non-server pages (Tasks, Projects, Automations)
+    document.querySelectorAll("a.sub-nav-link").forEach(function (el) {
+      const href = el.getAttribute("href");
+      if (href && !SERVER_PAGES.has(href)) {
         el.style.display = "none";
       }
     });

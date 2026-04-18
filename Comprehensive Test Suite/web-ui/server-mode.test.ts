@@ -202,14 +202,14 @@ describe("Server Mode — mini chat popup for server mode", () => {
     );
   });
 
-  it("org.html Chat button uses mini popup on server mode", async () => {
+  it("org.html Chat button navigates to /ui on all modes", async () => {
     if (!(await serviceUp())) return;
 
     const r = await fetch(`${BASE}/org`);
     const html = await r.text();
     assert.ok(
-      html.includes("_ma1ServerMode") && html.includes("/mini#"),
-      "org.html Chat button should open /mini popup on server mode"
+      html.includes("/ui#"),
+      "org.html Chat button should navigate to /ui"
     );
   });
 });
