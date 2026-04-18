@@ -35,6 +35,13 @@
    - [Activity Digest](#105-activity-digest)
    - [Trainer Souls](#106-trainer-souls)
    - [API & MCP Reference](#107-api--mcp-reference)
+11. [Appendix E: Remote Gateway — Deploy, Connect, and Manage](#appendix-e-remote-gateway--deploy-connect-and-manage)
+    - [E.2 Deploying to Railway](#e2-deploying-to-railway)
+    - [E.3 Deployment Mode](#e3-deployment-mode--what-changes-on-the-server)
+    - [E.4 Issuing API Keys](#e4-issuing-api-keys-server-side)
+    - [E.5 Connecting to the Remote Gateway](#e5-connecting-to-the-remote-gateway)
+    - [E.6 Using the Remote MCP](#e6-using-the-remote-mcp)
+    - [E.8 Troubleshooting](#e8-troubleshooting)
 
 ---
 
@@ -2256,4 +2263,460 @@ Quick reference — all MCP tools alphabetically:
 | -- | `attach_team_gateway_to_agent` | Team Gateways |
 | -- | `detach_team_gateway_from_agent` | Team Gateways |
 
-<!-- Docs last synced: 2026-04-16 — per-gateway Configure modal + Issued Keys gating + 5 new Team Gateways MCP tools. -->
+---
+
+# Appendix E: Remote Gateway — Deploy, Connect, and Manage
+
+A complete guide to deploying MyAIforOne on Railway, issuing API keys, and connecting to it from a local install or Claude Code. Written so that anyone can follow it from scratch.
+
+---
+
+## E.1 Overview
+
+MyAIforOne can run in two modes:
+
+| Mode | Where it runs | Role | `deploymentMode` |
+|------|---------------|------|-------------------|
+| **Local** | Your Mac/Windows desktop | Consumer — connects *to* remote gateways | `"local"` (default) |
+| **Server** | Railway / Docker / any cloud host | Provider — issues keys *for* clients to connect | `"server"` (auto-set) |
+
+A **remote gateway** is a server-mode instance. Local installs and Claude Code sessions connect to it via the **myaiforone-remote** MCP — the same MCP server as `myaiforone-local`, but pointed at a Railway URL instead of `localhost`.
+
+---
+
+## E.2 Deploying to Railway
+
+### Prerequisites
+
+- A [Railway](https://railway.app) account
+- The MyAIforOne repo pushed to a GitHub repository that Railway can access
+- A Claude Code subscription (the server installs the Claude CLI globally)
+
+### Step 1: Create a new Railway project
+
+1. Log in to Railway → **New Project** → **Deploy from GitHub Repo**
+2. Select your MyAIforOne repository and branch (e.g., `main`)
+3. Railway will detect the `Dockerfile` and `railway.toml` automatically
+
+### Step 2: Add a persistent volume
+
+The gateway stores all data (config, agents, memory, files) on disk. Without a volume, data is lost on every redeploy.
+
+1. In your Railway service → **Volumes** → **+ New Volume**
+2. Set the mount path to: `/data`
+3. Choose a size (1 GB is plenty to start)
+
+### Step 3: Set environment variables
+
+In Railway → **Variables**, add these three required variables:
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `MYAGENT_DATA_DIR` | `/data` | Tells the server where the persistent volume is mounted. Also triggers **server mode** — `deploymentMode` is automatically set to `"server"` when this variable is present. |
+| `INITIAL_AUTH_TOKEN` | Any strong random string (e.g., `myag_abc123xyz`) | Becomes the first API key (bootstrap key). Used by clients to authenticate. **Required on first boot only** — safe to leave set for future redeploys. |
+| `INITIAL_AUTH_PASSWORD` | A password you'll remember | Web UI login password. **Required on first boot only.** |
+
+> **Security:** The server **refuses to start** if `MYAGENT_DATA_DIR` is set but either `INITIAL_AUTH_TOKEN` or `INITIAL_AUTH_PASSWORD` is missing. This prevents accidentally exposing an unauthenticated gateway to the internet.
+
+**Optional variables:**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `4888` | HTTP port. Railway sets this automatically — usually no need to override. |
+| `NODE_ENV` | — | Set to `production` for best practices (not strictly required). |
+
+### Step 4: Deploy
+
+Click **Deploy** (or push to the branch). Railway builds the Docker image and starts the container.
+
+**What happens on first boot (bootstrap):**
+
+1. Server checks for `config.json` in `/data` — doesn't exist yet
+2. Validates `INITIAL_AUTH_TOKEN` and `INITIAL_AUTH_PASSWORD` are set
+3. Creates directory structure:
+   ```
+   /data/
+   ├── config.json                    # Auto-generated
+   ├── PersonalAgents/                # User agent homes
+   ├── PersonalRegistry/              # Skills, prompts, apps
+   └── PlatformUtilities/
+       ├── hub/                       # Hub agent home
+       │   ├── memory/
+       │   └── FileStorage/
+       └── gym/                       # AI Gym Coach home
+           ├── memory/
+           └── FileStorage/
+   ```
+4. Generates a minimal `config.json` with:
+   - **Auth enabled** — web password + bootstrap API key
+   - **Shared agents enabled** — always true in server mode
+   - **AI Gym enabled**
+   - **Hub agent** — the primary conversational AI interface
+   - **AI Gym Coach** — training and skill development agent
+   - No channels configured (add later via Web UI)
+5. Starts the web UI on the configured port
+
+### Step 5: Verify
+
+1. Open your Railway service URL (e.g., `https://your-app.up.railway.app`)
+2. You'll see a **login overlay** — enter the `INITIAL_AUTH_PASSWORD` you set
+3. You should see the Home page with the Hub agent tile
+4. Railway's health check (`GET /health`) should show green in the Railway dashboard
+
+### What the bootstrap config looks like
+
+```json
+{
+  "service": {
+    "logLevel": "info",
+    "webUI": { "enabled": true, "port": 4888 },
+    "sharedAgentsEnabled": true,
+    "gymEnabled": true,
+    "auth": {
+      "enabled": true,
+      "tokens": ["<your INITIAL_AUTH_TOKEN>"],
+      "webPassword": "<your INITIAL_AUTH_PASSWORD>"
+    },
+    "apiKeys": [{
+      "id": "key_bootstrap",
+      "name": "Bootstrap",
+      "key": "<your INITIAL_AUTH_TOKEN>",
+      "createdAt": "2026-...",
+      "scopes": ["*"]
+    }]
+  },
+  "channels": {},
+  "agents": {
+    "hub": { "...": "pre-configured Hub agent" },
+    "gym": { "...": "pre-configured AI Gym Coach" }
+  },
+  "defaultAgent": "hub"
+}
+```
+
+### Railway infrastructure reference
+
+**Dockerfile** — builds a `node:22-slim` image, installs Claude CLI globally, compiles TypeScript, prunes dev dependencies, exposes port 4888.
+
+**railway.toml:**
+```toml
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node dist/index.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+```
+
+**Data persistence:** All mutable state lives in `/data` (the Railway volume). The container itself is stateless — redeploying rebuilds the image but preserves `/data`.
+
+---
+
+## E.3 Deployment Mode — What Changes on the Server
+
+When `MYAGENT_DATA_DIR` is set, the server runs in **server mode**. This changes the Admin UI and several behaviors.
+
+### Admin tab visibility
+
+| Tab / Section | Local mode | Server mode | Why |
+|---------------|------------|-------------|-----|
+| **Issued Keys** tab | Hidden | **Visible** | Server issues keys to inbound clients |
+| **Team Gateways** tab | **Visible** | Hidden | Local connects to remote gateways |
+| **Updates** tab | **Visible** | Hidden | Railway manages deployments |
+| **Shared Agents** toggle | **Visible** | Hidden | Server is always shared |
+| **System Control** (restart/shutdown) | **Visible** | Hidden | Railway manages lifecycle |
+| **Claude Accounts** section | **Visible** | Hidden | No local CLI on a container |
+| **Service** section (paths, port) | **Visible** | Hidden | Server uses env vars |
+| **Deployment** section | **Visible** | Hidden | Railway manages its own deployment |
+| **SaaS Publishing** | **Visible** | Hidden | Server *is* the shared instance |
+| **Status Indicator** (xbar/tray) | **Visible** | Hidden | No desktop menu bar on a container |
+
+### Settings page subtitle
+
+- **Local:** "Manage Claude accounts, service options, and global defaults."
+- **Server:** "Manage AI models, API keys, license, and feature flags."
+
+### What stays visible in both modes
+
+- **Channels** tab — configure Telegram, Slack, etc.
+- **Activity** tab — view message logs
+- **Settings** tab — profile, AI models, license, web UI auth
+- **Docs** tab — API docs, MCP tools, changelog
+
+---
+
+## E.4 Issuing API Keys (Server Side)
+
+API keys are how external clients authenticate to your Railway gateway. Each key is a bearer token sent in the `Authorization` header.
+
+### Finding the Issued Keys tab
+
+**Admin → Issued Keys** — this is a top-level tab in the admin navigation bar.
+
+> This tab is **only visible in server mode** (when `MYAGENT_DATA_DIR` is set). If you don't see it, check that your gateway is running in server mode.
+
+### Page layout
+
+**Header:**
+- Title: "Issued Keys"
+- Subtitle: "Keys this gateway issues to inbound clients (other installs, automations, team members) so they can connect to it programmatically. Issue one per client so you can revoke individually."
+
+**Key table columns:**
+
+| Column | Description |
+|--------|-------------|
+| **Name** | Human-readable label you chose when creating the key (e.g., "Sarah's MacBook", "CI deploy") |
+| **Email** | Optional email for the key holder. Shows "—" if not set. |
+| **Role** | **Full** (green badge) — chat, create, modify, admin access. **Read** (blue badge) — browse agents, skills, and prompts only. |
+| **Key** | Masked preview showing only the first and last few characters. The full secret is **never** shown again after creation. |
+| **Last Used** | Timestamp of the most recent API call using this key, or "Never" if unused. |
+| **Action** | **Revoke** button to delete the key. Shows disabled "Last key" text if it's the only remaining key (lockout prevention). |
+
+### Creating a new key
+
+1. Click **+ New Key** (indigo button, top-right of the section)
+2. A modal appears with three fields:
+   - **Name** (required) — e.g., "claude-desktop", "local-mcp", "ci-deploy", "Sarah's laptop"
+   - **Email** (optional) — helps you track who holds the key
+   - **Role** — radio buttons: **Full** (default) or **Read**
+3. Click **Create**
+4. A **one-time secret modal** appears with a warning border:
+   > "This is the only time the full secret will be shown."
+   - The full secret is displayed in a monospace box (format: `myag_` + random string)
+   - **Copy** button — copies to clipboard with a "Copied" toast
+   - **I've saved it** button — dismisses the modal permanently
+5. The key table reloads with the new entry
+
+> **Important:** Save the secret immediately. Once you close this modal, you cannot retrieve it. If lost, revoke the key and create a new one.
+
+### Revoking a key
+
+1. Click **Revoke** on the key's row
+2. Confirmation dialog: *"Revoke 'key-name'? Any device or automation using this key will stop working."*
+3. On confirm, the key is deleted and the table reloads
+
+**Lockout prevention:** You cannot revoke the last remaining key. The UI shows a disabled "Last key" button instead of Revoke. The backend also returns `400` if you try via API.
+
+### How bearer-token auth works
+
+Every API request to the gateway can include:
+```
+Authorization: Bearer myag_xxxxxxxxxxxxxxxx
+```
+
+The auth middleware checks the token against `service.apiKeys[]` in `config.json`. If it matches, the request proceeds with the key's scopes. If not, the gateway returns `401 Unauthorized`.
+
+**Bootstrap key:** The `INITIAL_AUTH_TOKEN` you set in Railway env vars becomes the first key (`key_bootstrap`). You can use this token immediately to connect, then create additional named keys via the UI or API.
+
+### API / MCP reference
+
+| Action | API | MCP |
+|--------|-----|-----|
+| List API keys | `GET /api/auth/keys` | `list_api_keys` |
+| | Returns `{ keys: [{ id, name, preview, createdAt, lastUsedAt, scopes }] }` — secrets never returned | *(no params)* |
+| Create API key | `POST /api/auth/keys` | `create_api_key` |
+| | **Body:** `{ name, email?, role? }` → returns `{ ok, key: { id, name, key, createdAt, scopes } }` (full secret shown ONCE) | **Params:** `name` |
+| Delete API key | `DELETE /api/auth/keys/:id` | `delete_api_key` |
+| | Refuses to delete the last remaining key | **Params:** `id` |
+
+---
+
+## E.5 Connecting to the Remote Gateway
+
+There are three ways to connect to your Railway gateway from a local machine. Choose the one that fits your use case.
+
+### Option A: Team Gateways (recommended for local installs)
+
+The easiest path — no config file editing required.
+
+1. On your **local** MyAIforOne install, go to **Admin → Team Gateways**
+2. Click **+ Connect Team Gateway**
+3. Fill in:
+   - **Name** — a friendly label (e.g., "My Railway Gateway")
+   - **URL** — your Railway service URL (e.g., `https://your-app.up.railway.app`)
+   - **API Key** — the secret from Issued Keys (e.g., `myag_abc123...`)
+4. Click **Connect** — the UI probes the remote gateway first. If the probe succeeds:
+   - API key + URL are saved to `data/mcp-keys/team-<id>.env`
+   - An MCP is auto-registered in `config.mcps` (stdio wrapper forwarding to the remote URL)
+   - The MCP is auto-assigned to the Hub agent
+   - Metadata is saved to `service.teamGateways[]`
+5. The gateway card appears in the Team Gateways list with a green "ok" status
+
+Your Hub agent now has access to all tools on the remote gateway, namespaced as `mcp__team-<name>__<tool>`.
+
+> See [Section 7.3 → Team Gateways Tab](#team-gateways-tab) for the full UI reference including Configure modal, key rotation, agent attachment, and disconnect.
+
+### Option B: Manual MCP in config.json (for gateway agents)
+
+If you want a non-Hub agent (or multiple agents) to access the remote gateway, register the MCP manually.
+
+**Step 1:** Add the MCP to your local `config.json` under the top-level `"mcps"` object:
+
+```json
+"myaiforone-remote": {
+  "type": "stdio",
+  "command": "node",
+  "args": ["./server/mcp-server/dist/index.js"],
+  "env": {
+    "MYAGENT_API_URL": "https://your-app.up.railway.app",
+    "MYAGENT_API_TOKEN": "myag_xxxxxxxxxxxxxxxx"
+  }
+}
+```
+
+| Env var | Description |
+|---------|-------------|
+| `MYAGENT_API_URL` | Public URL of your Railway gateway (no trailing slash) |
+| `MYAGENT_API_TOKEN` | The API key secret. Sent as `Authorization: Bearer <token>` on every request. |
+
+**Step 2:** Assign the MCP to one or more agents:
+
+```json
+"hub": {
+  "mcps": ["myaiforone-local", "myaiforone-remote"],
+  ...
+}
+```
+
+**Step 3:** Rebuild and restart:
+
+```bash
+npm run build
+# macOS:
+launchctl unload ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist
+launchctl load ~/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist
+# Windows:
+schtasks /End /TN MyAIforOneGateway && schtasks /Run /TN MyAIforOneGateway
+```
+
+Once assigned, the executor passes `--mcp-config` to Claude and the agent gains access to all `mcp__myaiforone-remote__*` tools.
+
+### Option C: Add to Claude Code directly (for coding sessions)
+
+Add the remote MCP to Claude Code's own config so it's available in every coding session — independent of the gateway.
+
+Edit your project's `.mcp.json` (or `~/.claude/settings.json` for global access):
+
+```json
+{
+  "mcpServers": {
+    "myaiforone-remote": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/full/path/to/channelToAgentToClaude/server/mcp-server/dist/index.js"],
+      "env": {
+        "MYAGENT_API_URL": "https://your-app.up.railway.app",
+        "MYAGENT_API_TOKEN": "myag_xxxxxxxxxxxxxxxx"
+      }
+    }
+  }
+}
+```
+
+> **Note:** Use the **absolute path** to the MCP server's compiled `dist/index.js`. The MCP server must be built first (`cd server/mcp-server && npm run build`).
+
+After saving, restart Claude Code. The tools appear as `mcp__myaiforone-remote__list_agents`, etc.
+
+---
+
+## E.6 Using the Remote MCP
+
+Once connected (via any of the three options above), all platform MCP tools are available on the remote gateway. Tools are namespaced as:
+
+```
+mcp__<mcp-name>__<tool-name>
+```
+
+For example: `mcp__myaiforone-remote__list_agents`, `mcp__team-my-railway__send_message`.
+
+### Common operations
+
+**Agent management:**
+| Tool | Description |
+|------|-------------|
+| `list_agents` | List all agents on the remote gateway |
+| `get_agent` | Get details for a specific agent |
+| `create_agent` | Create a new agent on the remote gateway |
+| `update_agent` | Modify an existing agent |
+
+**Messaging:**
+| Tool | Params | Description |
+|------|--------|-------------|
+| `send_message` | `agentId`, `text` | Send a message and wait for the agent's response |
+| `delegate_message` | `agentId`, `text` | Fire-and-forget — don't wait for a response |
+| `start_stream` | `agentId`, `text` | Start a streaming response |
+
+**Tasks, crons, and projects:**
+All task, cron, goal, and project tools work identically — they operate on the remote gateway's data. For example, `create_task`, `list_tasks`, `trigger_goal`, `list_projects`, etc.
+
+**Dashboard and health:**
+| Tool | Description |
+|------|-------------|
+| `health_check` | Quick connectivity test — returns `{ status: "ok" }` |
+| `get_dashboard` | Full dashboard: agents, channels, accounts, uptime |
+
+### Verifying the connection
+
+The simplest test is to call `health_check`:
+```
+mcp__myaiforone-remote__health_check
+→ { "status": "ok" }
+```
+
+Then try listing agents:
+```
+mcp__myaiforone-remote__list_agents
+→ { "agents": [{ "id": "hub", ... }, { "id": "gym", ... }] }
+```
+
+---
+
+## E.7 Two Sides of the Same Coin
+
+Remote gateway connectivity has a **provider** side and a **consumer** side. Each side has its own admin tab and config:
+
+| | Provider (Railway server) | Consumer (local install) |
+|-|---------------------------|--------------------------|
+| **Role** | Issues keys to incoming clients | Connects out to remote gateways |
+| **Admin tab** | **Issued Keys** | **Team Gateways** |
+| **Deployment mode** | `"server"` | `"local"` (default) |
+| **Config location** | `service.apiKeys[]` | `service.teamGateways[]` |
+| **MCP direction** | Receives requests (inbound) | Sends requests (outbound) |
+| **Auth** | Validates `Authorization: Bearer` tokens | Sends `Authorization: Bearer` tokens |
+
+### Typical end-to-end flow
+
+```
+1. Deploy to Railway     → server mode auto-detected
+2. Railway: Issued Keys  → + New Key → copy secret
+3. Local: Team Gateways  → + Connect → paste URL + secret
+4. Auto: MCP registered  → assigned to Hub agent
+5. Chat: @hub can now    → call mcp__team-<name>__send_message etc.
+```
+
+Alternatively, for Claude Code or manual MCP config, skip steps 3–4 and register the MCP directly as described in Options B/C above.
+
+---
+
+## E.8 Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| **Server won't start** | Check Railway logs. If you see "Refusing to start a shared gateway without auth", set both `INITIAL_AUTH_TOKEN` and `INITIAL_AUTH_PASSWORD` in Railway env vars. |
+| **Can't log in to Web UI** | Use the `INITIAL_AUTH_PASSWORD` you set. If forgotten, update the env var in Railway and redeploy — it's only used on first boot, but you can also update `auth.webPassword` in `/data/config.json` via Railway shell. |
+| **Health check failing** | Verify the service is listening on the right port. Railway sets `PORT` automatically. Check Railway logs for startup errors. |
+| **`401 Unauthorized`** | API token is wrong or expired. Create a new key on the remote gateway's Issued Keys tab and update the token in your MCP env / Team Gateways credentials. |
+| **`403` on `/api/auth/keys/*`** | Key management endpoints require `sharedAgentsEnabled: true`. This is auto-set in server mode but may need manual enabling on local installs. |
+| **`ECONNREFUSED` / timeout** | Check that `MYAGENT_API_URL` is correct and the Railway deployment is running. Verify there's no trailing slash on the URL. |
+| **Issued Keys tab not visible** | Only visible in server mode. Verify `MYAGENT_DATA_DIR` is set, or manually set `deploymentMode: "server"` via `update_service_config`. |
+| **Team Gateways tab not visible** | You're in server mode. This tab only shows in local mode — it's the consumer counterpart to Issued Keys. |
+| **Tools not appearing in Claude Code** | Rebuild the MCP server: `cd server/mcp-server && npm run build`. Then restart Claude Code. |
+| **`strict-mcp-config` error** | The MCP name in the agent's `mcps` array must exactly match the key in the top-level `mcps` registry in `config.json`. |
+| **Data lost after redeploy** | You don't have a Railway volume mounted at `/data`. Add one (see Step 2 in E.2). Existing data from a volumeless deploy is gone. |
+| **Bootstrap key leaked** | Immediately go to Issued Keys → create a new key → revoke the bootstrap key. Update all clients with the new secret. |
+
+<!-- Docs last synced: 2026-04-18 — Appendix E: complete Railway deployment guide, Issued Keys walkthrough, deploymentMode reference, connection options. -->
