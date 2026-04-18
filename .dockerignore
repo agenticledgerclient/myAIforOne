@@ -3,7 +3,8 @@ dist
 .git
 *.log
 config.json
-agents/
+agents/**/memory/
+agents/**/.sessions/
 *.env
 .playwright-mcp/
 mcps/aiforone_computeruse/node_modules
