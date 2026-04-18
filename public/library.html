@@ -615,7 +615,8 @@ function closeAddChoices(id){
 
 function sectionPersonal(items, typeSingular){
   const mktType = typeSingular==='mcp' ? 'mcps' : typeSingular+'s';
-  const actionBtn = typeSingular==='app'
+  const serverMode = !!window._ma1ServerMode;
+  const actionBtn = serverMode ? '' : typeSingular==='app'
     ? addSplitBtn('app','App',[
         ['Register', "toggleRegisterAppPanel()"],
         ['AI Build', "window.location='/lab?build=app'", true],
@@ -634,9 +635,11 @@ function sectionPersonal(items, typeSingular){
         ['Add', "toggleAddMcpPanel()"],
         ['Marketplace', `window.location='/marketplace?type=${mktType}'`]]);
 
-  const panelHtml = typeSingular==='skill' ? scanPanelHtml() : typeSingular==='prompt' ? createPromptPanelHtml() : typeSingular==='app' ? registerAppPanelHtml() : addMcpPanelHtml();
+  const panelHtml = serverMode ? '' : typeSingular==='skill' ? scanPanelHtml() : typeSingular==='prompt' ? createPromptPanelHtml() : typeSingular==='app' ? registerAppPanelHtml() : addMcpPanelHtml();
 
-  const emptyMsg = typeSingular==='skill'?'Scan your skills folder to import personal skills.'
+  const emptyMsg = serverMode
+    ? 'Ask the hub agent to add items to your library.'
+    : typeSingular==='skill'?'Scan your skills folder to import personal skills.'
     :typeSingular==='prompt'?'Paste in a prompt template to save it.'
     :typeSingular==='app'?'Register an app to track it here.'
     :'Add a custom HTTP or stdio MCP you built.';

@@ -71,6 +71,11 @@
       }
     });
 
+    // On Library page: hide Add buttons (library is read-only on server mode)
+    document.querySelectorAll(".add-split").forEach(function (el) {
+      el.style.display = "none";
+    });
+
     // On Library page: update the "/" tab to show as "Library" and be active
     if (path === "/" || path === "/library") {
       document.querySelectorAll("a.tab-btn").forEach(function (el) {
