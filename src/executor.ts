@@ -819,6 +819,12 @@ function buildMcpConfigFile(
       // File keys override config keys
       Object.assign(mergedEnv, fileEnv);
 
+      // For myaiforone-local, always use the real running port so the MCP
+      // subprocess can reach the gateway on Railway (PORT may differ from 4888)
+      if (name === "myaiforone-local") {
+        mergedEnv["MYAGENT_API_URL"] = `http://localhost:${process.env.PORT || 4888}`;
+      }
+
       mcpServers[name] = {
         command: def.command,
         args,
