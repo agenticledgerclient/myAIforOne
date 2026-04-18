@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, appendFileSync, existsSync, unlinkSync, mk
 import { homedir, tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import type { McpServerConfig, McpServerHttp } from "./config.js";
-import { getPersonalAgentsDir } from "./config.js";
+import { getPersonalAgentsDir, isServerMode } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { formatMessage } from "./utils/message-formatter.js";
@@ -362,7 +362,7 @@ function handleInterceptedCommand(
       const current = loadModelOverride(memoryDir);
       return current
         ? `Current model override: **${current}**\n\nUse \`/model default\` to reset.`
-        : `No model override set. Using agent default.\n\nOptions: \`/model sonnet\`, \`/model opus\`, \`/model haiku\`, or any full model ID.`;
+        : `No model override set. Using agent default.\n\nOptions: \`/model opus\` (4.7), \`/model sonnet\`, \`/model haiku\`, \`/model opus-4.6\`, or any full model ID.`;
     }
     if (arg === "default" || arg === "reset") {
       clearModelOverride(memoryDir);
@@ -401,10 +401,12 @@ function handleInterceptedCommand(
 // ─── Model override helpers ──────────────────────────────────────────
 
 const MODEL_ALIASES: Record<string, string> = {
-  opus:     "claude-opus-4-6",
-  sonnet:   "claude-sonnet-4-6",
-  haiku:    "claude-haiku-4-5-20251001",
-  "opus-4": "claude-opus-4-6",
+  opus:       "claude-opus-4-7",
+  sonnet:     "claude-sonnet-4-6",
+  haiku:      "claude-haiku-4-5-20251001",
+  "opus-4":   "claude-opus-4-7",
+  "opus-4.7": "claude-opus-4-7",
+  "opus-4.6": "claude-opus-4-6",
   "sonnet-4": "claude-sonnet-4-6",
 };
 
@@ -1427,8 +1429,7 @@ Rules:
   }
 
   // ── Server mode fallback: use Anthropic API when CLI is unavailable ──
-  const isServerMode = !!process.env.MYAGENT_DATA_DIR;
-  if (isServerMode) {
+  if (isServerMode()) {
     const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
     const anthropicKey = providerKeys.anthropic;
     if (!anthropicKey) {
@@ -2095,8 +2096,7 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
   }
 
   // ── Server mode fallback: stream via Anthropic API when CLI is unavailable ──
-  const isServerModeStream = !!process.env.MYAGENT_DATA_DIR;
-  if (isServerModeStream) {
+  if (isServerMode()) {
     const providerKeys = (_appConfig?.service as any)?.providerKeys || {};
     const anthropicKey = providerKeys.anthropic;
     if (!anthropicKey) {

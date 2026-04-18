@@ -5,13 +5,20 @@ const BASE = "http://localhost:4888";
 let testAgentId = "";
 
 async function json(url: string, opts?: any) {
-  const res = await fetch(`${BASE}${url}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-    body: opts?.body ? JSON.stringify(opts.body) : undefined,
-  });
-  const body = await res.json().catch(() => null);
-  return { status: res.status, body };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${BASE}${url}`, {
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      ...opts,
+      body: opts?.body ? JSON.stringify(opts.body) : undefined,
+    });
+    const body = await res.json().catch(() => null);
+    return { status: res.status, body };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 before(async () => {

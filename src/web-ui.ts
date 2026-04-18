@@ -5,7 +5,7 @@ import { join, resolve, basename, dirname, extname, relative, isAbsolute } from 
 import { execSync, spawn as cpSpawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import type { AppConfig } from "./config.js";
-import { getPersonalAgentsDir, getPersonalRegistryDir, getSharedAgentsDir } from "./config.js";
+import { getPersonalAgentsDir, getPersonalRegistryDir, getSharedAgentsDir, isServerMode } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
 import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.js";
@@ -107,10 +107,10 @@ export function startWebUI(opts: WebUIOptions): void {
   }
 
   // ─── Serve pages from public/ ─────────────────────────────────────
-  const isServerMode = !!process.env.MYAGENT_DATA_DIR;
+  const serverMode = isServerMode();
   const serveHome = (_req: any, res: any) => servePage(res, "home2.html", "/org");
   // Server mode: landing page is the Library (resource center)
-  app.get("/", isServerMode ? (_req: any, res: any) => servePage(res, "library.html") : serveHome);
+  app.get("/", serverMode ? (_req: any, res: any) => servePage(res, "library.html") : serveHome);
   app.get("/home", serveHome);
   app.get("/home-legacy", (_req, res) => servePage(res, "home.html", "/org"));
   app.get("/home2", (_req, res) => servePage(res, "home2.html", "/"));
@@ -273,9 +273,8 @@ export function startWebUI(opts: WebUIOptions): void {
   // install is acting as a shared gateway. Mirror the UI gating on the backend
   // so a curl-wielding client can't sidestep the toggle.
   function requireSharedAgents(_req: any, res: any, next: any) {
-    // Server mode (MYAGENT_DATA_DIR set) is always a shared gateway.
-    const isServer = !!process.env.MYAGENT_DATA_DIR;
-    const enabled = isServer || !!((opts.config.service as any).sharedAgentsEnabled);
+    // Server mode (Railway/container) is always a shared gateway.
+    const enabled = isServerMode() || !!((opts.config.service as any).sharedAgentsEnabled);
     if (!enabled) {
       return res.status(403).json({ error: "Shared Agents feature is disabled" });
     }
@@ -953,9 +952,8 @@ export function startWebUI(opts: WebUIOptions): void {
     const s = opts.config.service || {};
     const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
     const deploy = raw.deployment || {};
-    // Deployment mode: "server" when MYAGENT_DATA_DIR is set (Railway/container),
-    // "local" otherwise (Mac/Windows local install).
-    const deploymentMode = process.env.MYAGENT_DATA_DIR ? "server" : "local";
+    // Deployment mode: "server" on Railway/container, "local" otherwise.
+    const deploymentMode = isServerMode() ? "server" : "local";
     // On server mode, sharedAgentsEnabled is always true by definition — the
     // server IS a shared gateway regardless of what config.json says.
     const sharedAgentsEnabled = deploymentMode === "server"
@@ -5563,8 +5561,9 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     const { model } = req.body as { model?: string };
     if (!model?.trim()) return res.status(400).json({ error: "model required" });
     const aliases: Record<string, string> = {
-      opus: "claude-opus-4-6", sonnet: "claude-sonnet-4-6",
-      haiku: "claude-haiku-4-5-20251001", "opus-4": "claude-opus-4-6", "sonnet-4": "claude-sonnet-4-6",
+      opus: "claude-opus-4-7", sonnet: "claude-sonnet-4-6",
+      haiku: "claude-haiku-4-5-20251001", "opus-4": "claude-opus-4-7",
+      "opus-4.7": "claude-opus-4-7", "opus-4.6": "claude-opus-4-6", "sonnet-4": "claude-sonnet-4-6",
     };
     const resolved = aliases[model.trim().toLowerCase()] || model.trim();
     writeFileSync(join(memDir, "model-override.json"), JSON.stringify({ model: resolved }));

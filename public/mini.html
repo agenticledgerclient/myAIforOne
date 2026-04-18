@@ -182,6 +182,11 @@ async function loadAgents(){
       if(a.id === hub) opt.selected = true;
       sel.appendChild(opt);
     });
+    // If opened with hash (e.g. /mini#agentId), pre-select that agent
+    const hashAgent = window.location.hash.slice(1);
+    if (hashAgent && agents.find(a => a.id === hashAgent)) {
+      sel.value = hashAgent;
+    }
     selectedAgentId = sel.value;
     sel.onchange = () => { selectedAgentId = sel.value; updateStatus(); };
     updateStatus();

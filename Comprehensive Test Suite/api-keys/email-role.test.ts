@@ -143,6 +143,38 @@ describe("API Keys — email + role fields", () => {
       "status should include role or indicate authenticated");
   });
 
+  it("invalid role value defaults to 'full'", async () => {
+    if (!(await serviceUp())) return;
+    if (!(await issuanceEnabled())) return;
+
+    const { status, data } = await createKey({
+      name: "Bad Role Key",
+      role: "admin", // invalid — should default to "full"
+    });
+    assert.equal(status, 200);
+    assert.equal(data.key.role, "full", "invalid role should default to full");
+
+    if (data.key.id) await deleteKey(data.key.id);
+  });
+
+  it("POST /api/auth/login returns role in response", async () => {
+    if (!(await serviceUp())) return;
+
+    // On local (auth disabled) the login returns authEnabled: false + role
+    const res = await fetch(`${BASE}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: "" }),
+    });
+    const data = await res.json() as any;
+    // Should have a role field regardless of auth state
+    if (data.authEnabled === false) {
+      assert.equal(data.role, "full", "auth disabled should return role=full");
+    } else if (data.ok) {
+      assert.ok(["full", "read"].includes(data.role), "login should return a valid role");
+    }
+  });
+
   // Cleanup created test key
   it("cleanup: delete test key", async () => {
     if (!(await serviceUp())) return;

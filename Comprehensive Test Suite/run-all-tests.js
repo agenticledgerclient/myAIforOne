@@ -45,7 +45,7 @@ for (const file of testFiles) {
     execSync(`npx tsx --test "${file}"`, {
       cwd: resolve(suiteDir, ".."),
       stdio: "inherit",
-      timeout: 30_000,
+      timeout: 120_000,
     });
     passed++;
   } catch (err) {

@@ -32,4 +32,7 @@ RUN mkdir -p /data/SharedAgents /data/PersonalAgents
 
 EXPOSE 4888
 
+# Container deployments are server mode (hides local-only UI, uses API executor)
+ENV MYAGENT_SERVER_MODE=true
+
 CMD ["node", "dist/index.js"]

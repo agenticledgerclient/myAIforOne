@@ -8,6 +8,19 @@ import type { LogLevel } from "./logger.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(__dirname, "..");
 
+/**
+ * True when running as a remote server (Railway / container) vs a local install.
+ * MYAGENT_DATA_DIR alone is NOT sufficient — the npm CLI also sets it for local
+ * installs (pointing to ~/.myaiforone). We require an explicit MYAGENT_SERVER_MODE
+ * flag, or the presence of Railway-specific env vars, to confirm server mode.
+ */
+export function isServerMode(): boolean {
+  if (process.env.MYAGENT_SERVER_MODE === "true" || process.env.MYAGENT_SERVER_MODE === "1") return true;
+  // Railway always sets RAILWAY_ENVIRONMENT
+  if (process.env.RAILWAY_ENVIRONMENT) return true;
+  return false;
+}
+
 export interface RouteMatch {
   type: "chat_id" | "chat_guid" | "chat_identifier" | "channel_id" | "jid";
   value: string | number;
