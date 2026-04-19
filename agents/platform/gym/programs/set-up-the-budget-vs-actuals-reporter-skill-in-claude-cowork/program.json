@@ -1,0 +1,96 @@
+{
+  "id": "set-up-the-budget-vs-actuals-reporter-skill-in-claude-cowork",
+  "slug": "set-up-the-budget-vs-actuals-reporter-skill-in-claude-cowork",
+  "title": "Set Up the Budget vs Actuals Reporter Skill in Claude Cowork",
+  "description": "Build a reusable Cowork task for budget vs actuals reporting.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "af5eced2-798c-4eb6-904b-ade39996b540",
+  "projectSlug": "finance-guides",
+  "seriesSlug": "claude-cowork",
+  "orderInSeries": 5,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.429Z",
+  "updatedAt": "2026-04-19T01:53:15.429Z",
+  "modules": [
+    {
+      "id": "257d1e9d",
+      "title": "Building Your Budget vs Actuals Reporter Skill",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "6fafbb0c",
+          "title": "What this skill does",
+          "order": 1,
+          "type": "self-report",
+          "content": "The Budget vs Actuals Reporter produces a formatted variance report.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "1412d2de",
+          "title": "Create the task in Cowork",
+          "order": 2,
+          "type": "self-report",
+          "content": "Open Claude Cowork, click New Task, name it Budget vs Actuals.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "6d628d84",
+          "title": "Write the skill instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "Paste the budget vs actuals prompt into the task instructions field.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "900689b3",
+          "title": "Run it and save your skill",
+          "order": 4,
+          "type": "self-report",
+          "content": "Upload budget and actuals files, review variance table and summary.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

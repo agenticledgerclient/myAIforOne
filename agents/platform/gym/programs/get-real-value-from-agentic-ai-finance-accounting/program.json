@@ -1,0 +1,112 @@
+{
+  "id": "get-real-value-from-agentic-ai-finance-accounting",
+  "slug": "get-real-value-from-agentic-ai-finance-accounting",
+  "title": "Get Real Value from Agentic AI in Finance and Accounting",
+  "description": "Apply the specific traits that separate teams getting real value from agentic AI tools from those just experimenting — with practical steps you can implement this week. Based on Devon Coombs' observations across finance teams.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Devon Coombs — LinkedIn post (2026-04-18 scrape). Key insight: teams getting real value start with their existing workflow (not generic templates), treat AI as preparer not decision-maker, build reconciliation checks into every output, save good workflows as reusable Skills, use the right model for the work, and take security seriously with third-party skills.",
+  "tags": [
+    "AI",
+    "Finance",
+    "Accounting",
+    "Best Practices",
+    "Agentic AI"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "670f1d81-a2f9-43d6-9c36-aea4529c7b00",
+  "projectSlug": "unofficial-guides-from-devon-coombs-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:52:01.642Z",
+  "updatedAt": "2026-04-19T01:52:01.642Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Set the Right Foundation",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Start with Your Existing Workflow, Not a Generic Template",
+          "order": 1,
+          "type": "self-report",
+          "content": "If your leadership team expects a specific flux report format, teach Claude to replicate that exact format. Reverse-engineer your best deliverable and use it as the template. Generic outputs get thrown away; outputs that match your existing standards get used.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Treat the AI as a Capable Preparer, Not a Decision-Maker",
+          "order": 2,
+          "type": "self-report",
+          "content": "AI builds fast and formats well. It does not exercise professional judgment. Your role shifts from preparer to reviewer — and that review step is non-negotiable. Never skip it, especially on anything that goes external.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Build Reconciliation Checks into Every Output",
+          "order": 3,
+          "type": "self-report",
+          "content": "Require the same checks you'd expect from staff: GL totals must tie, debit and credit balances must match, vendor subtotals must reconcile, and formulas should be linked (not hardcoded). If you wouldn't accept a workpaper without these checks from a human, don't accept them from AI.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-1",
+      "title": "Scale and Secure Your AI Workflows",
+      "description": "",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-1-0",
+          "title": "Save Every Good Workflow as a Reusable Skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "Every session that produces a good output should end with \"build a skill for this.\" That saved skill file is your automation. It turns a 45-minute manual process into a single command you can run next month.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

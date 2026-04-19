@@ -1,0 +1,96 @@
+{
+  "id": "how-to-get-your-ai-built-app-on-the-internet",
+  "slug": "how-to-get-your-ai-built-app-on-the-internet",
+  "title": "How to Get Your AI-Built App on the Internet",
+  "description": "Two practical paths to deploying your AI-built app online.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "cfe88648-c915-4454-b6e9-6dbbae5575f1",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-11T14:59:30.931Z",
+  "updatedAt": "2026-04-19T01:46:03.407Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Deploying Your AI-Built App",
+      "description": "Two paths to get your app live.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Understand the problem",
+          "order": 0,
+          "type": "self-report",
+          "content": "Your app only runs locally. You need to host it.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Path A: Deploy with Google AI Studio",
+          "order": 1,
+          "type": "self-report",
+          "content": "Google AI Studio Build mode for fast prototypes under 30 minutes.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Path B: Deploy with GitHub + Netlify",
+          "order": 2,
+          "type": "self-report",
+          "content": "GitHub + Netlify for full control and customization.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-3",
+          "title": "Which path should you choose?",
+          "order": 3,
+          "type": "self-report",
+          "content": "AI Studio for speed, GitHub+Netlify for full control. Both are free to start.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

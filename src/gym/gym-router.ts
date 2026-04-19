@@ -795,5 +795,439 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
     res.status(201).json(guide);
   });
 
+  // ── Projects & Series ──────────────────────────────────────────────
+  //
+  // Projects group programs by source/author. Series group programs within
+  // a project. Both are stored as JSON files alongside programs.
+  //
+  //   Platform projects: agents/platform/gym/projects/{slug}/project.json
+  //   User projects:     {memoryDir}/projects/{slug}/project.json
+  //   Series:            .../{slug}/series/{series-slug}.json
+
+  const platformProjectsDir = join(gymRepoDir, "projects");
+  const userProjectsDir = join(memoryDir, "projects");
+
+  // ── Helpers: Projects ────────────────────────────────────────────
+
+  function listProjectsFromDir(dir: string, source: string): any[] {
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => {
+        const data = readJson(join(dir, d.name, "project.json"), null);
+        if (!data) return null;
+        // Count programs that reference this project
+        const programCount = countProgramsForProject(data.slug || d.name);
+        // Count series
+        const seriesDir = join(dir, d.name, "series");
+        const seriesCount = existsSync(seriesDir)
+          ? readdirSync(seriesDir).filter((f) => f.endsWith(".json")).length
+          : 0;
+        return { ...data, slug: data.slug || d.name, source, _counts: { programs: programCount, series: seriesCount } };
+      })
+      .filter(Boolean);
+  }
+
+  function countProgramsForProject(projectSlug: string): number {
+    let count = 0;
+    for (const dir of [programsDir, userProgramsDir]) {
+      if (!existsSync(dir)) continue;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const data = readJson(join(dir, entry.name, "program.json"), null);
+        if (data && data.projectSlug === projectSlug) count++;
+      }
+    }
+    return count;
+  }
+
+  function resolveProjectDir(slug: string): { dir: string; source: string } | null {
+    const userDir = join(userProjectsDir, slug);
+    if (existsSync(join(userDir, "project.json"))) return { dir: userDir, source: "user" };
+    const platDir = join(platformProjectsDir, slug);
+    if (existsSync(join(platDir, "project.json"))) return { dir: platDir, source: "platform" };
+    return null;
+  }
+
+  // ── Projects — List All ──────────────────────────────────────────
+
+  router.get("/api/gym/projects", (_req, res) => {
+    const projects = [
+      ...listProjectsFromDir(platformProjectsDir, "platform"),
+      ...listProjectsFromDir(userProjectsDir, "user"),
+    ];
+    res.json(projects);
+  });
+
+  // ── Projects — Get One ───────────────────────────────────────────
+
+  router.get("/api/gym/projects/:slug", (req, res) => {
+    const resolved = resolveProjectDir(req.params.slug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const project = readJson(join(resolved.dir, "project.json"), {});
+    project.slug = req.params.slug;
+    project.source = resolved.source;
+
+    // Load series
+    const seriesDir = join(resolved.dir, "series");
+    const series: any[] = [];
+    if (existsSync(seriesDir)) {
+      for (const f of readdirSync(seriesDir).filter((f) => f.endsWith(".json")).sort()) {
+        const s = readJson(join(seriesDir, f), null);
+        if (s) series.push(s);
+      }
+    }
+    // Sort by position
+    series.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+    // Load programs that belong to this project
+    const programs: any[] = [];
+    for (const dir of [programsDir, userProgramsDir]) {
+      if (!existsSync(dir)) continue;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const data = readJson(join(dir, entry.name, "program.json"), null);
+        if (data && data.projectSlug === req.params.slug) {
+          programs.push({ ...data, slug: data.slug || entry.name });
+        }
+      }
+    }
+    // Sort by orderInSeries (nulls last)
+    programs.sort((a, b) => (a.orderInSeries ?? 9999) - (b.orderInSeries ?? 9999));
+
+    res.json({ ...project, series, programs });
+  });
+
+  // ── Projects — Create ────────────────────────────────────────────
+
+  router.post("/api/gym/projects", (req, res) => {
+    const slug = req.body.slug || req.body.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomUUID();
+    const projDir = join(userProjectsDir, slug);
+    ensureDir(projDir);
+
+    const project = {
+      id: req.body.id || randomUUID(),
+      name: req.body.name || "Untitled Project",
+      slug,
+      description: req.body.description || "",
+      sourceUrl: req.body.sourceUrl || null,
+      tags: req.body.tags || [],
+      isActive: req.body.isActive !== false,
+      isPublic: req.body.isPublic !== false,
+      createdAt: req.body.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    writeJson(join(projDir, "project.json"), project);
+    res.status(201).json(project);
+  });
+
+  // ── Projects — Update ────────────────────────────────────────────
+
+  router.patch("/api/gym/projects/:slug", (req, res) => {
+    const resolved = resolveProjectDir(req.params.slug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const pPath = join(resolved.dir, "project.json");
+    const existing = readJson(pPath, {});
+    const updated = { ...existing, ...req.body, slug: req.params.slug, updatedAt: new Date().toISOString() };
+    writeJson(pPath, updated);
+    res.json(updated);
+  });
+
+  // ── Projects — Delete ────────────────────────────────────────────
+
+  router.delete("/api/gym/projects/:slug", (req, res) => {
+    const resolved = resolveProjectDir(req.params.slug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    rmSync(resolved.dir, { recursive: true, force: true });
+    res.json({ deleted: req.params.slug });
+  });
+
+  // ── Series — List (for a project) ────────────────────────────────
+
+  router.get("/api/gym/projects/:projectSlug/series", (req, res) => {
+    const resolved = resolveProjectDir(req.params.projectSlug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const seriesDir = join(resolved.dir, "series");
+    const series: any[] = [];
+    if (existsSync(seriesDir)) {
+      for (const f of readdirSync(seriesDir).filter((f) => f.endsWith(".json")).sort()) {
+        const s = readJson(join(seriesDir, f), null);
+        if (s) {
+          // Count programs in this series
+          const programCount = countProgramsForSeries(s.slug);
+          series.push({ ...s, _counts: { programs: programCount } });
+        }
+      }
+    }
+    series.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    res.json(series);
+  });
+
+  function countProgramsForSeries(seriesSlug: string): number {
+    let count = 0;
+    for (const dir of [programsDir, userProgramsDir]) {
+      if (!existsSync(dir)) continue;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const data = readJson(join(dir, entry.name, "program.json"), null);
+        if (data && data.seriesSlug === seriesSlug) count++;
+      }
+    }
+    return count;
+  }
+
+  // ── Series — Get One ─────────────────────────────────────────────
+
+  router.get("/api/gym/projects/:projectSlug/series/:seriesSlug", (req, res) => {
+    const resolved = resolveProjectDir(req.params.projectSlug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const sPath = join(resolved.dir, "series", `${req.params.seriesSlug}.json`);
+    if (!existsSync(sPath)) { res.status(404).json({ error: "Series not found" }); return; }
+
+    const series = readJson(sPath, {});
+    // Load programs in this series
+    const programs: any[] = [];
+    for (const dir of [programsDir, userProgramsDir]) {
+      if (!existsSync(dir)) continue;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const data = readJson(join(dir, entry.name, "program.json"), null);
+        if (data && data.seriesSlug === req.params.seriesSlug) {
+          programs.push({ ...data, slug: data.slug || entry.name });
+        }
+      }
+    }
+    programs.sort((a, b) => (a.orderInSeries ?? 9999) - (b.orderInSeries ?? 9999));
+
+    res.json({ ...series, programs });
+  });
+
+  // ── Series — Create ──────────────────────────────────────────────
+
+  router.post("/api/gym/projects/:projectSlug/series", (req, res) => {
+    const resolved = resolveProjectDir(req.params.projectSlug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const slug = req.body.slug || req.body.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomUUID();
+    const seriesDir = join(resolved.dir, "series");
+    ensureDir(seriesDir);
+
+    // Determine next position
+    const existing: any[] = [];
+    if (existsSync(seriesDir)) {
+      for (const f of readdirSync(seriesDir).filter((f) => f.endsWith(".json"))) {
+        const s = readJson(join(seriesDir, f), null);
+        if (s) existing.push(s);
+      }
+    }
+    const maxPos = existing.reduce((max, s) => Math.max(max, s.position ?? 0), -1);
+
+    const series = {
+      id: req.body.id || randomUUID(),
+      name: req.body.name || "Untitled Series",
+      slug,
+      description: req.body.description || "",
+      coverImage: req.body.coverImage || null,
+      tags: req.body.tags || [],
+      position: req.body.position ?? maxPos + 1,
+      isActive: req.body.isActive !== false,
+      projectSlug: req.params.projectSlug,
+      createdAt: req.body.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    writeJson(join(seriesDir, `${slug}.json`), series);
+    res.status(201).json(series);
+  });
+
+  // ── Series — Update ──────────────────────────────────────────────
+
+  router.patch("/api/gym/projects/:projectSlug/series/:seriesSlug", (req, res) => {
+    const resolved = resolveProjectDir(req.params.projectSlug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const sPath = join(resolved.dir, "series", `${req.params.seriesSlug}.json`);
+    if (!existsSync(sPath)) { res.status(404).json({ error: "Series not found" }); return; }
+
+    const existing = readJson(sPath, {});
+    const updated = { ...existing, ...req.body, slug: req.params.seriesSlug, updatedAt: new Date().toISOString() };
+    writeJson(sPath, updated);
+    res.json(updated);
+  });
+
+  // ── Series — Delete ──────────────────────────────────────────────
+
+  router.delete("/api/gym/projects/:projectSlug/series/:seriesSlug", (req, res) => {
+    const resolved = resolveProjectDir(req.params.projectSlug);
+    if (!resolved) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const sPath = join(resolved.dir, "series", `${req.params.seriesSlug}.json`);
+    if (!existsSync(sPath)) { res.status(404).json({ error: "Series not found" }); return; }
+
+    rmSync(sPath, { force: true });
+    // Orphan programs — remove seriesSlug from programs that referenced this series
+    for (const dir of [programsDir, userProgramsDir]) {
+      if (!existsSync(dir)) continue;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const pPath = join(dir, entry.name, "program.json");
+        const data = readJson(pPath, null);
+        if (data && data.seriesSlug === req.params.seriesSlug) {
+          data.seriesSlug = null;
+          data.orderInSeries = null;
+          writeJson(pPath, data);
+        }
+      }
+    }
+    res.json({ deleted: req.params.seriesSlug });
+  });
+
+  // ── Import from AI Gym Platform ──────────────────────────────────
+  //
+  // Accepts a full project export (project + series + programs) and
+  // writes it locally. Designed for easy copy-down from aigym-platform.
+
+  router.post("/api/gym/import-from-aigym", (req, res) => {
+    const { project, series, programs } = req.body;
+    if (!project?.slug) {
+      res.status(400).json({ error: "project.slug is required" });
+      return;
+    }
+
+    const projDir = join(userProjectsDir, project.slug);
+    ensureDir(projDir);
+
+    // Write project
+    const projectData = {
+      id: project.id || randomUUID(),
+      name: project.name,
+      slug: project.slug,
+      description: project.description || "",
+      sourceUrl: project.sourceUrl || null,
+      tags: project.tags || [],
+      isActive: project.isActive !== false,
+      isPublic: project.isPublic !== false,
+      source: "platform",
+      sourceId: project.id, // Original aigym UUID
+      createdAt: project.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    writeJson(join(projDir, "project.json"), projectData);
+
+    // Write series
+    const seriesResults: any[] = [];
+    if (Array.isArray(series)) {
+      const seriesDir = join(projDir, "series");
+      ensureDir(seriesDir);
+      for (const s of series) {
+        const sSlug = s.slug || s.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomUUID();
+        const seriesData = {
+          id: s.id || randomUUID(),
+          name: s.name,
+          slug: sSlug,
+          description: s.description || "",
+          coverImage: s.coverImage || null,
+          tags: s.tags || [],
+          position: s.position ?? 0,
+          isActive: s.isActive !== false,
+          projectSlug: project.slug,
+          sourceId: s.id,
+          createdAt: s.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        writeJson(join(seriesDir, `${sSlug}.json`), seriesData);
+        seriesResults.push(seriesData);
+      }
+    }
+
+    // Write programs
+    const programResults: any[] = [];
+    if (Array.isArray(programs)) {
+      for (const p of programs) {
+        const pSlug = p.slug || p.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomUUID();
+        const pDir = join(userProgramsDir, pSlug);
+        ensureDir(pDir);
+
+        // Map aigym fields to local schema
+        const programData: any = {
+          id: pSlug,
+          slug: pSlug,
+          title: p.title,
+          description: p.description || "",
+          coverImage: p.coverImage || null,
+          sourceUrl: p.sourceUrl || null,
+          tier: p.tier || "free",
+          personas: p.personas || [],
+          globalInfo: p.globalInfo || null,
+          tags: p.tags || [],
+          isActive: p.isActive !== false,
+          isPublic: p.isPublic !== false,
+          source: "platform",
+          sourceId: p.id, // Original aigym UUID
+          // Grouping
+          projectSlug: project.slug,
+          seriesSlug: null,
+          orderInSeries: null,
+          // Local-only fields (defaults)
+          difficulty: p.difficulty || "beginner",
+          dimensions: p.dimensions || [],
+          estimatedTime: p.estimatedTime || null,
+          prerequisites: p.prerequisites || [],
+          trainers: p.trainers || ["alex", "jordan", "morgan", "riley", "sam"],
+          createdAt: p.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Resolve seriesSlug if program has seriesId
+        if (p.seriesId && Array.isArray(series)) {
+          const matchedSeries = series.find((s: any) => s.id === p.seriesId);
+          if (matchedSeries) {
+            programData.seriesSlug = matchedSeries.slug || matchedSeries.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+            programData.orderInSeries = p.orderInSeries ?? null;
+          }
+        }
+
+        // Map modules + steps
+        if (Array.isArray(p.modules)) {
+          programData.modules = p.modules.map((m: any, mi: number) => ({
+            id: m.id || `module-${mi}`,
+            title: m.title,
+            description: m.description || "",
+            order: m.position ?? mi + 1,
+            agentInstructions: m.agentInstructions || null,
+            isVisible: m.isVisible !== false,
+            steps: Array.isArray(m.steps) ? m.steps.map((s: any, si: number) => ({
+              id: s.id || `step-${mi}-${si}`,
+              title: s.title,
+              order: s.position ?? si + 1,
+              type: s.type || "self-report",
+              content: s.content || "",
+              isCritical: !!s.isCritical,
+              personaVariations: s.personaVariations || {},
+              trainerVariations: s.personaVariations || {}, // alias
+              attachments: s.attachments || [],
+              isVisible: s.isVisible !== false,
+              verification: s.verification || "self-report",
+            })) : [],
+          }));
+        }
+
+        writeJson(join(pDir, "program.json"), programData);
+        programResults.push(programData);
+      }
+    }
+
+    res.status(201).json({
+      project: projectData,
+      series: seriesResults,
+      programs: programResults,
+      counts: { series: seriesResults.length, programs: programResults.length },
+    });
+  });
+
   return router;
 }

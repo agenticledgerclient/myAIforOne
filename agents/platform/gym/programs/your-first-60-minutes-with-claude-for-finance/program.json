@@ -1,0 +1,140 @@
+{
+  "id": "your-first-60-minutes-with-claude-for-finance",
+  "slug": "your-first-60-minutes-with-claude-for-finance",
+  "title": "Your First 60 Minutes with Claude for Finance",
+  "description": "Go from never having used Claude to a fully configured, personalized AI finance assistant in one hour.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Finance",
+    "Claude",
+    "Setup"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "46929e83-f486-4f14-b809-662fb6ba6ac0",
+  "projectSlug": "unofficial-guides-from-alyona-mysko-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:01.543Z",
+  "updatedAt": "2026-04-19T01:53:01.543Z",
+  "modules": [
+    {
+      "id": "baaec0c1-ab83-4538-bd3e-1121e0753dcd",
+      "title": "Steps",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "d0f8a4b8-1f17-4486-b1f8-2521e73bc0fc",
+          "title": "Install the Claude desktop app (Minutes 0-5)",
+          "order": 1,
+          "type": "self-report",
+          "content": "Download the desktop app, not the website. The app unlocks Cowork, Skills, and local file access. Subscribe to Pro ($20/mo) or Max ($100+/mo).",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "d2af5d33-23e8-48b4-accf-87cc641636df",
+          "title": "Choose your model and enable features (Minutes 5-10)",
+          "order": 2,
+          "type": "self-report",
+          "content": "Select Opus 4.6 for complex work or Sonnet 4.6 for everyday tasks. Turn on: Extended Thinking, Code Execution, Skills, Web Search, and Memory.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "617aee07-ff29-4edc-b54c-bcff8654f0a7",
+          "title": "Create three context files (Minutes 10-25)",
+          "order": 3,
+          "type": "self-report",
+          "content": "This is the step most people skip, and it makes the biggest difference. Create three `.md` files:\\n\\n- **about-me.md** — Your role, company, what you work on\\n- **my-rules.md** — How Claude should work with you (e.g., \"always use traceable formulas, never hard-code assumptions\")\\n- **my-templates.md** — Your preferred output formats (variance report structure, board deck layout, etc.)",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "85b1f300-a0d0-49b7-914d-fe01d236e50b",
+          "title": "Set up Profile Preferences (Minutes 25-30)",
+          "order": 4,
+          "type": "self-report",
+          "content": "Write universal instructions that apply to every conversation. Write it once, never repeat yourself.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "b64a697a-a248-4daa-a02c-3a4bd00b98b6",
+          "title": "Create your first Project (Minutes 30-45)",
+          "order": 5,
+          "type": "self-report",
+          "content": "Create a project folder. Upload your financials, board deck template, chart of accounts, and any recurring reports. Write custom instructions specific to this project.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "2d0ad466-c19e-4cdc-94f3-8cdae6ae66cd",
+          "title": "Configure your writing Style (Minutes 45-55)",
+          "order": 6,
+          "type": "self-report",
+          "content": "Upload 2-3 samples of your own writing (emails, memos, reports). Claude will match your tone and style going forward.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "a1950cea-ac9a-46f8-bf3c-b6f1cf8ca937",
+          "title": "Enable Memory and test with a real file (Minutes 55-60)",
+          "order": 7,
+          "type": "self-report",
+          "content": "Turn on Memory so Claude learns from your interactions over time. Upload a real financial file and run your first analysis. Watch how the context files shape the output.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

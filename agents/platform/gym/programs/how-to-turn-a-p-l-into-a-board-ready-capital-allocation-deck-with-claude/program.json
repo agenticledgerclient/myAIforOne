@@ -1,0 +1,159 @@
+{
+  "id": "how-to-turn-a-p-l-into-a-board-ready-capital-allocation-deck-with-claude",
+  "slug": "how-to-turn-a-p-l-into-a-board-ready-capital-allocation-deck-with-claude",
+  "title": "How to Turn a P&L into a Board-Ready Capital Allocation Deck with Claude",
+  "description": "A guide to using Claude's visualization capabilities to transform 24 months of financial data into a storytelling board deck with capital allocation analysis. Upload your P&L, let Claude categorize business units by risk profile, and build side-by-side capital allocation paths — work that used to take a finance team weeks with a Big 4 firm, done in a single chat. Based on Wouter Born's workflow shared with 35,000+ CFOs.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Wouter Born — LinkedIn post (2026-03-25, 1,962 likes). Wouter uploaded 24 months of financials into Claude and asked: \"Where should this company put its next $2.5M?\" Claude read the business, categorized every store by risk profile, and built three capital allocation paths for side-by-side comparison. He notes this would have cost a finance team three weeks with EY a year ago, but he ran it in a single chat using Claude's visualization feature.",
+  "tags": ["AI", "Finance", "Board Deck", "Capital Allocation", "Claude", "Visualization"],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "14ceb1f6-770c-496a-90cc-96a5cdbb4b3d",
+  "projectSlug": "unofficial-guides-from-wouter-born-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "createdAt": "2026-04-18T21:52:45.080Z",
+  "updatedAt": "2026-04-18T22:00:00.000Z",
+  "modules": [
+    {
+      "id": "d242b1f6-5288-4a97-8646-2a5decba26aa",
+      "title": "Prepare Your Financial Data",
+      "description": "Organize 12-24 months of P&L data for upload",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "bb74ac4d-e4ca-4f22-a9a0-1d6d5a11bd28",
+          "title": "Gather 12–24 Months of P&L Data",
+          "order": 1,
+          "type": "self-report",
+          "content": "Pull together your monthly P&L for the last 12 to 24 months. The more history you give Claude, the better it can identify trends, seasonality, and risk patterns.\n\nYour data should include:\n- **Revenue by business unit or location** — Claude needs to compare units against each other\n- **COGS and gross margin by unit** — this is how Claude builds risk profiles\n- **Operating expenses** — broken down enough to spot cost trends\n- **EBITDA or net income** — the bottom line Claude will use for allocation analysis\n\nExport as CSV or Excel. One clean file with monthly columns is ideal. If you have separate tabs per location or unit, that works too — Claude can read multi-tab Excel files.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "98424f2c-bd46-49dc-9adb-eccc3fe44770",
+          "title": "Upload and Validate with Claude",
+          "order": 2,
+          "type": "self-report",
+          "content": "Upload your file to Claude and ask it to confirm what it sees:\n\n> \"I've uploaded 24 months of P&L data for our business. Please summarize: how many business units/locations you see, the total revenue and EBITDA trend, and any data quality issues (missing months, inconsistencies, outliers).\"\n\nReview Claude's summary carefully. Correct any misinterpretations before moving to analysis. This validation step prevents bad data from flowing into your board deck.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "47e48e17-f11d-4ff7-9352-a0a4c09e8af7",
+      "title": "Ask Claude the Strategic Capital Question",
+      "description": "Frame your capital allocation question and let Claude analyze",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "1c4395aa-2e7e-4775-b2a4-e0dc6782eca8",
+          "title": "Frame the Capital Allocation Question",
+          "order": 1,
+          "type": "self-report",
+          "content": "This is the key prompt. Instead of asking Claude to \"analyze the data,\" give it a specific strategic question a board would care about. Wouter Born used:\n\n> \"Where should this company put its next $2.5M?\"\n\nAdapt this to your situation:\n- **\"We have $X to invest next year. Which business units should get it and why?\"**\n- **\"If we had to cut $X from the portfolio, where would the least damage be?\"**\n- **\"Rank our locations by investment priority based on the last 24 months of performance.\"**\n\nThe more specific your dollar amount and time horizon, the more actionable Claude's analysis will be.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "df7b6e68-4750-4356-963b-a6060a41b878",
+      "title": "Build Risk Profiles and Allocation Paths",
+      "description": "Have Claude categorize units by risk and generate comparison scenarios",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "2b3b86c6-48b6-43d0-946c-124d8bedc208",
+          "title": "Have Claude Categorize by Risk Profile",
+          "order": 1,
+          "type": "self-report",
+          "content": "Ask Claude to segment your business units before making allocation recommendations:\n\n> \"Based on the 24-month data, categorize each business unit into a risk profile: (1) Strong performers — consistent growth and healthy margins, (2) Turnaround candidates — declining but recoverable with investment, (3) At-risk — structurally underperforming. For each unit, show the key metrics that drove your classification.\"\n\nClaude will analyze revenue trends, margin trajectories, and consistency to build these profiles. This is the analytical backbone of your board deck — you're not just showing numbers, you're telling a story about where the business stands.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "666581c8-d5eb-401a-b7e0-2d8f092845bc",
+          "title": "Build Three Capital Allocation Paths",
+          "order": 2,
+          "type": "self-report",
+          "content": "Now ask Claude to turn the risk profiles into actionable investment paths:\n\n> \"Based on the risk profiles, build three capital allocation paths for the next $2.5M:\n> 1. **Growth-first** — concentrate investment in the strongest performers to maximize upside\n> 2. **Balanced** — spread investment across strong performers and turnaround candidates\n> 3. **Defensive** — prioritize stabilizing at-risk units and protecting the base\n>\n> For each path, show: dollar allocation per unit, projected ROI over 12 months, risk level, and the key assumption that would break the thesis.\"\n\nClaude will build a side-by-side comparison you can present directly to your board. The key insight: boards don't want one recommendation — they want to see that you've considered multiple paths and can articulate the trade-offs.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "c8aaa36a-5725-48a7-949c-59ea484b79ab",
+      "title": "Generate the Board Deck with Visualizations",
+      "description": "Turn the analysis into presentation-ready visuals and narrative",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "45196e2d-7915-424e-8004-a187e0c51624",
+          "title": "Generate Visual Charts and Dashboards",
+          "order": 1,
+          "type": "self-report",
+          "content": "Use Claude's visualization capabilities to turn the analysis into charts:\n\n> \"Create visualizations for a board deck:\n> 1. A bar chart comparing revenue and margin trends across all units over 24 months\n> 2. A risk matrix plotting each unit by growth rate (x-axis) vs. margin (y-axis), with bubble size = revenue\n> 3. A side-by-side comparison chart of the three allocation paths showing projected EBITDA impact\n> 4. A waterfall chart showing how we get from current state to projected state under the balanced path\"\n\nClaude will generate these as interactive visualizations you can screenshot or export. Each chart should tell one part of the story — performance history, current positioning, and future options.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "3efd633f-0462-47d3-82b6-c261269db764",
+          "title": "Build the Board Narrative",
+          "order": 2,
+          "type": "self-report",
+          "content": "Ask Claude to write the narrative that ties the visuals together:\n\n> \"Write a 6-slide board deck narrative for these charts:\n> - Slide 1: Executive summary — where we are and the decision we're asking the board to make\n> - Slide 2: Portfolio performance overview (use the 24-month trend chart)\n> - Slide 3: Risk profile breakdown (use the risk matrix)\n> - Slide 4: Three allocation paths compared (use the comparison chart)\n> - Slide 5: Recommended path with detailed rationale and the waterfall chart\n> - Slide 6: Key risks and what would change our recommendation\n>\n> Keep each slide to 3-4 bullet points max. Write for a board audience — strategic, concise, no jargon.\"\n\nThis is where Claude's real value shows up. Wouter Born notes that a year ago, this kind of storytelling analysis would have taken a finance team three weeks with EY. With Claude's visualization feature, it's done in a single chat session.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

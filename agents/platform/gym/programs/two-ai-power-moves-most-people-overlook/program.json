@@ -1,0 +1,125 @@
+{
+  "id": "two-ai-power-moves-most-people-overlook",
+  "slug": "two-ai-power-moves-most-people-overlook",
+  "title": "Two AI Power Moves Most People Overlook",
+  "description": "Most people use AI to work faster. But the highest-leverage moves are about multiplying your team and sharpening your judgment.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Nathan Mapp, CPA — LinkedIn post (2026-02-26).",
+  "tags": [
+    "AI",
+    "Finance",
+    "Productivity",
+    "Leadership",
+    "Critical Thinking"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "46376b6f-4c2b-4e65-ae13-a54e59880353",
+  "projectSlug": "unofficial-guides-from-nathan-mapp-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-18T21:41:38.612Z",
+  "updatedAt": "2026-04-19T01:44:24.184Z",
+  "modules": [
+    {
+      "id": "eb868527-1330-49e7-bb76-f71f5b52e8af",
+      "title": "Power Move #1: Multiply Your Team With AI",
+      "description": "Stop hoarding AI skills — the real leverage is making your whole team 10x",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "0a7666f9-165a-4298-b3fb-0be2f5111a8f",
+          "title": "The 10x Trap",
+          "order": 1,
+          "type": "self-report",
+          "content": "You alone with AI = 10x you + team of 5 at 1x = 15x total. You sharing AI with your team = everyone at 10x = 50x total.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "c78a0d43-7014-40c0-ac02-8fe768ee2d8e",
+          "title": "How to Do It — A Practical Example",
+          "order": 2,
+          "type": "self-report",
+          "content": "Built an AI tool? Ask what other tasks follow the same pattern. Find who does similar work. Schedule 30 min to walk them through it.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "f695ef17-0418-4e15-9745-f2b00a65d2c9",
+      "title": "Power Move #2: Use AI to Challenge You",
+      "description": "Turn AI confident wrongness into your secret weapon for sharper thinking",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "a4337190-5e7c-408e-b023-ce1736bd0f76",
+          "title": "Why AI Confident Wrongness is Actually Useful",
+          "order": 1,
+          "type": "self-report",
+          "content": "AI gets things wrong confidently. That is a feature — you have unlocked a simulator for high-stakes arguments and critical thinking.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "7485b24e-3685-444b-bc99-63f0b644dc3b",
+          "title": "Method 1: The Two-Window Debate",
+          "order": 2,
+          "type": "self-report",
+          "content": "Open Chat A, state your opinion. Ask it to generate a killer prompt arguing against you. Open Chat B, paste the adversarial prompt. Argue your position against it.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "509fe388-8391-4919-8595-19528aaf8062",
+          "title": "Method 2: The Honest Friction Prompt",
+          "order": 3,
+          "type": "self-report",
+          "content": "Add to your system instructions: State the best-supported truth. Name problems directly. When you see something I do not, say so. Be a source of honest friction, not comfort.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

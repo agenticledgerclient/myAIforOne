@@ -1,0 +1,282 @@
+{
+  "id": "module-6-do-it-all-in-10-minutes-with-myaiforone",
+  "slug": "module-6-do-it-all-in-10-minutes-with-myaiforone",
+  "title": "Module 6: Do It All in 10 Minutes with MyAIforOne",
+  "description": "AI Gym users only. Build your entire training portfolio in a single session using the Hub agent.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "47a3faff-bcea-4f05-81db-8b82311bb451",
+  "projectSlug": "ore-phillips-guides",
+  "seriesSlug": "ai-in-finance-intro-to-using-ai",
+  "orderInSeries": 7,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:46:39.942Z",
+  "updatedAt": "2026-04-19T01:46:39.942Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "What You're Building",
+      "description": "Overview of the five agents you'll create in one session.",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "This Module Is for AI Gym Users Only",
+          "order": 1,
+          "type": "self-report",
+          "content": "This bonus module is for anyone who wants to build their entire training portfolio inside MyAIforOne in a single session.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "What You're Building",
+          "order": 2,
+          "type": "self-report",
+          "content": "Five agents in 10 minutes: Using AI Series Agent, Research Expert, Communications Writer, Review Analyst, Process Optimizer.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Two Ways to Do It",
+          "order": 3,
+          "type": "self-report",
+          "content": "Option A: One big prompt. Option B: Step by step.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-1",
+      "title": "Option A: One Big Prompt",
+      "description": "Paste a single message to the Hub and it creates everything in one shot.",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-1-0",
+          "title": "Paste This to Your Hub",
+          "order": 1,
+          "type": "self-report",
+          "content": "Full prompt to create org and all five agents.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-1-1",
+          "title": "That's It",
+          "order": 2,
+          "type": "self-report",
+          "content": "Hit send. The Hub will create your org and all five agents.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-2",
+      "title": "Option B: Step by Step",
+      "description": "Same result, slower pace. Five separate prompts.",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-2-0",
+          "title": "Before You Start",
+          "order": 1,
+          "type": "self-report",
+          "content": "Make sure you're on the Home page in AI Gym.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-1",
+          "title": "Step 1: Create Your Org",
+          "order": 2,
+          "type": "self-report",
+          "content": "Create My Training Portfolio organization.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-2",
+          "title": "Step 2: Portfolio Tracker Agent",
+          "order": 3,
+          "type": "self-report",
+          "content": "Create Using AI Series Agent.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-3",
+          "title": "Step 3: Research Expert Agent",
+          "order": 4,
+          "type": "self-report",
+          "content": "Create your research expert agent.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-4",
+          "title": "Step 4: Communications Writer Agent",
+          "order": 5,
+          "type": "self-report",
+          "content": "Create Finance Communications Writer.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-5",
+          "title": "Step 5: Review Analyst Agent",
+          "order": 6,
+          "type": "self-report",
+          "content": "Create Finance Review Analyst.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-6",
+          "title": "Step 6: Process Optimizer Agent",
+          "order": 7,
+          "type": "self-report",
+          "content": "Create Finance Process Optimizer.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-7",
+          "title": "Done",
+          "order": 8,
+          "type": "self-report",
+          "content": "Go to the Org page. All five agents are there, ready to use.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-3",
+      "title": "What's Next",
+      "description": "How to use, customize, and expand your five-agent portfolio.",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-3-0",
+          "title": "Use Them Daily",
+          "order": 1,
+          "type": "self-report",
+          "content": "Your five core agents cover the full range of finance AI use cases.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-1",
+          "title": "Customize as You Go",
+          "order": 2,
+          "type": "self-report",
+          "content": "Update agent instructions via Hub anytime.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-2",
+          "title": "Build More",
+          "order": 3,
+          "type": "self-report",
+          "content": "Ask the Hub to create new agents for new use cases.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "id": "vibecoding-your-first-dev-environment-setup",
+  "slug": "vibecoding-your-first-dev-environment-setup",
+  "title": "Vibecoding: Your First Dev Environment Setup",
+  "description": "Get your machine ready to build real web applications with AI.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "45a316bd-656e-4ba0-b7f3-f930e1732a6c",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-10T05:49:15.288Z",
+  "updatedAt": "2026-04-19T01:46:03.406Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Code Editor Setup",
+      "description": "VS Code is the industry standard.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Install VS Code",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to code.visualstudio.com and install.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-1",
+      "title": "JavaScript Runtime",
+      "description": "Node.js teaches your computer JavaScript.",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-1-0",
+          "title": "Install Node.js",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to nodejs.org and download the LTS version.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-2",
+      "title": "Version Control",
+      "description": "Git tracks every change.",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-2-0",
+          "title": "Install Git",
+          "order": 0,
+          "type": "self-report",
+          "content": "Git is version control software.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-3",
+      "title": "Claude Code",
+      "description": "The AI coding assistant.",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-3-0",
+          "title": "Install Claude Code",
+          "order": 0,
+          "type": "self-report",
+          "content": "Claude Code runs in your terminal.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-1",
+          "title": "Understand Your Model Options",
+          "order": 1,
+          "type": "self-report",
+          "content": "Sonnet for coding, Opus for planning.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-4",
+      "title": "Account Setup",
+      "description": "Accounts on four services.",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-4-0",
+          "title": "Set Up Anthropic Access",
+          "order": 0,
+          "type": "self-report",
+          "content": "Claude Pro subscription ($20/month) or API credits.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-4-1",
+          "title": "Create a GitHub Account",
+          "order": 1,
+          "type": "self-report",
+          "content": "GitHub is where code lives in the cloud.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-4-2",
+          "title": "Connect Vercel",
+          "order": 2,
+          "type": "self-report",
+          "content": "Vercel hosts your app.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-4-3",
+          "title": "Set Up Supabase",
+          "order": 3,
+          "type": "self-report",
+          "content": "Supabase is your database.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-5",
+      "title": "Final Checklist",
+      "description": "Confirm everything is in place.",
+      "order": 5,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-5-0",
+          "title": "Confirm Your Setup",
+          "order": 0,
+          "type": "self-report",
+          "content": "Run through the checklist.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-5-1",
+          "title": "Say Hello to Claude Code",
+          "order": 1,
+          "type": "self-report",
+          "content": "Open VS Code, open the terminal, type claude.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

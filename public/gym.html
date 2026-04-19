@@ -585,6 +585,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
         <button class="tab-btn active" data-gymtab="coach" onclick="switchView('coach')">Chat</button>
         <button class="tab-btn" data-gymtab="progress" onclick="switchView('progress')">Progress</button>
         <button class="tab-btn" data-gymtab="guides" onclick="switchView('guides')">Guides</button>
+        <button class="tab-btn" data-gymtab="projects" onclick="switchView('projects')">Projects</button>
         <button class="tab-btn" data-gymtab="generator" onclick="switchView('generator')">Create</button>
       </nav>
       <a class="gym-nav-btn" href="/gym" style="font-weight:700">Gym</a>
@@ -782,6 +783,27 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
         <div class="guides-grid" id="guidesGrid"></div>
       </div>
 
+      <!-- Projects View -->
+      <div class="gym-view" id="projectsView">
+        <div class="guides-header">
+          <h2 class="guides-title">Guide Projects</h2>
+          <input class="guides-search" id="projectsSearch" type="text" placeholder="Search projects..." oninput="filterProjects(this.value)">
+        </div>
+        <div class="guides-grid" id="projectsGrid"></div>
+      </div>
+
+      <!-- Project Detail View -->
+      <div class="gym-view" id="projectDetailView">
+        <div class="guides-header">
+          <button class="gv-back" onclick="switchView('projects')" style="margin-right:12px">&#x2190; Back</button>
+          <h2 class="guides-title" id="projectDetailTitle" style="flex:1"></h2>
+        </div>
+        <p id="projectDetailDesc" style="color:var(--text-secondary);font-size:13px;margin:0 0 16px 0"></p>
+        <div id="projectDetailSeries"></div>
+        <h3 style="color:var(--text-primary);font-size:14px;margin:20px 0 10px">All Guides in Project</h3>
+        <div class="guides-grid" id="projectDetailPrograms"></div>
+      </div>
+
       <!-- Guide Viewer -->
       <div class="gym-view" id="guideViewerView">
         <div class="gv-wrapper">
@@ -951,13 +973,15 @@ function toggleTheme(){
 /* ─── Init ───────────────────────────────── */
 async function init() {
   try {
-    const [profileRes, planRes, progressRes, programsRes, insightsRes] = await Promise.all([
+    const [profileRes, planRes, progressRes, programsRes, insightsRes, projectsRes] = await Promise.all([
       fetch(`${API}/api/gym/learner-profile`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/plan`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/progress`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/programs`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API}/api/gym/insights`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API}/api/gym/projects`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
+    projectsCache = Array.isArray(projectsRes) ? projectsRes : [];
 
     state.profile = profileRes;
     state.plan = planRes;
@@ -1361,17 +1385,18 @@ function switchView(view) {
   state.activeView = view;
   // Update topbar gym tabs (both left and right nav)
   document.querySelectorAll('#gymTabs .tab-btn[data-gymtab], #gymTabsRight .tab-btn[data-gymtab]').forEach(n =>
-    n.classList.toggle('active', n.dataset.gymtab === view || (view === 'guide-viewer' && n.dataset.gymtab === 'guides'))
+    n.classList.toggle('active', n.dataset.gymtab === view || (view === 'guide-viewer' && n.dataset.gymtab === 'guides') || (view === 'project-detail' && n.dataset.gymtab === 'projects'))
   );
-  ['coachView','progressView','guidesView','guideViewerView','generatorView'].forEach(id => {
+  ['coachView','progressView','guidesView','guideViewerView','generatorView','projectsView','projectDetailView'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('active');
   });
-  const viewMap = { coach:'coachView', progress:'progressView', guides:'guidesView', 'guide-viewer':'guideViewerView', generator:'generatorView' };
+  const viewMap = { coach:'coachView', progress:'progressView', guides:'guidesView', 'guide-viewer':'guideViewerView', generator:'generatorView', projects:'projectsView', 'project-detail':'projectDetailView' };
   const target = document.getElementById(viewMap[view]);
   if (target) target.classList.add('active');
 
   if (view === 'guides') renderGuidesView();
+  if (view === 'projects') renderProjectsView();
   if (view === 'generator' && !state._generatorSeeded) seedGenerator();
 }
 
@@ -1729,6 +1754,138 @@ function getGuideProgress(slug) {
   const prog = state.progress?.programs?.[slug];
   if (!prog) return 0;
   return prog.completedSteps?.length || 0;
+}
+
+/* ─── Projects ───────────────────────────── */
+let projectsCache = null;
+let projectsSearchQuery = '';
+
+async function renderProjectsView() {
+  const grid = document.getElementById('projectsGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:60px 20px">Loading projects...</div>';
+
+  try {
+    const res = await fetch(`${API}/api/gym/projects`);
+    if (!res.ok) throw new Error('Failed to load');
+    projectsCache = await res.json();
+  } catch (e) {
+    grid.innerHTML = '<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:60px 20px">Failed to load projects.</div>';
+    return;
+  }
+  renderProjectCards();
+}
+
+function filterProjects(q) {
+  projectsSearchQuery = (q || '').toLowerCase().trim();
+  renderProjectCards();
+}
+
+function renderProjectCards() {
+  const grid = document.getElementById('projectsGrid');
+  if (!grid || !projectsCache) return;
+
+  let projects = projectsCache.filter(p => p.isActive !== false);
+  if (projectsSearchQuery) {
+    projects = projects.filter(p =>
+      (p.name || '').toLowerCase().includes(projectsSearchQuery) ||
+      (p.description || '').toLowerCase().includes(projectsSearchQuery)
+    );
+  }
+
+  if (!projects.length) {
+    grid.innerHTML = '<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:60px 20px">No projects found.</div>';
+    return;
+  }
+
+  grid.innerHTML = projects.map(p => {
+    const progCount = p._counts?.programs || 0;
+    const seriesCount = p._counts?.series || 0;
+    return `
+      <div class="guide-card" onclick="openProjectDetail('${p.slug}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="guide-card-title" style="margin-bottom:0">${p.name || 'Untitled'}</div>
+          <span style="font-family:var(--font-mono);font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;color:var(--accent);background:var(--accent)15;flex-shrink:0">${p.source || 'user'}</span>
+        </div>
+        <div class="guide-card-desc">${p.description || ''}</div>
+        <div class="guide-card-meta">
+          ${progCount ? `<span class="guide-card-tag">${progCount} guide${progCount !== 1 ? 's' : ''}</span>` : ''}
+          ${seriesCount ? `<span class="guide-card-tag">${seriesCount} series</span>` : ''}
+          ${p.tags?.length ? p.tags.map(t => `<span class="guide-card-tag">${t}</span>`).join('') : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function openProjectDetail(slug) {
+  try {
+    const res = await fetch(`${API}/api/gym/projects/${slug}`);
+    if (!res.ok) throw new Error('Failed to load project');
+    const project = await res.json();
+
+    document.getElementById('projectDetailTitle').textContent = project.name || slug;
+    document.getElementById('projectDetailDesc').textContent = project.description || '';
+
+    // Render series
+    const seriesEl = document.getElementById('projectDetailSeries');
+    if (project.series?.length) {
+      seriesEl.innerHTML = '<h3 style="color:var(--text-primary);font-size:14px;margin:0 0 10px">Series</h3>' +
+        project.series.map(s => {
+          const progCount = (project.programs || []).filter(p => p.seriesSlug === s.slug).length;
+          return `<div style="background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:8px;padding:12px 16px;margin-bottom:8px;cursor:pointer" onclick="toggleSeriesPrograms(this,'${s.slug}','${slug}')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="color:var(--text-primary);font-weight:600;font-size:13px">${s.name}</div>
+                ${s.description ? `<div style="color:var(--text-secondary);font-size:12px;margin-top:2px">${s.description}</div>` : ''}
+              </div>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${progCount} guide${progCount !== 1 ? 's' : ''} &#x25B8;</span>
+            </div>
+            <div class="series-programs" style="display:none;margin-top:10px"></div>
+          </div>`;
+        }).join('');
+    } else {
+      seriesEl.innerHTML = '';
+    }
+
+    // Render all programs in project
+    const progsEl = document.getElementById('projectDetailPrograms');
+    if (project.programs?.length) {
+      renderGuideCards(project.programs, progsEl);
+    } else {
+      progsEl.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px">No guides in this project yet.</div>';
+    }
+
+    switchView('project-detail');
+  } catch (e) {
+    console.error('Failed to open project:', e);
+  }
+}
+
+function toggleSeriesPrograms(el, seriesSlug, projectSlug) {
+  const container = el.querySelector('.series-programs');
+  if (!container) return;
+  if (container.style.display === 'none') {
+    // Find programs in this series from projectsCache or re-fetch
+    const project = projectsCache?.find(p => p.slug === projectSlug);
+    // Load full project data if we have it cached
+    fetch(`${API}/api/gym/projects/${projectSlug}/series/${seriesSlug}`)
+      .then(r => r.json())
+      .then(series => {
+        if (series.programs?.length) {
+          container.innerHTML = '<div class="guides-grid" style="margin-top:8px"></div>';
+          renderGuideCards(series.programs, container.querySelector('.guides-grid'));
+        } else {
+          container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px">No guides in this series.</div>';
+        }
+        container.style.display = 'block';
+      })
+      .catch(() => {
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px">Failed to load series.</div>';
+        container.style.display = 'block';
+      });
+  } else {
+    container.style.display = 'none';
+  }
 }
 
 /* ─── Guide Viewer ───────────────────────── */

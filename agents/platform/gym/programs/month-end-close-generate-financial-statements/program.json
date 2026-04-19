@@ -1,0 +1,88 @@
+{
+  "id": "month-end-close-generate-financial-statements",
+  "slug": "month-end-close-generate-financial-statements",
+  "title": "Month-End Close: Generate Financial Statements",
+  "description": "Produce a complete P&L, balance sheet, and cash flow statement from your adjusted trial balance using Claude.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Financial Statements",
+    "Claude"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "6d71e1d4-f4d2-404b-991b-0741e5f928b6",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "011fc908-e248-4705-874f-9abc53d4226f",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "2b21415e-4fd0-45b2-86b8-091ec2e27b41",
+          "title": "Create a 'Financial Statements' skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "This skill takes the adjusted trial balance (after your approved AJEs are posted) and produces three statements: income statement, balance sheet, and statement of cash flows. Provide your preferred format and groupings.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "861c38e1-7f2e-49ad-9d46-c804666341c4",
+          "title": "Include formula-based tie-outs on the cover sheet",
+          "order": 2,
+          "type": "self-report",
+          "content": "The output must include a cover sheet where net income on the P&L ties to retained earnings on the BS, and the cash flow statement ending balance ties to cash on the BS. All by formula, not hardcoded.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "fc01d626-7e3d-449f-abc9-013caed25762",
+          "title": "Output as Excel workpaper",
+          "order": 3,
+          "type": "self-report",
+          "content": "Request the output as a formatted Excel file with tabs for each statement plus the cover sheet. This becomes part of your workpaper package.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

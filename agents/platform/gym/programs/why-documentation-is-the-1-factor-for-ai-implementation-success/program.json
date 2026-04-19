@@ -1,0 +1,184 @@
+{
+  "id": "why-documentation-is-the-1-factor-for-ai-implementation-success",
+  "slug": "why-documentation-is-the-1-factor-for-ai-implementation-success",
+  "title": "Why Documentation is the #1 Factor for AI Implementation Success",
+  "description": "Finance teams racing to adopt AI are focused on tools and agents — but the real bottleneck is documentation.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Nathan Mapp, CPA — LinkedIn post (2026-03-09).",
+  "tags": [
+    "AI",
+    "Finance",
+    "Documentation",
+    "Internal Audit",
+    "AI Readiness"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "cd942fb5-2200-4886-87ad-dbe8a66ccada",
+  "projectSlug": "unofficial-guides-from-nathan-mapp-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-18T21:40:04.290Z",
+  "updatedAt": "2026-04-19T01:44:24.184Z",
+  "modules": [
+    {
+      "id": "6f4adbea-5ebe-4acd-926e-fffdf365fadc",
+      "title": "The Documentation Gap in AI Adoption",
+      "description": "Why most AI implementations fail — and it is not the tools",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "1ae06035-e7db-420c-8a12-174ee978565a",
+          "title": "Everyone is Building Tools — But Missing the Foundation",
+          "order": 1,
+          "type": "self-report",
+          "content": "Finance teams everywhere are racing to build AI agents, automated workflows, and smart tools. But there is a problem most people are not talking about:\n\n**The #1 determining factor of AI implementation success is not the tool — it is your documentation.**",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "8b237a55-b12d-42a6-9774-85ad997c47b6",
+          "title": "The Coming Wave of Capability",
+          "order": 2,
+          "type": "self-report",
+          "content": "The next generation of AI models will be orders of magnitude more capable. But they need documentation to guide them.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "4203072d-bd0a-4f54-9a0c-afcc2ce851ce",
+      "title": "What AI Agents Actually Need From You",
+      "description": "The four pillars of documentation that make agents effective",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "df1a6792-a7d2-4377-bc0b-39065525a28c",
+          "title": "The Four Pillars of Agent-Ready Documentation",
+          "order": 1,
+          "type": "self-report",
+          "content": "For an AI agent to execute a task well, it needs four things documented clearly:\n\n1. **TASK** — What specific task needs to be done?\n2. **STANDARD** — To what quality standard must it be done?\n3. **RISKS AND CONTROLS** — What could go wrong?\n4. **OUTPUT** — What does a good output look like?",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "f5c2c71b-28e4-4d63-a77f-f2b15e8e3e55",
+          "title": "Bad Documentation = Bad Results at Scale",
+          "order": 2,
+          "type": "self-report",
+          "content": "Stale docs, vague standards, missing controls, no output examples — all lead to AI making mistakes fast, confidently, and at scale.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "365c0ba8-1de6-40c2-a4ce-f771126222f1",
+      "title": "How to Start Documenting Today",
+      "description": "Practical steps to build your documentation habit",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "13a1d28d-3bcf-4848-8c7e-9e232bc24d4f",
+          "title": "The 30-Minute Weekly Documentation Habit",
+          "order": 1,
+          "type": "self-report",
+          "content": "Set aside 30 minutes every week. Pick one process, use voice-to-text, keep it stream of consciousness.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "19678780-7d08-40d2-a887-7a86cae6c4b6",
+          "title": "Why This Creates Literal Gold",
+          "order": 2,
+          "type": "self-report",
+          "content": "You capture nuances, edge cases, and thought processes that AI cannot replicate on its own.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "2d653184-6dc9-4fdb-bb7d-bbcce5b1854c",
+      "title": "Why Internal Audit Teams Should Lead This",
+      "description": "The unique advantages audit and controls teams have for AI documentation",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "12defea4-aa07-47d4-aeae-b6a92ed97754",
+          "title": "The Internal Audit Advantage",
+          "order": 1,
+          "type": "self-report",
+          "content": "Internal audit teams have access to process documents, cross-functional mandate, and a ready-made risk/controls framework (COSO).",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "85f42153-b26c-4bfa-b14f-f9b31e5a3f6f",
+          "title": "Your Action Plan",
+          "order": 2,
+          "type": "self-report",
+          "content": "Individual contributors: block 30 min. Team leads: identify 5 critical processes. Internal audit: map COSO docs to agent guardrails.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

@@ -816,22 +816,16 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
       <div class="section" id="updateStepsSection" style="margin-top:16px;display:none">
         <div class="section-header" style="padding:16px 20px;display:flex;align-items:center;gap:10px">
           <span style="font-size:18px">&#x1F4BB;</span>
-          <span style="font-weight:700;font-size:14px">How to Update</span>
+          <span style="font-weight:700;font-size:14px">Install Update</span>
         </div>
         <div class="section-body" style="padding:20px;font-size:13px;color:var(--text-secondary);line-height:1.8">
-          <p style="color:var(--text-primary);font-weight:600;margin-bottom:12px">Open a terminal and run this command:</p>
           <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:12px 16px;margin-bottom:16px">
             <code id="updateCmd" style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent);flex:1">npx myaiforone@latest</code>
             <button onclick="copyUpdateCmd()" style="font-family:var(--font-sans);font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;border:1px solid var(--border-glow);background:var(--bg-card);color:var(--text-primary);cursor:pointer;white-space:nowrap;transition:all .2s" id="copyCmdBtn">Copy</button>
-            <button onclick="openTerminal()" style="font-family:var(--font-sans);font-size:12px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;white-space:nowrap;transition:all .2s" id="openTermBtn">Open Terminal</button>
           </div>
-          <ol style="margin:0 0 0 18px;color:var(--text-secondary)">
-            <li>Click <strong style="color:var(--text-primary)">Open Terminal</strong> — it will open a terminal window with the command ready</li>
-            <li>Press <strong style="color:var(--text-primary)">Enter</strong> to run it</li>
-            <li>The service will restart with the new version — come back to this page after</li>
-          </ol>
-          <p style="margin-top:12px;color:var(--text-muted);font-size:12px">Or click <strong>Copy</strong> and paste into any terminal window yourself.</p>
+          <button onclick="runUpdate()" style="font-family:var(--font-sans);font-size:13px;font-weight:700;padding:10px 28px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;transition:all .2s;width:100%" id="runUpdateBtn">Update Now</button>
           <div id="openTermStatus" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
+          <p style="margin-top:12px;color:var(--text-muted);font-size:12px">Or click <strong>Copy</strong> and run the command in your own terminal.</p>
         </div>
       </div>
     </div>
@@ -996,30 +990,56 @@ async function copyUpdateCmd() {
   } catch { showToast('Copy failed — select the command manually', 'err'); }
 }
 
-async function openTerminal() {
+async function runUpdate() {
+  const latest = document.getElementById('latestVersion').textContent || 'latest';
   const cmd = document.getElementById('updateCmd').textContent;
-  const btn = document.getElementById('openTermBtn');
+  const btn = document.getElementById('runUpdateBtn');
   const status = document.getElementById('openTermStatus');
-  btn.disabled = true; btn.textContent = 'Opening...';
+
+  // Confirmation popup
+  const ok = confirm(
+    'Update MyAIforOne to ' + latest + '?\n\n' +
+    'This will:\n' +
+    '1. Stop the running service\n' +
+    '2. Open a terminal to install the new version\n' +
+    '3. The service will restart automatically when done\n\n' +
+    'This page will stop responding while the update runs.'
+  );
+  if (!ok) return;
+
+  btn.disabled = true; btn.textContent = 'Updating...';
   status.textContent = '';
+
   try {
-    const res = await fetch('/api/open-terminal', {
+    // Step 1: Open terminal with the update command FIRST (while API is still alive)
+    const termRes = await fetch('/api/open-terminal', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ command: cmd })
     });
-    const d = await res.json();
-    if (d.ok) {
-      status.style.color = 'var(--green)';
-      status.textContent = 'Terminal opened. Press Enter to run the command, then come back here after the service restarts.';
-    } else {
+    const termData = await termRes.json();
+    if (!termData.ok) {
       status.style.color = 'var(--red)';
-      status.textContent = d.error || 'Could not open terminal. Copy the command and paste it manually.';
+      status.textContent = termData.error || 'Could not open terminal. Copy the command and run it manually.';
+      btn.disabled = false; btn.textContent = 'Update Now';
+      return;
     }
+
+    // Step 2: Shut down the service so npm can overwrite the files
+    status.style.color = 'var(--accent)';
+    status.textContent = 'Terminal opened. Stopping service so the update can install...';
+    try {
+      await fetch('/api/shutdown', { method: 'POST' });
+    } catch {
+      // Expected — server closes before responding
+    }
+
+    status.style.color = 'var(--green)';
+    status.textContent = 'Service stopped. The update is running in the terminal — this page will stop responding. Come back when the install finishes.';
   } catch (e) {
     status.style.color = 'var(--red)';
-    status.textContent = 'Could not open terminal: ' + e.message;
+    status.textContent = 'Update failed: ' + e.message;
+    btn.disabled = false; btn.textContent = 'Update Now';
   }
-  btn.disabled = false; btn.textContent = 'Open Terminal';
 }
 
 // kept for backwards compat but no longer called from UI

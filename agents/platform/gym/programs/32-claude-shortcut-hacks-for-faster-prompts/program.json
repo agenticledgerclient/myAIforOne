@@ -1,0 +1,57 @@
+{
+  "id": "32-claude-shortcut-hacks-for-faster-prompts",
+  "slug": "32-claude-shortcut-hacks-for-faster-prompts",
+  "title": "32 Claude Shortcut Hacks for Faster Prompts",
+  "description": "A practical training program to master Claude prompt shortcuts.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "dbaf1d3f-608d-4b2b-ac26-0f866eeab39d",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-10T03:44:01.502Z",
+  "updatedAt": "2026-04-19T01:46:03.406Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Simplify and Summarize",
+      "description": "Learn to instantly control how complex or concise a response is.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "/ELI5 - Explain Like I'm 5",
+          "order": 0,
+          "type": "self-report",
+          "content": "Add /ELI5 at the start of any prompt to get a simple, jargon-free explanation.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

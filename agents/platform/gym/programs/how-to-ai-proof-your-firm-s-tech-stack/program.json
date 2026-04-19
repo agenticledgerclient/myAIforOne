@@ -1,0 +1,109 @@
+{
+  "id": "how-to-ai-proof-your-firm-s-tech-stack",
+  "slug": "how-to-ai-proof-your-firm-s-tech-stack",
+  "title": "How to AI-Proof Your Firm's Tech Stack",
+  "description": "A practical breakdown of what makes software survive the AI agent era. Using two real accounting software examples — Aiwyn and Double — CPA Jason Staats explains the key criteria for evaluating your current tools: do they offer MCP server support or at minimum a solid API? Firms that understand connectivity as the core requirement will pick tools that work with agents, not against them.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "b7c904c6-e642-4000-9de8-793bdeef7201",
+  "projectSlug": "unofficial-guides-from-josh-staats-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:52:47.260Z",
+  "updatedAt": "2026-04-19T01:52:47.260Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Evaluating Your Current Tools for the Agent Era",
+      "description": "Learn the connectivity criteria that separates future-proof software from tools living on borrowed time.",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Understand the New Software Landscape",
+          "order": 1,
+          "type": "self-report",
+          "content": "Two types of software will thrive in the AI agent era:\n\n1. **Software that builds AI agents** — the infrastructure layer\n2. **Software built for AI agents** — tools that agents can use programmatically\n\nMost software your firm uses today falls into neither category. This is the gap you need to address proactively before being forced to.",
+          "isCritical": true,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Learn from Aiwyn (Column Tax)",
+          "order": 2,
+          "type": "self-report",
+          "content": "Aiwyn acquired Column Tax, which has filed over 1 million tax returns. They then released an **MCP server** that connects their tax engine directly to Claude.\n\nThis means tax professionals can prepare returns inside Claude — backed by a real tax engine, not an LLM guessing at tax law.\n\n**Key question they asked:** \"What if the interface was simply the agent?\" That question is the one your firm should be asking about every tool you use.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Learn from Double (formerly Keeper)",
+          "order": 3,
+          "type": "self-report",
+          "content": "Double is a month-end close automation app. They shipped **MCP server support**, letting Claude connect to Double with fine-grained read/write permissions.\n\nTheir users did not want to abandon Double — they wanted agents to be able to use it too. Double made both possible.\n\n**Takeaway:** The goal is not to replace apps with AI. It is to extend apps so that agents can participate in workflows alongside humans.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-3",
+          "title": "Apply the Connectivity Test to Your Stack",
+          "order": 4,
+          "type": "self-report",
+          "content": "For every tool your firm uses, ask:\n\n**Can an AI agent push or pull information from this tool?**\n\n- **Best case:** The tool has an MCP server\n- **Acceptable:** The tool has a well-documented REST API\n- **Red flag:** Closed system with no integration path\n\nTools that fail this test are at risk — not because they are bad tools, but because they cannot participate in automated workflows.",
+          "isCritical": true,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-4",
+          "title": "Make Your Evaluation Decisions",
+          "order": 5,
+          "type": "self-report",
+          "content": "After running the connectivity test on your stack:\n\n- **Keep and invest:** Tools with MCP support or strong APIs — learn how to connect them to your workflows\n- **Watch and wait:** Tools with APIs but no MCP yet — most will add it; allow 6-12 months\n- **Plan to replace:** Tools with no integration path — they will slow your automation and become liabilities\n\nStart with the tools your team uses most: practice management, document storage, communication platforms.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "id": "how-to-use-claude-4x-faster-with-wispr-flow",
+  "slug": "how-to-use-claude-4x-faster-with-wispr-flow",
+  "title": "How to Use Claude 4x Faster with Wispr Flow",
+  "description": "Stop typing. Start talking. Voice-to-text with Claude.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "7e9f7ac1-bf90-4d94-821e-9b608854e456",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-10T05:18:52.317Z",
+  "updatedAt": "2026-04-19T01:46:03.406Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Getting Set Up",
+      "description": "Everything you need in under 5 minutes.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Stop Typing",
+          "order": 0,
+          "type": "self-report",
+          "content": "Typing slows you down. Most people speak 3-4x faster than they type.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Download Wispr Flow",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to wispr.ai and download Wispr Flow. It's free.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Pick Your Shortcut Key",
+          "order": 2,
+          "type": "self-report",
+          "content": "Open Wispr Flow settings and choose your trigger key.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-1",
+      "title": "Using Voice with Claude",
+      "description": "Now put it to work.",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-1-0",
+          "title": "Open Claude",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to claude.ai and open a new chat.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-1-1",
+          "title": "Hold, Talk, Release",
+          "order": 1,
+          "type": "self-report",
+          "content": "Hold your shortcut key, say what you want, release.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-1-2",
+          "title": "Talk Like a Human",
+          "order": 2,
+          "type": "self-report",
+          "content": "Just speak naturally. Claude understands conversational language.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-2",
+      "title": "Real-World Uses",
+      "description": "Practical applications.",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-2-0",
+          "title": "Writing Tasks",
+          "order": 0,
+          "type": "self-report",
+          "content": "Dictate emails, messages, captions, and documents.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-1",
+          "title": "Brainstorming",
+          "order": 1,
+          "type": "self-report",
+          "content": "Talk through problems out loud.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-2",
+          "title": "Everyday Questions",
+          "order": 2,
+          "type": "self-report",
+          "content": "Use it like a smart assistant.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-3",
+      "title": "Tips for Best Results",
+      "description": "Maximize effectiveness.",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-3-0",
+          "title": "Speak in Complete Thoughts",
+          "order": 0,
+          "type": "self-report",
+          "content": "Give Claude enough context when you speak.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-1",
+          "title": "Build a Habit",
+          "order": 1,
+          "type": "self-report",
+          "content": "Try using voice for every Claude interaction for one full day.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-2",
+          "title": "Combine with Copy-Paste",
+          "order": 2,
+          "type": "self-report",
+          "content": "Speak your prompt, get the response, copy it straight into your work.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

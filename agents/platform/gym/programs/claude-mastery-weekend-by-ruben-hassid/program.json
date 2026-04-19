@@ -1,0 +1,341 @@
+{
+  "id": "claude-mastery-weekend-by-ruben-hassid",
+  "slug": "claude-mastery-weekend-by-ruben-hassid",
+  "title": "Claude Mastery Weekend",
+  "description": "A 2-day structured program to go from basic Claude user to full AI-powered workflow in one weekend.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "2b1ad0f0-2415-49a6-a452-ed7734f0772b",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-09T12:22:57.618Z",
+  "updatedAt": "2026-04-19T01:46:03.406Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Claude Chat Basics (Saturday Morning)",
+      "description": "Get Claude set up properly and learn the one prompt framework.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Install and Configure Claude",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to claude.com/download and install the desktop app. Pay for the Pro plan ($20/month). Once inside, select **Opus 4.6 + Extended Thinking** as your model.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Connect Your Tools",
+          "order": 1,
+          "type": "self-report",
+          "content": "Navigate to **Connectors** and link your Slack, Google Drive, and Notion accounts.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Master the One Prompt Framework",
+          "order": 2,
+          "type": "self-report",
+          "content": "Stop writing long prompts. Use this instead:\n\n> \"I want to [TASK] for [SUCCESS CRITERIA]. Use AskUserQuestion before you start.\"",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-1",
+      "title": "Claude Cowork Setup (Saturday Afternoon)",
+      "description": "Replace prompting forever with a personal context folder.",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-1-0",
+          "title": "Create Your Folder Structure",
+          "order": 0,
+          "type": "self-report",
+          "content": "Open Cowork and create a root folder called Claude-Cowork with four subfolders: About Me, Templates, Projects, Outputs.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-1-1",
+          "title": "Build Your Context Files",
+          "order": 1,
+          "type": "self-report",
+          "content": "Create about-me.md and anti-ai-style.md.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-1-2",
+          "title": "Set Global Instructions",
+          "order": 2,
+          "type": "self-report",
+          "content": "Go to Settings > Cowork > Edit and paste global instructions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-2",
+      "title": "Skills and Plugins (Sunday Morning)",
+      "description": "Build reusable automations.",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-2-0",
+          "title": "Build Your First Skill",
+          "order": 0,
+          "type": "self-report",
+          "content": "Use the skill-creator to help build a skill for your most repeated task.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-1",
+          "title": "Test and Refine the Skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "Ask Claude: When would you use this skill?",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-2",
+          "title": "Upload and Install",
+          "order": 2,
+          "type": "self-report",
+          "content": "Go to Settings > Capabilities > Skills > Upload.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-2-3",
+          "title": "Install Plugins",
+          "order": 3,
+          "type": "self-report",
+          "content": "Go to Cowork > Customize > Browse Plugins.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-3",
+      "title": "Code with Claude (Sunday Afternoon - Part 1)",
+      "description": "Let Claude write and manage code projects.",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-3-0",
+          "title": "Connect GitHub",
+          "order": 0,
+          "type": "self-report",
+          "content": "Click the Code tab in Claude. Connect your GitHub account.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-1",
+          "title": "Prompt for Full Project Creation",
+          "order": 1,
+          "type": "self-report",
+          "content": "Create a GitHub repo named [project]. Code everything.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-2",
+          "title": "Set Up VS Code Integration",
+          "order": 2,
+          "type": "self-report",
+          "content": "Download VS Code and install the Claude extension.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-3-3",
+          "title": "Create a Project Memory File",
+          "order": 3,
+          "type": "self-report",
+          "content": "Create a CLAUDE.md file with everything learned about the project.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-4",
+      "title": "Claude Computer Use (Sunday Afternoon - Part 2)",
+      "description": "Let Claude work on your computer.",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-4-0",
+          "title": "Enable Computer Use",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to Settings > Desktop App and turn on Browser Use and Computer Use.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-4-1",
+          "title": "Connect Your Phone with Dispatch",
+          "order": 1,
+          "type": "self-report",
+          "content": "Install Dispatch and connect your phone.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-4-2",
+          "title": "Schedule Recurring Tasks",
+          "order": 2,
+          "type": "self-report",
+          "content": "Go to the left sidebar > Scheduled. Write your prompt. Pick a frequency.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-5",
+      "title": "The Progression Summary",
+      "description": "A quick map of what you have built.",
+      "order": 5,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-5-0",
+          "title": "Understand the Levels",
+          "order": 0,
+          "type": "self-report",
+          "content": "Level 1: Basic Claude Chat. Level 2: Cowork + Context Files. Level 3: Skills + Plugins. Level 4: Code + Computer Use.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-5-1",
+          "title": "Your Next Action",
+          "order": 1,
+          "type": "self-report",
+          "content": "Pick the highest level you completed. Run one real task through that level.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

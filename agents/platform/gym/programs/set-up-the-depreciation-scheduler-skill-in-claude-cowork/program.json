@@ -1,0 +1,96 @@
+{
+  "id": "set-up-the-depreciation-scheduler-skill-in-claude-cowork",
+  "slug": "set-up-the-depreciation-scheduler-skill-in-claude-cowork",
+  "title": "Set Up the Depreciation Scheduler Skill in Claude Cowork",
+  "description": "Build a reusable Cowork task for depreciation scheduling.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "8af42177-a73b-41d5-b8ad-5083ac3e82d6",
+  "projectSlug": "finance-guides",
+  "seriesSlug": "claude-cowork",
+  "orderInSeries": 6,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.429Z",
+  "updatedAt": "2026-04-19T01:53:15.429Z",
+  "modules": [
+    {
+      "id": "4062d6d2",
+      "title": "Building Your Depreciation Scheduler Skill",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "1871fcf4",
+          "title": "What this skill does",
+          "order": 1,
+          "type": "self-report",
+          "content": "The Depreciation Scheduler maintains your fixed asset register and runs depreciation calculations.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "e7339599",
+          "title": "Create the task in Cowork",
+          "order": 2,
+          "type": "self-report",
+          "content": "Open Claude Cowork, click New Task, name it Depreciation Scheduler.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "e5d7cc1f",
+          "title": "Write the skill instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "Paste the depreciation scheduler prompt into the task instructions field.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "7915a225",
+          "title": "Run it and save your skill",
+          "order": 4,
+          "type": "self-report",
+          "content": "Attach a sample fixed asset register, review, and refine.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

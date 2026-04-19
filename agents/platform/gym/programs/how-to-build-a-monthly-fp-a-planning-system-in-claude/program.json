@@ -1,0 +1,195 @@
+{
+  "id": "how-to-build-a-monthly-fp-a-planning-system-in-claude",
+  "slug": "how-to-build-a-monthly-fp-a-planning-system-in-claude",
+  "title": "How to Build a Monthly FP&A Planning System in Claude",
+  "description": "A step-by-step guide to replacing the monthly FP&A grind with a repeatable Claude workflow. Covers setting up a Claude Project as your persistent FP&A workspace, loading a real planning model with actuals, spotting anomalies, updating forecasts, running scenario analysis, and saving the workflow so next month takes half the time. Based on Wouter Born's SaaS planning system — no code or API skills needed.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Wouter Born — LinkedIn post (2026-04-06). Wouter used Claude to build a full monthly planning system for a real SaaS company including customer metrics, headcount planning, full financials, balance sheet, and an interactive dashboard. His key finding: a CFO can replace the monthly FP&A grind with a Claude workflow that's repeatable, accurate, and fast enough to run every month. No code, no API, no technical skills required.",
+  "tags": ["AI", "Finance", "FP&A", "Planning", "Claude", "SaaS"],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "836a752b-80f4-4ade-90e1-e0b93e43aa3e",
+  "projectSlug": "unofficial-guides-from-wouter-born-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "createdAt": "2026-04-18T21:52:37.767Z",
+  "updatedAt": "2026-04-18T22:00:00.000Z",
+  "modules": [
+    {
+      "id": "3ec7c665-a36b-4c89-a503-81021937ee31",
+      "title": "Set Up Your Claude Project as an FP&A Workspace",
+      "description": "Create a persistent Claude Project that serves as your monthly planning hub",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "bd537065-8024-4e9f-936a-9c22da284351",
+          "title": "Create a New Claude Project",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to **claude.ai** and click **\"New Project\"** in the left sidebar. Name it something like **\"Monthly FP&A — [Company Name]\"**.\n\nA Claude Project gives you a persistent workspace where Claude retains context across conversations. This is the key to making your monthly planning repeatable — Claude remembers your model structure, your assumptions, and your formatting preferences from month to month.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "99568adf-4308-4d11-a591-d4dfec5240f9",
+          "title": "Add Project Instructions",
+          "order": 2,
+          "type": "self-report",
+          "content": "In the Project's **custom instructions** panel, add context about your company and planning preferences. For example:\n\n```\nYou are an FP&A analyst for [Company Name], a SaaS company.\n- Fiscal year: Jan–Dec\n- Key metrics: ARR, MRR, net revenue retention, CAC payback\n- Currency: USD\n- When analyzing variances, always flag anything >5% from plan\n- Use consistent formatting: tables for data, bullet points for insights\n- Always show your assumptions before building forecasts\n```\n\nThis ensures every conversation in the project starts with the right context — no re-explaining your business each month.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "605cbe14-a8d0-45d0-baa2-55c55d8c0d89",
+      "title": "Load Your Planning Model and Actuals",
+      "description": "Upload your financial data so Claude has full context",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "74a7c5bc-5d19-4d3c-89f5-872ce85906f7",
+          "title": "Upload Your Planning Model",
+          "order": 1,
+          "type": "self-report",
+          "content": "Upload your existing planning model as a CSV or Excel file into the Project's **knowledge base**. This should include:\n\n- **Revenue plan** — by product line, customer segment, or channel\n- **Headcount plan** — roles, start dates, fully loaded costs\n- **OpEx budget** — by department or cost category\n- **Customer metrics** — if SaaS: MRR, churn, expansion, new logos\n\nClaude can read Excel files directly. Upload the file and say:\n\n> \"This is our FY2026 planning model. Please review the structure and confirm you understand all tabs and metrics before we proceed.\"\n\nLet Claude summarize what it sees. Correct anything it misreads.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "29f704d0-7db0-4d60-aea4-abaf143af583",
+          "title": "Upload New Actuals Each Month",
+          "order": 2,
+          "type": "self-report",
+          "content": "Each month, upload your latest actuals (trial balance export, GL summary, or management reporting pack). Tell Claude:\n\n> \"Here are our March 2026 actuals. Compare these against the plan I uploaded earlier. Highlight the top 5 variances by dollar amount and explain likely drivers for each.\"\n\nBecause the planning model is already in the Project's knowledge, Claude has full context to compare actuals vs. plan without you needing to re-upload or re-explain anything.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "84c80735-cd75-4182-8e13-fe433148ee9b",
+      "title": "Spot Anomalies and Update Your Forecast",
+      "description": "Let Claude identify variances and refresh your reforecast",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "7f18c1d7-cdab-4678-a127-7344c2822c0d",
+          "title": "Run a Variance Analysis",
+          "order": 1,
+          "type": "self-report",
+          "content": "Ask Claude to perform a structured variance analysis:\n\n> \"Run a full variance analysis: actuals vs. plan for the month and YTD. Group by revenue, COGS, and OpEx. For any line item with >5% variance, provide a root cause hypothesis and flag whether it's timing, volume, or rate driven.\"\n\nClaude will produce a table with each line item, the plan figure, the actual, the variance in dollars and percentage, and a hypothesis for the driver. Review these — you'll likely confirm most and correct a few. This is your starting point for the reforecast.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "08b4e772-3b9d-4470-a663-5e3c5364caa1",
+          "title": "Update the Forecast",
+          "order": 2,
+          "type": "self-report",
+          "content": "Once you've reviewed the variances, tell Claude which assumptions to update:\n\n> \"Based on the variance analysis, update the forecast for the remaining months. Specifically: (1) reduce new logo acquisition to 8/month from 12 — pipeline is softer than planned, (2) hold headcount flat through Q3 — hiring freeze, (3) increase cloud hosting costs by 15% — we migrated to a larger instance.\"\n\nClaude will regenerate the full-year forecast with your updated assumptions, showing you the revised P&L, cash flow impact, and key metrics. It will also flag any downstream effects (e.g., if the hiring freeze impacts revenue capacity).",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "89b93c89-ea22-4b50-871f-d91c5abcc19f",
+      "title": "Run Scenarios and Sensitivity Analysis",
+      "description": "Stress-test assumptions and compare multiple scenarios",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "fd68a3ac-6fa1-4bd9-b3f8-6bbd3e28b599",
+          "title": "Define Your Scenarios",
+          "order": 1,
+          "type": "self-report",
+          "content": "Ask Claude to build multiple scenarios for comparison:\n\n> \"Build three scenarios for the rest of the year:\n> 1. **Base case** — current updated forecast as-is\n> 2. **Upside** — new logo acquisition recovers to 12/month in Q4, plus one enterprise deal at $500K ACV closes in September\n> 3. **Downside** — churn increases 2 percentage points and we lose our second-largest customer in Q3\n>\n> Show me a side-by-side comparison table: revenue, EBITDA, cash position at year-end, and runway in months for each scenario.\"\n\nThis gives you instant scenario planning that would normally take a senior analyst a full day to model manually.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "a057b7b7-b78b-4566-a6bc-5e8a4a8f80e4",
+          "title": "Run Sensitivity Analysis",
+          "order": 2,
+          "type": "self-report",
+          "content": "Go deeper on the variables that matter most:\n\n> \"Run a sensitivity analysis on EBITDA. Show me how it changes if I move these three inputs independently: (1) churn rate from 3% to 7% in 1-point increments, (2) new logo count from 5 to 15 per month, (3) average deal size from $30K to $60K ACV. Present as a table or matrix.\"\n\nThis tells you exactly which levers have the most impact on your bottom line — critical for board discussions and resource allocation decisions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "44bcaebe-773e-454e-b6b9-0243cae89f65",
+      "title": "Save and Repeat Next Month",
+      "description": "Make the workflow repeatable so each month gets faster",
+      "order": 5,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "ae45cda8-b374-42d6-8281-c0ed5743ad05",
+          "title": "Save Your Workflow as a Template",
+          "order": 1,
+          "type": "self-report",
+          "content": "At the end of your monthly cycle, ask Claude to summarize the workflow:\n\n> \"Summarize the exact steps and prompts I used this month as a reusable checklist. Include the order of uploads, the key prompts, and any assumptions I locked in.\"\n\nSave this output in your Project's knowledge base as a **\"Monthly Playbook\"** document. Next month, you can say:\n\n> \"It's time for the April reforecast. Follow the Monthly Playbook. Here are the new actuals.\"\n\nEach month gets faster because Claude already knows your model structure, your preferred formats, your scenario definitions, and your reporting style. Wouter Born reports that the second month takes roughly half the time of the first.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

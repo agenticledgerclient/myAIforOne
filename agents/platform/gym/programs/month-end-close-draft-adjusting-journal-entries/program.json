@@ -1,0 +1,88 @@
+{
+  "id": "month-end-close-draft-adjusting-journal-entries",
+  "slug": "month-end-close-draft-adjusting-journal-entries",
+  "title": "Month-End Close: Draft Adjusting Journal Entries",
+  "description": "Have Claude draft your standard month-end adjusting entries with supporting calculations, ready for your review.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Journal Entries",
+    "Claude"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "6b34d6a4-7ee4-477d-a906-99b57cabcf58",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "0171fc67-4969-4974-a83f-a039177efc93",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "a55682fa-1da2-45da-bcb7-71c18aa137bf",
+          "title": "Create a 'Draft AJEs' skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "Write a skill that takes the reconciliation outputs from the previous step and identifies entries needed: accruals, prepaids, depreciation, reclasses. Provide Claude with your chart of accounts and any recurring entry templates.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "026297d8-f1d5-4c76-8fec-cc3852b7497d",
+          "title": "Require supporting calculations for every entry",
+          "order": 2,
+          "type": "self-report",
+          "content": "Tell Claude that every journal entry must include: the debit and credit accounts, the dollar amount, a one-line description, and the calculation or source that supports it. No unexplained entries.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "01081c5d-8c85-4e66-b1a6-04721081aad2",
+          "title": "Add a human approval gate",
+          "order": 3,
+          "type": "self-report",
+          "content": "The skill should never post entries directly. It produces a formatted journal entry document for your review. You approve, reject, or modify before anything hits the books.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

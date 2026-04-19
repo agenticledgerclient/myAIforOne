@@ -1,0 +1,140 @@
+{
+  "id": "treat-ai-like-staff-using-agentic-ai-tools-effectively",
+  "slug": "treat-ai-like-staff-using-agentic-ai-tools-effectively",
+  "title": "Treat AI Like Staff: Using Agentic AI Tools Effectively",
+  "description": "Learn how to use agentic AI tools like delegating to staff.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Finance",
+    "Agentic AI",
+    "Productivity"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "fd3a2a34-6e25-4e71-8adf-b69c04dda2e2",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-18T19:41:33.545Z",
+  "updatedAt": "2026-04-19T01:46:03.407Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Steps",
+      "description": "Core steps for effective AI delegation.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Stop treating AI like a chat window",
+          "order": 0,
+          "type": "self-report",
+          "content": "Frame your request as a work assignment.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Plan before you execute",
+          "order": 1,
+          "type": "self-report",
+          "content": "Outline what you want before handing work to an AI agent.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Build durable instructions",
+          "order": 2,
+          "type": "self-report",
+          "content": "Write reusable instruction files or skills.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-3",
+          "title": "Match the reasoning level to the task",
+          "order": 3,
+          "type": "self-report",
+          "content": "Use high-reasoning models for complex analysis, fast models for routine tasks.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-4",
+          "title": "Always review the output",
+          "order": 4,
+          "type": "self-report",
+          "content": "Review every deliverable like work from a junior staff member.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-5",
+          "title": "Don't try to automate unstable processes",
+          "order": 5,
+          "type": "self-report",
+          "content": "Fix the process first, then automate.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-6",
+          "title": "Iterate instead of giving up",
+          "order": 6,
+          "type": "self-report",
+          "content": "Refine instructions, add examples, correct mistakes.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

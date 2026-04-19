@@ -1,0 +1,140 @@
+{
+  "id": "choose-the-right-ai-model-for-finance-work",
+  "slug": "choose-the-right-ai-model-for-finance-work",
+  "title": "Choose the Right AI Model for Finance Work",
+  "description": "Know exactly which AI model to use for each type of finance task — stop guessing and start matching the tool to the job.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Finance",
+    "Models",
+    "Comparison"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "f916ae66-584d-48d2-88ba-c2028a169094",
+  "projectSlug": "unofficial-guides-from-alyona-mysko-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:01.543Z",
+  "updatedAt": "2026-04-19T01:53:01.543Z",
+  "modules": [
+    {
+      "id": "b541ab2d-89ed-4086-88f3-b124e287e637",
+      "title": "Steps",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "bb8cb742-be51-48bd-afed-c19c5a5cfd54",
+          "title": "Understand the model landscape",
+          "order": 1,
+          "type": "self-report",
+          "content": "There are 4 main models worth knowing for finance: Claude Sonnet 4.6, Claude Opus 4.6, GPT-5.4, and Gemini 3 Flash. Each has a different sweet spot.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "d2522d94-331d-442a-ad82-34aa4676bc42",
+          "title": "Use Claude Sonnet 4.6 as your daily driver",
+          "order": 2,
+          "type": "self-report",
+          "content": "For 80% of daily finance work (quick analysis, formatting, drafting, data cleanup), Sonnet is fast, cheap, and scored #1 on the Finance Agent Benchmark. This is your default.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "1e996524-c8c4-45da-b32b-c11b37a96062",
+          "title": "Switch to Claude Opus 4.6 for complex reasoning",
+          "order": 3,
+          "type": "self-report",
+          "content": "When you need airtight logic — complex modeling, deep variance analysis, multi-step financial reasoning — Opus is the upgrade. It uses 5x fewer tokens than GPT-5 at similar accuracy.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "a91af9da-05a6-400b-98a9-c4c32732695a",
+          "title": "Use GPT-5.4 for heavy spreadsheet computation",
+          "order": 4,
+          "type": "self-report",
+          "content": "If you're building a massive Excel model and need pure number-crunching power, GPT-5.4 has the highest raw modeling score. Use it for computation-heavy tasks.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "2a7a84cb-6e0b-4a0c-8215-8b76695c1f66",
+          "title": "Start teams on Gemini 3 Flash for budget-friendly entry",
+          "order": 5,
+          "type": "self-report",
+          "content": "At 83.6% accuracy and the lowest cost, Gemini 3 Flash is a solid option for teams just starting with AI. Good enough for daily work while keeping costs low.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "20b997b6-297e-4b0c-8fd8-7fa0616af170",
+          "title": "Never send client or regulator-facing work without human review",
+          "order": 6,
+          "type": "self-report",
+          "content": "No model has broken 64% on real-world analyst tasks (SEC filings, financial modeling, market research). Always have a human as the final check on anything external.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "8b42b16f-8794-4ac3-821a-083e1dc234ac",
+          "title": "Match your model to the task (cheat sheet)",
+          "order": 7,
+          "type": "self-report",
+          "content": "- **Complex modeling** → Opus 4.6\\n- **Daily finance work** → Sonnet 4.6\\n- **Heavy computation** → GPT-5.4\\n- **Agentic workflows** → Sonnet 4.6\\n- **On a budget** → Gemini 3 Flash\\n- **Client/regulator-facing** → Human + any model",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

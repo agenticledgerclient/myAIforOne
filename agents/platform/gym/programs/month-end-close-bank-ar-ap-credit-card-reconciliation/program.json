@@ -1,0 +1,88 @@
+{
+  "id": "month-end-close-bank-ar-ap-credit-card-reconciliation",
+  "slug": "month-end-close-bank-ar-ap-credit-card-reconciliation",
+  "title": "Month-End Close: Bank, AR, AP & Credit Card Reconciliation",
+  "description": "Automate your monthly reconciliations by teaching Claude to match transactions and flag discrepancies.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Reconciliation",
+    "Claude"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "406ea1b5-ca1a-4316-8c0e-17a68fe633aa",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "c7511d57-ec33-4af0-a2df-d41048238cb8",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "0b9b7935-1ca9-4175-96cf-4e3b0cff0162",
+          "title": "Create a 'Reconcile Bank' skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "Write a markdown skill that takes your bank statement (CSV or PDF) and GL bank activity, then matches transactions automatically. Tell Claude to flag unmatched items, timing differences, and outstanding checks.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "f5d73aea-8d0f-4d93-a768-779df78d68ba",
+          "title": "Extend to AR, AP, and credit cards",
+          "order": 2,
+          "type": "self-report",
+          "content": "Duplicate the pattern for accounts receivable (match invoices to payments), accounts payable (match bills to payments), and credit card statements. Each gets its own skill file with account-specific matching rules.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "9d835cca-3f13-4c3c-b09d-93ee00c79a9a",
+          "title": "Build in tie-out checks",
+          "order": 3,
+          "type": "self-report",
+          "content": "Require every reconciliation output to include a cover sheet showing: beginning balance, activity, ending balance, and the reconciling difference. The difference must be zero or explained. Claude should refuse to mark a reconciliation complete if it doesn't tie.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

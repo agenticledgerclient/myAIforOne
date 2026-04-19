@@ -1,0 +1,96 @@
+{
+  "id": "set-up-the-missing-docs-tracker-skill-in-claude-cowork",
+  "slug": "set-up-the-missing-docs-tracker-skill-in-claude-cowork",
+  "title": "Set Up the Missing Docs Tracker Skill in Claude Cowork",
+  "description": "Build a reusable Cowork task for tracking missing documents.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "52f14c30-d285-4c1e-89c3-8485194b444a",
+  "projectSlug": "finance-guides",
+  "seriesSlug": "claude-cowork",
+  "orderInSeries": 7,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.429Z",
+  "updatedAt": "2026-04-19T01:53:15.429Z",
+  "modules": [
+    {
+      "id": "fc483185",
+      "title": "Building Your Missing Docs Tracker Skill",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "d5340c7e",
+          "title": "What this skill does",
+          "order": 1,
+          "type": "self-report",
+          "content": "The Missing Docs Tracker checks a client folder against your required documents list.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "aff173da",
+          "title": "Create the task in Cowork",
+          "order": 2,
+          "type": "self-report",
+          "content": "Open Claude Cowork, click New Task, name it Missing Docs Tracker.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "03d945d8",
+          "title": "Write the skill instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "Paste the missing docs tracker prompt into the task instructions field.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "53fa7430",
+          "title": "Run it and save your skill",
+          "order": 4,
+          "type": "self-report",
+          "content": "Provide a sample client folder listing, review gap report and email draft.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

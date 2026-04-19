@@ -1,0 +1,88 @@
+{
+  "id": "month-end-close-pull-data-from-quickbooks-or-xero",
+  "slug": "month-end-close-pull-data-from-quickbooks-or-xero",
+  "title": "Month-End Close: Pull Data from QuickBooks or Xero",
+  "description": "Set up a Claude Cowork skill that connects to your accounting software and pulls the data you need for month-end close automatically.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Claude",
+    "Month-End Close"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "6f2b459c-fa73-4563-a958-6f579deb6f03",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "8051c44f-a284-4adb-aaa3-247e1da49b86",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "2b9950dc-e6cb-4e33-adab-77a504820b81",
+          "title": "Install Claude Cowork and get the QuickBooks or Xero MCP",
+          "order": 1,
+          "type": "self-report",
+          "content": "Download the Claude desktop app and subscribe to a paid plan. Then install the pre-built MCP connector for QuickBooks Online or Xero — this lets Claude talk directly to your accounting system.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "ed3dd709-dd4c-49cf-a8f1-64e36b4f5d9b",
+          "title": "Create a Cowork skill called \"Pull GL Data\"",
+          "order": 2,
+          "type": "self-report",
+          "content": "Write a markdown file that instructs Claude to connect to your accounting software, pull the trial balance, general ledger detail, and any sub-ledger data you need for close. Specify the date range and which accounts to include.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "66c8cef7-d5c1-48ab-ac7d-bcbd154404b2",
+          "title": "Test the data pull and verify completeness",
+          "order": 3,
+          "type": "self-report",
+          "content": "Run the skill and check that the output matches what you'd get from a manual export. Confirm account totals tie to your TB, and that the date range is correct. Fix any gaps in the skill instructions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

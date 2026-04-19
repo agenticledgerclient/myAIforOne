@@ -1,0 +1,8 @@
+{
+  "slug": "public",
+  "name": "Public",
+  "description": "The global library \u2014 open to all registered users.",
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "4a9501ee-f165-4e65-99b6-82e62310fa54"
+}

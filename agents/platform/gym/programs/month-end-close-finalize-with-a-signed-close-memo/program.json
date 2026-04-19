@@ -1,0 +1,88 @@
+{
+  "id": "month-end-close-finalize-with-a-signed-close-memo",
+  "slug": "month-end-close-finalize-with-a-signed-close-memo",
+  "title": "Month-End Close: Finalize with a Signed Close Memo",
+  "description": "Produce a formal close memo documenting what was done, what's still open, and who approved it.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Close Memo",
+    "Claude"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "47c1ada4-ae88-4937-bf88-6a2e8c566838",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "cb50d77e-9d5a-4a6a-a2a6-3618f1b234be",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "1a2ae494-d048-45e2-a655-61846f839944",
+          "title": "Create a 'Close Memo' skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "This skill generates a one-page memo summarizing: the period closed, total adjusting entries posted, key reconciliation results, any exceptions or open items, and the preparer/reviewer sign-off lines.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "68bc4b54-10b7-456a-a308-49e6341dc004",
+          "title": "Auto-populate from prior steps",
+          "order": 2,
+          "type": "self-report",
+          "content": "The skill should pull data from the workpaper package: number of AJEs, total dollar amount of adjustments, any reconciling items still outstanding. Don't re-enter data that already exists.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "03d119ea-b281-428f-8335-f370cf3884e0",
+          "title": "Add sign-off fields and save",
+          "order": 3,
+          "type": "self-report",
+          "content": "Include fields for preparer name/date and reviewer name/date. Save the final memo as part of the workpaper package. This is your audit trail that close was completed and reviewed.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

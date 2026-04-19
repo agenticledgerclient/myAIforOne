@@ -1,0 +1,128 @@
+{
+  "id": "ai-proof-your-accounting-firm-s-tech-stack",
+  "slug": "ai-proof-your-accounting-firm-s-tech-stack",
+  "title": "AI-Proof Your Accounting Firm's Tech Stack",
+  "description": "Understand what makes software future-proof in an AI-agent world.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Tech Stack",
+    "MCP",
+    "Future-Proofing"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "e4b7d8f8-bd49-4421-bcf8-18bf96a3db5a",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-18T19:41:40.762Z",
+  "updatedAt": "2026-04-19T01:46:03.407Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Steps",
+      "description": "Evaluate and future-proof your tech stack.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Understand the two jobs that remain for software",
+          "order": 0,
+          "type": "self-report",
+          "content": "Build AI agents or build software for AI agents.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Look for MCP server support as the gold standard",
+          "order": 1,
+          "type": "self-report",
+          "content": "MCP lets AI agents interact with your software directly.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "At minimum, demand a good API",
+          "order": 2,
+          "type": "self-report",
+          "content": "Tools should have a robust API for programmatic access.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-3",
+          "title": "Evaluate your current tools",
+          "order": 3,
+          "type": "self-report",
+          "content": "Ask: Can an AI agent interact with this tool?",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-4",
+          "title": "Prioritize connectivity over features",
+          "order": 4,
+          "type": "self-report",
+          "content": "Weight connectivity as heavily as features when evaluating new tools.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-5",
+          "title": "Start testing agent workflows with one tool today",
+          "order": 5,
+          "type": "self-report",
+          "content": "Pick one tool, connect it to an AI agent, give it a simple task.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

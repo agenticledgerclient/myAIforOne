@@ -1,0 +1,140 @@
+{
+  "id": "build-your-first-ai-agent-as-a-finance-professional",
+  "slug": "build-your-first-ai-agent-as-a-finance-professional",
+  "title": "Build Your First AI Agent as a Finance Professional",
+  "description": "Go from zero to your first working AI automation — taking a repetitive weekly finance task and having AI handle it for you.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Finance",
+    "Automation",
+    "Agents"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "1d59635b-294f-41eb-bb46-9b9368a0f9ef",
+  "projectSlug": "unofficial-guides-from-alyona-mysko-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:01.542Z",
+  "updatedAt": "2026-04-19T01:53:01.542Z",
+  "modules": [
+    {
+      "id": "58124a5c-881e-44f8-b218-f2046a5c3863",
+      "title": "Steps",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "c8b4cc53-82d9-4dfb-8f86-687100267f64",
+          "title": "Identify your most repetitive weekly task",
+          "order": 1,
+          "type": "self-report",
+          "content": "Pick the one you dread. Usually it's copying data from one system and summarizing it in another (e.g., pulling GL data into a variance report, consolidating budget inputs).",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "9430fb1d-a0dc-4c8e-87ce-220e677754f6",
+          "title": "Open Claude and describe the task in plain English",
+          "order": 2,
+          "type": "self-report",
+          "content": "Don't worry about \"prompting perfectly.\" Just explain what you do, what the inputs look like, and what the output should be. Ask Claude to help you automate it.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "f8445fd1-b868-4d75-9db6-dc23481e7ce0",
+          "title": "Test and iterate until it works at 70%+",
+          "order": 3,
+          "type": "self-report",
+          "content": "Your first attempt won't be perfect. Refine the instructions, add examples of what good output looks like, and correct mistakes. If it gets to 70% accuracy, you have a working foundation.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "32636795-18e2-490c-8ee1-1f3b35a09b05",
+          "title": "Try Claude inside Excel for spreadsheet tasks",
+          "order": 4,
+          "type": "self-report",
+          "content": "If your repetitive task involves spreadsheets (most finance tasks do), install the Claude Excel add-in and use it to clean data, write formulas, or audit models directly in your workbook.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "8e7d4d69-8e3e-403e-8f6c-cd3f0ac3f53a",
+          "title": "Connect Claude to PowerPoint for reporting",
+          "order": 5,
+          "type": "self-report",
+          "content": "Take the outputs from your analysis and ask Claude to pull key findings into a board deck or management report. Same conversation, minutes instead of hours.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "3090eaa2-906e-489b-afe7-bbd803ebb1e0",
+          "title": "Evaluate AI-native finance tools",
+          "order": 6,
+          "type": "self-report",
+          "content": "Look at whether purpose-built AI finance tools (for FP&A, close management, reconciliation) could replace parts of your legacy stack. Compare the ROI.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "f4efcf59-30e5-4d98-9986-74e37b3e77eb",
+          "title": "Audit your existing software for AI features",
+          "order": 7,
+          "type": "self-report",
+          "content": "Check whether tools you already pay for (your ERP, BI platform, expense management) have shipped AI features you haven't turned on yet.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

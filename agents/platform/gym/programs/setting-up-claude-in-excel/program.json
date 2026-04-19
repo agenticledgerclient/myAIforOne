@@ -1,0 +1,250 @@
+{
+  "id": "setting-up-claude-in-excel",
+  "slug": "setting-up-claude-in-excel",
+  "title": "Setting Up Claude in Excel",
+  "description": "Get Claude running in Excel in under 5 minutes.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "13944518-276c-4459-acf7-941f4affb9f1",
+  "projectSlug": "finance-guides",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.428Z",
+  "updatedAt": "2026-04-19T01:53:15.428Z",
+  "modules": [
+    {
+      "id": "0122f8e5",
+      "title": "Installation",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "1bb24be4",
+          "title": "Open the Add-ins Store",
+          "order": 0,
+          "type": "self-report",
+          "content": "In Excel, click **Insert** in the top ribbon, then click **Get Add-ins**.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "fc4c52ee",
+          "title": "Find and Install Claude",
+          "order": 1,
+          "type": "self-report",
+          "content": "In the search bar type **Claude by Anthropic**, hit enter, then click **Install**. Once complete, Claude will appear in your Excel ribbon.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "17e3decc",
+      "title": "Launch the Sidebar",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "3bb82a27",
+          "title": "Open Claude",
+          "order": 0,
+          "type": "self-report",
+          "content": "On **Mac** press **Ctrl + Option + C**. On **Windows** find the Claude button in your ribbon.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "e275f6db",
+          "title": "Sign In",
+          "order": 1,
+          "type": "self-report",
+          "content": "Log in with your Anthropic account credentials.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "4f15b15b",
+      "title": "You are Ready!",
+      "description": "",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "1dab0031",
+          "title": "Confirm It is Working",
+          "order": 0,
+          "type": "self-report",
+          "content": "You should now see the Claude chat sidebar on the right side of your Excel window. Type hello to confirm.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "d8f9b384",
+          "title": "What is Next",
+          "order": 1,
+          "type": "self-report",
+          "content": "You are all set! Drop in brand guidelines, build formulas, use Claude as your Excel co-pilot.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "76c69e62",
+      "title": "Installation 2",
+      "description": "",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "c13e47f3",
+          "title": "Open the Add-ins Store",
+          "order": 0,
+          "type": "self-report",
+          "content": "Click Insert then Get Add-ins.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "a1cc1d2e",
+          "title": "Find and Install Claude",
+          "order": 1,
+          "type": "self-report",
+          "content": "Search and install.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "d12843fe",
+      "title": "Launch the Sidebar 2",
+      "description": "",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "906cb91e",
+          "title": "Open Claude",
+          "order": 0,
+          "type": "self-report",
+          "content": "Ctrl+Option+C or ribbon button.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "034bf318",
+          "title": "Sign In",
+          "order": 1,
+          "type": "self-report",
+          "content": "Log in.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "3ae3fd85",
+      "title": "You are Ready! 2",
+      "description": "",
+      "order": 5,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "e97d4d76",
+          "title": "Confirm It is Working",
+          "order": 0,
+          "type": "self-report",
+          "content": "Type hello.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "a093ca6a",
+          "title": "What is Next",
+          "order": 1,
+          "type": "self-report",
+          "content": "Use as co-pilot.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

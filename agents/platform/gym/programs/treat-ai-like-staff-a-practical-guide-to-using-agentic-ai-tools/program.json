@@ -1,0 +1,151 @@
+{
+  "id": "treat-ai-like-staff-a-practical-guide-to-using-agentic-ai-tools",
+  "slug": "treat-ai-like-staff-a-practical-guide-to-using-agentic-ai-tools",
+  "title": "Treat AI Like Staff — A Practical Guide to Using Agentic AI Tools",
+  "description": "Learn how to use agentic AI tools (like OpenAI Codex or Claude Cowork) the way you'd delegate to a capable staff member — with planning, clear instructions, and proper review. Based on Devon Coombs' framework for finance and accounting teams.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Devon Coombs — LinkedIn post (2026-04-18 scrape). Core framework: stop treating AI like a chat window, frame requests as work assignments, build durable instructions, match reasoning level to task complexity, always review outputs like you would a junior's work, don't automate messy processes, and iterate before judging.",
+  "tags": [
+    "AI",
+    "Finance",
+    "Agentic AI",
+    "Delegation",
+    "Workflow"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "02761c78-1acd-4d49-8c2c-d1c125ed03c2",
+  "projectSlug": "unofficial-guides-from-devon-coombs-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:52:01.642Z",
+  "updatedAt": "2026-04-19T01:52:01.642Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Reframe How You Work with AI",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Stop Treating AI Like a Chat Window",
+          "order": 1,
+          "type": "self-report",
+          "content": "The biggest mistake people make with agentic tools is typing questions like it's a search engine. Instead, frame your request as a work assignment: \"Here are the source files. Here's what I need. Here's the format.\" Give it a task, not a question.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Plan Before You Execute",
+          "order": 2,
+          "type": "self-report",
+          "content": "Before handing work to an AI agent, outline what you want: What are the inputs? What does the final deliverable look like? What format should it be in? Skipping this step leads to mediocre outputs and wasted iterations.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Build Durable Instructions Instead of Repeating Yourself",
+          "order": 3,
+          "type": "self-report",
+          "content": "If you find yourself giving the same instructions across sessions, write them into a reusable instruction file or skill. This is the equivalent of creating an SOP for a new hire — do it once, benefit every time.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-3",
+          "title": "Match the Reasoning Level to the Task",
+          "order": 4,
+          "type": "self-report",
+          "content": "Not every task needs the most powerful model. Use high-reasoning models (like Opus) for complex multi-step analysis. Use faster models (like Sonnet) for formatting, drafting, and routine tasks. Using the wrong reasoning level wastes time or produces inaccurate output.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "module-1",
+      "title": "Review, Fix, and Iterate",
+      "description": "",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-1-0",
+          "title": "Always Review the Output — Polished Doesn't Mean Correct",
+          "order": 1,
+          "type": "self-report",
+          "content": "AI outputs look professional by default. That's dangerous. Review every deliverable the same way you'd review work from a junior staff member. Check the logic, verify the numbers, and confirm the conclusions follow from the data.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-1-1",
+          "title": "Don't Try to Automate Unstable Processes",
+          "order": 2,
+          "type": "self-report",
+          "content": "If your current workflow is messy, inconsistent, or undocumented, AI will amplify the mess. Fix the process first, then automate. AI works best when it's replicating a well-defined, repeatable workflow.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-1-2",
+          "title": "Iterate Instead of Giving Up",
+          "order": 3,
+          "type": "self-report",
+          "content": "Your first attempt will rarely be perfect. Refine your instructions, add examples of good output, and correct mistakes. Most people quit before they've learned how to work with the tool effectively. Give it 3-5 serious attempts before judging the tool.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

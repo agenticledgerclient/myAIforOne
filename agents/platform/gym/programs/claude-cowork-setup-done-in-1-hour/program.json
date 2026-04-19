@@ -1,0 +1,276 @@
+{
+  "id": "claude-cowork-setup-done-in-1-hour",
+  "slug": "claude-cowork-setup-done-in-1-hour",
+  "title": "Claude Cowork Setup",
+  "description": "Get Claude Cowork fully configured and running your first real task in one sitting.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "9636397e-ff77-4e62-8746-9ccd431aa6f5",
+  "projectSlug": "finance-guides",
+  "seriesSlug": "claude-cowork",
+  "orderInSeries": 0,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.428Z",
+  "updatedAt": "2026-04-19T01:53:15.428Z",
+  "modules": [
+    {
+      "id": "e8a7019a",
+      "title": "Get the App Ready",
+      "description": "Everything starts here.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "f7ab9c3a",
+          "title": "Download Claude Desktop",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to claude.ai, download the desktop app, and install it. Open it and sign in.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "55ad3ffd",
+          "title": "Upgrade to Pro",
+          "order": 1,
+          "type": "self-report",
+          "content": "Go to Settings, Plan, Upgrade to Pro ($20/mo). You need this to access Cowork features.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "991d2685",
+          "title": "Find the Cowork Tab",
+          "order": 2,
+          "type": "self-report",
+          "content": "Once you are on Pro, you will see the **Cowork tab** at the top of the app. Click it.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "501e2b3e",
+      "title": "Build Your Folder Structure",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "80f875cc",
+          "title": "Create Your Main Folder",
+          "order": 0,
+          "type": "self-report",
+          "content": "On your computer, create a folder called **CLAUDE COWORK**.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "5488ed8e",
+          "title": "Add Your Subfolders",
+          "order": 1,
+          "type": "self-report",
+          "content": "Inside that folder, create: About Me, Projects, Templates, Output Files.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "156faf5b",
+      "title": "Write Your .md Files",
+      "description": "These two files do the heavy lifting.",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "5aca6367",
+          "title": "Create about-me.md",
+          "order": 0,
+          "type": "self-report",
+          "content": "Inside your About Me folder, create about-me.md. Write who you are, what you do, how you like to work, your tone.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "6fdc2d56",
+          "title": "Create anti-ai-style.md",
+          "order": 1,
+          "type": "self-report",
+          "content": "Create anti-ai-style.md. Write every word, phrase, and sentence structure you never want Claude to use.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "9d31baa9",
+      "title": "Set Your Global Instructions",
+      "description": "",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "3ed5edb6",
+          "title": "Open Global Instructions",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to Settings, Cowork, Edit Global Instructions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "7ddfa660",
+          "title": "Write Your Rules",
+          "order": 1,
+          "type": "self-report",
+          "content": "Tell Claude: where your folders are, your file naming conventions, which files to read before every task.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "f46a6a3a",
+      "title": "Create Your First Project",
+      "description": "",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "9a5b138d",
+          "title": "Start a New Project",
+          "order": 0,
+          "type": "self-report",
+          "content": "Go to Cowork, Projects, +. Name it after a task you do every week.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "226f584f",
+          "title": "Why This Matters",
+          "order": 1,
+          "type": "self-report",
+          "content": "Projects have scoped memory. Claude remembers what it did last session.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "594e3e61",
+      "title": "Run Your First Real Task",
+      "description": "",
+      "order": 5,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "cf9542e7",
+          "title": "Use This Prompt Structure",
+          "order": 0,
+          "type": "self-report",
+          "content": "Type: I want to [your task]. Ask me questions first.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "49f694d0",
+          "title": "Add AskUserQuestion to Every Prompt",
+          "order": 1,
+          "type": "self-report",
+          "content": "Always include Use AskUserQuestion in your prompts.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "cdb0f9dc",
+          "title": "Schedule a Repeating Task",
+          "order": 2,
+          "type": "self-report",
+          "content": "Tell Claude: Every Monday at 8am, create my weekly work briefing.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

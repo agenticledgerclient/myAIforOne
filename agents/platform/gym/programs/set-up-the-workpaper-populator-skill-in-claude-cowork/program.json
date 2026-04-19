@@ -1,0 +1,96 @@
+{
+  "id": "set-up-the-workpaper-populator-skill-in-claude-cowork",
+  "slug": "set-up-the-workpaper-populator-skill-in-claude-cowork",
+  "title": "Set Up the Workpaper Populator Skill in Claude Cowork",
+  "description": "Build a reusable Cowork task for workpaper population.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "4d976f01-1445-4067-a7f7-989e5c86442d",
+  "projectSlug": "finance-guides",
+  "seriesSlug": "claude-cowork",
+  "orderInSeries": 4,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.429Z",
+  "updatedAt": "2026-04-19T01:53:15.429Z",
+  "modules": [
+    {
+      "id": "0564ce88",
+      "title": "Building Your Workpaper Populator Skill",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "6ff0d2a6",
+          "title": "What this skill does",
+          "order": 1,
+          "type": "self-report",
+          "content": "The Workpaper Populator skill scans client documents and populates your workpaper templates.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "b8fc4931",
+          "title": "Create the task in Cowork",
+          "order": 2,
+          "type": "self-report",
+          "content": "Open Claude Cowork, click New Task, name it Workpaper Populator.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "c257e555",
+          "title": "Write the skill instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "Paste the workpaper populator prompt into the task instructions field.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "354646bb",
+          "title": "Run it and save your skill",
+          "order": 4,
+          "type": "self-report",
+          "content": "Upload sample client documents, review, and refine.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

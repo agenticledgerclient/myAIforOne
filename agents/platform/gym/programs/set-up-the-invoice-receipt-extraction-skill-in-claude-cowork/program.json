@@ -1,0 +1,96 @@
+{
+  "id": "set-up-the-invoice-receipt-extraction-skill-in-claude-cowork",
+  "slug": "set-up-the-invoice-receipt-extraction-skill-in-claude-cowork",
+  "title": "Set Up the Invoice and Receipt Extraction Skill in Claude Cowork",
+  "description": "Build a reusable Cowork task for invoice extraction.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "9292bfa2-90ad-4af9-9dfe-c02c5ec88ca0",
+  "projectSlug": "finance-guides",
+  "seriesSlug": "claude-cowork",
+  "orderInSeries": 2,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.429Z",
+  "updatedAt": "2026-04-19T01:53:15.429Z",
+  "modules": [
+    {
+      "id": "19308d09",
+      "title": "Building Your Invoice and Receipt Extraction Skill",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "5d5eefb9",
+          "title": "What this skill does",
+          "order": 1,
+          "type": "self-report",
+          "content": "The Invoice and Receipt Extraction skill processes PDFs and images to pull out structured data.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "d9072154",
+          "title": "Create the task in Cowork",
+          "order": 2,
+          "type": "self-report",
+          "content": "Open Claude Cowork, click New Task, name it Invoice and Receipt Extraction.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "25041b61",
+          "title": "Write the skill instructions",
+          "order": 3,
+          "type": "self-report",
+          "content": "Paste the extraction prompt into the task instructions field.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "28c27c28",
+          "title": "Run it and save your skill",
+          "order": 4,
+          "type": "self-report",
+          "content": "Upload a test batch, review, and refine.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

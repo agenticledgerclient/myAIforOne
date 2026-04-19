@@ -1,0 +1,276 @@
+{
+  "id": "brand-your-excel-workbook-with-claude-ai",
+  "slug": "brand-your-excel-workbook-with-claude-ai",
+  "title": "Brand Your Excel Workbook with Claude AI",
+  "description": "Use Claude Excel sidebar to instantly apply your company brand guidelines to any workbook in minutes.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "9d9afe1c-840e-43f1-b256-d105e25c7148",
+  "projectSlug": "finance-guides",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.428Z",
+  "updatedAt": "2026-04-19T01:53:15.428Z",
+  "modules": [
+    {
+      "id": "f796d314",
+      "title": "Getting Set Up",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "b033779f",
+          "title": "Open Claude in Excel",
+          "order": 0,
+          "type": "self-report",
+          "content": "Open your Excel workbook and locate the Claude sidebar via the Home ribbon or Add-ins menu. Sign in with your Anthropic account if prompted.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "1b39dae6",
+          "title": "Prepare Your Brand Guidelines",
+          "order": 1,
+          "type": "self-report",
+          "content": "Have your brand guideline document ready (PDF or Word format works best). This should include your hex colour codes, font names, and any logo/style rules.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "d96e1a65",
+      "title": "The Core Workflow",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "856e2bc9",
+          "title": "Drag and Drop Your Brand Doc",
+          "order": 0,
+          "type": "self-report",
+          "content": "Simply drag your brand guideline document directly into the Claude sidebar chat window. Wait for Claude to confirm it has read the document.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "9328c7d8",
+          "title": "Give Claude the Instruction",
+          "order": 1,
+          "type": "self-report",
+          "content": "Type this exact prompt: \"Please review this workbook and update all fonts, fill colours, chart colours, and table styles to match the brand guidelines I have uploaded.\"",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "1db3e8ef",
+          "title": "Review and Approve Changes",
+          "order": 2,
+          "type": "self-report",
+          "content": "Claude will walk through each change. Review the suggestions, approve what looks right, and ask for tweaks where needed.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "441b69e2",
+      "title": "Pro Tips",
+      "description": "",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "4ed6e2cf",
+          "title": "Be Specific for Better Results",
+          "order": 0,
+          "type": "self-report",
+          "content": "If results are not perfect, prompt further with hex codes.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "cb5718d4",
+          "title": "Save a Branded Template",
+          "order": 1,
+          "type": "self-report",
+          "content": "Once happy, save the workbook as an Excel Template (.xltx) so every future report starts perfectly on-brand.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "842276c0",
+      "title": "Getting Set Up 2",
+      "description": "",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "c96ddf39",
+          "title": "Open Claude in Excel",
+          "order": 0,
+          "type": "self-report",
+          "content": "Open your Excel workbook and locate the Claude sidebar.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "db282b21",
+          "title": "Prepare Your Brand Guidelines",
+          "order": 1,
+          "type": "self-report",
+          "content": "Have your brand guideline document ready.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "c20fc44b",
+      "title": "The Core Workflow 2",
+      "description": "",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "128a4664",
+          "title": "Drag and Drop Your Brand Doc",
+          "order": 0,
+          "type": "self-report",
+          "content": "Drag your brand doc into sidebar.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "aabe53f4",
+          "title": "Give Claude the Instruction",
+          "order": 1,
+          "type": "self-report",
+          "content": "Type the branding prompt.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "9b7adbfe",
+          "title": "Review and Approve Changes",
+          "order": 2,
+          "type": "self-report",
+          "content": "Review and approve.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "2ba161a8",
+      "title": "Pro Tips 2",
+      "description": "",
+      "order": 5,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "6c2e7d0e",
+          "title": "Be Specific for Better Results",
+          "order": 0,
+          "type": "self-report",
+          "content": "Use hex codes for precision.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "e341f729",
+          "title": "Save a Branded Template",
+          "order": 1,
+          "type": "self-report",
+          "content": "Save as .xltx template.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

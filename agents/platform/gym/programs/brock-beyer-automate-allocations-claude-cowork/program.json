@@ -1,0 +1,126 @@
+{
+  "id": "brock-beyer-automate-allocations-claude-cowork",
+  "slug": "brock-beyer-automate-allocations-claude-cowork",
+  "title": "Automate Monthly Allocations with Claude Cowork",
+  "description": "Turn a multi-hour monthly allocation process into a few minutes using Claude Cowork \u2014 with built-in checks to ensure debits equal credits. Based on Brock Beyer's allocation workflow.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Brock Beyer \u2014 LinkedIn post (2026-04-18 scrape). Key workflow: use Claude Cowork to automate monthly cost allocations. Write clear instructions like onboarding a staff accountant, build in validation checks (debits = credits, corporate balance = $0), request specific output formats, and save as a reusable Cowork Skill.",
+  "tags": ["AI", "Accounting", "Allocations", "Claude Cowork", "Automation"],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "1be2415f-e92f-4421-8ee1-d0324738e63f",
+  "projectSlug": "unofficial-guides-from-brock-beyer-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": ["alex", "jordan", "morgan", "riley", "sam"],
+  "createdAt": "2026-04-19T00:18:01.474Z",
+  "updatedAt": "2026-04-18T00:00:00.000Z",
+  "modules": [
+    {
+      "id": "cfe7b939-08b3-456b-8797-e2379e6f7dd3",
+      "title": "Set Up Your Allocation Task in Cowork",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "5dcefc2a-4770-4ec0-8884-9747b4509907",
+          "title": "Create a New Task Called 'Allocations'",
+          "order": 1,
+          "type": "self-report",
+          "content": "In the Cowork desktop app, create a dedicated task for your monthly allocation work. Name it clearly \u2014 you'll reuse this every month.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "71d60209-9d56-47fa-91fe-67c75484f1f8",
+          "title": "Write Clear Instructions for How Your Allocations Work",
+          "order": 2,
+          "type": "self-report",
+          "content": "In the task description, explain: what costs need to be allocated, which departments are impacted, the allocation basis (e.g., headcount percentage), and any special rules. Be specific \u2014 treat this like onboarding a new staff accountant.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "13aa2937-82e1-471c-ac31-f740699c1368",
+          "title": "Upload or Connect Your Source Data",
+          "order": 3,
+          "type": "self-report",
+          "content": "Provide the file containing the costs to be allocated (export from your GL or ERP). If your ERP supports MCP, connect it directly so Cowork can pull the data automatically.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "f77fb8a3-ec33-4b6a-9ca6-f0b5b4718278",
+      "title": "Validate, Format, and Save as a Skill",
+      "description": "",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "ec465916-bd0c-4ccf-8b00-407e27d5a17f",
+          "title": "Build in Validation Checks",
+          "order": 1,
+          "type": "self-report",
+          "content": "Tell Cowork to: round to the nearest cent, ensure total debits equal total credits, validate that the corporate balance equals $0 after the allocating entry, and flag any allocation that seems unusual. These checks catch errors before they hit your books.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "0972dcba-3cb1-4d96-9419-91ae9c274d11",
+          "title": "Request Specific Output Formats",
+          "order": 2,
+          "type": "self-report",
+          "content": "Ask Cowork to produce: (1) a clean, formatted reconciliation showing what was allocated and how, and (2) a journal entry document in the exact format your ERP needs for upload. If you use MCP, Cowork can propose the journal entry directly in your ERP.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "c8f4e43e-040a-4422-895f-f177e0174b13",
+          "title": "Review the Output and Save as a Cowork Skill",
+          "order": 3,
+          "type": "self-report",
+          "content": "Check the first run carefully. Once you're satisfied, save the entire workflow as a Cowork Skill so next month you just upload the new data and run the skill. What used to take 30 minutes to several hours now takes minutes.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

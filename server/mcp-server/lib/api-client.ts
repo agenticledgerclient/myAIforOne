@@ -403,3 +403,16 @@ export const listGymGuides = () => api("/api/gym/guides");
 export const createGymGuide = (data: Record<string, unknown>) => api("/api/gym/guides", { method: "POST", body: data });
 export const getGymInsights = () => api("/api/gym/insights");
 export const saveGymInsights = (data: Record<string, unknown>) => api("/api/gym/insights", { method: "POST", body: data });
+
+// Gym Projects & Series
+export const listGymProjects = () => api("/api/gym/projects");
+export const getGymProject = (slug: string) => api(`/api/gym/projects/${slug}`);
+export const createGymProject = (body: any) => api("/api/gym/projects", { method: "POST", body });
+export const updateGymProject = (slug: string, body: any) => api(`/api/gym/projects/${slug}`, { method: "PATCH", body });
+export const deleteGymProject = (slug: string) => api(`/api/gym/projects/${slug}`, { method: "DELETE" });
+export const listGymSeries = (projectSlug: string) => api(`/api/gym/projects/${projectSlug}/series`);
+export const getGymSeries = (projectSlug: string, seriesSlug: string) => api(`/api/gym/projects/${projectSlug}/series/${seriesSlug}`);
+export const createGymSeries = (projectSlug: string, body: any) => api(`/api/gym/projects/${projectSlug}/series`, { method: "POST", body });
+export const updateGymSeries = (projectSlug: string, seriesSlug: string, body: any) => api(`/api/gym/projects/${projectSlug}/series/${seriesSlug}`, { method: "PATCH", body });
+export const deleteGymSeries = (projectSlug: string, seriesSlug: string) => api(`/api/gym/projects/${projectSlug}/series/${seriesSlug}`, { method: "DELETE" });
+export const importFromAigym = (body: any) => api("/api/gym/import-from-aigym", { method: "POST", body });

@@ -1,0 +1,127 @@
+{
+  "id": "launch-an-internal-ai-knowledge-sharing-channel-for-your-finance-team",
+  "slug": "launch-an-internal-ai-knowledge-sharing-channel-for-your-finance-team",
+  "title": "Launch an Internal AI Knowledge-Sharing Channel for Your Finance Team",
+  "description": "Create a team-wide AI sharing loop where one person's win becomes everyone's accelerator — with real examples of what finance teams have built.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Finance",
+    "Teams",
+    "Knowledge Sharing"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "0a496415-c905-49c9-bb2d-12f5a2b6d531",
+  "projectSlug": "unofficial-guides-from-alyona-mysko-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:01.543Z",
+  "updatedAt": "2026-04-19T01:53:01.543Z",
+  "modules": [
+    {
+      "id": "1a843498-afa0-49f6-89af-36ea3967d741",
+      "title": "Steps",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "1fce3c39-5232-46dc-b3a9-4b230c881b45",
+          "title": "Create a dedicated AI sharing channel",
+          "order": 1,
+          "type": "self-report",
+          "content": "Set up a Slack/Teams channel specifically for sharing AI wins. Not a general \"tech\" channel — a focused space where people post what they built and how.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "f69ca500-1c21-4a34-930e-07ed08c43ea0",
+          "title": "Seed it with your first build",
+          "order": 2,
+          "type": "self-report",
+          "content": "Don't wait for others. Post your own AI win first with a short description: what the task was, what tool you used, and how much time it saved. Examples:\\n\\n- A pricing calculator built in one afternoon with Claude (saved 1-2 hours per deal)\\n- A product roadmap pipeline automated via Google Sheets + script (30-60 min → 2 min)",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "8a292092-7c93-4069-adce-7013b7063cc3",
+          "title": "Encourage non-engineers to share",
+          "order": 3,
+          "type": "self-report",
+          "content": "The best wins often come from finance, product, and customer success people — not developers. Make it clear: you don't need to code. If you used AI to solve a problem, share it.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "ba037de9-d2ac-4f2c-982f-026eaf5f11e7",
+          "title": "Highlight compound wins",
+          "order": 4,
+          "type": "self-report",
+          "content": "When someone's share inspires a better version from someone else, call it out. The channel works as a compounding loop, not a knowledge base.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "304bef93-574c-45d2-83eb-876a6b931e73",
+          "title": "Document high-impact automations as templates",
+          "order": 5,
+          "type": "self-report",
+          "content": "When a team member builds something that saves significant time, document the prompt/workflow so others can replicate it:\\n\\n- AR/AP interactive reports from GL data\\n- QBR operations (scheduling, prep reminders, post-call summaries)\\n- Auto-generated SOWs from pricing calculators",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "d4a7df23-2eec-4f37-b6d7-08245a69e6cb",
+          "title": "Review and promote the best wins monthly",
+          "order": 6,
+          "type": "self-report",
+          "content": "Once a month, highlight the top 3 AI wins from the channel. Share the time saved and encourage the team to build on them.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

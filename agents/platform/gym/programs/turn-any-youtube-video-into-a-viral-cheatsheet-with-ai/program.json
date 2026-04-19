@@ -1,0 +1,83 @@
+{
+  "id": "turn-any-youtube-video-into-a-viral-cheatsheet-with-ai",
+  "slug": "turn-any-youtube-video-into-a-viral-cheatsheet-with-ai",
+  "title": "Turn Any YouTube Video into a Viral Cheatsheet with AI",
+  "description": "Use Claude and Gamma to transform YouTube transcripts into infographic cheatsheets.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "ce774e38-7e66-40e9-8b30-aa5b3555f99c",
+  "projectSlug": "public",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-13T12:01:33.313Z",
+  "updatedAt": "2026-04-19T01:46:03.407Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Video to Cheatsheet in 5 Minutes",
+      "description": "Step-by-step extraction and generation.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "step-0-0",
+          "title": "Find a viral video and grab the transcript",
+          "order": 0,
+          "type": "self-report",
+          "content": "Start with content that already resonates. Pick a YouTube video with strong engagement.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-1",
+          "title": "Connect Claude to Gamma",
+          "order": 1,
+          "type": "self-report",
+          "content": "Gamma is an AI presentation and infographic tool. Claude has a built-in connector.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "step-0-2",
+          "title": "Use the extraction prompt",
+          "order": 2,
+          "type": "self-report",
+          "content": "Paste the extraction prompt into Claude with your transcript.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

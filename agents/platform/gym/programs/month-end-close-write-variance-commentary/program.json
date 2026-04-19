@@ -1,0 +1,88 @@
+{
+  "id": "month-end-close-write-variance-commentary",
+  "slug": "month-end-close-write-variance-commentary",
+  "title": "Month-End Close: Write Variance Commentary",
+  "description": "Get AI-generated variance commentary that drills into the GL to find real drivers — not generic summaries.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Variance Analysis",
+    "Claude"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "ca7180fa-3536-40e3-b8ed-127a69590dbe",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "4d24ca12-d6bf-45bf-a705-60d15076eafb",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "10a8c170-1223-4eb0-8839-9492cc92ad23",
+          "title": "Create a 'Variance Commentary' skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "This skill compares current month actuals to prior month and/or budget. It should drill into the GL detail to identify the specific transactions driving each significant variance, with quantified dollar amounts.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "b93dc25f-d1d6-4e52-b697-1f8eedfbadac",
+          "title": "Set materiality thresholds",
+          "order": 2,
+          "type": "self-report",
+          "content": "Tell Claude your materiality threshold (e.g., variances over $5,000 or 10% of the line item). Below-threshold variances get a one-liner; above-threshold get a full explanation with the top 3 drivers by dollar amount.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "cfc5b7fe-8a8a-43b9-9b68-82bda8fab790",
+          "title": "Format for management review",
+          "order": 3,
+          "type": "self-report",
+          "content": "Output should be a clean table: line item, current month, prior month/budget, variance $, variance %, and commentary. Ready to drop into a management reporting package.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

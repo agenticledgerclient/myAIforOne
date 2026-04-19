@@ -1,0 +1,58 @@
+{
+  "id": "best-ai-apps-accounting-firm-2026",
+  "slug": "best-ai-apps-accounting-firm-2026",
+  "title": "The Best AI Apps for Your Accounting Firm Right Now",
+  "description": "Know exactly which AI apps are worth your time and money today — crowd-sourced from over 1,000 accounting firms and organized by category. CPA Jason Staats breaks down what to use and what to skip.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Jason Staats, CPA — LinkedIn post (2026-04-18 scrape). Crowd-sourced from 1,000+ accounting firms. Three non-negotiable categories: AI meeting assistant (Vinyl, Ping Assistant, Abacor), 1040 intake (StanfordTax, Soraban, Truss), and ChatGPT Business tier. Also covers AI-native GL alternatives (Digits, Kick), research tools (Blue J), and productivity tools (Ramp, MakersHub, NotebookLM, speech-to-text apps).",
+  "tags": [
+    "AI",
+    "Accounting",
+    "Software",
+    "Tools",
+    "App Recommendations"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "78b01283-dab2-4180-a7f1-2deafe0e5814",
+  "projectSlug": "unofficial-guides-from-josh-staats-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:52:47.261Z",
+  "updatedAt": "2026-04-19T01:52:47.261Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "The Non-Negotiables",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": []
+    },
+    {
+      "id": "module-1",
+      "title": "Level Up Your Stack",
+      "description": "",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": []
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "id": "how-to-use-ai-to-stress-test-your-ideas-and-strategies",
+  "slug": "how-to-use-ai-to-stress-test-your-ideas-and-strategies",
+  "title": "How to Use AI to Stress-Test Your Ideas and Strategies",
+  "description": "You do not need an IDE, an MCP, or any complex setup. Just a chat window and a willingness to be wrong.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Nathan Mapp, CPA — LinkedIn post (2026-03-28).",
+  "tags": [
+    "AI",
+    "Critical Thinking",
+    "Strategy",
+    "Finance",
+    "Decision Making"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "b7653d13-115c-4a1a-9f1d-496f8f860c1b",
+  "projectSlug": "unofficial-guides-from-nathan-mapp-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-18T21:43:13.820Z",
+  "updatedAt": "2026-04-19T01:44:24.185Z",
+  "modules": [
+    {
+      "id": "3d7317a1-443c-4aee-b2bb-3acd03aa8926",
+      "title": "Why AI is Uniquely Good at This",
+      "description": "Understanding why LLMs make great sparring partners for your ideas",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "f7bcfc4f-b8a7-4c78-a958-d265d9c43405",
+          "title": "All You Need is a Chat Window",
+          "order": 1,
+          "type": "self-report",
+          "content": "One of the most impactful things you can use AI to do right now is battle-test your assumptions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "aecbd8bc-1dff-43c2-81f5-2c60385c0d1a",
+          "title": "Token Prediction = Logical Extrapolation",
+          "order": 2,
+          "type": "self-report",
+          "content": "LLMs predict the next token, so they function well at running concepts to their logical conclusion. But they also have sycophancy baked in.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "b02bdd37-4e6e-4ec0-9e15-f0a814753bef",
+      "title": "The Reverse-Position Method",
+      "description": "How to trick AI past its sycophancy to get genuine pushback",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "761505dd-2fb3-48b1-812b-f845f76342be",
+          "title": "The Key Trick: Flip Your Position",
+          "order": 1,
+          "type": "self-report",
+          "content": "Approach the AI with a viewpoint OPPOSING your own. By flipping your position, you weaponize the sycophancy.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "aa0c837f-f1b9-44c5-b5a4-40b4376c9cae",
+          "title": "What You Will Get Out of It",
+          "order": 2,
+          "type": "self-report",
+          "content": "Three possible outcomes: you become convinced you were wrong, you strengthen your ideas, or you learn a new perspective.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "af2a28d2-da70-4048-898a-fd80b8b0017a",
+      "title": "Quick-Start Prompts You Can Use Today",
+      "description": "Ready-to-use persona prompts for stress-testing any decision",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "586d9870-3b1e-499b-8e7b-fc481f788c9f",
+          "title": "Persona Prompts for Any Situation",
+          "order": 1,
+          "type": "self-report",
+          "content": "For product decisions: What would a jaded prospective customer say? For financial: What would a risk-averse investor say? Zero setup required.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

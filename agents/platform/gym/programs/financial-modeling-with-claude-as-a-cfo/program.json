@@ -1,0 +1,492 @@
+{
+  "id": "financial-modeling-with-claude-as-a-cfo",
+  "slug": "financial-modeling-with-claude-as-a-cfo",
+  "title": "Financial Modeling with Claude as a CFO",
+  "description": "A step-by-step workflow for finance leaders to go from planning model to board-ready dashboard in 20 minutes using Claude.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "adea36c7-95c4-4328-8f08-acd3caec5d6d",
+  "projectSlug": "finance-guides",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:15.428Z",
+  "updatedAt": "2026-04-19T01:53:15.428Z",
+  "modules": [
+    {
+      "id": "fa2d703d",
+      "title": "Set Up Your Claude Project",
+      "description": "Create a persistent workspace.",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "45e3a227",
+          "title": "Create Your Claude Project",
+          "order": 0,
+          "type": "self-report",
+          "content": "In Claude, create a new Project as a dedicated CFO workspace.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "cf27ab53",
+          "title": "Define Your Project Instructions",
+          "order": 1,
+          "type": "self-report",
+          "content": "Write your standing instructions directly into the Project. Include fiscal calendar, model structure, terminology, output preferences, tone.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "10d74b90",
+      "title": "Upload Your Source Materials",
+      "description": "Give Claude everything it needs.",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "c3f8d369",
+          "title": "Upload Your Four Core Sheets",
+          "order": 0,
+          "type": "self-report",
+          "content": "Structure your workbook with four sheets: Sales, HQ, Financials, Instructions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "e7c90d21",
+          "title": "Upload Your ERP Export",
+          "order": 1,
+          "type": "self-report",
+          "content": "Export your actuals directly from your ERP system.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "9cf85922",
+          "title": "Understand the Priority Hierarchy",
+          "order": 2,
+          "type": "self-report",
+          "content": "Claude weighs inputs: 1. ERP exports 2. Your instructions 3. Prior outputs 4. Claude reasoning.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "a9e773bf",
+      "title": "Run the Monthly Rollover",
+      "description": "Let Claude inspect, map, and advance your model.",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "2b966aa6",
+          "title": "Prompt the Rollover",
+          "order": 0,
+          "type": "self-report",
+          "content": "Use a single rollover prompt.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "45207dfc",
+          "title": "Review the Actuals vs Forecast Map",
+          "order": 1,
+          "type": "self-report",
+          "content": "Claude will produce a comparison showing where actuals landed versus your prior forecast.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "d4e712e0",
+      "title": "Apply Management Changes",
+      "description": "Translate decisions into model updates.",
+      "order": 3,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "41c982c6",
+          "title": "Input Your Key Changes",
+          "order": 0,
+          "type": "self-report",
+          "content": "Describe your management changes conversationally.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "675cf0cf",
+          "title": "Review the Assumption Delta",
+          "order": 1,
+          "type": "self-report",
+          "content": "Claude shows you a side-by-side comparison.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "0af9758f",
+      "title": "Build the Board Dashboard",
+      "description": "From model to presentation-ready output.",
+      "order": 4,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "40bbb2dd",
+          "title": "Generate the Three-Scenario Dashboard",
+          "order": 0,
+          "type": "self-report",
+          "content": "Build dashboard with Base, Downside, and Upside scenarios.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "32531043",
+          "title": "Export Your Outputs",
+          "order": 1,
+          "type": "self-report",
+          "content": "HTML dashboard and downloadable Excel.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "f87cdeb1",
+      "title": "Deliver the Board Narrative",
+      "description": "Turn numbers into a planning story.",
+      "order": 5,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "43280ccb",
+          "title": "Generate the Executive Narrative",
+          "order": 0,
+          "type": "self-report",
+          "content": "Ask Claude to write the board narrative.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "92bf4f35",
+          "title": "Build Your Monthly Rhythm",
+          "order": 1,
+          "type": "self-report",
+          "content": "Each month you run this workflow, Claude gets more useful.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "c6c8d01d",
+      "title": "Set Up Your Claude Project 2",
+      "description": "",
+      "order": 6,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "45d26afe",
+          "title": "Create Your Claude Project",
+          "order": 0,
+          "type": "self-report",
+          "content": "Create a new Project.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "c7ac0932",
+          "title": "Define Your Project Instructions",
+          "order": 1,
+          "type": "self-report",
+          "content": "Write standing instructions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "41caeebe",
+      "title": "Upload Your Source Materials 2",
+      "description": "",
+      "order": 7,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "9a1ee230",
+          "title": "Upload Four Core Sheets",
+          "order": 0,
+          "type": "self-report",
+          "content": "Structure workbook.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "0a0885a6",
+          "title": "Upload ERP Export",
+          "order": 1,
+          "type": "self-report",
+          "content": "Export actuals.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "58e96b2d",
+          "title": "Priority Hierarchy",
+          "order": 2,
+          "type": "self-report",
+          "content": "Input priority order.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "4821b944",
+      "title": "Run the Monthly Rollover 2",
+      "description": "",
+      "order": 8,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "7811e810",
+          "title": "Prompt the Rollover",
+          "order": 0,
+          "type": "self-report",
+          "content": "Single prompt.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "bbc84007",
+          "title": "Review Actuals vs Forecast",
+          "order": 1,
+          "type": "self-report",
+          "content": "Review comparison.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "f89b3469",
+      "title": "Apply Management Changes 2",
+      "description": "",
+      "order": 9,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "feee06ea",
+          "title": "Input Changes",
+          "order": 0,
+          "type": "self-report",
+          "content": "Describe changes.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "97c9aecd",
+          "title": "Review Delta",
+          "order": 1,
+          "type": "self-report",
+          "content": "Side-by-side.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "e8cb4181",
+      "title": "Build Dashboard 2",
+      "description": "",
+      "order": 10,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "91c4a5f8",
+          "title": "Generate Dashboard",
+          "order": 0,
+          "type": "self-report",
+          "content": "Build with scenarios.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "53bda43d",
+          "title": "Export Outputs",
+          "order": 1,
+          "type": "self-report",
+          "content": "HTML and Excel.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    },
+    {
+      "id": "ef4b9b60",
+      "title": "Board Narrative 2",
+      "description": "",
+      "order": 11,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "94dd5260",
+          "title": "Executive Narrative",
+          "order": 0,
+          "type": "self-report",
+          "content": "Write narrative.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "c722359c",
+          "title": "Monthly Rhythm",
+          "order": 1,
+          "type": "self-report",
+          "content": "Gets better each month.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

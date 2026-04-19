@@ -1,0 +1,88 @@
+{
+  "id": "month-end-close-package-workpapers-for-review",
+  "slug": "month-end-close-package-workpapers-for-review",
+  "title": "Month-End Close: Package Workpapers for Review",
+  "description": "Automatically compile all your month-end workpapers into a structured, reviewer-ready package.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Accounting",
+    "Workpapers",
+    "Claude"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "e58e0e88-052c-48a1-a8c3-8d6fda7c8600",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "697b29ae-9180-44af-baf1-8c3d0e160ecd",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "fc0e3603-e2cd-4845-8d29-cb9d265b0abc",
+          "title": "Create a 'Package Workpapers' skill",
+          "order": 1,
+          "type": "self-report",
+          "content": "This skill collects all the outputs from the previous steps (reconciliations, AJEs, financial statements, variance commentary) and organizes them into a single workpaper binder with a table of contents and section tabs.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "6569dab8-5383-42f0-9644-8304e72950fb",
+          "title": "Add a review checklist",
+          "order": 2,
+          "type": "self-report",
+          "content": "Include a standardized review checklist at the front: all reconciliations tied, all AJEs approved, financial statements balance, variance commentary complete. The reviewer checks each item.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "62caaa48-4f6d-48c9-a340-171135be72a6",
+          "title": "Include the close memo",
+          "order": 3,
+          "type": "self-report",
+          "content": "The final output includes a signed close memo summarizing: close date, key adjustments made, open items carried forward, and any issues flagged for partner/manager attention.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

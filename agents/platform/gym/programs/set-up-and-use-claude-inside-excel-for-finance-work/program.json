@@ -1,0 +1,127 @@
+{
+  "id": "set-up-and-use-claude-inside-excel-for-finance-work",
+  "slug": "set-up-and-use-claude-inside-excel-for-finance-work",
+  "title": "Set Up and Use Claude Inside Excel for Finance Work",
+  "description": "Install Claude in Excel and immediately start using it for data cleanup, formula help, model auditing, and report generation.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "Finance",
+    "Excel",
+    "Claude"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "df398105-64c1-4c68-ba3b-97e83f1ebedf",
+  "projectSlug": "unofficial-guides-from-alyona-mysko-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:01.543Z",
+  "updatedAt": "2026-04-19T01:53:01.543Z",
+  "modules": [
+    {
+      "id": "6a356954-eb65-4564-974c-f5303cbbb6d5",
+      "title": "Steps",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "5fe27cc5-b38e-46a8-972f-f0986bcc0766",
+          "title": "Install the Claude Excel add-in",
+          "order": 1,
+          "type": "self-report",
+          "content": "Open Excel → Insert → Get Add-ins → Search \"Claude by Anthropic\" → Install. Open the sidebar with Ctrl+Option+C (Mac). Total setup: 2 minutes.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "7514ba65-5194-44c5-8293-ceef51a25b76",
+          "title": "Start with data cleanup",
+          "order": 2,
+          "type": "self-report",
+          "content": "This is where Claude in Excel is most immediately valuable. Feed it messy vendor names, inconsistent date formats, or duplicate entries. Claude catches everything. This alone saves hours every week.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "d4bdc02c-b99d-4d87-a168-88fe1b3e2a58",
+          "title": "Use it for formula writing and debugging",
+          "order": 3,
+          "type": "self-report",
+          "content": "Describe what you need in plain English and get a traceable formula with an explanation. Stop Googling nested INDEX/MATCH — just ask.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "6c4b40c7-d6dd-4a6b-84b1-99acb8fb8dc1",
+          "title": "Run model audits",
+          "order": 4,
+          "type": "self-report",
+          "content": "Prompt: \"Check this model for broken references, circular errors, and hard-coded numbers that should be formulas.\" Claude acts as a second pair of eyes that never gets tired. It finds things you miss.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "4c62fc8d-d35c-4526-a0b4-e99a2dabc358",
+          "title": "Build the Excel → PowerPoint pipeline",
+          "order": 5,
+          "type": "self-report",
+          "content": "Run a variance analysis in Excel, then ask Claude to pull the key findings into a board deck format. Same conversation, same session. This used to be a Sunday night task.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "a0f7ca43-c90f-4e6f-ae6f-d1808c43e71e",
+          "title": "Know where to be careful",
+          "order": 6,
+          "type": "self-report",
+          "content": "Complex multi-year forecasting still needs heavy human review. The outputs look polished but assumptions can have gaps. In finance, 99% correct is still wrong. Never blindly trust AI output on anything that goes external.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

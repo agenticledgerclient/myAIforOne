@@ -1544,6 +1544,139 @@ server.tool("save_gym_insights", "Save AI-generated insights from weekly analysi
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+// ─── Gym Projects & Series ─────────────────────────────────────────
+
+server.tool("list_gym_projects", "List all gym projects (guide collections grouped by source/author)", {}, async () => {
+  const r = await api.listGymProjects();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_project", "Get a gym project with its series and programs", {
+  slug: z.string().describe("Project slug"),
+}, async ({ slug }) => {
+  const r = await api.getGymProject(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_gym_project", "Create a new gym project (a collection of guides from one source/author)", {
+  name: z.string().describe("Project name"),
+  description: z.string().optional().describe("Project description"),
+  slug: z.string().optional().describe("URL-safe slug (auto-generated from name if omitted)"),
+  sourceUrl: z.string().optional().describe("Original source URL"),
+  tags: z.array(z.string()).optional().describe("Tags for categorization"),
+  isActive: z.boolean().optional().describe("Whether the project is active (default true)"),
+  isPublic: z.boolean().optional().describe("Whether the project is public (default true)"),
+}, async (params) => {
+  const r = await api.createGymProject(params);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_gym_project", "Update a gym project", {
+  slug: z.string().describe("Project slug"),
+  body: z.record(z.string(), z.any()).describe("Fields to update"),
+}, async ({ slug, body }) => {
+  const r = await api.updateGymProject(slug, body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_gym_project", "Delete a gym project and its series files (programs are orphaned, not deleted)", {
+  slug: z.string().describe("Project slug"),
+}, async ({ slug }) => {
+  const r = await api.deleteGymProject(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("list_gym_series", "List all series in a gym project", {
+  projectSlug: z.string().describe("Project slug"),
+}, async ({ projectSlug }) => {
+  const r = await api.listGymSeries(projectSlug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_series", "Get a series with its programs", {
+  projectSlug: z.string().describe("Project slug"),
+  seriesSlug: z.string().describe("Series slug"),
+}, async ({ projectSlug, seriesSlug }) => {
+  const r = await api.getGymSeries(projectSlug, seriesSlug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_gym_series", "Create a new series within a gym project", {
+  projectSlug: z.string().describe("Project slug"),
+  name: z.string().describe("Series name"),
+  description: z.string().optional().describe("Series description"),
+  slug: z.string().optional().describe("URL-safe slug (auto-generated from name if omitted)"),
+  coverImage: z.string().optional().describe("Cover image URL"),
+  tags: z.array(z.string()).optional().describe("Tags"),
+  position: z.number().optional().describe("Display order (auto-incremented if omitted)"),
+}, async ({ projectSlug, ...rest }) => {
+  const r = await api.createGymSeries(projectSlug, rest);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_gym_series", "Update a series in a gym project", {
+  projectSlug: z.string().describe("Project slug"),
+  seriesSlug: z.string().describe("Series slug"),
+  body: z.record(z.string(), z.any()).describe("Fields to update"),
+}, async ({ projectSlug, seriesSlug, body }) => {
+  const r = await api.updateGymSeries(projectSlug, seriesSlug, body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_gym_series", "Delete a series from a gym project (programs are orphaned, not deleted)", {
+  projectSlug: z.string().describe("Project slug"),
+  seriesSlug: z.string().describe("Series slug"),
+}, async ({ projectSlug, seriesSlug }) => {
+  const r = await api.deleteGymSeries(projectSlug, seriesSlug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("import_from_aigym", "Import a full project from AI Gym platform (project + series + programs with modules/steps). Designed for easy copy-down — pass the raw aigym-platform data and it maps to local schema.", {
+  project: z.object({
+    id: z.string().optional(),
+    name: z.string(),
+    slug: z.string(),
+    description: z.string().optional(),
+    sourceUrl: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    isActive: z.boolean().optional(),
+    isPublic: z.boolean().optional(),
+    createdAt: z.string().optional(),
+  }).describe("Project data from aigym-platform"),
+  series: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string(),
+    slug: z.string().optional(),
+    description: z.string().optional(),
+    coverImage: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    position: z.number().optional(),
+    isActive: z.boolean().optional(),
+    createdAt: z.string().optional(),
+  })).optional().describe("Series array from aigym-platform"),
+  programs: z.array(z.object({
+    id: z.string().optional(),
+    title: z.string(),
+    slug: z.string().optional(),
+    description: z.string().optional(),
+    coverImage: z.string().optional(),
+    sourceUrl: z.string().optional(),
+    tier: z.string().optional(),
+    personas: z.array(z.any()).optional(),
+    globalInfo: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    isActive: z.boolean().optional(),
+    isPublic: z.boolean().optional(),
+    seriesId: z.string().optional(),
+    orderInSeries: z.number().optional(),
+    createdAt: z.string().optional(),
+    modules: z.array(z.any()).optional(),
+  })).optional().describe("Programs array from aigym-platform (with full modules/steps)"),
+}, async (params) => {
+  const r = await api.importFromAigym(params);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 // ─── Shared Agent Tools ────────────────────────────────────────────
 
 server.tool("get_storage_info", "Get storage and sharing configuration for an agent (shared flag, conversationLogMode, agentHome path)", {

@@ -1,0 +1,109 @@
+{
+  "id": "the-ai-implementation-playbook-for-functional-leaders",
+  "slug": "the-ai-implementation-playbook-for-functional-leaders",
+  "title": "The AI Implementation Playbook for Functional Leaders",
+  "description": "A step-by-step playbook for managers and leaders inside companies where AI mandates exist but execution guidance is absent.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "c76c1c01-d821-4748-b96b-ef94b7063579",
+  "projectSlug": "unofficial-guides-from-nathan-mapp-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-10T21:12:35.943Z",
+  "updatedAt": "2026-04-19T01:44:24.184Z",
+  "modules": [
+    {
+      "id": "86b76a29-13d9-4729-bfe8-93966360bb7d",
+      "title": "The 3-Part Playbook to Lead AI Adoption",
+      "description": "A proven sequence to move from vague AI mandates to real implementations.",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "26976e41-4826-4de0-86e4-bd0ac0b5e295",
+          "title": "Get Two Foundational Things Right First",
+          "order": 1,
+          "type": "self-report",
+          "content": "Before anything else — before hiring consultants, before running training sessions — get these two things in place:\n\n**1. Thorough process documentation**\nDocument who does what, when, how, what good looks like, and how it gets reviewed. AI cannot improve what is not defined. Vague processes produce vague AI output.\n\n**2. Specific problems to solve**\nGeneric ideas produce generic advice that produces no change. Come with 3-5 concrete, named pain points your team faces daily. The more specific the problem, the better the help you will receive.",
+          "isCritical": true,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "17d92287-0ae4-454d-8554-84704d8f003a",
+          "title": "Find Real Practitioners — Not Thought Leaders",
+          "order": 2,
+          "type": "self-report",
+          "content": "Once you have documentation and specific problems, go find expertise.\n\n**Where to look:** LinkedIn. Search for people who share actual implementation details — code, screenshots, workflow diagrams, before/after metrics. Not people who talk about AI in the abstract.\n\n**What to ask for:** 15-30 minutes of their time. Invite them to host a roundtable with your team. Most practitioners who share publicly are willing to help.\n\n**Pay if needed:** Some will cost money. It is worth it. A practitioner who has already solved your problem is worth far more than a motivational speaker who has not.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "cfb67db0-598d-4eb1-8785-df6466104083",
+          "title": "Structure Expert Sessions to Maximize Value",
+          "order": 3,
+          "type": "self-report",
+          "content": "Most leadership roundtables waste the first 15 minutes on introductions. Avoid this entirely.\n\n**Before the session:**\n- Send your team a pre-read with speaker backgrounds\n- Send the speaker your specific problems and relevant process documentation\n- Sign NDAs if needed — do not let confidentiality concerns kill candid conversation\n\n**During the session:**\n- Skip the intros — your team read the pre-read\n- Go directly into problems and solutions from minute one\n- Assign someone to take structured notes with named action items",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "37e2d08e-3dac-49ff-8257-286d9e1fee31",
+          "title": "Leaders Must Build Before They Broadcast",
+          "order": 4,
+          "type": "self-report",
+          "content": "If you are telling your team to use AI, you must have personally built something real with AI.\n\nYour team knows when you are parroting advice without grounded technical understanding. It erodes trust and makes your mandates feel hollow.\n\n**Your two options:**\n- **Pay with time:** Build a real tool on a real task yourself — nights, weekends, whatever it takes\n- **Pay with money:** Hire someone who can genuinely empower your org, not just inspire it\n\nYou cannot outsource credibility.",
+          "isCritical": true,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "dba10f98-0ead-4977-aac5-222e93507bee",
+          "title": "Multiply What Already Works",
+          "order": 5,
+          "type": "self-report",
+          "content": "The highest-leverage AI play is often the least glamorous.\n\n**Common mistake:** Deploying AI-native engineers to build new 0-to-1 products chasing AI valuation multiples.\n\n**Better move:** Deploy them to train your existing team and reinvent your core value proposition.\n\nTake an operating unit with product-market fit and make it AI-native.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

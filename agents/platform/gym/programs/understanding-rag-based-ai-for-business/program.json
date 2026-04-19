@@ -1,0 +1,128 @@
+{
+  "id": "understanding-rag-based-ai-for-business",
+  "slug": "understanding-rag-based-ai-for-business",
+  "title": "Understanding RAG-Based AI for Business",
+  "description": "Learn what Retrieval-Augmented Generation (RAG) is, why it matters, and how to set up a basic RAG system so your AI answers from your actual data instead of hallucinating.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": null,
+  "tags": [
+    "AI",
+    "RAG",
+    "LLMs",
+    "Data",
+    "Automation"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "316a050e-dca4-4a85-83eb-79f606376fb4",
+  "projectSlug": "unofficial-guides-from-mohamed-muse-said-s-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:53:40.623Z",
+  "updatedAt": "2026-04-19T01:53:40.623Z",
+  "modules": [
+    {
+      "id": "71e99628-ee37-4515-b66e-6e25bfce840e",
+      "title": "Steps",
+      "description": "",
+      "order": 0,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": [
+        {
+          "id": "d551b7fb-f021-453d-a588-c8b4befe0620",
+          "title": "Understand why LLMs hallucinate without RAG",
+          "order": 1,
+          "type": "self-report",
+          "content": "Large Language Models like GPT-4 or Claude aren't designed to store your company's data. They hallucinate, forget, and make things up when asked about information they weren't trained on. RAG solves this by giving the AI a search function over your actual documents.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "d630b570-4d93-4b25-a161-84bb03ae111d",
+          "title": "Understand how RAG works in plain terms",
+          "order": 2,
+          "type": "self-report",
+          "content": "Instead of asking the AI to \"know stuff,\" you give it a retrieval step. When a question comes in, the system searches your internal documents (Google Drive, Notion, Airtable, spreadsheets), finds the relevant data, and then the AI answers based only on what it found. No hallucination — just context-aware, accurate responses.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "6fa38ee2-e1ed-4217-9cac-755d27c59dfe",
+          "title": "Choose your document source",
+          "order": 3,
+          "type": "self-report",
+          "content": "Decide where your data lives: Google Drive folders, Notion databases, Airtable bases, or local files. This is what the AI will search when answering questions.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "6a828924-6699-4c1c-8a89-f13002236c12",
+          "title": "Index your content using vector embeddings",
+          "order": 4,
+          "type": "self-report",
+          "content": "Use a tool like LangChain, LlamaIndex, or the built-in RAG capabilities in n8n to convert your documents into vector embeddings stored in a vector database (like Qdrant, Pinecone, or Chroma). This is what enables semantic search — finding relevant content even when the exact words don't match.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "8779d431-dba6-4d0a-ae41-5d4e7118055c",
+          "title": "Connect the RAG pipeline to your AI agent",
+          "order": 5,
+          "type": "self-report",
+          "content": "Wire it together: user asks a question → system searches the vector database → retrieves relevant document chunks → sends them to the LLM along with the question → LLM answers using only the retrieved context.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        },
+        {
+          "id": "3e7d1779-af73-4bb5-8e91-e9b65dcf2a46",
+          "title": "Test and refine",
+          "order": 6,
+          "type": "self-report",
+          "content": "Ask questions you know the answers to. Verify the AI is pulling from the right documents and giving accurate responses. Adjust chunk sizes, overlap, and retrieval thresholds until the quality is consistently good. If answers are wrong, the problem is almost always in the retrieval step, not the LLM.",
+          "isCritical": false,
+          "personaVariations": {},
+          "trainerVariations": {},
+          "attachments": [],
+          "isVisible": true,
+          "verification": "self-report"
+        }
+      ]
+    }
+  ]
+}

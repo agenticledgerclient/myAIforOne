@@ -1,0 +1,57 @@
+{
+  "id": "accounting-firm-20-to-35-margin",
+  "slug": "accounting-firm-20-to-35-margin",
+  "title": "Take Your Accounting Firm from 20% to 35% Margin",
+  "description": "Follow the same framework Jason Staats used to increase his $4M firm's margin from 20% to 35% in 18 months — by fixing your client list, pricing, and focus. No tech tricks — just hard business decisions.",
+  "coverImage": null,
+  "sourceUrl": null,
+  "tier": "free",
+  "personas": [],
+  "globalInfo": "Source: Jason Staats, CPA — LinkedIn post (2026-04-18 scrape). Core thesis: your firm's margin problem is a client list problem, not a tech problem. Fix clients first, then systems, then tech. Move low-margin clients along, use multi-tier pricing to reveal who wants to pay more, and find better clients through content and niche positioning.",
+  "tags": [
+    "Accounting",
+    "Firm Management",
+    "Pricing",
+    "Profitability"
+  ],
+  "isActive": true,
+  "isPublic": true,
+  "source": "platform",
+  "sourceId": "006d8429-b588-4777-a375-70a62f220a54",
+  "projectSlug": "unofficial-guides-from-josh-staats-li-posts",
+  "seriesSlug": null,
+  "orderInSeries": null,
+  "difficulty": "beginner",
+  "dimensions": [],
+  "estimatedTime": null,
+  "prerequisites": [],
+  "trainers": [
+    "alex",
+    "jordan",
+    "morgan",
+    "riley",
+    "sam"
+  ],
+  "createdAt": "2026-04-19T01:52:47.261Z",
+  "updatedAt": "2026-04-19T01:52:47.261Z",
+  "modules": [
+    {
+      "id": "module-0",
+      "title": "Diagnose the Problem",
+      "description": "",
+      "order": 1,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": []
+    },
+    {
+      "id": "module-1",
+      "title": "Fix and Grow",
+      "description": "",
+      "order": 2,
+      "agentInstructions": null,
+      "isVisible": true,
+      "steps": []
+    }
+  ]
+}
