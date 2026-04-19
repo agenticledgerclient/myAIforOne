@@ -303,35 +303,41 @@ text-decoration:none;}
 /* ─── Coach Sidebar ──────────────────────────────────── */
 .coach-sidebar{
   width:320px;min-width:200px;max-width:600px;flex-shrink:0;
-  background:var(--bg-surface);border-right:1px solid var(--border-dim);
+  background:var(--bg-surface);border-left:1px solid var(--border-dim);
   display:none;flex-direction:column;overflow:hidden;
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:relative;
+  order:10;transition:width .2s ease,min-width .2s ease;
 }
 .coach-sidebar.visible{display:flex}
+.coach-sidebar.collapsed{width:48px;min-width:48px}
+.coach-sidebar.collapsed .sidebar-mini-hub,
+.coach-sidebar.collapsed .coach-resize-handle{display:none}
+.coach-sidebar-collapse{
+  position:absolute;top:12px;left:-14px;width:28px;height:28px;border-radius:50%;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:11;
+  color:var(--text-muted);font-size:14px;transition:all .2s;
+}
+.coach-sidebar-collapse:hover{border-color:var(--accent);color:var(--accent)}
+.coach-sidebar.collapsed .coach-sidebar-collapse{left:50%;transform:translateX(-50%);top:12px;position:relative}
 .coach-sidebar-inner{flex:1;overflow-y:auto;padding:16px}
 .coach-sidebar-inner::-webkit-scrollbar{width:3px}
 .coach-sidebar-inner::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
 
-.coach-sidebar-nav{display:flex;gap:2px;padding:12px 16px 0;flex-shrink:0}
-.coach-nav-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:10px 6px;border-radius:10px;border:1px solid var(--border-dim);
-  background:transparent;color:var(--text-muted);cursor:pointer;
-  font-family:var(--font-sans);font-size:10px;font-weight:600;transition:all .2s;
+/* Sidebar mini-hub */
+.sidebar-mini-hub{padding:16px;overflow-y:auto;flex:1}
+.sidebar-mini-actions{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
+.sidebar-mini-action{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+  border:1px solid transparent;background:transparent;color:var(--text-secondary);
+  cursor:pointer;font-family:var(--font-sans);font-size:12px;font-weight:600;
+  transition:all .15s;text-align:left;width:100%;
 }
-.coach-nav-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
-.coach-nav-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.coach-nav-icon{font-size:18px;display:flex;align-items:center;justify-content:center}
-.coach-nav-icon svg{width:18px;height:18px}
-
-/* Streak in sidebar */
-.sidebar-streak{display:flex;align-items:center;gap:8px;padding:12px 0;margin-bottom:8px;border-bottom:1px solid var(--border-dim)}
-.sidebar-streak-fire{font-size:20px}
-.sidebar-streak-count{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent)}
-.sidebar-streak-label{font-size:11px;color:var(--text-muted)}
-
-/* Coach sidebar content panels */
-.coach-panel{display:none}
+.sidebar-mini-action:hover{background:var(--bg-card);border-color:var(--border-dim);color:var(--text-primary)}
+.sidebar-mini-action.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.sidebar-mini-action svg{width:14px;height:14px;flex-shrink:0;color:var(--text-muted)}
+.sidebar-mini-action:hover svg,.sidebar-mini-action.active svg{color:var(--accent)}
+.sidebar-mini-divider{height:1px;background:var(--border-dim);margin:8px 0 12px}
 .coach-panel.active{display:block}
 
 /* Sidebar section title */
@@ -378,6 +384,113 @@ text-decoration:none;}
 .sidebar-progress-dim-score{font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);width:24px;text-align:right;flex-shrink:0}
 .sidebar-progress-bar{flex:1;height:3px;border-radius:2px;background:var(--bg-input);overflow:hidden}
 .sidebar-progress-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .3s}
+
+/* ── Gym Hub — full-page landing ── */
+.gym-hub{display:none;flex:1;min-height:0;overflow-y:auto;background:var(--bg-deep)}
+.gym-hub.open{display:flex;flex-direction:column}
+.gym-hub-inner{max-width:960px;margin:0 auto;padding:24px 32px 60px;width:100%}
+/* Action cards row */
+.gym-hub-actions{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.gym-hub-action{
+  flex:1;min-width:140px;display:flex;align-items:center;gap:10px;
+  padding:14px 16px;border-radius:12px;
+  background:var(--bg-card);border:1px solid var(--border-dim);
+  cursor:pointer;transition:all .2s;
+}
+.gym-hub-action:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(6,182,212,0.08)}
+.gym-hub-action-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-muted)}
+.gym-hub-action-icon svg{width:16px;height:16px}
+.gym-hub-action:hover .gym-hub-action-icon{color:var(--accent)}
+.gym-hub-action-label{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-primary)}
+/* Continue row */
+.gym-hub-continue{margin-bottom:24px}
+.gym-hub-continue-title{font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.gym-hub-continue-cards{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.gym-hub-continue-card{
+  flex:0 0 240px;padding:12px 14px;border-radius:10px;
+  background:var(--bg-card);border:1px solid var(--border-dim);cursor:pointer;transition:all .2s;
+}
+.gym-hub-continue-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.gym-hub-continue-card-title{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gym-hub-continue-card-meta{font-size:10px;color:var(--text-muted);margin-bottom:6px}
+.gym-hub-continue-bar{height:3px;border-radius:2px;background:var(--bg-input);overflow:hidden}
+.gym-hub-continue-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .3s}
+/* Browse section on hub */
+.gym-hub-browse{flex:1}
+.gym-hub-browse-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px}
+.gym-hub-browse-toggle{display:flex;gap:2px;background:var(--bg-input);border-radius:8px;padding:2px}
+.gym-hub-browse-toggle button{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:6px 14px;border-radius:6px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s}
+.gym-hub-browse-toggle button.active{background:var(--bg-card);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.gym-hub-search{font-family:var(--font-sans);font-size:12px;padding:7px 12px;border:1px solid var(--border-dim);border-radius:8px;background:var(--bg-input);color:var(--text-primary);width:220px;transition:border-color .2s}
+.gym-hub-search:focus{outline:none;border-color:var(--border-glow)}
+.gym-hub-search::placeholder{color:var(--text-muted)}
+.gym-hub-filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.gym-hub-filter-pill{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:4px 12px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s}
+.gym-hub-filter-pill:hover{border-color:var(--border-glow);color:var(--text-secondary)}
+.gym-hub-filter-pill.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+/* Guide cards grid */
+.gym-guide-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.gym-guide-card{
+  display:flex;flex-direction:column;padding:16px;border-radius:12px;
+  background:var(--bg-card);border:1px solid var(--border-dim);cursor:pointer;transition:all .2s;
+}
+.gym-guide-card:hover{border-color:var(--border-glow);transform:translateY(-2px);box-shadow:var(--shadow)}
+.gym-guide-card-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.gym-guide-card-desc{font-size:11px;color:var(--text-secondary);line-height:1.5;margin-bottom:10px;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gym-guide-card-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.gym-guide-card-tag{font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:4px;background:var(--accent-bg);color:var(--accent)}
+.gym-guide-card-tag.difficulty{background:var(--purple-bg);color:var(--purple)}
+.gym-guide-card-footer{display:flex;align-items:center;justify-content:space-between}
+.gym-guide-card-source{font-family:var(--font-mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
+.gym-guide-card-cta{font-family:var(--font-sans);font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;transition:all .2s}
+.gym-guide-card-cta:hover{opacity:.88}
+/* Project cards (expandable) */
+.gym-project-card{padding:16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-dim);margin-bottom:10px;cursor:pointer;transition:all .2s}
+.gym-project-card:hover{border-color:var(--border-glow)}
+.gym-project-card-header{display:flex;align-items:center;justify-content:space-between}
+.gym-project-card-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary)}
+.gym-project-card-meta{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:6px}
+.gym-project-card-arrow{transition:transform .2s;color:var(--text-muted)}
+.gym-project-card.expanded .gym-project-card-arrow{transform:rotate(90deg)}
+.gym-project-card-desc{font-size:11px;color:var(--text-secondary);margin-top:4px}
+.gym-project-card-body{display:none;margin-top:14px;border-top:1px solid var(--border-dim);padding-top:14px}
+.gym-project-card.expanded .gym-project-card-body{display:block}
+/* ── Drilled-in views (replace chat area) ── */
+.gym-view{display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden}
+.gym-view.active{display:flex}
+/* Browse view */
+.gym-browse-view{overflow-y:auto;padding:24px;flex:1}
+/* Create view */
+.gym-create-view{flex:1;display:flex;overflow:hidden}
+.gym-create-chat{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border-dim)}
+.gym-create-chat-header{padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
+.gym-create-chat-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary)}
+.gym-create-chat-sub{font-size:11px;color:var(--text-muted);display:block;margin-top:2px}
+.gym-create-preview{width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.gym-create-preview-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-dim);flex-shrink:0;font-size:13px;font-weight:600;color:var(--text-primary)}
+.gym-create-preview-content{flex:1;overflow-y:auto;padding:16px;font-size:12px;color:var(--text-secondary)}
+.gym-create-import-btn{font-family:var(--font-sans);font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;transition:all .2s}
+.gym-create-import-btn:disabled{opacity:.4;cursor:default}
+/* Growth view */
+.gym-growth-view{overflow-y:auto;padding:24px;flex:1}
+.gym-growth-inner{max-width:640px;margin:0 auto}
+.gym-growth-radar{display:flex;justify-content:center;margin-bottom:28px}
+.gym-growth-dim-section{margin-bottom:24px}
+.gym-growth-dim-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:12px}
+.gym-growth-dim-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border-dim)}
+.gym-growth-dim-row:last-child{border-bottom:none}
+.gym-growth-dim-label{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text-primary);min-width:110px}
+.gym-growth-dim-bar{flex:1;height:6px;background:var(--bg-input);border-radius:3px;overflow:hidden}
+.gym-growth-dim-fill{height:100%;border-radius:3px;transition:width .6s ease;background:var(--accent)}
+.gym-growth-dim-score{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);min-width:28px;text-align:right}
+.gym-growth-next-focus{background:var(--accent-bg);border:1px solid var(--border-glow);border-radius:var(--radius);padding:14px;margin-bottom:24px}
+.gym-growth-milestones-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:12px}
+.gym-growth-milestone{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-dim)}
+.gym-growth-milestone:last-child{border-bottom:none}
+.gym-growth-milestone-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:4px;flex-shrink:0}
+.gym-growth-history{margin-top:24px}
+.gym-growth-history-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:12px}
+.gym-growth-history-chart{position:relative;width:100%;height:180px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);padding:14px;overflow:hidden}
 
 /* Chat body layout — needs flex row when sidebar visible */
 .chat-body-outer{display:flex;flex:1;min-height:0;overflow:hidden}
@@ -498,7 +611,7 @@ text-decoration:none;}
 
 /* Sidebar resize handle */
 .coach-resize-handle{
-  position:absolute;top:0;right:-3px;bottom:0;width:6px;cursor:col-resize;z-index:10;
+  position:absolute;top:0;left:-3px;bottom:0;width:6px;cursor:col-resize;z-index:10;
 }
 .coach-resize-handle:hover{background:rgba(34,211,238,0.15)}
 
@@ -790,77 +903,157 @@ text-decoration:none;}
     <div class="session-tabs" id="homeSessionTabBar"></div>
     <div class="session-tabs" id="coachSessionTabBar" style="display:none"></div>
     <div class="chat-body-outer">
+    <!-- Gym Hub — full-page landing (shown first in coach mode) -->
+    <div class="gym-hub" id="gymHub">
+      <div class="gym-hub-inner">
+        <!-- Action cards row -->
+        <div class="gym-hub-actions" id="gymHubActions">
+          <div class="gym-hub-action" onclick="gymHubDrillIn('browse')">
+            <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+            <span class="gym-hub-action-label">Browse Guides</span>
+          </div>
+          <div class="gym-hub-action" onclick="gymHubDrillIn('coach')">
+            <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+            <span class="gym-hub-action-label">Chat with Coach</span>
+          </div>
+          <div class="gym-hub-action" onclick="gymHubDrillIn('create')">
+            <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+            <span class="gym-hub-action-label">Create a Guide</span>
+          </div>
+          <div class="gym-hub-action" onclick="gymHubDrillIn('progress')">
+            <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <span class="gym-hub-action-label">My Growth</span>
+          </div>
+        </div>
+        <!-- Continue row -->
+        <div class="gym-hub-continue" id="gymHubContinue" style="display:none">
+          <div class="gym-hub-continue-title">Pick up where you left off</div>
+          <div class="gym-hub-continue-cards" id="gymHubContinueCards"></div>
+        </div>
+        <!-- Browse content (default on hub) -->
+        <div class="gym-hub-browse" id="gymHubBrowse">
+          <div class="gym-hub-browse-header">
+            <div class="gym-hub-browse-toggle" id="gymHubBrowseToggle">
+              <button class="active" data-view="projects" onclick="gymHubSwitchBrowse('projects')">Projects</button>
+              <button data-view="guides" onclick="gymHubSwitchBrowse('guides')">Guides</button>
+            </div>
+            <input type="text" class="gym-hub-search" id="gymHubSearch" placeholder="Search..." oninput="gymHubFilterBrowse()">
+          </div>
+          <div class="gym-hub-filters" id="gymHubFilters"></div>
+          <div id="gymHubBrowseContent"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Drilled-in views (shown when an action card is clicked, replaces chat area) -->
+    <!-- Browse View -->
+    <div class="gym-view" id="gymBrowseView">
+      <div class="gym-browse-view">
+        <div class="gym-hub-browse-header">
+          <div class="gym-hub-browse-toggle" id="gymBrowseToggle">
+            <button class="active" data-view="projects" onclick="gymBrowseSwitchView('projects')">Projects</button>
+            <button data-view="guides" onclick="gymBrowseSwitchView('guides')">Guides</button>
+          </div>
+          <input type="text" class="gym-hub-search" id="gymBrowseSearch" placeholder="Search..." oninput="gymBrowseFilter()">
+        </div>
+        <div class="gym-hub-filters" id="gymBrowseFilters"></div>
+        <div id="gymBrowseContent"></div>
+      </div>
+    </div>
+    <!-- Create View -->
+    <div class="gym-view" id="gymCreateView">
+      <div class="gym-create-view">
+        <div class="gym-create-chat">
+          <div class="gym-create-chat-header">
+            <span class="gym-create-chat-title">AI Guide Generator</span>
+            <span class="gym-create-chat-sub">Describe the guide you want to create and I'll build it for you</span>
+          </div>
+          <div class="chat-messages-home chat-messages" id="gymCreateMessages"></div>
+          <div style="padding:12px 16px;border-top:1px solid var(--border-dim)">
+            <div style="display:flex;gap:8px">
+              <textarea id="gymCreateInput" placeholder="e.g. Create a beginner guide to writing effective AI prompts..." rows="1"
+                style="flex:1;padding:10px 12px;border:1px solid var(--border-dim);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-family:var(--font-sans);font-size:12px;resize:none"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCreateMessage()}"></textarea>
+              <button onclick="sendCreateMessage()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">&#x2192;</button>
+            </div>
+          </div>
+        </div>
+        <div class="gym-create-preview">
+          <div class="gym-create-preview-header">
+            <span>Preview</span>
+            <button class="gym-create-import-btn" id="gymCreateImportBtn" onclick="importCreatedGuide()" disabled>Import Guide</button>
+          </div>
+          <div class="gym-create-preview-content" id="gymCreatePreview">
+            <div style="text-align:center;padding:40px;color:var(--text-muted);font-size:12px">
+              <div style="font-size:28px;opacity:.3;margin-bottom:8px">&#x2728;</div>
+              Your guide structure will appear here as the AI generates it.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Growth View -->
+    <div class="gym-view" id="gymGrowthView">
+      <div class="gym-growth-view">
+        <div class="gym-growth-inner">
+          <div class="gym-growth-radar">
+            <svg id="gymGrowthRadar" viewBox="0 0 280 280" style="width:240px;height:240px"></svg>
+          </div>
+          <div class="gym-growth-dim-section">
+            <div class="gym-growth-dim-title">Dimensions</div>
+            <div id="gymGrowthDimRows"></div>
+          </div>
+          <div class="gym-growth-next-focus" id="gymGrowthNextFocus" style="display:none">
+            <div style="font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px">Next Focus Area</div>
+            <div id="gymGrowthNextFocusText" style="font-size:12px;color:var(--text-secondary);line-height:1.5"></div>
+          </div>
+          <div class="gym-growth-milestones-title">Milestones</div>
+          <div id="gymGrowthMilestones"></div>
+          <div class="gym-growth-history">
+            <div class="gym-growth-history-title">Progress Over Time</div>
+            <div class="gym-growth-history-chart">
+              <svg id="gymGrowthHistorySvg" viewBox="0 0 600 160" preserveAspectRatio="none" style="width:100%;height:100%"></svg>
+            </div>
+            <div id="gymGrowthHistoryLegend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Coach Sidebar (hidden in work mode) -->
     <div class="coach-sidebar" id="coachSidebar">
-      <div class="coach-sidebar-nav">
-        <button class="coach-nav-btn active" data-panel="guides" onclick="switchCoachPanel('guides')">
-          <span class="coach-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></span>Guides
-        </button>
-        <button class="coach-nav-btn" data-panel="progress" onclick="switchCoachPanel('progress')">
-          <span class="coach-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>My Growth
-        </button>
-        <button class="coach-nav-btn" data-panel="create" onclick="switchCoachPanel('create')">
-          <span class="coach-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>Create
-        </button>
-      </div>
-      <div class="coach-sidebar-inner">
-        <div class="sidebar-streak" id="coachStreak">
-          <span class="sidebar-streak-fire">&#x1F525;</span>
-          <span class="sidebar-streak-count" id="coachStreakCount">0</span>
-          <span class="sidebar-streak-label">day streak</span>
-        </div>
-
-        <!-- Guides Panel -->
-        <div class="coach-panel active" id="guidesPanel">
-          <div style="margin-bottom:8px">
-            <input type="text" id="guidesSearch" placeholder="Search guides..." oninput="filterCoachGuides()"
-              style="width:100%;padding:8px 10px;border:1px solid var(--border-dim);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-size:12px;font-family:var(--font-sans);box-sizing:border-box">
-          </div>
-          <div class="sidebar-filter-tabs" id="guidesFilterTabs"></div>
-          <div id="guidesListContent"></div>
-        </div>
-
-        <!-- My Growth Panel -->
-        <div class="coach-panel" id="progressPanel">
-          <div style="display:flex;justify-content:center;margin-bottom:16px">
-            <svg id="skillsRadarChart" viewBox="0 0 280 280" style="width:220px;height:220px"></svg>
-          </div>
-          <div class="sidebar-section-title">Dimensions</div>
-          <div id="progressDimList"></div>
-          <div style="margin-top:16px">
-            <div class="sidebar-section-title">Milestones</div>
-            <div id="progressMilestones" style="font-size:12px;color:var(--text-secondary)"></div>
-          </div>
-          <div style="margin-top:20px">
-            <div class="sidebar-section-title">Progress Over Time</div>
-            <div id="skillsHistoryChart" style="position:relative;width:100%;height:160px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:10px;padding:12px;overflow:hidden;box-sizing:border-box">
-              <svg id="skillsHistorySvg" viewBox="0 0 600 160" preserveAspectRatio="none" style="width:100%;height:100%"></svg>
-            </div>
-            <div id="skillsHistoryLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
-          </div>
-        </div>
-
-        <!-- Create Panel -->
-        <div class="coach-panel" id="createPanel">
-          <div class="sidebar-section-title">Create a Guide</div>
-          <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px">
-            Describe what you want to learn and the coach will create a personalized guide for you.
-          </p>
-          <textarea id="createGuideInput" placeholder="e.g. 'Teach me how to build MCP servers' or 'Advanced prompt engineering for code generation'"
-            style="width:100%;min-height:320px;padding:10px;border:1px solid var(--border-dim);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-size:12px;font-family:var(--font-sans);resize:vertical;box-sizing:border-box"></textarea>
-          <div style="margin-top:8px">
-            <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);cursor:pointer">
-              <input type="file" id="createGuideAttachment" multiple style="display:none" onchange="handleCreateAttachment(this)">
-              <span onclick="document.getElementById('createGuideAttachment').click()" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border:1px solid var(--border-dim);border-radius:6px;cursor:pointer;transition:all .2s">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.49"/></svg>
-                Attach files
-              </span>
-            </label>
-            <div id="createAttachmentList" style="margin-top:4px;font-size:10px;color:var(--text-muted)"></div>
-          </div>
-          <button onclick="requestGuideCreation()" style="width:100%;margin-top:8px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s">
-            Ask Coach to Create Guide
+      <button class="coach-sidebar-collapse" onclick="toggleCoachSidebarCollapse()" title="Toggle sidebar" id="coachCollapseBtn">&#x25B6;</button>
+      <div class="sidebar-mini-hub">
+        <!-- Action nav -->
+        <div class="sidebar-mini-actions" id="sidebarMiniActions">
+          <button class="sidebar-mini-action" onclick="gymHubBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Hub
           </button>
+          <button class="sidebar-mini-action" onclick="gymHubDrillIn('browse')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+            Browse Guides
+          </button>
+          <button class="sidebar-mini-action" onclick="gymHubDrillIn('coach')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Chat with Coach
+          </button>
+          <button class="sidebar-mini-action" onclick="gymHubDrillIn('create')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create a Guide
+          </button>
+          <button class="sidebar-mini-action" onclick="gymHubDrillIn('progress')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            My Growth
+          </button>
+        </div>
+        <div class="sidebar-mini-divider"></div>
+        <!-- Guides list -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Guides</div>
+            <input type="text" id="sidebarBrowseSearch" placeholder="Search..." oninput="renderSidebarBrowse()"
+              style="font-family:var(--font-sans);font-size:11px;padding:4px 8px;border:1px solid var(--border-dim);border-radius:6px;background:var(--bg-input);color:var(--text-primary);width:100px;transition:border-color .2s">
+          </div>
+          <div id="sidebarBrowseContent"></div>
         </div>
       </div>
       <div class="coach-resize-handle" id="coachResizeHandle"></div>
@@ -898,7 +1091,7 @@ text-decoration:none;}
       <div class="gv-wrapper">
         <div class="gv-main">
           <div class="gv-topbar">
-            <button class="gv-back" onclick="closeGuideViewer()">&#x2190; Back to Guides</button>
+            <button class="gv-back" onclick="closeGuideAndBrowse()">&#x2190; Back to Guides</button>
             <span class="gv-title" id="gvTitle"></span>
           </div>
           <div class="gv-modules" id="gvModules"></div>
@@ -1030,6 +1223,8 @@ let gymInsights = null;
 let guidesFilter = 'all';
 let guideViewerState = null;
 let coachDataLoaded = false;
+let gymHubActive = false;
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 // ─── Coach Session Tabs ──────────────────────────────
 let coachTabs = [];
@@ -1184,8 +1379,25 @@ function switchMode(mode) {
   document.getElementById('modeWork').classList.toggle('active', mode === 'work');
   document.getElementById('modeCoach').classList.toggle('active', mode === 'coach');
 
-  // Toggle sidebar
-  document.getElementById('coachSidebar').classList.toggle('visible', mode === 'coach');
+  // Show gym hub (full-page landing) in coach mode; hide sidebar until drill-in
+  const gymHub = document.getElementById('gymHub');
+  const sidebar = document.getElementById('coachSidebar');
+  const chatWrap = document.getElementById('chatBodyWrap');
+  const inputBox = document.querySelector('.chat-input-home-box');
+  if (mode === 'coach') {
+    gymHubActive = true;
+    gymHub.classList.add('open');
+    sidebar.classList.remove('visible');
+    if (chatWrap) chatWrap.style.display = 'none';
+    if (inputBox) inputBox.style.display = 'none';
+    renderGymHubContinue();
+  } else {
+    gymHubActive = false;
+    gymHub.classList.remove('open');
+    sidebar.classList.remove('visible');
+    if (chatWrap) chatWrap.style.display = '';
+    if (inputBox) inputBox.style.display = '';
+  }
 
   // Close guide viewer if open
   if (guideViewerState) closeGuideViewer();
@@ -1224,30 +1436,24 @@ function switchMode(mode) {
   // Refresh file drawer if open
   if (fileDrawerOpen) loadFileDrawer();
 
-  // Toggle session tabs
+  // Toggle session tabs — hide coach tabs when on hub
   const sessionTabs = document.getElementById('homeSessionTabBar');
   if (sessionTabs) sessionTabs.style.display = mode === 'work' ? '' : 'none';
   const coachTabs = document.getElementById('coachSessionTabBar');
-  if (coachTabs) coachTabs.style.display = mode === 'coach' ? '' : 'none';
+  if (coachTabs) coachTabs.style.display = (mode === 'coach' && !gymHubActive) ? '' : 'none';
 
-  // Toggle agent bar / coach quick actions
+  // Toggle agent bar / coach quick actions — hide when hub is active
   const agentBar = document.querySelector('.chat-agent-bar');
   if (agentBar) agentBar.style.display = mode === 'work' ? '' : 'none';
   const coachActions = document.getElementById('coachQuickActions');
-  if (coachActions) coachActions.style.display = mode === 'coach' ? '' : 'none';
+  if (coachActions) coachActions.style.display = (mode === 'coach' && !gymHubActive) ? '' : 'none';
   const drawerBtn = document.querySelector('.chat-input-home-box .input-action[title="Agents"]');
   if (drawerBtn) drawerBtn.style.display = mode === 'work' ? '' : 'none';
 
   // Swap chat content
   if (mode === 'coach') {
-    // Save work messages, load coach
-    syncToActiveTab();
-    coachSyncFromActiveTab();
-    renderMessages();
-    scrollChat();
-    renderCoachTabBar();
-    document.getElementById('chatInput').placeholder = 'Message your coach...';
-    // Load coach data on first switch
+    // Don't swap chat yet — hub is shown first; chat swap happens in gymHubDrillIn
+    // But load coach data so the hub can show continue cards
     if (!coachDataLoaded) loadCoachData();
   } else {
     // Save coach messages, restore work
@@ -1274,16 +1480,10 @@ async function loadCoachData() {
     gymPrograms = Array.isArray(programsRes) ? programsRes : (programsRes?.programs || []);
     gymInsights = insightsRes;
 
-    // Streak
-    let streak = 0;
-    if (gymProfile?.streak?.current) streak = gymProfile.streak.current;
-    else if (gymProgress?.streak) streak = gymProgress.streak;
-    document.getElementById('coachStreakCount').textContent = streak;
-    document.getElementById('coachStreak').style.display = streak > 0 ? '' : 'none';
-
-    renderCoachGuides();
-    renderCoachProgress();
-    renderGuidesFilterTabs();
+    // Render hub browse if on hub landing
+    if (gymHubActive) { renderGymHubContinue(); renderGymHubBrowse(); }
+    // Render sidebar browse if sidebar is visible
+    renderSidebarBrowse();
   } catch (e) {
     console.warn('Failed to load coach data:', e);
   }
@@ -1312,6 +1512,586 @@ function switchCoachPanel(panel) {
   document.querySelectorAll('.coach-panel').forEach(p => p.classList.remove('active'));
   const el = document.getElementById(panel + 'Panel');
   if (el) el.classList.add('active');
+}
+
+function toggleCoachSidebarCollapse() {
+  const sidebar = document.getElementById('coachSidebar');
+  const btn = document.getElementById('coachCollapseBtn');
+  if (!sidebar) return;
+  const collapsed = sidebar.classList.toggle('collapsed');
+  btn.innerHTML = collapsed ? '&#x25C0;' : '&#x25B6;';
+}
+
+// ─── Sidebar Mini-Hub ──────────────────────────────────
+function updateSidebarActiveState(panel) {
+  const map = { browse: 'Browse Guides', coach: 'Chat with Coach', create: 'Create a Guide', progress: 'My Growth' };
+  document.querySelectorAll('.sidebar-mini-action').forEach(btn => {
+    const label = btn.textContent.trim();
+    btn.classList.toggle('active', label === map[panel]);
+  });
+}
+
+function renderSidebarBrowse() {
+  const container = document.getElementById('sidebarBrowseContent');
+  if (!container) return;
+  const q = (document.getElementById('sidebarBrowseSearch')?.value || '').toLowerCase().trim();
+  let filtered = gymPrograms || [];
+  if (q) filtered = filtered.filter(p => (p.title||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+  container.innerHTML = renderSidebarGuideCards(filtered);
+}
+
+function renderSidebarGuideCards(programs) {
+  if (!programs.length) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">No guides found.</div>';
+  return programs.map(p => {
+    const slug = p.slug || p.id;
+    const progress = gymProgress?.programs?.[slug];
+    const ctaLabel = progress?.completedSteps?.length ? 'Continue' : '';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border-dim);cursor:pointer" onclick="openGuide('${slug}')">
+      <div style="font-size:11px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${escHtml(p.title || 'Untitled')}</div>
+      <div style="font-size:10px;color:var(--text-muted)">${p._counts?.modules || p.modules?.length || 0} modules${ctaLabel ? ' · <span style=color:var(--accent)>'+ctaLabel+'</span>' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSidebarProjectCards(projects) {
+  if (!projects.length) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">No projects found.</div>';
+  return projects.map(p => `
+    <div style="padding:8px 0;border-bottom:1px solid var(--border-dim);cursor:pointer" onclick="toggleProjectCard('sidebar','${p.slug}')">
+      <div style="font-size:11px;font-weight:600;color:var(--text-primary)">${escHtml(p.name || 'Untitled')}</div>
+      <div style="font-size:10px;color:var(--text-muted)">${p._counts?.programs || 0} guides</div>
+    </div>
+  `).join('');
+}
+
+// ─── Gym Hub — Drill In / Back ──────────────────────────
+let gymActiveView = null; // 'browse' | 'coach' | 'create' | 'progress'
+let gymHubBrowseMode = 'projects';
+let gymBrowseMode = 'projects';
+let gymProjectsCache = null;
+let gymCreateMessages = [];
+
+function gymHubDrillIn(panel) {
+  gymHubActive = false;
+  gymActiveView = panel;
+  const gymHub = document.getElementById('gymHub');
+  const sidebar = document.getElementById('coachSidebar');
+  const chatWrap = document.getElementById('chatBodyWrap');
+  const inputBox = document.querySelector('.chat-input-home-box');
+  const coachTabs = document.getElementById('coachSessionTabBar');
+
+  // Close guide viewer if open
+  if (guideViewerState) {
+    document.getElementById('guideViewerInline').classList.remove('open');
+    guideViewerState = null;
+    guideChatMessages = [];
+  }
+
+  gymHub.classList.remove('open');
+
+  // Hide all gym views
+  ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+
+  // Show sidebar for all views
+  sidebar.classList.add('visible');
+  updateSidebarActiveState(panel);
+  renderSidebarBrowse();
+
+  // Load coach data if not yet loaded
+  if (!coachDataLoaded) loadCoachData();
+
+  if (panel === 'coach') {
+    // Show chat area + input
+    if (chatWrap) chatWrap.style.display = '';
+    if (inputBox) inputBox.style.display = '';
+    if (coachTabs) coachTabs.style.display = '';
+    // Swap to coach messages
+    if (messages !== coachMessages) {
+      syncToActiveTab();
+      coachSyncFromActiveTab();
+      messages = coachMessages;
+      renderMessages();
+      scrollChat();
+      renderCoachTabBar();
+      document.getElementById('chatInput').placeholder = 'Message your coach...';
+    }
+    document.getElementById('chatInput').focus();
+  } else {
+    // Hide chat area + input for non-coach views
+    if (chatWrap) chatWrap.style.display = 'none';
+    if (inputBox) inputBox.style.display = 'none';
+    if (coachTabs) coachTabs.style.display = 'none';
+
+    if (panel === 'browse') {
+      document.getElementById('gymBrowseView').classList.add('active');
+      renderGymBrowse();
+    } else if (panel === 'create') {
+      document.getElementById('gymCreateView').classList.add('active');
+    } else if (panel === 'progress') {
+      document.getElementById('gymGrowthView').classList.add('active');
+      renderGymGrowth();
+    }
+  }
+}
+
+function gymHubBack() {
+  gymHubActive = true;
+  gymActiveView = null;
+  const gymHub = document.getElementById('gymHub');
+  const sidebar = document.getElementById('coachSidebar');
+  const chatWrap = document.getElementById('chatBodyWrap');
+  const inputBox = document.querySelector('.chat-input-home-box');
+  const coachTabs = document.getElementById('coachSessionTabBar');
+
+  // Close guide viewer if open
+  if (guideViewerState) closeGuideViewer();
+
+  // Hide all gym views
+  ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+
+  gymHub.classList.add('open');
+  sidebar.classList.remove('visible');
+  if (chatWrap) chatWrap.style.display = 'none';
+  if (inputBox) inputBox.style.display = 'none';
+  if (coachTabs) coachTabs.style.display = 'none';
+
+  renderGymHubContinue();
+  renderGymHubBrowse();
+}
+
+function renderGymHubContinue() {
+  const container = document.getElementById('gymHubContinueCards');
+  const section = document.getElementById('gymHubContinue');
+  if (!container || !section) return;
+  if (!gymProgress?.programs || !gymPrograms.length) { section.style.display = 'none'; return; }
+
+  const inProgress = [];
+  for (const [slug, prog] of Object.entries(gymProgress.programs)) {
+    if (!prog.completedSteps?.length) continue;
+    const program = gymPrograms.find(p => p.slug === slug || p.id === slug);
+    if (!program) continue;
+    const totalSteps = program._counts?.steps || program.stepCount || 0;
+    const completed = prog.completedSteps.length;
+    if (totalSteps && completed < totalSteps) {
+      inProgress.push({ slug, title: program.title, completed, total: totalSteps, pct: Math.round((completed / totalSteps) * 100) });
+    }
+  }
+
+  if (!inProgress.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  container.innerHTML = inProgress.map(p => `
+    <div class="gym-hub-continue-card" onclick="gymHubDrillIn('browse'); setTimeout(() => openGuide('${p.slug}'), 200)">
+      <div class="gym-hub-continue-card-title">${escHtml(p.title)}</div>
+      <div class="gym-hub-continue-card-meta">${p.completed}/${p.total} steps &middot; ${p.pct}% complete</div>
+      <div class="gym-hub-continue-bar"><div class="gym-hub-continue-fill" style="width:${p.pct}%"></div></div>
+    </div>
+  `).join('');
+}
+
+// ─── Gym Hub Browse (on landing) ──────────────────────────
+function gymHubSwitchBrowse(mode) {
+  gymHubBrowseMode = mode;
+  document.querySelectorAll('#gymHubBrowseToggle button').forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+  renderGymHubBrowse();
+}
+
+function gymHubFilterBrowse() { renderGymHubBrowse(); }
+
+async function renderGymHubBrowse() {
+  const container = document.getElementById('gymHubBrowseContent');
+  const filtersEl = document.getElementById('gymHubFilters');
+  if (!container) return;
+  const q = (document.getElementById('gymHubSearch')?.value || '').toLowerCase().trim();
+
+  if (gymHubBrowseMode === 'guides') {
+    // Source filter pills
+    filtersEl.innerHTML = ['all','platform','coach','user'].map(s => {
+      const label = {all:'All',platform:'Platform',coach:'Coach',user:'My Guides'}[s];
+      return `<button class="gym-hub-filter-pill${guidesFilter===s?' active':''}" onclick="guidesFilter='${s}';renderGymHubBrowse()">${label}</button>`;
+    }).join('');
+    let filtered = gymPrograms;
+    if (guidesFilter !== 'all') filtered = filtered.filter(p => (p.source || 'platform') === guidesFilter);
+    if (q) filtered = filtered.filter(p => (p.title||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+    container.innerHTML = renderGuideCardsHTML(filtered);
+  } else {
+    filtersEl.innerHTML = '';
+    if (!gymProjectsCache) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:12px">Loading projects...</div>';
+      try {
+        const res = await fetch('/api/gym/projects');
+        if (res.ok) gymProjectsCache = await res.json();
+        else gymProjectsCache = [];
+      } catch { gymProjectsCache = []; }
+    }
+    let projects = (gymProjectsCache || []).filter(p => p.isActive !== false);
+    if (q) projects = projects.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+    container.innerHTML = renderProjectCardsHTML(projects, 'hub');
+  }
+}
+
+// ─── Gym Browse View (drilled in) ──────────────────────────
+function gymBrowseSwitchView(mode) {
+  gymBrowseMode = mode;
+  document.querySelectorAll('#gymBrowseToggle button').forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+  renderGymBrowse();
+}
+
+function gymBrowseFilter() { renderGymBrowse(); }
+
+async function renderGymBrowse() {
+  const container = document.getElementById('gymBrowseContent');
+  const filtersEl = document.getElementById('gymBrowseFilters');
+  if (!container) return;
+  const q = (document.getElementById('gymBrowseSearch')?.value || '').toLowerCase().trim();
+
+  if (gymBrowseMode === 'guides') {
+    filtersEl.innerHTML = ['all','platform','coach','user'].map(s => {
+      const label = {all:'All',platform:'Platform',coach:'Coach',user:'My Guides'}[s];
+      return `<button class="gym-hub-filter-pill${guidesFilter===s?' active':''}" onclick="guidesFilter='${s}';renderGymBrowse()">${label}</button>`;
+    }).join('');
+    let filtered = gymPrograms;
+    if (guidesFilter !== 'all') filtered = filtered.filter(p => (p.source || 'platform') === guidesFilter);
+    if (q) filtered = filtered.filter(p => (p.title||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+    container.innerHTML = renderGuideCardsHTML(filtered);
+  } else {
+    filtersEl.innerHTML = '';
+    if (!gymProjectsCache) {
+      try {
+        const res = await fetch('/api/gym/projects');
+        if (res.ok) gymProjectsCache = await res.json();
+        else gymProjectsCache = [];
+      } catch { gymProjectsCache = []; }
+    }
+    let projects = (gymProjectsCache || []).filter(p => p.isActive !== false);
+    if (q) projects = projects.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+    container.innerHTML = renderProjectCardsHTML(projects, 'drill');
+  }
+}
+
+// ─── Shared renderers ──────────────────────────
+function renderGuideCardsHTML(programs) {
+  if (!programs.length) return '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:12px">No guides found.</div>';
+  return '<div class="gym-guide-grid">' + programs.map(p => {
+    const slug = p.slug || p.id;
+    const moduleCount = p._counts?.modules || p.modules?.length || 0;
+    const stepCount = p._counts?.steps || p.modules?.reduce((s,m) => s+(m.steps?.length||0),0) || 0;
+    const progress = gymProgress?.programs?.[slug];
+    const ctaText = progress?.completedSteps?.length ? 'Continue' : 'Start';
+    const source = p.source || 'platform';
+    const sourceLabel = {platform:'Platform',coach:'Coach',user:'My Guide'}[source] || source;
+    const sourceColor = {platform:'var(--accent)',coach:'var(--purple)',user:'var(--green)'}[source] || 'var(--text-muted)';
+    return `
+      <div class="gym-guide-card" onclick="openGuide('${slug}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="gym-guide-card-title" style="flex:1;margin-right:8px">${escHtml(p.title || p.name || 'Untitled')}</div>
+          <span class="gym-guide-card-source" style="color:${sourceColor};background:${sourceColor}15">${sourceLabel}</span>
+        </div>
+        <div class="gym-guide-card-desc">${escHtml(p.description || '')}</div>
+        <div class="gym-guide-card-meta">
+          ${moduleCount ? `<span class="gym-guide-card-tag">${moduleCount} module${moduleCount!==1?'s':''}</span>` : ''}
+          ${stepCount ? `<span class="gym-guide-card-tag">${stepCount} steps</span>` : ''}
+          ${p.difficulty ? `<span class="gym-guide-card-tag difficulty">${p.difficulty}</span>` : ''}
+        </div>
+        <div class="gym-guide-card-footer">
+          <span></span>
+          <button class="gym-guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">${ctaText}</button>
+        </div>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+function renderProjectCardsHTML(projects, ctx) {
+  if (!projects.length) return '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:12px">No projects found.</div>';
+  return projects.map(p => {
+    const progCount = p._counts?.programs || 0;
+    const seriesCount = p._counts?.series || 0;
+    return `
+      <div class="gym-project-card" id="proj-${ctx}-${p.slug}" onclick="toggleProjectCard('${ctx}','${p.slug}')">
+        <div class="gym-project-card-header">
+          <div>
+            <div class="gym-project-card-title">${escHtml(p.name || 'Untitled')}</div>
+            ${p.description ? `<div class="gym-project-card-desc">${escHtml(p.description)}</div>` : ''}
+          </div>
+          <div class="gym-project-card-meta">
+            ${progCount ? `<span>${progCount} guide${progCount!==1?'s':''}</span>` : ''}
+            ${seriesCount ? `<span>${seriesCount} series</span>` : ''}
+            <span class="gym-project-card-arrow">&#x25B8;</span>
+          </div>
+        </div>
+        <div class="gym-project-card-body" id="proj-body-${ctx}-${p.slug}"></div>
+      </div>`;
+  }).join('');
+}
+
+async function toggleProjectCard(ctx, slug) {
+  const card = document.getElementById(`proj-${ctx}-${slug}`);
+  if (!card) return;
+  if (card.classList.contains('expanded')) {
+    card.classList.remove('expanded');
+    return;
+  }
+  card.classList.add('expanded');
+  const body = document.getElementById(`proj-body-${ctx}-${slug}`);
+  if (body.dataset.loaded) return;
+  body.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px">Loading guides...</div>';
+  try {
+    const res = await fetch(`/api/gym/projects/${slug}`);
+    const project = await res.json();
+    if (project.programs?.length) {
+      body.innerHTML = renderGuideCardsHTML(project.programs);
+    } else {
+      body.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px">No guides in this project yet.</div>';
+    }
+    body.dataset.loaded = '1';
+  } catch {
+    body.innerHTML = '<div style="font-size:11px;color:var(--red);padding:8px">Failed to load.</div>';
+  }
+}
+
+// ─── Gym Growth View ──────────────────────────
+function renderGymGrowth() {
+  // Re-use the existing sidebar progress data
+  const dims = gymProfile?.dimensions || {};
+  const dimEntries = Object.entries(dims).sort((a,b) => (b[1]?.score||0) - (a[1]?.score||0));
+
+  // Radar chart
+  const radarSvg = document.getElementById('gymGrowthRadar');
+  if (radarSvg && dimEntries.length >= 3) {
+    const cx = 140, cy = 140, maxR = 110;
+    const n = dimEntries.length;
+    let gridHtml = '';
+    for (let ring = 1; ring <= 5; ring++) {
+      const r = maxR * ring / 5;
+      const pts = Array.from({length: n}, (_, i) => {
+        const a = (Math.PI*2*i/n) - Math.PI/2;
+        return `${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`;
+      }).join(' ');
+      gridHtml += `<polygon points="${pts}" fill="none" stroke="var(--border-dim)" stroke-width="1"/>`;
+    }
+    // Axes
+    for (let i = 0; i < n; i++) {
+      const a = (Math.PI*2*i/n) - Math.PI/2;
+      gridHtml += `<line x1="${cx}" y1="${cy}" x2="${cx+maxR*Math.cos(a)}" y2="${cy+maxR*Math.sin(a)}" stroke="var(--border-dim)" stroke-width="0.5"/>`;
+    }
+    // Data shape
+    const dataPts = dimEntries.map(([,d], i) => {
+      const score = Math.min((d?.score||0)/100, 1);
+      const a = (Math.PI*2*i/n) - Math.PI/2;
+      return `${cx+maxR*score*Math.cos(a)},${cy+maxR*score*Math.sin(a)}`;
+    }).join(' ');
+    gridHtml += `<polygon points="${dataPts}" fill="rgba(34,211,238,0.15)" stroke="var(--accent)" stroke-width="2"/>`;
+    // Points + labels
+    dimEntries.forEach(([name, d], i) => {
+      const score = Math.min((d?.score||0)/100, 1);
+      const a = (Math.PI*2*i/n) - Math.PI/2;
+      const px = cx+maxR*score*Math.cos(a), py = cy+maxR*score*Math.sin(a);
+      gridHtml += `<circle cx="${px}" cy="${py}" r="4" fill="var(--accent)"/>`;
+      const lx = cx+(maxR+18)*Math.cos(a), ly = cy+(maxR+18)*Math.sin(a);
+      gridHtml += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" style="font-family:var(--font-display);font-size:9px;font-weight:700;fill:var(--text-secondary)">${name.replace(/_/g,' ')}</text>`;
+    });
+    radarSvg.innerHTML = gridHtml;
+  } else if (radarSvg) {
+    radarSvg.innerHTML = `<text x="140" y="140" text-anchor="middle" style="font-size:12px;fill:var(--text-muted)">Complete guides to build your skill dimensions</text>`;
+  }
+
+  // Dimension rows
+  const dimRowsEl = document.getElementById('gymGrowthDimRows');
+  if (dimRowsEl) {
+    if (dimEntries.length) {
+      dimRowsEl.innerHTML = dimEntries.map(([name, d]) => {
+        const score = d?.score || 0;
+        const trend = d?.trend || 'stable';
+        const trendIcon = {up:'&#x25B2;',down:'&#x25BC;',stable:'&#x25CF;'}[trend] || '&#x25CF;';
+        const trendColor = {up:'var(--green)',down:'var(--red)',stable:'var(--text-muted)'}[trend];
+        return `<div class="gym-growth-dim-row">
+          <span class="gym-growth-dim-label">${name.replace(/_/g,' ')}</span>
+          <div class="gym-growth-dim-bar"><div class="gym-growth-dim-fill" style="width:${score}%"></div></div>
+          <span class="gym-growth-dim-score">${score}</span>
+          <span style="font-size:10px;color:${trendColor};min-width:14px;text-align:center">${trendIcon}</span>
+        </div>`;
+      }).join('');
+    } else {
+      dimRowsEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:12px 0">No dimensions tracked yet. Complete guides to build your skills.</div>';
+    }
+  }
+
+  // Next focus
+  const nextFocusEl = document.getElementById('gymGrowthNextFocus');
+  const nextFocusText = document.getElementById('gymGrowthNextFocusText');
+  if (dimEntries.length && nextFocusEl) {
+    const lowest = dimEntries[dimEntries.length - 1];
+    nextFocusEl.style.display = '';
+    nextFocusText.textContent = `Focus on "${lowest[0].replace(/_/g,' ')}" — currently at ${lowest[1]?.score || 0}. Browse guides tagged with this dimension to improve.`;
+  } else if (nextFocusEl) {
+    nextFocusEl.style.display = 'none';
+  }
+
+  // Milestones
+  const milestonesEl = document.getElementById('gymGrowthMilestones');
+  const mList = gymProgress?.milestones || gymProfile?.milestones || [];
+  if (milestonesEl) {
+    if (mList.length) {
+      milestonesEl.innerHTML = mList.map(m => `
+        <div class="gym-growth-milestone">
+          <div class="gym-growth-milestone-dot"></div>
+          <div>
+            <div style="font-size:12px;color:var(--text-primary);font-weight:500;margin-bottom:2px">${escHtml(m.text || m.title || '')}</div>
+            ${m.date ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${m.date}</div>` : ''}
+          </div>
+        </div>`).join('');
+    } else {
+      milestonesEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">No milestones yet.</div>';
+    }
+  }
+
+  // Render history chart for growth view
+  renderGymGrowthHistory();
+}
+
+async function renderGymGrowthHistory() {
+  try {
+    const res = await fetch('/api/gym/dimensions/history');
+    const history = await res.json();
+    const chartEl = document.querySelector('.gym-growth-history-chart');
+    const legendEl = document.getElementById('gymGrowthHistoryLegend');
+    const svg = document.getElementById('gymGrowthHistorySvg');
+
+    if (!Array.isArray(history) || history.length < 2) {
+      if (chartEl) chartEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:20px;text-align:center">Your progress chart will fill in as weeks go by.</div>';
+      if (legendEl) legendEl.innerHTML = '';
+      return;
+    }
+
+    const colors = { strategy: '#22d3ee', communication: '#f97316', knowledge: '#a78bfa', orchestration: '#ef4444', craft: '#4ade80' };
+    const W = 600, H = 160, padL = 30, padR = 10, padT = 10, padB = 24;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    let html = '';
+
+    for (let i = 0; i <= 5; i++) {
+      const y = padT + plotH - (i / 5) * plotH;
+      html += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="var(--border-dim)" stroke-width="0.5" stroke-dasharray="4 4" />`;
+      html += `<text x="${padL - 4}" y="${y + 3}" font-family="var(--font-mono)" font-size="8" fill="var(--text-muted)" text-anchor="end">${i}</text>`;
+    }
+
+    const step = Math.max(1, Math.floor(history.length / 6));
+    history.forEach((snap, i) => {
+      if (i % step === 0 || i === history.length - 1) {
+        const x = padL + (i / (history.length - 1)) * plotW;
+        const label = snap.date ? snap.date.slice(5) : '';
+        html += `<text x="${x}" y="${H - 2}" font-family="var(--font-mono)" font-size="8" fill="var(--text-muted)" text-anchor="middle">${label}</text>`;
+      }
+    });
+
+    const dims = Object.keys(colors);
+    for (const dim of dims) {
+      const points = history.map((snap, i) => {
+        const x = padL + (i / Math.max(history.length - 1, 1)) * plotW;
+        const score = snap.dimensions?.[dim] || 0;
+        const y = padT + plotH - (score / 5) * plotH;
+        return { x, y };
+      });
+      const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+      html += `<path d="${pathD}" fill="none" stroke="${colors[dim]}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`;
+      const last = points[points.length - 1];
+      html += `<circle cx="${last.x}" cy="${last.y}" r="3" fill="${colors[dim]}" />`;
+    }
+
+    if (svg) svg.innerHTML = html;
+    if (legendEl) legendEl.innerHTML = dims.map(d =>
+      `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted)"><div style="width:12px;height:3px;border-radius:2px;background:${colors[d]}"></div>${d.charAt(0).toUpperCase() + d.slice(1)}</div>`
+    ).join('');
+  } catch (e) {
+    console.warn('Growth history chart error:', e);
+  }
+}
+
+// ─── Gym Create View ──────────────────────────
+async function sendCreateMessage() {
+  const input = document.getElementById('gymCreateInput');
+  const text = (input?.value || '').trim();
+  if (!text) return;
+  input.value = '';
+
+  gymCreateMessages.push({ role: 'user', text });
+  renderGymCreateMessages();
+
+  try {
+    const res = await fetch('/api/agents/gym/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `[GUIDE CREATION REQUEST]\n${text}`,
+        channel: 'web',
+        sessionId: 'gym-create'
+      })
+    });
+    const data = await res.json();
+    const reply = data.response || data.text || 'No response received.';
+    gymCreateMessages.push({ role: 'agent', text: reply });
+    renderGymCreateMessages();
+    // Try to extract JSON guide from response
+    tryParseGuidePreview(reply);
+  } catch (e) {
+    gymCreateMessages.push({ role: 'agent', text: 'Error: ' + e.message });
+    renderGymCreateMessages();
+  }
+}
+
+function renderGymCreateMessages() {
+  const container = document.getElementById('gymCreateMessages');
+  if (!container) return;
+  container.innerHTML = gymCreateMessages.map(m => {
+    const cls = m.role === 'user' ? 'user-msg' : 'agent-msg';
+    return `<div class="msg ${cls}"><div class="msg-bubble">${escHtml(m.text)}</div></div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function tryParseGuidePreview(text) {
+  const preview = document.getElementById('gymCreatePreview');
+  if (!preview) return;
+  // Look for JSON in response
+  const jsonMatch = text.match(/```json\n?([\s\S]*?)```/) || text.match(/(\{[\s\S]*"modules"[\s\S]*\})/);
+  if (jsonMatch) {
+    try {
+      const guide = JSON.parse(jsonMatch[1]);
+      preview.innerHTML = `<div style="margin-bottom:12px"><div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px">${escHtml(guide.title || '')}</div><div style="font-size:11px;color:var(--text-secondary)">${escHtml(guide.description || '')}</div></div>` +
+        (guide.modules || []).map((m, i) => `<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">Module ${i+1}: ${escHtml(m.title || '')}</div>` +
+          (m.steps || []).map(s => `<div style="font-size:11px;color:var(--text-secondary);padding:2px 0 2px 12px">&#x2022; ${escHtml(s.title || '')}</div>`).join('') +
+        '</div>').join('');
+      document.getElementById('gymCreateImportBtn').disabled = false;
+      document.getElementById('gymCreateImportBtn').dataset.guide = jsonMatch[1];
+    } catch {}
+  }
+}
+
+async function importCreatedGuide() {
+  const btn = document.getElementById('gymCreateImportBtn');
+  const guideJson = btn?.dataset.guide;
+  if (!guideJson) return;
+  btn.disabled = true; btn.textContent = 'Importing...';
+  try {
+    const guide = JSON.parse(guideJson);
+    const res = await fetch('/api/gym/programs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(guide)
+    });
+    if (res.ok) {
+      btn.textContent = 'Imported!';
+      // Refresh programs
+      const prRes = await fetch('/api/gym/programs');
+      if (prRes.ok) gymPrograms = await prRes.json();
+    } else {
+      btn.textContent = 'Failed';
+    }
+  } catch { btn.textContent = 'Error'; }
+  setTimeout(() => { btn.textContent = 'Import Guide'; btn.disabled = false; }, 3000);
 }
 
 function renderGuidesFilterTabs() {
@@ -1688,9 +2468,20 @@ async function openGuide(slug) {
     };
     guideChatMessages = [];
 
-    // Hide normal chat, show guide viewer inline
+    // Hide all gym views + chat
+    ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
     document.getElementById('chatBodyWrap').style.display = 'none';
+    document.getElementById('gymHub').classList.remove('open');
+
+    // Show guide viewer inline
     document.getElementById('guideViewerInline').classList.add('open');
+
+    // Make sure sidebar is visible
+    const sidebar = document.getElementById('coachSidebar');
+    if (sidebar) sidebar.classList.add('visible');
 
     // Set coach identity in chat header
     const gymAgent = agents.find(a => a.id === 'gym');
@@ -1704,9 +2495,13 @@ async function openGuide(slug) {
 
 function closeGuideViewer() {
   document.getElementById('guideViewerInline').classList.remove('open');
-  document.getElementById('chatBodyWrap').style.display = '';
   guideViewerState = null;
   guideChatMessages = [];
+}
+
+function closeGuideAndBrowse() {
+  closeGuideViewer();
+  gymHubDrillIn('browse');
 }
 
 function renderGuideViewer() {
@@ -1964,7 +2759,7 @@ async function sendGuideChat(overrideText) {
   handle.addEventListener('mousedown', (e) => {
     startX = e.clientX;
     startW = sidebar.offsetWidth;
-    const onMove = (e2) => { sidebar.style.width = Math.max(200, Math.min(600, startW + e2.clientX - startX)) + 'px'; };
+    const onMove = (e2) => { sidebar.style.width = Math.max(200, Math.min(600, startW - (e2.clientX - startX))) + 'px'; };
     const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);

@@ -2040,6 +2040,28 @@ Guides have two forms: human-readable (browsable in gym) and agent-executable (a
 | | Restores all dismissed insights to visible | *(no params)* |
 | Generate insights on-demand | `POST /api/gym/insights/generate` | — |
 | | Triggers AI analysis and produces fresh insights immediately | *(no params)* |
+| List gym projects | `GET /api/gym/projects` | `list_gym_projects` |
+| | Returns all projects (guide collections) from both platform and user dirs | *(no params)* |
+| Get gym project | `GET /api/gym/projects/:slug` | `get_gym_project` |
+| | Returns project with its series and programs | **Params:** `slug` |
+| Create gym project | `POST /api/gym/projects` | `create_gym_project` |
+| | **Body:** `{ name, description?, slug?, sourceUrl?, tags?, isActive?, isPublic? }` | **Params:** `name`, `description?`, `slug?`, `sourceUrl?`, `tags?`, `isActive?`, `isPublic?` |
+| Update gym project | `PATCH /api/gym/projects/:slug` | `update_gym_project` |
+| | **Body:** fields to update | **Params:** `slug`, `body` |
+| Delete gym project | `DELETE /api/gym/projects/:slug` | `delete_gym_project` |
+| | Deletes project dir and series files; programs are orphaned, not deleted | **Params:** `slug` |
+| List gym series | `GET /api/gym/projects/:projectSlug/series` | `list_gym_series` |
+| | Returns all series in a project, sorted by position | **Params:** `projectSlug` |
+| Get gym series | `GET /api/gym/projects/:projectSlug/series/:seriesSlug` | `get_gym_series` |
+| | Returns series with its programs | **Params:** `projectSlug`, `seriesSlug` |
+| Create gym series | `POST /api/gym/projects/:projectSlug/series` | `create_gym_series` |
+| | **Body:** `{ name, description?, slug?, coverImage?, tags?, position? }` | **Params:** `projectSlug`, `name`, `description?`, `slug?`, `coverImage?`, `tags?`, `position?` |
+| Update gym series | `PATCH /api/gym/projects/:projectSlug/series/:seriesSlug` | `update_gym_series` |
+| | **Body:** fields to update | **Params:** `projectSlug`, `seriesSlug`, `body` |
+| Delete gym series | `DELETE /api/gym/projects/:projectSlug/series/:seriesSlug` | `delete_gym_series` |
+| | Deletes series file; programs referencing it are orphaned (seriesSlug set to null) | **Params:** `projectSlug`, `seriesSlug` |
+| Import from AI Gym platform | `POST /api/gym/import-from-aigym` | `import_from_aigym` |
+| | **Body:** `{ project, series?, programs? }` — full project export from aigym-platform. Maps remote IDs to local schema. | **Params:** `project` (object), `series?` (array), `programs?` (array) |
 
 ---
 
@@ -2108,6 +2130,8 @@ Quick reference — all MCP tools alphabetically:
 | 12 | `create_agent` | Agents |
 | -- | `create_gym_card` | AI Gym |
 | -- | `create_gym_guide` | AI Gym |
+| -- | `create_gym_project` | AI Gym |
+| -- | `create_gym_series` | AI Gym |
 | 13 | `create_app` | Apps |
 | 14 | `create_cron` | Cron |
 | 15 | `create_goal` | Goals |
@@ -2121,6 +2145,8 @@ Quick reference — all MCP tools alphabetically:
 | 22 | `delete_account` | Accounts |
 | 23 | `delete_agent` | Agents |
 | -- | `delete_gym_program` | AI Gym |
+| -- | `delete_gym_project` | AI Gym |
+| -- | `delete_gym_series` | AI Gym |
 | 24 | `delete_app` | Apps |
 | 25 | `delete_cron` | Cron |
 | 26 | `delete_goal` | Goals |
@@ -2157,6 +2183,8 @@ Quick reference — all MCP tools alphabetically:
 | -- | `get_gym_feed` | AI Gym |
 | -- | `get_gym_program` | AI Gym |
 | -- | `get_gym_progress` | AI Gym |
+| -- | `get_gym_project` | AI Gym |
+| -- | `get_gym_series` | AI Gym |
 | -- | `get_learner_profile` | AI Gym |
 | -- | `get_mcp_catalog` | MCPs |
 | 49 | `get_model` | Model |
@@ -2176,6 +2204,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `get_conversation_senders` | Shared Agents |
 | 57 | `get_wiki_sync_history` | Wiki |
 | 58 | `health_check` | Dashboard |
+| -- | `import_from_aigym` | AI Gym |
 | -- | `import_program` | AI Gym |
 | 59 | `import_skills` | Marketplace |
 | 60 | `install_registry_item` | Marketplace |
@@ -2185,6 +2214,8 @@ Quick reference — all MCP tools alphabetically:
 | -- | `list_gym_cards` | AI Gym |
 | -- | `list_gym_guides` | AI Gym |
 | -- | `list_gym_programs` | AI Gym |
+| -- | `list_gym_projects` | AI Gym |
+| -- | `list_gym_series` | AI Gym |
 | 63 | `list_agent_files` | Files |
 | 64 | `list_apps` | Apps |
 | 65 | `list_automations` | Automations |
@@ -2235,6 +2266,8 @@ Quick reference — all MCP tools alphabetically:
 | 100 | `update_agent` | Agents |
 | -- | `update_gym_program` | AI Gym |
 | -- | `update_gym_progress` | AI Gym |
+| -- | `update_gym_project` | AI Gym |
+| -- | `update_gym_series` | AI Gym |
 | -- | `update_learner_profile` | AI Gym |
 | 101 | `update_app` | Apps |
 | 102 | `update_channel` | Channels |

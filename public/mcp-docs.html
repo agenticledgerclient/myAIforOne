@@ -344,6 +344,19 @@ const TOOLS = [
   {cat:"AI Gym",name:"list_gym_guides",desc:"List all coach-created guides (programs with source=coach)",params:[]},
   {cat:"AI Gym",name:"create_gym_guide",desc:"Create a coach-generated guide from a training session. Saved as a program with source=coach, visible in the Guides tab.",params:[{n:"title",t:"string",r:true},{n:"description",t:"string",r:false},{n:"difficulty",t:"string",r:false,d:"beginner/intermediate/advanced"},{n:"dimensions",t:"array",r:false},{n:"estimatedTime",t:"string",r:false},{n:"modules",t:"array",r:false},{n:"content",t:"string",r:false,d:"Raw markdown alternative to modules"}]},
 
+  // AI Gym — Projects & Series
+  {cat:"AI Gym",name:"list_gym_projects",desc:"List all gym projects. Returns array of projects with series counts.",params:[]},
+  {cat:"AI Gym",name:"get_gym_project",desc:"Get a gym project by slug with its series and programs",params:[{n:"slug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"create_gym_project",desc:"Create a new gym project",params:[{n:"name",t:"string",r:true},{n:"slug",t:"string",r:false},{n:"description",t:"string",r:false},{n:"imageUrl",t:"string",r:false},{n:"isActive",t:"boolean",r:false}]},
+  {cat:"AI Gym",name:"update_gym_project",desc:"Update a gym project",params:[{n:"slug",t:"string",r:true},{n:"name",t:"string",r:false},{n:"description",t:"string",r:false},{n:"imageUrl",t:"string",r:false},{n:"isActive",t:"boolean",r:false}]},
+  {cat:"AI Gym",name:"delete_gym_project",desc:"Delete a gym project",params:[{n:"slug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"list_gym_series",desc:"List all series in a gym project",params:[{n:"projectSlug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"get_gym_series",desc:"Get a series by slug with its programs",params:[{n:"projectSlug",t:"string",r:true},{n:"seriesSlug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"create_gym_series",desc:"Create a new series in a gym project",params:[{n:"projectSlug",t:"string",r:true},{n:"name",t:"string",r:true},{n:"slug",t:"string",r:false},{n:"description",t:"string",r:false},{n:"order",t:"number",r:false}]},
+  {cat:"AI Gym",name:"update_gym_series",desc:"Update a series",params:[{n:"projectSlug",t:"string",r:true},{n:"seriesSlug",t:"string",r:true},{n:"name",t:"string",r:false},{n:"description",t:"string",r:false},{n:"order",t:"number",r:false}]},
+  {cat:"AI Gym",name:"delete_gym_series",desc:"Delete a series",params:[{n:"projectSlug",t:"string",r:true},{n:"seriesSlug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"import_from_aigym",desc:"Import full project with series and programs from the AI Gym platform",params:[{n:"projectSlug",t:"string",r:true},{n:"baseUrl",t:"string",r:false},{n:"apiKey",t:"string",r:false}]},
+
   // Session Tabs
   {cat:"Sessions",name:"create_session_tab",desc:"Create a named session tab on an agent's chat page, optionally routing to a different agent",params:[{n:"agentId",t:"string",r:true,d:"Agent whose chat page hosts the tab"},{n:"tabId",t:"string",r:true,d:"Unique tab slug (e.g. 'project-alpha')"},{n:"label",t:"string",r:true,d:"Human-readable tab label"},{n:"targetAgentId",t:"string",r:false,d:"Route messages to this agent instead"}]},
   {cat:"Sessions",name:"list_session_tabs",desc:"List all named session tabs (includes closed sessions with last message preview)",params:[{n:"agentId",t:"string",r:true}]},
