@@ -385,7 +385,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .radar-axis{stroke:var(--border-dim);stroke-width:0.5}
 .radar-shape{fill:rgba(34,211,238,0.15);stroke:var(--accent);stroke-width:2;transition:all .6s ease}
 .radar-point{fill:var(--accent);r:4;transition:all .6s ease}
-.radar-label{font-family:var(--font-display);font-size:10px;font-weight:700;fill:var(--text-secondary);text-anchor:middle}
+.radar-label{font-family:var(--font-display);font-size:12px;font-weight:700;fill:var(--text-secondary);text-anchor:middle}
 
 /* Dimension breakdown */
 .dim-section{margin-bottom:28px}
@@ -439,8 +439,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 .history-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 .history-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted)}
 .history-legend-swatch{width:12px;height:3px;border-radius:2px}
-.history-x-label{font-family:var(--font-mono);font-size:8px;fill:var(--text-muted);text-anchor:middle}
-.history-y-label{font-family:var(--font-mono);font-size:8px;fill:var(--text-muted);text-anchor:end}
+.history-x-label{font-family:var(--font-mono);font-size:10px;fill:var(--text-muted);text-anchor:middle}
+.history-y-label{font-family:var(--font-mono);font-size:10px;fill:var(--text-muted);text-anchor:end}
 
 /* ─── Guides Grid ────────────────────────── */
 .guides-header{display:flex;align-items:center;justify-content:space-between;padding:20px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
@@ -787,7 +787,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
       <div class="gym-view" id="projectsView">
         <div class="guides-header">
           <h2 class="guides-title">Guide Projects</h2>
-          <input class="guides-search" id="projectsSearch" type="text" placeholder="Search projects..." oninput="filterProjects(this.value)">
+          <input class="guides-search" id="projectsSearch" type="text" placeholder="Search projects, series & guides..." oninput="filterProjects(this.value)">
         </div>
         <div class="guides-grid" id="projectsGrid"></div>
       </div>
@@ -799,9 +799,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
           <h2 class="guides-title" id="projectDetailTitle" style="flex:1"></h2>
         </div>
         <p id="projectDetailDesc" style="color:var(--text-secondary);font-size:13px;margin:0 0 16px 0"></p>
-        <div id="projectDetailSeries"></div>
-        <h3 style="color:var(--text-primary);font-size:14px;margin:20px 0 10px">All Guides in Project</h3>
-        <div class="guides-grid" id="projectDetailPrograms"></div>
+        <div id="projectDetailContent"></div>
       </div>
 
       <!-- Guide Viewer -->
@@ -927,11 +925,11 @@ const TRAINERS = [
 ];
 
 const DIMENSIONS = [
-  { key: 'application', label: 'Application', angle: -90 },
+  { key: 'knowledge', label: 'Gaining Knowledge', angle: -90 },
   { key: 'communication', label: 'Communication', angle: -18 },
-  { key: 'knowledge', label: 'Knowledge', angle: 54 },
-  { key: 'orchestration', label: 'Orchestration', angle: 126 },
-  { key: 'craft', label: 'Craft', angle: 198 }
+  { key: 'analysis', label: 'Analysis, Reviews and Validation', angle: 54 },
+  { key: 'automation', label: 'Automating Manual Tasks', angle: 126 },
+  { key: 'building', label: 'Building Applications, Tools and Dashboards', angle: 198 }
 ];
 
 /* ─── State ──────────────────────────────── */
@@ -1479,9 +1477,9 @@ function buildLearnCards() {
   const dimToProgram = {
     knowledge: 'getting-started',
     communication: 'prompt-engineering',
-    orchestration: 'automations',
-    craft: 'agent-building',
-    application: null,
+    analysis: null,
+    automation: 'automations',
+    building: 'agent-building',
   };
   for (const [dim] of weakDims.slice(0, 1)) {
     const recSlug = dimToProgram[dim];
@@ -1706,7 +1704,11 @@ function applyGuidesFilter() {
     filtered = filtered.filter(p =>
       (p.title || p.name || '').toLowerCase().includes(q) ||
       (p.description || '').toLowerCase().includes(q) ||
-      (p.difficulty || '').toLowerCase().includes(q)
+      (p.difficulty || '').toLowerCase().includes(q) ||
+      (p.tags || []).some(t => t.toLowerCase().includes(q)) ||
+      (p.dimensions || []).some(d => d.toLowerCase().includes(q)) ||
+      (p.seriesName || '').toLowerCase().includes(q) ||
+      (p.projectName || '').toLowerCase().includes(q)
     );
   }
   renderGuideCards(filtered, document.getElementById('guidesGrid'));
@@ -1787,10 +1789,19 @@ function renderProjectCards() {
 
   let projects = projectsCache.filter(p => p.isActive !== false);
   if (projectsSearchQuery) {
-    projects = projects.filter(p =>
-      (p.name || '').toLowerCase().includes(projectsSearchQuery) ||
-      (p.description || '').toLowerCase().includes(projectsSearchQuery)
-    );
+    projects = projects.filter(p => {
+      // Search project name & description
+      if ((p.name || '').toLowerCase().includes(projectsSearchQuery)) return true;
+      if ((p.description || '').toLowerCase().includes(projectsSearchQuery)) return true;
+      // Search series names within the project
+      if (p.series?.some(s => (s.name || '').toLowerCase().includes(projectsSearchQuery))) return true;
+      if (p.series?.some(s => (s.description || '').toLowerCase().includes(projectsSearchQuery))) return true;
+      // Search guide titles within the project
+      if (p.programs?.some(g => (g.title || g.name || '').toLowerCase().includes(projectsSearchQuery))) return true;
+      // Search tags
+      if (p.tags?.some(t => t.toLowerCase().includes(projectsSearchQuery))) return true;
+      return false;
+    });
   }
 
   if (!projects.length) {
@@ -1826,33 +1837,71 @@ async function openProjectDetail(slug) {
     document.getElementById('projectDetailTitle').textContent = project.name || slug;
     document.getElementById('projectDetailDesc').textContent = project.description || '';
 
-    // Render series
-    const seriesEl = document.getElementById('projectDetailSeries');
-    if (project.series?.length) {
-      seriesEl.innerHTML = '<h3 style="color:var(--text-primary);font-size:14px;margin:0 0 10px">Series</h3>' +
-        project.series.map(s => {
-          const progCount = (project.programs || []).filter(p => p.seriesSlug === s.slug).length;
-          return `<div style="background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:8px;padding:12px 16px;margin-bottom:8px;cursor:pointer" onclick="toggleSeriesPrograms(this,'${s.slug}','${slug}')">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div>
-                <div style="color:var(--text-primary);font-weight:600;font-size:13px">${s.name}</div>
-                ${s.description ? `<div style="color:var(--text-secondary);font-size:12px;margin-top:2px">${s.description}</div>` : ''}
-              </div>
-              <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${progCount} guide${progCount !== 1 ? 's' : ''} &#x25B8;</span>
-            </div>
-            <div class="series-programs" style="display:none;margin-top:10px"></div>
-          </div>`;
-        }).join('');
-    } else {
-      seriesEl.innerHTML = '';
+    const contentEl = document.getElementById('projectDetailContent');
+    const allPrograms = project.programs || [];
+    const allSeries = project.series || [];
+
+    if (!allSeries.length && !allPrograms.length) {
+      contentEl.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px">No guides in this project yet.</div>';
+      switchView('project-detail');
+      return;
     }
 
-    // Render all programs in project
-    const progsEl = document.getElementById('projectDetailPrograms');
-    if (project.programs?.length) {
-      renderGuideCards(project.programs, progsEl);
-    } else {
-      progsEl.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px">No guides in this project yet.</div>';
+    let html = '';
+
+    // Render each series as a collapsible section
+    const programsInSeries = new Set();
+    if (allSeries.length) {
+      for (const s of allSeries) {
+        const seriesPrograms = allPrograms.filter(p => p.seriesSlug === s.slug);
+        seriesPrograms.forEach(p => programsInSeries.add(p.slug || p.id));
+        const count = seriesPrograms.length;
+        const seriesId = `series-${s.slug}`;
+        html += `
+          <div class="series-section" style="margin-bottom:12px">
+            <div class="series-header" onclick="toggleSeriesSection('${seriesId}')" style="background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:8px;padding:14px 18px;cursor:pointer;transition:border-color .15s">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="series-chevron" id="${seriesId}-chevron" style="color:var(--accent);font-size:12px;transition:transform .2s;display:inline-block">&#x25B6;</span>
+                  <div>
+                    <div style="color:var(--text-primary);font-weight:700;font-size:14px;font-family:var(--font-display)">${s.name}</div>
+                    ${s.description ? `<div style="color:var(--text-secondary);font-size:12px;margin-top:3px">${s.description}</div>` : ''}
+                  </div>
+                </div>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);flex-shrink:0">${count} guide${count !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div class="series-body" id="${seriesId}" style="display:none;padding:12px 0 0 0">
+              <div class="guides-grid series-guides-grid"></div>
+            </div>
+          </div>`;
+        // We'll populate the grid after inserting the HTML
+      }
+    }
+
+    // Ungrouped guides (not in any series)
+    const ungrouped = allPrograms.filter(p => !programsInSeries.has(p.slug || p.id));
+    if (ungrouped.length) {
+      if (allSeries.length) {
+        html += '<h3 style="color:var(--text-primary);font-size:14px;margin:20px 0 10px">Other Guides</h3>';
+      }
+      html += '<div class="guides-grid" id="projectUngroupedGrid"></div>';
+    }
+
+    contentEl.innerHTML = html;
+
+    // Populate series grids
+    for (const s of allSeries) {
+      const seriesPrograms = allPrograms.filter(p => p.seriesSlug === s.slug);
+      const grid = document.getElementById(`series-${s.slug}`)?.querySelector('.guides-grid');
+      if (grid && seriesPrograms.length) {
+        renderGuideCards(seriesPrograms, grid);
+      }
+    }
+
+    // Populate ungrouped grid
+    if (ungrouped.length) {
+      renderGuideCards(ungrouped, document.getElementById('projectUngroupedGrid'));
     }
 
     switchView('project-detail');
@@ -1861,31 +1910,13 @@ async function openProjectDetail(slug) {
   }
 }
 
-function toggleSeriesPrograms(el, seriesSlug, projectSlug) {
-  const container = el.querySelector('.series-programs');
-  if (!container) return;
-  if (container.style.display === 'none') {
-    // Find programs in this series from projectsCache or re-fetch
-    const project = projectsCache?.find(p => p.slug === projectSlug);
-    // Load full project data if we have it cached
-    fetch(`${API}/api/gym/projects/${projectSlug}/series/${seriesSlug}`)
-      .then(r => r.json())
-      .then(series => {
-        if (series.programs?.length) {
-          container.innerHTML = '<div class="guides-grid" style="margin-top:8px"></div>';
-          renderGuideCards(series.programs, container.querySelector('.guides-grid'));
-        } else {
-          container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px">No guides in this series.</div>';
-        }
-        container.style.display = 'block';
-      })
-      .catch(() => {
-        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px">Failed to load series.</div>';
-        container.style.display = 'block';
-      });
-  } else {
-    container.style.display = 'none';
-  }
+function toggleSeriesSection(seriesId) {
+  const body = document.getElementById(seriesId);
+  const chevron = document.getElementById(seriesId + '-chevron');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
 
 /* ─── Guide Viewer ───────────────────────── */
@@ -2698,11 +2729,11 @@ function gymFormatLogLine(data) {
 /* ─── Progress / Radar Chart ─────────────── */
 function renderProgress() {
   const dims = state.profile?.dimensions || state.progress?.dimensions || {
-    application:   { score: 0, trend: 'stable' },
-    communication: { score: 0, trend: 'stable' },
     knowledge:     { score: 0, trend: 'stable' },
-    orchestration: { score: 0, trend: 'stable' },
-    craft:         { score: 0, trend: 'stable' }
+    communication: { score: 0, trend: 'stable' },
+    analysis:      { score: 0, trend: 'stable' },
+    automation:    { score: 0, trend: 'stable' },
+    building:      { score: 0, trend: 'stable' }
   };
 
   renderRadar(dims);
@@ -2754,8 +2785,8 @@ function renderRadar(dims) {
   // Draw labels
   DIMENSIONS.forEach(d => {
     const rad = (d.angle * Math.PI) / 180;
-    const lx = cx + (maxR + 24) * Math.cos(rad);
-    const ly = cy + (maxR + 24) * Math.sin(rad);
+    const lx = cx + (maxR + 28) * Math.cos(rad);
+    const ly = cy + (maxR + 28) * Math.sin(rad);
     html += `<text class="radar-label" x="${lx}" y="${ly}" dy="3">${d.label}</text>`;
   });
 
@@ -2829,11 +2860,11 @@ async function renderHistoryChart() {
 
     const svg = document.getElementById('historySvg');
     const colors = {
-      application: '#22d3ee',
-      communication: '#f97316',
       knowledge: '#a78bfa',
-      orchestration: '#ef4444',
-      craft: '#4ade80'
+      communication: '#f97316',
+      analysis: '#22d3ee',
+      automation: '#ef4444',
+      building: '#4ade80'
     };
 
     const W = 600, H = 160, padL = 30, padR = 10, padT = 10, padB = 24;
@@ -2860,7 +2891,7 @@ async function renderHistoryChart() {
     });
 
     // Lines for each dimension
-    const dims = ['application', 'communication', 'knowledge', 'orchestration', 'craft'];
+    const dims = ['knowledge', 'communication', 'analysis', 'automation', 'building'];
     for (const dim of dims) {
       const points = history.map((snap, i) => {
         const x = padL + (i / Math.max(history.length - 1, 1)) * plotW;
@@ -2880,8 +2911,10 @@ async function renderHistoryChart() {
     svg.innerHTML = html;
 
     // Legend
+    const dimLabelMap = {};
+    DIMENSIONS.forEach(dim => { dimLabelMap[dim.key] = dim.label; });
     document.getElementById('historyLegend').innerHTML = dims.map(d =>
-      `<div class="history-legend-item"><div class="history-legend-swatch" style="background:${colors[d]}"></div>${d.charAt(0).toUpperCase() + d.slice(1)}</div>`
+      `<div class="history-legend-item"><div class="history-legend-swatch" style="background:${colors[d]}"></div>${dimLabelMap[d] || d}</div>`
     ).join('');
 
   } catch (e) {

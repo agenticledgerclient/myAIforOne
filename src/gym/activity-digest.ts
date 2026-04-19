@@ -198,13 +198,13 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
 
     // Read previous scores for trends
     const prevDimensions = profile.dimensions || {};
-    const previousScores: DimensionScores | null = prevDimensions.application
+    const previousScores: DimensionScores | null = prevDimensions.knowledge
       ? {
-          application: prevDimensions.application?.score || 0,
-          communication: prevDimensions.communication?.score || 0,
           knowledge: prevDimensions.knowledge?.score || 0,
-          orchestration: prevDimensions.orchestration?.score || 0,
-          craft: prevDimensions.craft?.score || 0,
+          communication: prevDimensions.communication?.score || 0,
+          analysis: prevDimensions.analysis?.score || 0,
+          automation: prevDimensions.automation?.score || 0,
+          building: prevDimensions.building?.score || 0,
         }
       : null;
 
@@ -435,11 +435,11 @@ export async function runActivityDigest(config: DigestConfig): Promise<void> {
     const weakest = (Object.entries(scores) as [string, number][]).sort((a, b) => a[1] - b[1])[0];
     if (weakest && weakest[1] < 3) {
       const dimTips: Record<string, string> = {
-        application: "You're not yet using agents for real work tasks regularly. Bringing a real task to an agent — even a small one — builds the strongest intuition.",
-        communication: "Your prompts could be more detailed. Try giving agents more context upfront: what you want, why, and what good looks like.",
         knowledge: "You haven't explored the learning programs yet. Structured programs are the fastest way to level up.",
-        orchestration: "You're doing everything manually. Goals, cron jobs, and delegation can automate the repetitive parts.",
-        craft: "Your agents are still generic. Specialized agents with focused system prompts and curated tools outperform generalists.",
+        communication: "Your prompts could be more detailed. Try giving agents more context upfront: what you want, why, and what good looks like.",
+        analysis: "You're not yet using AI to review, validate, or analyze your work. Try asking AI to check a document, compare options, or spot errors.",
+        automation: "You're doing everything manually. Goals, cron jobs, and delegation can automate the repetitive parts.",
+        building: "You haven't built any tools or apps with AI yet. Start small — a calculator, a template, or a simple dashboard.",
       };
       insights.push({
         category: "dimension",

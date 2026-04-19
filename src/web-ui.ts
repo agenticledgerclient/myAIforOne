@@ -78,7 +78,12 @@ export function startWebUI(opts: WebUIOptions): void {
     if (existsSync(filePath)) {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       try {
-        const content = readFileSync(filePath, "utf8");
+        let content = readFileSync(filePath, "utf8");
+        // Inject Work/AI Gym nav toggle on pages with a topbar (skip home2, gym, mini, docs)
+        const skipToggle = ["home2.html", "gym.html", "mini.html", "mcp-docs.html", "api-docs.html"];
+        if (!skipToggle.includes(filename) && content.includes('class="topbar"')) {
+          content = content.replace("</body>", '<script src="/nav-toggle.js"></script></body>');
+        }
         res.type("html").send(content);
       } catch {
         if (!res.headersSent) {
@@ -5935,13 +5940,18 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
 
   // ─── API: Service Restart / Shutdown ──────────────────────────────
   app.post("/api/restart", (_req, res) => {
-    res.json({ ok: true, message: "Restarting in 1 second..." });
+    res.json({ ok: true, message: "Restarting in 2 seconds..." });
     setTimeout(() => {
       log.info("[Restart] Service restart triggered via API");
-      // Spawn a replacement process before exiting — Task Scheduler on
-      // Windows won't auto-restart a clean exit(0), and launchd may have
-      // KeepAlive disabled. Spawning ensures the service always comes back.
-      const child = cpSpawn(process.execPath, process.argv.slice(1), {
+      // Spawn a shell that waits 2s then starts the replacement process.
+      // The delay ensures the current process has fully exited and released
+      // the port before the new one starts. This avoids the race condition
+      // where both the child AND launchd/KeepAlive try to grab the port.
+      const shell = process.platform === "win32" ? "cmd" : "/bin/sh";
+      const shellArgs = process.platform === "win32"
+        ? ["/c", `timeout /t 2 /nobreak >nul && "${process.execPath}" ${process.argv.slice(1).map(a => `"${a}"`).join(" ")}`]
+        : ["-c", `sleep 2 && "${process.execPath}" ${process.argv.slice(1).map(a => `"${a}"`).join(" ")} &`];
+      const child = cpSpawn(shell, shellArgs, {
         cwd: process.cwd(),
         env: { ...process.env },
         stdio: "ignore",

@@ -96,7 +96,7 @@ describe("gym — API endpoint contracts", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         date: "2099-01-01",
-        dimensions: { application: 3, communication: 2, knowledge: 3, orchestration: 1, craft: 2 },
+        dimensions: { knowledge: 3, communication: 2, analysis: 3, automation: 1, building: 2 },
       }),
     });
     if (!resp) return;

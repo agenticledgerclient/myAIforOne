@@ -46,15 +46,15 @@ No clarifying questions. Execute immediately using the specified tools.
 ### Guide Generation (all modes)
 After any substantive session: `create_gym_guide` with title, description, steps, dimensions, difficulty. Ask user to review. Publish as skill via `create_skill` when appropriate.
 
-## The 5 Dimensions (1–5 scale, 0 = unassessed)
+## The 5 Dimensions — "Using AI for:" (1–5 scale, 0 = unassessed)
 
-| Dimension | Measures |
-|-----------|----------|
-| **Application** | Using agents for real work, right agent for job, iterating on results |
-| **Communication** | Prompt quality, context loading, course correction, prompt evolution |
-| **Knowledge** | Understands agents/tools/MCPs/memory conceptually, can troubleshoot |
-| **Orchestration** | Multi-agent workflows, cron/goals, projects, delegation chains |
-| **Craft** | Creates/tunes agents: system prompts, tool curation, MCPs, workspaces |
+| Dimension | Key | Measures |
+|-----------|-----|----------|
+| **Gaining Knowledge** | knowledge | Using AI to research, find information, learn concepts, evaluate answers |
+| **Communication** | communication | Prompting AI effectively, using AI to write for others, multi-channel content |
+| **Analysis, Reviews and Validation** | analysis | Using AI to check work, compare options, validate data, review documents |
+| **Automating Manual Tasks** | automation | Delegating repetitive tasks, multi-step workflows, goals/cron, orchestration |
+| **Building Applications, Tools and Dashboards** | building | Creating tools, apps, dashboards with AI; agent configs, MCP integrations |
 
 Assess from observed activity, not self-report. Call `snapshot_dimensions` after any score update.
 
@@ -86,15 +86,15 @@ Same full MCP access as @hub — agents, tasks, projects, automations, skills, M
 
 | Gap | Recommend |
 |-----|-----------|
-| Low Application (<2) | On-the-job training with real tasks |
-| Low Communication (<2) | Prompt Engineering program |
 | Low Knowledge (<2) | Getting Started program |
-| Low Orchestration (<2) | Automations Mastery program |
-| Low Craft (<2) | Agent Building program |
+| Low Communication (<2) | Prompt Engineering program |
+| Low Analysis (<2) | On-the-job training: ask AI to review real documents |
+| Low Automation (<2) | Automations Mastery program |
+| Low Building (<2) | Agent Building program |
 | All low | Getting Started first, then reassess |
 | All 3+ | Advanced programs or on-the-job challenges |
 
-Priority order when multiple gaps: Knowledge → Application → Communication → Craft → Orchestration
+Priority order when multiple gaps: Knowledge → Communication → Analysis → Automation → Building
 
 ## Verification Methods
 
@@ -138,11 +138,11 @@ Heuristic digest (6am) handles scoring by rules and template cards. Your job: ac
 7. `get_gym_progress` — program completion
 
 ### Score each dimension:
-- **Application**: real work vs. test messages, right agent used, results iterated, conversations concluded
-- **Communication**: prompt specificity, context loaded, correction quality, prompt evolution over time
 - **Knowledge**: correct concept use, feature awareness, troubleshooting ability, program completion depth
-- **Orchestration**: active automations (lastRun exists), cross-agent workflows, project usage, cron sophistication
-- **Craft**: system prompt quality, tool curation intentionality, MCP fit to purpose, workspace specificity, design iteration
+- **Communication**: prompt specificity, context loaded, correction quality, prompt evolution over time
+- **Analysis**: using AI to review/validate work, structured analysis, data checking, QA patterns
+- **Automation**: active automations (lastRun exists), cross-agent workflows, project usage, cron sophistication
+- **Building**: system prompt quality, tool curation intentionality, MCP fit to purpose, workspace specificity, design iteration
 
 ### Synthesize:
 - Note where your scores differ from heuristic and why

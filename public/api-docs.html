@@ -435,7 +435,7 @@ const CATALOG = [
   { cat: "AI Gym", method: "GET", path: "/api/gym/cards", summary: "List all gym cards (recommendations, tips)" },
   { cat: "AI Gym", method: "POST", path: "/api/gym/cards", summary: "Create a new gym card", body: { title: { type: "string", required: true }, description: { type: "string", required: true }, type: { type: "string", required: true }, cta: { type: "string" }, ctaAction: { type: "string" } } },
   { cat: "AI Gym", method: "DELETE", path: "/api/gym/cards/:id", summary: "Dismiss/delete a gym card", params: [{ name: "id", in: "path", type: "string", required: true }] },
-  { cat: "AI Gym", method: "POST", path: "/api/gym/dimensions/snapshot", summary: "Save a weekly dimension score snapshot", body: { date: { type: "string", desc: "ISO date (defaults to today)" }, dimensions: { type: "object", required: true, desc: "{ application, communication, knowledge, orchestration, craft }" } } },
+  { cat: "AI Gym", method: "POST", path: "/api/gym/dimensions/snapshot", summary: "Save a weekly dimension score snapshot", body: { date: { type: "string", desc: "ISO date (defaults to today)" }, dimensions: { type: "object", required: true, desc: "{ analysis, communication, knowledge, automation, building }" } } },
   { cat: "AI Gym", method: "GET", path: "/api/gym/dimensions/history", summary: "Get all dimension score snapshots" },
   { cat: "AI Gym", method: "GET", path: "/api/gym/programs", summary: "List all training programs" },
   { cat: "AI Gym", method: "GET", path: "/api/gym/programs/:slug", summary: "Get a program with full modules and steps", params: [{ name: "slug", in: "path", type: "string", required: true }] },

@@ -11,9 +11,9 @@ export { startActivityDigest, stopActivityDigest, runActivityDigest } from "./ac
 export {
   scoreAllDimensions,
   computeTrends,
-  scoreApplication,
+  scoreAnalysis,
   scoreCommunication,
   scoreKnowledge,
-  scoreOrchestration,
-  scoreCraft,
+  scoreAutomation,
+  scoreBuilding,
 } from "./dimension-scorer.js";

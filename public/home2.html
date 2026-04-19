@@ -890,7 +890,7 @@ text-decoration:none;}
       </div>
       <div class="mode-toggle" id="modeToggle">
         <button class="mode-toggle-btn active" id="modeWork" onclick="switchMode('work')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Work</button>
-        <button class="mode-toggle-btn" id="modeCoach" onclick="switchMode('coach')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="4" x2="20" y2="4"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>AI Gym <span style="font-size:9px;font-weight:700;color:#fff;background:#f97316;border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;letter-spacing:.03em">BETA</span></button>
+        <button class="mode-toggle-btn" id="modeCoach" onclick="switchMode('coach')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="4" x2="20" y2="4"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>AI Gym</button>
       </div>
       <div class="hub-actions-right">
         <select class="header-btn" id="accountSelect" style="padding:2px 6px;cursor:pointer;display:none" onchange="setAccountOverride(this.value)" title="Claude Account override"></select>
@@ -996,7 +996,7 @@ text-decoration:none;}
       <div class="gym-growth-view">
         <div class="gym-growth-inner">
           <div class="gym-growth-radar">
-            <svg id="gymGrowthRadar" viewBox="0 0 280 280" style="width:240px;height:240px"></svg>
+            <svg id="gymGrowthRadar" viewBox="0 0 560 480" style="width:440px;height:380px"></svg>
           </div>
           <div class="gym-growth-dim-section">
             <div class="gym-growth-dim-title">Dimensions</div>
@@ -1393,10 +1393,17 @@ function switchMode(mode) {
     renderGymHubContinue();
   } else {
     gymHubActive = false;
+    gymActiveView = null;
     gymHub.classList.remove('open');
     sidebar.classList.remove('visible');
     if (chatWrap) chatWrap.style.display = '';
     if (inputBox) inputBox.style.display = '';
+
+    // Hide all gym drill-in views
+    ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
   }
 
   // Close guide viewer if open
@@ -1729,7 +1736,13 @@ async function renderGymHubBrowse() {
       } catch { gymProjectsCache = []; }
     }
     let projects = (gymProjectsCache || []).filter(p => p.isActive !== false);
-    if (q) projects = projects.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+    if (q) projects = projects.filter(p =>
+      (p.name||'').toLowerCase().includes(q) ||
+      (p.description||'').toLowerCase().includes(q) ||
+      (p.series || []).some(s => (s.name||'').toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q)) ||
+      (p.programs || []).some(g => (g.title||g.name||'').toLowerCase().includes(q)) ||
+      (p.tags || []).some(t => t.toLowerCase().includes(q))
+    );
     container.innerHTML = renderProjectCardsHTML(projects, 'hub');
   }
 }
@@ -1768,7 +1781,13 @@ async function renderGymBrowse() {
       } catch { gymProjectsCache = []; }
     }
     let projects = (gymProjectsCache || []).filter(p => p.isActive !== false);
-    if (q) projects = projects.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+    if (q) projects = projects.filter(p =>
+      (p.name||'').toLowerCase().includes(q) ||
+      (p.description||'').toLowerCase().includes(q) ||
+      (p.series || []).some(s => (s.name||'').toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q)) ||
+      (p.programs || []).some(g => (g.title||g.name||'').toLowerCase().includes(q)) ||
+      (p.tags || []).some(t => t.toLowerCase().includes(q))
+    );
     container.innerHTML = renderProjectCardsHTML(projects, 'drill');
   }
 }
@@ -1842,16 +1861,80 @@ async function toggleProjectCard(ctx, slug) {
   try {
     const res = await fetch(`/api/gym/projects/${slug}`);
     const project = await res.json();
-    if (project.programs?.length) {
-      body.innerHTML = renderGuideCardsHTML(project.programs);
-    } else {
+    const allPrograms = project.programs || [];
+    const allSeries = project.series || [];
+
+    if (!allSeries.length && !allPrograms.length) {
       body.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px">No guides in this project yet.</div>';
+      body.dataset.loaded = '1';
+      return;
     }
+
+    let html = '';
+    const programsInSeries = new Set();
+
+    // Render each series as a collapsible section
+    if (allSeries.length) {
+      for (const s of allSeries) {
+        const seriesProgs = allPrograms.filter(p => p.seriesSlug === s.slug);
+        seriesProgs.forEach(p => programsInSeries.add(p.slug || p.id));
+        const count = seriesProgs.length;
+        const sid = `series-${ctx}-${slug}-${s.slug}`;
+        html += `
+          <div class="gym-series-section" style="margin-bottom:8px">
+            <div onclick="event.stopPropagation();toggleSeriesInProject('${sid}')" style="background:var(--bg-tertiary);border:1px solid var(--border-dim);border-radius:8px;padding:10px 14px;cursor:pointer;transition:border-color .15s">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span id="${sid}-chevron" style="color:var(--accent);font-size:11px;transition:transform .2s;display:inline-block">&#x25B6;</span>
+                  <div>
+                    <div style="color:var(--text-primary);font-weight:700;font-size:13px;font-family:var(--font-display)">${escHtml(s.name)}</div>
+                    ${s.description ? `<div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${escHtml(s.description)}</div>` : ''}
+                  </div>
+                </div>
+                <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);flex-shrink:0">${count} guide${count !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div id="${sid}" style="display:none;padding:8px 0 0 0">
+              ${renderGuideCardsHTML(seriesProgs)}
+            </div>
+          </div>`;
+      }
+    }
+
+    // Ungrouped guides
+    const ungrouped = allPrograms.filter(p => !programsInSeries.has(p.slug || p.id));
+    if (ungrouped.length) {
+      if (allSeries.length) {
+        html += '<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin:12px 0 6px;font-family:var(--font-display)">Other Guides</div>';
+      }
+      html += renderGuideCardsHTML(ungrouped);
+    }
+
+    body.innerHTML = html;
     body.dataset.loaded = '1';
   } catch {
     body.innerHTML = '<div style="font-size:11px;color:var(--red);padding:8px">Failed to load.</div>';
   }
 }
+
+function toggleSeriesInProject(seriesId) {
+  const body = document.getElementById(seriesId);
+  const chevron = document.getElementById(seriesId + '-chevron');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+// ─── Dimension Label Map ──────────────────────
+const DIM_LABELS = {
+  knowledge: 'Gaining Knowledge',
+  communication: 'Communication',
+  analysis: 'Analysis, Reviews and Validation',
+  automation: 'Automating Manual Tasks',
+  building: 'Building Apps, Tools & Dashboards'
+};
+function dimLabel(key) { return DIM_LABELS[key] || key.replace(/_/g, ' '); }
 
 // ─── Gym Growth View ──────────────────────────
 function renderGymGrowth() {
@@ -1862,7 +1945,7 @@ function renderGymGrowth() {
   // Radar chart
   const radarSvg = document.getElementById('gymGrowthRadar');
   if (radarSvg && dimEntries.length >= 3) {
-    const cx = 140, cy = 140, maxR = 110;
+    const cx = 280, cy = 240, maxR = 120;
     const n = dimEntries.length;
     let gridHtml = '';
     for (let ring = 1; ring <= 5; ring++) {
@@ -1885,18 +1968,31 @@ function renderGymGrowth() {
       return `${cx+maxR*score*Math.cos(a)},${cy+maxR*score*Math.sin(a)}`;
     }).join(' ');
     gridHtml += `<polygon points="${dataPts}" fill="rgba(34,211,238,0.15)" stroke="var(--accent)" stroke-width="2"/>`;
-    // Points + labels
+    // Points + labels (with word-wrap for long labels)
     dimEntries.forEach(([name, d], i) => {
       const score = Math.min((d?.score||0)/100, 1);
       const a = (Math.PI*2*i/n) - Math.PI/2;
       const px = cx+maxR*score*Math.cos(a), py = cy+maxR*score*Math.sin(a);
       gridHtml += `<circle cx="${px}" cy="${py}" r="4" fill="var(--accent)"/>`;
-      const lx = cx+(maxR+18)*Math.cos(a), ly = cy+(maxR+18)*Math.sin(a);
-      gridHtml += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" style="font-family:var(--font-display);font-size:9px;font-weight:700;fill:var(--text-secondary)">${name.replace(/_/g,' ')}</text>`;
+      const lx = cx+(maxR+55)*Math.cos(a), ly = cy+(maxR+55)*Math.sin(a);
+      const anchor = Math.abs(Math.cos(a)) < 0.3 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end';
+      const label = dimLabel(name);
+      // Split long labels into multiple lines (max ~16 chars per line)
+      const words = label.split(' ');
+      const lines = []; let cur = '';
+      words.forEach(w => { if (cur && (cur + ' ' + w).length > 16) { lines.push(cur); cur = w; } else { cur = cur ? cur + ' ' + w : w; } });
+      if (cur) lines.push(cur);
+      const lineH = 13;
+      const startY = ly - (lines.length - 1) * lineH / 2;
+      gridHtml += `<text text-anchor="${anchor}" dominant-baseline="central" style="font-family:var(--font-display);font-size:10px;font-weight:700;fill:var(--text-secondary)">`;
+      lines.forEach((line, li) => {
+        gridHtml += `<tspan x="${lx}" y="${startY + li * lineH}">${line}</tspan>`;
+      });
+      gridHtml += `</text>`;
     });
     radarSvg.innerHTML = gridHtml;
   } else if (radarSvg) {
-    radarSvg.innerHTML = `<text x="140" y="140" text-anchor="middle" style="font-size:12px;fill:var(--text-muted)">Complete guides to build your skill dimensions</text>`;
+    radarSvg.innerHTML = `<text x="280" y="240" text-anchor="middle" style="font-size:12px;fill:var(--text-muted)">Complete guides to build your skill dimensions</text>`;
   }
 
   // Dimension rows
@@ -1909,7 +2005,7 @@ function renderGymGrowth() {
         const trendIcon = {up:'&#x25B2;',down:'&#x25BC;',stable:'&#x25CF;'}[trend] || '&#x25CF;';
         const trendColor = {up:'var(--green)',down:'var(--red)',stable:'var(--text-muted)'}[trend];
         return `<div class="gym-growth-dim-row">
-          <span class="gym-growth-dim-label">${name.replace(/_/g,' ')}</span>
+          <span class="gym-growth-dim-label">${dimLabel(name)}</span>
           <div class="gym-growth-dim-bar"><div class="gym-growth-dim-fill" style="width:${score}%"></div></div>
           <span class="gym-growth-dim-score">${score}</span>
           <span style="font-size:10px;color:${trendColor};min-width:14px;text-align:center">${trendIcon}</span>
@@ -1926,7 +2022,7 @@ function renderGymGrowth() {
   if (dimEntries.length && nextFocusEl) {
     const lowest = dimEntries[dimEntries.length - 1];
     nextFocusEl.style.display = '';
-    nextFocusText.textContent = `Focus on "${lowest[0].replace(/_/g,' ')}" — currently at ${lowest[1]?.score || 0}. Browse guides tagged with this dimension to improve.`;
+    nextFocusText.textContent = `Focus on "${dimLabel(lowest[0])}" — currently at ${lowest[1]?.score || 0}. Browse guides tagged with this dimension to improve.`;
   } else if (nextFocusEl) {
     nextFocusEl.style.display = 'none';
   }
@@ -1967,7 +2063,7 @@ async function renderGymGrowthHistory() {
       return;
     }
 
-    const colors = { strategy: '#22d3ee', communication: '#f97316', knowledge: '#a78bfa', orchestration: '#ef4444', craft: '#4ade80' };
+    const colors = { knowledge: '#a78bfa', communication: '#f97316', analysis: '#22d3ee', automation: '#ef4444', building: '#4ade80' };
     const W = 600, H = 160, padL = 30, padR = 10, padT = 10, padB = 24;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     let html = '';
@@ -2003,7 +2099,7 @@ async function renderGymGrowthHistory() {
 
     if (svg) svg.innerHTML = html;
     if (legendEl) legendEl.innerHTML = dims.map(d =>
-      `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted)"><div style="width:12px;height:3px;border-radius:2px;background:${colors[d]}"></div>${d.charAt(0).toUpperCase() + d.slice(1)}</div>`
+      `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted)"><div style="width:12px;height:3px;border-radius:2px;background:${colors[d]}"></div>${dimLabel(d)}</div>`
     ).join('');
   } catch (e) {
     console.warn('Growth history chart error:', e);
@@ -2172,11 +2268,11 @@ function renderCoachProgress() {
   const milestones = document.getElementById('progressMilestones');
   const dims = gymProfile?.dimensions || {};
   const dimDefs = [
-    { key: 'strategy', label: 'Strategy', angle: -90 },
-    { key: 'knowledge', label: 'Knowledge', angle: -18 },
-    { key: 'orchestration', label: 'Orchestration', angle: 54 },
-    { key: 'craft', label: 'Craft', angle: 126 },
-    { key: 'communication', label: 'Communication', angle: 198 }
+    { key: 'knowledge', label: 'Gaining Knowledge', angle: -90 },
+    { key: 'communication', label: 'Communication', angle: -18 },
+    { key: 'analysis', label: 'Analysis, Reviews and Validation', angle: 54 },
+    { key: 'automation', label: 'Automating Manual Tasks', angle: 126 },
+    { key: 'building', label: 'Building Applications, Tools and Dashboards', angle: 198 }
   ];
 
   // Render radar chart
@@ -2251,7 +2347,7 @@ async function renderSkillsHistory() {
     }
 
     const svg = document.getElementById('skillsHistorySvg');
-    const colors = { strategy: '#22d3ee', communication: '#f97316', knowledge: '#a78bfa', orchestration: '#ef4444', craft: '#4ade80' };
+    const colors = { knowledge: '#a78bfa', communication: '#f97316', analysis: '#22d3ee', automation: '#ef4444', building: '#4ade80' };
     const W = 600, H = 160, padL = 30, padR = 10, padT = 10, padB = 24;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     let html = '';

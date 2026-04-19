@@ -1,8 +1,15 @@
 /**
  * AI Gym — Dimension Scorer
  *
- * Scores learners across 5 AI skill dimensions based on observable
+ * Scores learners across 5 "Using AI for…" dimensions based on observable
  * platform activity. Each dimension is scored 0–5.
+ *
+ * Dimensions:
+ *   knowledge     — Gaining Knowledge
+ *   communication — Communication
+ *   analysis      — Analysis, Reviews & Validation
+ *   automation    — Automating Manual Tasks
+ *   building      — Building Apps, Tools & Dashboards
  *
  * Scoring is heuristic — it works with whatever data is available
  * and errs on the side of encouragement (never penalizes absence,
@@ -34,11 +41,11 @@ export interface AgentInfo {
 }
 
 export interface DimensionScores {
-  application: number;
-  communication: number;
   knowledge: number;
-  orchestration: number;
-  craft: number;
+  communication: number;
+  analysis: number;
+  automation: number;
+  building: number;
 }
 
 function clamp(n: number, min: number, max: number): number {
@@ -46,10 +53,10 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 /**
- * Application — How deeply is AI integrated into actual work?
+ * Analysis — Using AI to analyze, review & validate.
  * Measures: usage frequency, breadth of agents used, session depth.
  */
-export function scoreApplication(summaries: ActivitySummary[]): number {
+export function scoreAnalysis(summaries: ActivitySummary[]): number {
   if (!summaries.length) return 0;
 
   // Filter out platform/gym agents — we want real usage agents
@@ -85,7 +92,7 @@ export function scoreApplication(summaries: ActivitySummary[]): number {
 }
 
 /**
- * Communication — How effectively do you talk to AI?
+ * Communication — Using AI to communicate.
  * Measures: prompt patterns, correction frequency, tool use diversity.
  * Note: Without full log analysis, this is a rough proxy.
  */
@@ -135,7 +142,7 @@ export function scoreCommunication(summaries: ActivitySummary[]): number {
 }
 
 /**
- * Knowledge — How much do you understand about AI concepts?
+ * Knowledge — Using AI to gain knowledge & find information.
  * Measures: program completions, breadth of engagement.
  * This dimension is hard to measure from activity alone —
  * the coach supplements with direct assessment during sessions.
@@ -166,10 +173,10 @@ export function scoreKnowledge(
 }
 
 /**
- * Orchestration — Can you design multi-agent, automated workflows?
+ * Automation — Using AI to automate manual tasks.
  * Measures: goals/cron usage, multi-agent patterns, delegation.
  */
-export function scoreOrchestration(agents: AgentInfo[]): number {
+export function scoreAutomation(agents: AgentInfo[]): number {
   if (!agents.length) return 0;
 
   let score = 0;
@@ -180,7 +187,7 @@ export function scoreOrchestration(agents: AgentInfo[]): number {
   if (hasGoals) score += 1.5;
   if (hasCron) score += 1;
 
-  // Multiple agents is a prerequisite for orchestration
+  // Multiple agents is a prerequisite for automation
   const customAgents = agents.filter(
     (a) => !["hub", "gym", "agentcreator"].includes(a.id)
   );
@@ -203,10 +210,10 @@ export function scoreOrchestration(agents: AgentInfo[]): number {
 }
 
 /**
- * Craft — Can you build, configure, and tune AI systems?
+ * Building — Using AI to build applications, tools & dashboards.
  * Measures: agents created, system prompt quality, MCP configs, tool selection.
  */
-export function scoreCraft(agents: AgentInfo[]): number {
+export function scoreBuilding(agents: AgentInfo[]): number {
   if (!agents.length) return 0;
 
   let score = 0;
@@ -265,11 +272,11 @@ export function scoreAllDimensions(
   ).length;
 
   return {
-    application: scoreApplication(summaries),
-    communication: scoreCommunication(summaries),
     knowledge: scoreKnowledge(programsCompleted, totalPrograms, userAgentCount),
-    orchestration: scoreOrchestration(agents),
-    craft: scoreCraft(agents),
+    communication: scoreCommunication(summaries),
+    analysis: scoreAnalysis(summaries),
+    automation: scoreAutomation(agents),
+    building: scoreBuilding(agents),
   };
 }
 
@@ -280,7 +287,7 @@ export function computeTrends(
   current: DimensionScores,
   previous: DimensionScores | null
 ): Record<keyof DimensionScores, "up" | "down" | "stable"> {
-  const dims = ["application", "communication", "knowledge", "orchestration", "craft"] as const;
+  const dims = ["knowledge", "communication", "analysis", "automation", "building"] as const;
   const result: any = {};
   for (const dim of dims) {
     if (!previous) {

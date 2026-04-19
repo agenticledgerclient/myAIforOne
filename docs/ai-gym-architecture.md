@@ -342,11 +342,11 @@ The learner profile is the core data structure that makes everything personalize
   },
 
   "dimensions": {
-    "application":   { "score": 3, "label": "Proficient", "trend": "up",     "lastUpdated": "2026-04-08" },
+    "analysis":      { "score": 3, "label": "Proficient", "trend": "up",     "lastUpdated": "2026-04-08" },
     "communication": { "score": 2, "label": "Developing", "trend": "stable", "lastUpdated": "2026-04-08" },
     "knowledge":     { "score": 3, "label": "Proficient", "trend": "up",     "lastUpdated": "2026-04-08" },
-    "orchestration": { "score": 1, "label": "Beginner",   "trend": "stable", "lastUpdated": "2026-04-08" },
-    "craft":         { "score": 2, "label": "Developing", "trend": "up",     "lastUpdated": "2026-04-08" }
+    "automation":    { "score": 1, "label": "Beginner",   "trend": "stable", "lastUpdated": "2026-04-08" },
+    "building":      { "score": 2, "label": "Developing", "trend": "up",     "lastUpdated": "2026-04-08" }
   },
 
   "selectedTrainer": "alex"
@@ -382,14 +382,14 @@ Each dimension is scored **1–5**:
 
 ### The 5 Dimensions
 
-#### 1. Application
-> *How deeply is AI integrated into your actual work?*
+#### 1. Analysis
+> *Using AI for: Analysis, Reviews & Validation*
 
-Are you reaching for your AI agents when a task comes up — or still defaulting to doing things manually? This is about **habit and reflex**, not knowledge. A score of 1 means occasional experimentation; a score of 5 means AI is your default tool for a broad range of real tasks.
+Are you using AI to analyze data, review documents, validate decisions, and surface insights — or still doing that manually? This is about leveraging AI as a thinking partner for evaluation and review. A score of 1 means occasional experimentation; a score of 5 means AI is your default tool for analysis, reviews, and validation across a broad range of real tasks.
 
 **How it's measured:** Agent usage frequency, breadth of agents used, whether agents have real workspaces and real tasks vs toy usage, session depth.
 
-**Gym guidance at low scores:** On-the-job training challenges — "bring your next real task here." The coach nudges toward substitution: replacing a manual workflow with an agent one.
+**Gym guidance at low scores:** On-the-job training challenges — "bring your next real task here." The coach nudges toward using AI for analysis and review workflows.
 
 ---
 
@@ -415,8 +415,8 @@ Core AI literacy. Does the user understand what a model is, how context windows 
 
 ---
 
-#### 4. Orchestration
-> *Can you design and run multi-agent, automated workflows?*
+#### 4. Automation
+> *Using AI for: Automating Manual Tasks*
 
 Beyond chatting with a single agent — can the user chain agents together, set up automations, delegate work, run scheduled tasks, and build workflows that operate without their constant involvement? This is where AI stops being a tool and starts being a workforce.
 
@@ -426,8 +426,8 @@ Beyond chatting with a single agent — can the user chain agents together, set 
 
 ---
 
-#### 5. Craft
-> *Can you build, configure, and tune AI systems from scratch?*
+#### 5. Building
+> *Using AI for: Building Apps, Tools & Dashboards*
 
 The builder dimension. Can the user create a specialized agent with a good system prompt, assign the right tools, wire up MCPs, set the correct workspace? This is about **AI system design** — knowing what to give an agent, what to withhold, and why.
 
@@ -448,7 +448,7 @@ Dimension scores are stored in the `dimensions` field of `learner-profile.json` 
 - **Program recommendations** — each program maps to one or two primary dimensions. Low score → recommended program.
 - **Gym card generation** — coach generates cards targeting the user's lowest dimension with the most activity (where coaching effort has highest ROI).
 - **Plan structure** — the living plan is organized around dimension growth, not just task completion.
-- **Progress story** — when the user asks "how am I doing?", the coach can give a dimensional answer: "Your Application and Knowledge are solid. Orchestration is where we should focus next."
+- **Progress story** — when the user asks "how am I doing?", the coach can give a dimensional answer: "Your Analysis and Knowledge are solid. Automation is where we should focus next."
 - **Radar chart** — the `/gym` UI will visualize these 5 dimensions as a radar/spider chart — one glance shows the shape of your AI skill.
 
 ---
@@ -792,26 +792,26 @@ The **Progress** tab sits alongside the coach chat in the main panel. It's the u
 │                                                      │
 │  Dimension Breakdown                                 │
 │  ─────────────────────────────────────────────────  │
-│  Application    ████████░░  3/5  Proficient  ↑      │
+│  Analysis       ████████░░  3/5  Proficient  ↑      │
 │  Communication  ██████░░░░  2/5  Developing  →      │
 │  Knowledge      ████████░░  3/5  Proficient  ↑      │
-│  Orchestration  ████░░░░░░  1/5  Beginner    →      │
-│  Craft          ██████░░░░  2/5  Developing  ↑      │
+│  Automation     ████░░░░░░  1/5  Beginner    →      │
+│  Building       ██████░░░░  2/5  Developing  ↑      │
 │                                                      │
-│  Next focus: Orchestration                           │
+│  Next focus: Automation                              │
 │  [Start Automations Mastery →]                       │
 │                                                      │
 │  Milestones                                          │
 │  ─────────────────────────────────────────────────  │
-│  ✓ Apr 2  First agent created         (Craft ↑)     │
-│  ✓ Apr 5  10 sessions completed       (Application) │
+│  ✓ Apr 2  First agent created         (Building ↑)  │
+│  ✓ Apr 5  10 sessions completed       (Analysis)    │
 │  ✓ Apr 8  Getting Started program     (Knowledge ↑) │
 │  ○ Agent Building program             in progress   │
 └─────────────────────────────────────────────────────┘
 ```
 
 **Charts:**
-- **Radar/spider chart** — current snapshot of all 5 dimensions. One glance shows the shape of the user's skill (e.g., strong on Application and Knowledge, weak on Orchestration).
+- **Radar/spider chart** — current snapshot of all 5 dimensions. One glance shows the shape of the user's skill (e.g., strong on Analysis and Knowledge, weak on Automation).
 - **Line chart** — each dimension plotted as a separate line over time (weekly data points from the activity digest). Shows velocity and trend, not just current state.
 
 **Dimension breakdown** — progress bars with score, label, and trend arrow (↑ improving, → stable, ↓ declining).

@@ -145,18 +145,18 @@
   - [x] Scheduled cron: `0 6 * * *` (daily 6am), only runs if `gymEnabled: true`
   - [x] Step 1: Scan agent directories — get full agent roster
   - [x] Step 2: For each agent, call `GET /api/agents/:id/activity-summary` — get aggregated stats
-  - [x] Step 3: Read agent.json configs for craft/orchestration scoring
+  - [x] Step 3: Read agent.json configs for building/automation scoring
   - [x] Step 4: Score dimensions based on observed patterns (use `dimension-scorer.ts`)
   - [x] Step 5: Call `POST /api/gym/dimensions/snapshot` if ≥7 days since last snapshot
   - [x] Step 6: Write digest to `agents/platform/gym/memory/daily/<date>.md`
   - [x] Step 7: Call `PUT /api/gym/learner-profile` with updated `activity`, `features`, `patterns`, `dimensions`, `streak`
   - [x] Step 8: Generate 2–3 gym cards; call `POST /api/gym/cards` for each
 - [x] Implement `src/gym/dimension-scorer.ts`:
-  - [x] `scoreApplication(activitySummaries)` — frequency, breadth, session depth
+  - [x] `scoreAnalysis(activitySummaries)` — frequency, breadth, session depth
   - [x] `scoreCommunication(logSamples)` — tool diversity, topic breadth, depth signals
   - [x] `scoreKnowledge(profile, programProgress)` — program completions, engagement breadth
-  - [x] `scoreOrchestration(agentList)` — goals, cron, MCPs, multi-agent patterns
-  - [x] `scoreCraft(agentList)` — agents created, system prompt quality, MCP configs, tool configs
+  - [x] `scoreAutomation(agentList)` — goals, cron, MCPs, multi-agent patterns
+  - [x] `scoreBuilding(agentList)` — agents created, system prompt quality, MCP configs, tool configs
 
 ### 8. /gym Page — UI
 
@@ -308,7 +308,7 @@
 
 - [ ] Opt-in setting per user: `gymNotifications: { enabled: false, channel: "slack"|"telegram"|"discord"|null }`
 - [ ] When enabled, activity digest can send a brief summary to the configured channel after running
-  - [ ] "Here's your weekly gym update: Your Application score went up. You have a new challenge from Riley."
+  - [ ] "Here's your weekly gym update: Your Analysis score went up. You have a new challenge from Riley."
 - [ ] Coach can send a nudge if user hasn't been active for 3+ days (once, not repeatedly)
 - [ ] Notification channel set in gym settings UI
 

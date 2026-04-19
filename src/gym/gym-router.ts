@@ -20,6 +20,24 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   }
 
+  // Migrate old dimension keys to new ones:
+  // application → analysis, orchestration → automation, craft → building
+  const DIM_REMAP: Record<string, string> = {
+    application: "analysis",
+    orchestration: "automation",
+    craft: "building",
+    strategy: "analysis",  // home2.html previously used "strategy"
+  };
+
+  function migrateDimensions(dims: Record<string, any>): Record<string, any> {
+    if (!dims || typeof dims !== "object") return dims;
+    const result: Record<string, any> = {};
+    for (const [key, value] of Object.entries(dims)) {
+      result[DIM_REMAP[key] || key] = value;
+    }
+    return result;
+  }
+
   function readJson(path: string, fallback: any = {}): any {
     try {
       if (!existsSync(path)) return fallback;
@@ -65,6 +83,7 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
   router.get("/api/gym/learner-profile", (_req, res) => {
     ensureDir(memoryDir);
     const data = readJson(profilePath(), emptyProfile);
+    if (data.dimensions) data.dimensions = migrateDimensions(data.dimensions);
     res.json(data);
   });
 
@@ -604,7 +623,12 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
   router.get("/api/gym/dimensions/history", (_req, res) => {
     const histPath = join(memoryDir, "dimension-history.json");
     const data = readJson(histPath, []);
-    res.json(Array.isArray(data) ? data : []);
+    const arr = Array.isArray(data) ? data : [];
+    // Migrate old dimension keys in each snapshot
+    for (const snap of arr) {
+      if (snap.dimensions) snap.dimensions = migrateDimensions(snap.dimensions);
+    }
+    res.json(arr);
   });
 
   // ── Changelog (for Feed: Platform Updates) ──

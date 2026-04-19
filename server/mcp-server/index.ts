@@ -1488,7 +1488,7 @@ server.tool("create_gym_guide", "Create a coach-generated guide from a training 
   title: z.string().describe("Guide title"),
   description: z.string().optional().describe("Short description of what this guide covers"),
   difficulty: z.enum(["beginner", "intermediate", "advanced"]).optional().describe("Difficulty level"),
-  dimensions: z.array(z.string()).optional().describe("Related skill dimensions (application, communication, knowledge, orchestration, craft)"),
+  dimensions: z.array(z.string()).optional().describe("Related skill dimensions (knowledge, communication, analysis, automation, building)"),
   estimatedTime: z.string().optional().describe("Estimated completion time (e.g. '15 minutes')"),
   modules: z.array(z.object({
     id: z.string(),

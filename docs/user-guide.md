@@ -1918,11 +1918,11 @@ Learners are scored across 5 dimensions on a **1–5 scale** (0 = not yet assess
 
 | Dimension | What It Measures |
 |-----------|-----------------|
-| **Application** | How deeply AI is integrated into actual work — usage frequency, breadth, habit |
+| **Analysis** | Using AI for analysis, reviews & validation — usage frequency, breadth, habit |
 | **Communication** | Prompt effectiveness — context, specificity, iteration efficiency |
 | **Knowledge** | Conceptual understanding of AI, agents, tools, MCPs, memory |
-| **Orchestration** | Multi-agent workflows — goals, cron, delegation, automation |
-| **Craft** | Building AI systems — agent creation, system prompts, tool/MCP config |
+| **Automation** | Using AI for automating manual tasks — goals, cron, delegation, workflows |
+| **Building** | Using AI for building apps, tools & dashboards — agent creation, system prompts, tool/MCP config |
 
 Score labels: 1 = Beginner, 2 = Developing, 3 = Proficient, 4 = Advanced, 5 = Expert.
 

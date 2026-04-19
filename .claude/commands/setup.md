@@ -243,6 +243,33 @@ EOF
 
 cat > "$APP_PATH/Contents/MacOS/AIforOne" << 'EOF'
 #!/bin/bash
+export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
+
+# Check if already running
+if curl -s --max-time 2 http://localhost:4888/health 2>/dev/null | grep -q "ok"; then
+    open "http://localhost:4888"
+    exit 0
+fi
+
+# Not running — try launchctl first
+PLIST="$HOME/Library/LaunchAgents/com.agenticledger.channelToAgentToClaude.plist"
+if [ -f "$PLIST" ]; then
+    launchctl load "$PLIST" 2>/dev/null
+else
+    # Fallback: start via npx (detached)
+    nohup npx myaiforone@latest > /dev/null 2>&1 &
+fi
+
+# Wait for health (up to 30s)
+for i in $(seq 1 30); do
+    if curl -s --max-time 2 http://localhost:4888/health 2>/dev/null | grep -q "ok"; then
+        open "http://localhost:4888"
+        exit 0
+    fi
+    sleep 1
+done
+
+# Timeout — open anyway, user will see loading
 open "http://localhost:4888"
 EOF
 
