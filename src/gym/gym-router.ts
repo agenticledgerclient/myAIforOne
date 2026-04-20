@@ -1253,5 +1253,141 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
     });
   });
 
+  // ── Enrollment & Certificates ──────────────────────────────────────
+
+  // Enroll in a program (confirmation → "not-started")
+  router.post("/api/gym/enroll/:slug", (req, res) => {
+    ensureDir(memoryDir);
+    const slug = req.params.slug;
+    const progress = readJson(progressPath(), { programs: {}, updatedAt: null });
+    if (!progress.programs) progress.programs = {};
+
+    // Don't re-enroll if already enrolled
+    if (progress.programs[slug]) {
+      res.json({ enrolled: true, status: progress.programs[slug].status || "not-started", slug });
+      return;
+    }
+
+    progress.programs[slug] = {
+      status: "not-started",
+      enrolledAt: new Date().toISOString(),
+      startedAt: null,
+      completedAt: null,
+      modules: {},
+    };
+    progress.updatedAt = new Date().toISOString();
+    writeJson(progressPath(), progress);
+    res.status(201).json({ enrolled: true, status: "not-started", slug });
+  });
+
+  // Unenroll from a program
+  router.delete("/api/gym/enroll/:slug", (req, res) => {
+    ensureDir(memoryDir);
+    const slug = req.params.slug;
+    const progress = readJson(progressPath(), { programs: {}, updatedAt: null });
+    if (!progress.programs) progress.programs = {};
+
+    if (!progress.programs[slug]) {
+      res.status(404).json({ error: "Not enrolled in this program" });
+      return;
+    }
+
+    delete progress.programs[slug];
+    progress.updatedAt = new Date().toISOString();
+    writeJson(progressPath(), progress);
+    res.json({ unenrolled: true, slug });
+  });
+
+  // List all enrollments (with optional status filter)
+  router.get("/api/gym/enrollments", (_req, res) => {
+    ensureDir(memoryDir);
+    const progress = readJson(progressPath(), { programs: {}, updatedAt: null });
+    const statusFilter = (_req.query.status as string) || "";
+
+    const enrollments: any[] = [];
+    for (const [slug, data] of Object.entries(progress.programs || {})) {
+      const entry = data as any;
+      if (statusFilter && entry.status !== statusFilter) continue;
+      enrollments.push({ slug, ...entry });
+    }
+
+    res.json(enrollments);
+  });
+
+  // Mark a program as complete
+  router.post("/api/gym/programs/:slug/complete", (req, res) => {
+    ensureDir(memoryDir);
+    const slug = req.params.slug;
+    const progress = readJson(progressPath(), { programs: {}, updatedAt: null });
+    if (!progress.programs) progress.programs = {};
+
+    if (!progress.programs[slug]) {
+      // Auto-enroll if not enrolled
+      progress.programs[slug] = {
+        status: "completed",
+        enrolledAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        modules: {},
+      };
+    } else {
+      progress.programs[slug].status = "completed";
+      progress.programs[slug].completedAt = new Date().toISOString();
+      if (!progress.programs[slug].startedAt) {
+        progress.programs[slug].startedAt = new Date().toISOString();
+      }
+    }
+
+    // Also update learner profile's completed list
+    const profile = readJson(profilePath(), emptyProfile);
+    if (!profile.programs) profile.programs = { completed: [] };
+    if (!profile.programs.completed) profile.programs.completed = [];
+    if (!profile.programs.completed.includes(slug)) {
+      profile.programs.completed.push(slug);
+      profile.updatedAt = new Date().toISOString();
+      writeJson(profilePath(), profile);
+    }
+
+    progress.updatedAt = new Date().toISOString();
+    writeJson(progressPath(), progress);
+    res.json({ completed: true, slug, completedAt: progress.programs[slug].completedAt });
+  });
+
+  // Get completion certificate for a program
+  router.get("/api/gym/certificate/:slug", (req, res) => {
+    ensureDir(memoryDir);
+    const slug = req.params.slug;
+    const progress = readJson(progressPath(), { programs: {}, updatedAt: null });
+    const entry = progress.programs?.[slug];
+
+    if (!entry || entry.status !== "completed") {
+      res.status(404).json({ error: "Program not completed" });
+      return;
+    }
+
+    // Load program details for certificate
+    let progPath = join(programsDir, slug, "program.json");
+    if (!existsSync(progPath)) progPath = join(userProgramsDir, slug, "program.json");
+    const program = existsSync(progPath) ? readJson(progPath, {}) : {};
+
+    // Load learner name
+    const profile = readJson(profilePath(), emptyProfile);
+
+    const certificate = {
+      learnerName: profile.name || "Learner",
+      programTitle: program.title || slug,
+      programSlug: slug,
+      completedAt: entry.completedAt,
+      enrolledAt: entry.enrolledAt,
+      issuedAt: new Date().toISOString(),
+      moduleCount: Array.isArray(program.modules) ? program.modules.length : 0,
+      dimensions: program.dimensions || [],
+      projectName: program.projectName || "",
+      seriesName: program.seriesName || "",
+    };
+
+    res.json(certificate);
+  });
+
   return router;
 }

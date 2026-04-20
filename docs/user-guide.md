@@ -1945,6 +1945,22 @@ Pre-installed beginner program with 3 modules and 7 steps:
 | **platform-check** | Coach calls MCP tools to verify platform state changed (e.g., new agent created) |
 | **self-report** | User describes what they did and learned |
 
+### My Training
+
+The My Training view tracks all enrolled programs and their progress.
+
+**Enrollment flow:** Browse programs → click **Enroll** → program appears in My Training with `not-started` status → begin working through modules → status moves to `in-progress` → complete all modules → status moves to `completed`.
+
+**Status progression:**
+
+| Status | Meaning |
+|--------|---------|
+| `not-started` | Enrolled but no modules started yet |
+| `in-progress` | At least one module step completed |
+| `completed` | All modules finished, certificate available |
+
+**Certificates:** Once a program is completed, a certificate is generated with the learner's name, program title, completion date, module count, and target dimensions. Certificates can be viewed in the UI, shared on LinkedIn, or copied as text.
+
 ## 10.6 Activity Digest
 
 Scheduled daily at 6am (when `gymEnabled: true`). Also triggerable manually via `POST /api/gym/digest/run`.
@@ -2013,6 +2029,16 @@ Guides have two forms: human-readable (browsable in gym) and agent-executable (a
 | | **Body:** fields to update | **Params:** `slug`, `body` |
 | Delete program | `DELETE /api/gym/programs/:slug` | `delete_gym_program` |
 | | | **Params:** `slug` |
+| Enroll in program | `POST /api/gym/enroll/:slug` | `enroll_gym_program` |
+| | Idempotent — sets status to "not-started" | **Params:** `slug` |
+| Unenroll from program | `DELETE /api/gym/enroll/:slug` | `unenroll_gym_program` |
+| | | **Params:** `slug` |
+| List enrollments | `GET /api/gym/enrollments?status=` | `list_gym_enrollments` |
+| | **Query:** `status` (not-started, in-progress, completed) | **Params:** `status?` |
+| Mark program complete | `POST /api/gym/programs/:slug/complete` | `complete_gym_program` |
+| | Auto-enrolls if not already enrolled | **Params:** `slug` |
+| Get completion certificate | `GET /api/gym/certificate/:slug` | `get_gym_certificate` |
+| | Returns learnerName, programTitle, completedAt, enrolledAt, issuedAt, moduleCount, dimensions, projectName, seriesName | **Params:** `slug` |
 | Import program from markdown | `POST /api/gym/programs/import-markdown` | `import_program` |
 | | **Body:** `{ markdown }` (H1=program, H2=module, H3=step) | **Params:** `markdown` |
 | Get agent activity summary | `GET /api/agents/:id/activity-summary` | `get_agent_activity_summary` |
@@ -2062,6 +2088,16 @@ Guides have two forms: human-readable (browsable in gym) and agent-executable (a
 | | Deletes series file; programs referencing it are orphaned (seriesSlug set to null) | **Params:** `projectSlug`, `seriesSlug` |
 | Import from AI Gym platform | `POST /api/gym/import-from-aigym` | `import_from_aigym` |
 | | **Body:** `{ project, series?, programs? }` — full project export from aigym-platform. Maps remote IDs to local schema. | **Params:** `project` (object), `series?` (array), `programs?` (array) |
+| Enroll in a program | `POST /api/gym/enroll/:slug` | `enroll_gym_program` |
+| | Sets enrollment status to `not-started`. Idempotent — returns current status if already enrolled. | **Params:** `slug` |
+| Unenroll from a program | `DELETE /api/gym/enroll/:slug` | `unenroll_gym_program` |
+| | Removes enrollment entry. Returns 404 if not enrolled. | **Params:** `slug` |
+| List enrollments | `GET /api/gym/enrollments` | `list_gym_enrollments` |
+| | **Query:** `?status=` filter (`not-started`, `in-progress`, `completed`). Returns array of enrollment objects with slug, status, enrolledAt, startedAt, completedAt. | **Params:** `status?` |
+| Complete a program | `POST /api/gym/programs/:slug/complete` | `complete_gym_program` |
+| | Marks program as completed, sets completedAt timestamp. Auto-enrolls if not already enrolled. Also adds slug to learner profile's completed list. | **Params:** `slug` |
+| Get completion certificate | `GET /api/gym/certificate/:slug` | `get_gym_certificate` |
+| | Returns certificate data: learnerName, programTitle, completedAt, enrolledAt, issuedAt, moduleCount, dimensions. Returns 404 if program not completed. | **Params:** `slug` |
 
 ---
 
@@ -2128,6 +2164,7 @@ Quick reference — all MCP tools alphabetically:
 | 10 | `clear_memory_context` | Memory |
 | 11 | `clear_model` | Model |
 | 12 | `create_agent` | Agents |
+| -- | `complete_gym_program` | AI Gym |
 | -- | `create_gym_card` | AI Gym |
 | -- | `create_gym_guide` | AI Gym |
 | -- | `create_gym_project` | AI Gym |
@@ -2160,6 +2197,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `execute_project` | Projects |
 | -- | `dismiss_gym_card` | AI Gym |
 | 31 | `download_agent_file` | Files |
+| -- | `enroll_gym_program` | AI Gym |
 | 32 | `get_activity` | Activity |
 | 33 | `get_agent` | Agents |
 | -- | `get_agent_activity_summary` | AI Gym |
@@ -2179,6 +2217,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `get_dimension_history` | AI Gym |
 | 46 | `get_goal_history` | Goals |
 | -- | `get_heartbeat_history` | Heartbeat |
+| -- | `get_gym_certificate` | AI Gym |
 | -- | `get_gym_config` | AI Gym |
 | -- | `get_gym_feed` | AI Gym |
 | -- | `get_gym_program` | AI Gym |
@@ -2212,6 +2251,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `link_to_project` | Projects |
 | 62 | `list_agents` | Agents |
 | -- | `list_gym_cards` | AI Gym |
+| -- | `list_gym_enrollments` | AI Gym |
 | -- | `list_gym_guides` | AI Gym |
 | -- | `list_gym_programs` | AI Gym |
 | -- | `list_gym_projects` | AI Gym |
@@ -2262,6 +2302,7 @@ Quick reference — all MCP tools alphabetically:
 | 97 | `trigger_heartbeat` | Heartbeat |
 | 98 | `trigger_wiki_sync` | Wiki |
 | 99 | `unpair_sender` | Pairing |
+| -- | `unenroll_gym_program` | AI Gym |
 | -- | `unlink_from_project` | Projects |
 | 100 | `update_agent` | Agents |
 | -- | `update_gym_program` | AI Gym |
@@ -2752,4 +2793,86 @@ Alternatively, for Claude Code or manual MCP config, skip steps 3–4 and regist
 | **Data lost after redeploy** | You don't have a Railway volume mounted at `/data`. Add one (see Step 2 in E.2). Existing data from a volumeless deploy is gone. |
 | **Bootstrap key leaked** | Immediately go to Issued Keys → create a new key → revoke the bootstrap key. Update all clients with the new secret. |
 
-<!-- Docs last synced: 2026-04-18 — Appendix E: complete Railway deployment guide, Issued Keys walkthrough, deploymentMode reference, connection options. -->
+---
+
+## Appendix F: Copying Between Local and Remote
+
+You can copy agents, skills, prompts, and MCPs between your local install and a remote (Railway) server using the MCP tools. This works in both directions.
+
+### F.1 Copy an Agent: Local → Remote
+
+**What transfers:**
+- Agent config (name, alias, org, tools, MCPs, wiki, advancedMemory, etc.)
+- System prompt (CLAUDE.md)
+- Memory (context.md, learned.md)
+- FileStorage files (via base64 upload — files under ~40KB)
+
+**What doesn't transfer:**
+- Conversation history (conversation_log.jsonl) — starts fresh
+- Vector index (vectors.json) — rebuilds over time from conversations
+- Session state — runtime only
+
+**Steps:**
+1. Read the local agent's config from `config.json`, CLAUDE.md, and memory files
+2. Call `create_agent` on the remote with matching config
+3. Call `update_agent` with `instructions` param to write the full CLAUDE.md
+4. Call `write_memory` with `target: "overwrite"` to write context.md
+5. Call `upload_file` for each FileStorage document (base64-encoded, mode: "permanent" or "temp")
+
+**Example (via hub agent):**
+> "Copy @revtransform to the remote — same instructions, same memory, same files"
+
+### F.2 Copy an Agent: Remote → Local
+
+1. Call `get_agent` to read the remote agent's config
+2. Call `get_agent_instructions` to read the CLAUDE.md
+3. Call `get_agent_memory` to read context.md
+4. Call `list_agent_files` + `download_agent_file` for FileStorage documents
+5. Create the local agent folder, write CLAUDE.md and memory files
+6. Add the agent entry to local `config.json`
+7. Rebuild (`npm run build`) and restart the service
+
+**Example:**
+> "There's an agent @researcher on the remote — copy it to my local install"
+
+### F.3 Copy a Skill
+
+**Local → Remote:**
+1. Read the `.md` file from `~/.claude/commands/` (global), agent skills dir, or org skills dir
+2. Call `create_skill` with `id`, `name`, `description`, `content`, and `scope` (global/personal/org/agent)
+
+**Remote → Local:**
+1. Call `get_agent_skills` or `get_org_skills` to list available skills
+2. Call `get_skill_content` with the skill's path to read the full markdown
+3. Write the `.md` file to the appropriate local directory
+
+### F.4 Copy a Prompt
+
+**Local → Remote:**
+1. Read the prompt `.md` file from `PersonalRegistry/prompts/personal/`
+2. Call `create_prompt` with `id`, `name`, and `content`
+
+**Remote → Local:**
+1. Call `browse_registry` with `type: "prompts"` to list prompts
+2. Read the prompt content (from the registry path)
+3. Write the `.md` file to `PersonalRegistry/prompts/personal/` and update `prompts.json`
+
+### F.5 Copy an MCP
+
+**Local → Remote:**
+1. Read the MCP entry from local `PersonalRegistry/mcps.json` or `config.json`
+2. Call `add_mcp_to_registry` with `id`, `name`, `mcpType` ("http" or "stdio"), and `url` (for HTTP MCPs) or `command`/`args` (for stdio)
+
+**Remote → Local:**
+1. Call `list_mcps` or `browse_registry` with `type: "mcps"` to see what's available
+2. Add the MCP config to local `config.json` under the `mcps` section
+3. Update `PersonalRegistry/mcps.json` if you want it in the library UI
+
+### F.6 Limitations
+
+- **Large files (>40KB):** Base64-encoded files that exceed the MCP parameter limit can't be uploaded via `upload_file`. Use the web UI file manager or split into smaller files.
+- **stdio MCPs:** These require a local binary/command, so they only work where the command is installed. HTTP MCPs transfer cleanly since they're just a URL.
+- **API keys:** MCP keys stored in the local key vault don't auto-transfer. You'll need to re-enter keys on the remote via the MCP Keys page or `save_mcp_key`.
+- **Conversation history:** Not portable. The agent starts fresh on the destination, but context.md carries the important knowledge forward.
+
+<!-- Docs last synced: 2026-04-19 — Appendix F: copying agents, skills, prompts, and MCPs between local and remote installs. -->

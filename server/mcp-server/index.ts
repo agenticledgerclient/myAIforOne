@@ -1677,6 +1677,43 @@ server.tool("import_from_aigym", "Import a full project from AI Gym platform (pr
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+// ─── Enrollment & Certificate Tools ─────────────────────────────────
+
+server.tool("enroll_gym_program", "Enroll user in a training program (sets status to not-started)", {
+  slug: z.string().describe("Program slug to enroll in"),
+}, async ({ slug }) => {
+  const r = await api.enrollGymProgram(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("unenroll_gym_program", "Remove user enrollment from a training program", {
+  slug: z.string().describe("Program slug to unenroll from"),
+}, async ({ slug }) => {
+  const r = await api.unenrollGymProgram(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("list_gym_enrollments", "List all user enrollments with optional status filter", {
+  status: z.string().optional().describe("Filter by status: not-started, in-progress, completed"),
+}, async ({ status }) => {
+  const r = await api.listGymEnrollments(status);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("complete_gym_program", "Mark a training program as completed", {
+  slug: z.string().describe("Program slug to mark complete"),
+}, async ({ slug }) => {
+  const r = await api.completeGymProgram(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_gym_certificate", "Get completion certificate for a completed training program", {
+  slug: z.string().describe("Program slug to get certificate for"),
+}, async ({ slug }) => {
+  const r = await api.getGymCertificate(slug);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 // ─── Shared Agent Tools ────────────────────────────────────────────
 
 server.tool("get_storage_info", "Get storage and sharing configuration for an agent (shared flag, conversationLogMode, agentHome path)", {

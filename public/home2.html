@@ -910,15 +910,15 @@ text-decoration:none;}
         <div class="gym-hub-actions" id="gymHubActions">
           <div class="gym-hub-action" onclick="gymHubDrillIn('browse')">
             <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
-            <span class="gym-hub-action-label">Browse Guides</span>
+            <span class="gym-hub-action-label">Browse Catalog</span>
+          </div>
+          <div class="gym-hub-action" onclick="gymHubDrillIn('training')">
+            <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5"/></svg></div>
+            <span class="gym-hub-action-label">My Training</span>
           </div>
           <div class="gym-hub-action" onclick="gymHubDrillIn('coach')">
             <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
             <span class="gym-hub-action-label">Chat with Coach</span>
-          </div>
-          <div class="gym-hub-action" onclick="gymHubDrillIn('create')">
-            <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-            <span class="gym-hub-action-label">Create a Guide</span>
           </div>
           <div class="gym-hub-action" onclick="gymHubDrillIn('progress')">
             <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
@@ -957,6 +957,21 @@ text-decoration:none;}
         </div>
         <div class="gym-hub-filters" id="gymBrowseFilters"></div>
         <div id="gymBrowseContent"></div>
+      </div>
+    </div>
+    <!-- My Training View -->
+    <div class="gym-view" id="gymTrainingView">
+      <div class="gym-browse-view">
+        <div class="gym-hub-browse-header">
+          <div class="gym-hub-browse-toggle" id="gymTrainingToggle">
+            <button class="active" data-view="all" onclick="gymTrainingSwitchFilter('all')">All</button>
+            <button data-view="not-started" onclick="gymTrainingSwitchFilter('not-started')">Not Started</button>
+            <button data-view="in-progress" onclick="gymTrainingSwitchFilter('in-progress')">In Progress</button>
+            <button data-view="completed" onclick="gymTrainingSwitchFilter('completed')">Completed</button>
+          </div>
+          <input type="text" class="gym-hub-search" id="gymTrainingSearch" placeholder="Search my training..." oninput="renderGymTraining()">
+        </div>
+        <div id="gymTrainingContent"></div>
       </div>
     </div>
     <!-- Create View -->
@@ -1030,15 +1045,15 @@ text-decoration:none;}
           </button>
           <button class="sidebar-mini-action" onclick="gymHubDrillIn('browse')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-            Browse Guides
+            Browse Catalog
+          </button>
+          <button class="sidebar-mini-action" onclick="gymHubDrillIn('training')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5"/></svg>
+            My Training
           </button>
           <button class="sidebar-mini-action" onclick="gymHubDrillIn('coach')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             Chat with Coach
-          </button>
-          <button class="sidebar-mini-action" onclick="gymHubDrillIn('create')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Create a Guide
           </button>
           <button class="sidebar-mini-action" onclick="gymHubDrillIn('progress')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -1400,7 +1415,7 @@ function switchMode(mode) {
     if (inputBox) inputBox.style.display = '';
 
     // Hide all gym drill-in views
-    ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+    ['gymBrowseView','gymTrainingView','gymCreateView','gymGrowthView'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.remove('active');
     });
@@ -1531,7 +1546,7 @@ function toggleCoachSidebarCollapse() {
 
 // ─── Sidebar Mini-Hub ──────────────────────────────────
 function updateSidebarActiveState(panel) {
-  const map = { browse: 'Browse Guides', coach: 'Chat with Coach', create: 'Create a Guide', progress: 'My Growth' };
+  const map = { browse: 'Browse Catalog', training: 'My Training', coach: 'Chat with Coach', create: 'Create a Guide', progress: 'My Growth' };
   document.querySelectorAll('.sidebar-mini-action').forEach(btn => {
     const label = btn.textContent.trim();
     btn.classList.toggle('active', label === map[panel]);
@@ -1596,7 +1611,7 @@ function gymHubDrillIn(panel) {
   gymHub.classList.remove('open');
 
   // Hide all gym views
-  ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+  ['gymBrowseView','gymTrainingView','gymCreateView','gymGrowthView'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('active');
   });
@@ -1634,6 +1649,9 @@ function gymHubDrillIn(panel) {
     if (panel === 'browse') {
       document.getElementById('gymBrowseView').classList.add('active');
       renderGymBrowse();
+    } else if (panel === 'training') {
+      document.getElementById('gymTrainingView').classList.add('active');
+      renderGymTraining();
     } else if (panel === 'create') {
       document.getElementById('gymCreateView').classList.add('active');
     } else if (panel === 'progress') {
@@ -1656,7 +1674,7 @@ function gymHubBack() {
   if (guideViewerState) closeGuideViewer();
 
   // Hide all gym views
-  ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+  ['gymBrowseView','gymTrainingView','gymCreateView','gymGrowthView'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('active');
   });
@@ -1799,11 +1817,22 @@ function renderGuideCardsHTML(programs) {
     const slug = p.slug || p.id;
     const moduleCount = p._counts?.modules || p.modules?.length || 0;
     const stepCount = p._counts?.steps || p.modules?.reduce((s,m) => s+(m.steps?.length||0),0) || 0;
-    const progress = gymProgress?.programs?.[slug];
-    const ctaText = progress?.completedSteps?.length ? 'Continue' : 'Start';
+    const enrollment = gymProgress?.programs?.[slug];
+    const isEnrolled = !!enrollment;
+    const status = enrollment?.status || '';
     const source = p.source || 'platform';
     const sourceLabel = {platform:'Platform',coach:'Coach',user:'My Guide'}[source] || source;
     const sourceColor = {platform:'var(--accent)',coach:'var(--purple)',user:'var(--green)'}[source] || 'var(--text-muted)';
+
+    let ctaHtml = '';
+    if (status === 'completed') {
+      ctaHtml = `<button class="gym-guide-card-cta" style="background:var(--green);border-color:var(--green)" onclick="event.stopPropagation();viewCertificate('${slug}')">&#x2713; Completed</button>`;
+    } else if (isEnrolled) {
+      ctaHtml = `<button class="gym-guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">${status === 'in-progress' ? 'Continue' : 'Start'}</button>`;
+    } else {
+      ctaHtml = `<button class="gym-guide-card-cta" onclick="event.stopPropagation();enrollProgram('${slug}')">Enroll</button>`;
+    }
+
     return `
       <div class="gym-guide-card" onclick="openGuide('${slug}')">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1815,10 +1844,11 @@ function renderGuideCardsHTML(programs) {
           ${moduleCount ? `<span class="gym-guide-card-tag">${moduleCount} module${moduleCount!==1?'s':''}</span>` : ''}
           ${stepCount ? `<span class="gym-guide-card-tag">${stepCount} steps</span>` : ''}
           ${p.difficulty ? `<span class="gym-guide-card-tag difficulty">${p.difficulty}</span>` : ''}
+          ${isEnrolled ? `<span class="gym-guide-card-tag" style="color:var(--accent)">Enrolled</span>` : ''}
         </div>
         <div class="gym-guide-card-footer">
           <span></span>
-          <button class="gym-guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">${ctaText}</button>
+          ${ctaHtml}
         </div>
       </div>`;
   }).join('') + '</div>';
@@ -1924,6 +1954,190 @@ function toggleSeriesInProject(seriesId) {
   const isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : '';
   if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+// ─── My Training View ──────────────────────────
+let gymTrainingFilter = 'all';
+let gymEnrollments = null; // cached from API
+
+function gymTrainingSwitchFilter(f) {
+  gymTrainingFilter = f;
+  document.querySelectorAll('#gymTrainingToggle button').forEach(b => b.classList.toggle('active', b.dataset.view === f));
+  renderGymTraining();
+}
+
+async function renderGymTraining() {
+  const container = document.getElementById('gymTrainingContent');
+  if (!container) return;
+  const q = (document.getElementById('gymTrainingSearch')?.value || '').toLowerCase().trim();
+
+  // Fetch enrollments
+  try {
+    const res = await fetch('/api/gym/enrollments');
+    if (res.ok) gymEnrollments = await res.json();
+    else gymEnrollments = [];
+  } catch { gymEnrollments = []; }
+
+  let enrolled = gymEnrollments || [];
+  if (gymTrainingFilter !== 'all') enrolled = enrolled.filter(e => e.status === gymTrainingFilter);
+  if (q) {
+    enrolled = enrolled.filter(e => {
+      const prog = gymPrograms.find(p => p.slug === e.slug);
+      return (prog?.title || e.slug).toLowerCase().includes(q) || (prog?.description || '').toLowerCase().includes(q);
+    });
+  }
+
+  if (!enrolled.length) {
+    container.innerHTML = `<div style="text-align:center;padding:60px 20px">
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:12px">${gymTrainingFilter === 'all' ? "You haven't enrolled in any training yet." : 'No ' + gymTrainingFilter.replace('-', ' ') + ' programs.'}</div>
+      <button onclick="gymHubDrillIn('browse')" style="padding:8px 20px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:var(--font-sans);font-size:12px;cursor:pointer">Browse Catalog</button>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = '<div class="gym-guide-grid">' + enrolled.map(e => {
+    const prog = gymPrograms.find(p => p.slug === e.slug) || { title: e.slug, description: '' };
+    const slug = e.slug;
+    const status = e.status || 'not-started';
+    const statusLabel = { 'not-started': 'Not Started', 'in-progress': 'In Progress', 'completed': 'Completed' }[status] || status;
+    const statusColor = { 'not-started': 'var(--text-muted)', 'in-progress': 'var(--accent)', 'completed': 'var(--green)' }[status] || 'var(--text-muted)';
+    const moduleCount = prog._counts?.modules || prog.modules?.length || 0;
+    const enrolledDate = e.enrolledAt ? new Date(e.enrolledAt).toLocaleDateString() : '';
+    const isComplete = status === 'completed';
+
+    return `
+      <div class="gym-guide-card" onclick="${isComplete ? '' : "openGuide('" + slug + "')"}" style="${isComplete ? 'cursor:default' : ''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="gym-guide-card-title" style="flex:1;margin-right:8px">${escHtml(prog.title || 'Untitled')}</div>
+          <span style="font-family:var(--font-mono);font-size:10px;color:${statusColor};background:${statusColor}15;padding:2px 8px;border-radius:4px">${statusLabel}</span>
+        </div>
+        <div class="gym-guide-card-desc">${escHtml(prog.description || '')}</div>
+        <div class="gym-guide-card-meta">
+          ${moduleCount ? `<span class="gym-guide-card-tag">${moduleCount} module${moduleCount !== 1 ? 's' : ''}</span>` : ''}
+          ${enrolledDate ? `<span class="gym-guide-card-tag">Enrolled ${enrolledDate}</span>` : ''}
+        </div>
+        <div class="gym-guide-card-footer">
+          <button class="gym-guide-card-cta" style="background:transparent;color:var(--red);border-color:var(--red);font-size:10px;padding:4px 10px" onclick="event.stopPropagation();unenrollProgram('${slug}')">Remove</button>
+          ${isComplete
+            ? `<button class="gym-guide-card-cta" onclick="event.stopPropagation();viewCertificate('${slug}')">View Certificate</button>`
+            : `<button class="gym-guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">${status === 'in-progress' ? 'Continue' : 'Start'}</button>`
+          }
+        </div>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+// ─── Enrollment Helpers ──────────────────────────
+async function enrollProgram(slug) {
+  if (!confirm('Enroll in this training program?')) return;
+  try {
+    const res = await fetch(`/api/gym/enroll/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    if (res.ok) {
+      showToast('Enrolled successfully');
+      // Refresh progress data
+      const progRes = await fetch('/api/gym/progress');
+      if (progRes.ok) gymProgress = await progRes.json();
+      // Re-render current view
+      if (gymActiveView === 'browse') renderGymBrowse();
+      else if (gymActiveView === 'training') renderGymTraining();
+      renderGymHubBrowse();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Failed to enroll', 'error');
+    }
+  } catch { showToast('Failed to enroll', 'error'); }
+}
+
+async function unenrollProgram(slug) {
+  if (!confirm('Remove this program from your training?')) return;
+  try {
+    const res = await fetch(`/api/gym/enroll/${slug}`, { method: 'DELETE' });
+    if (res.ok) {
+      showToast('Removed from training');
+      const progRes = await fetch('/api/gym/progress');
+      if (progRes.ok) gymProgress = await progRes.json();
+      if (gymActiveView === 'training') renderGymTraining();
+      else if (gymActiveView === 'browse') renderGymBrowse();
+      renderGymHubBrowse();
+    } else {
+      showToast('Failed to remove', 'error');
+    }
+  } catch { showToast('Failed to remove', 'error'); }
+}
+
+async function completeProgram(slug) {
+  if (!confirm('Mark this program as complete?')) return;
+  try {
+    const res = await fetch(`/api/gym/programs/${slug}/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    if (res.ok) {
+      showToast('Program completed! 🎉');
+      const progRes = await fetch('/api/gym/progress');
+      if (progRes.ok) gymProgress = await progRes.json();
+      if (gymActiveView === 'training') renderGymTraining();
+    } else {
+      showToast('Failed to complete', 'error');
+    }
+  } catch { showToast('Failed to complete', 'error'); }
+}
+
+async function viewCertificate(slug) {
+  try {
+    const res = await fetch(`/api/gym/certificate/${slug}`);
+    if (!res.ok) { showToast('Certificate not available', 'error'); return; }
+    const cert = await res.json();
+    showCertificateModal(cert);
+  } catch { showToast('Failed to load certificate', 'error'); }
+}
+
+function showCertificateModal(cert) {
+  // Remove existing modal
+  const existing = document.getElementById('certModal');
+  if (existing) existing.remove();
+
+  const completedDate = cert.completedAt ? new Date(cert.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+  const modal = document.createElement('div');
+  modal.id = 'certModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div id="certContent" style="background:var(--bg-primary);border:1px solid var(--border-dim);border-radius:16px;padding:48px;max-width:600px;width:90%;text-align:center;position:relative">
+      <button onclick="document.getElementById('certModal').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer">&times;</button>
+      <div style="font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent);margin-bottom:8px">Certificate of Completion</div>
+      <div style="width:60px;height:2px;background:var(--accent);margin:0 auto 24px"></div>
+      <div style="font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--text-primary);margin-bottom:8px">${escHtml(cert.learnerName)}</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:24px">has successfully completed</div>
+      <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px">${escHtml(cert.programTitle)}</div>
+      ${cert.projectName ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${escHtml(cert.projectName)}${cert.seriesName ? ' · ' + escHtml(cert.seriesName) : ''}</div>` : ''}
+      ${cert.moduleCount ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${cert.moduleCount} module${cert.moduleCount !== 1 ? 's' : ''}</div>` : ''}
+      <div style="width:40px;height:1px;background:var(--border-dim);margin:16px auto"></div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${completedDate}</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:24px">
+        <button onclick="shareCertificateLinkedIn()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:var(--font-sans);font-size:12px;cursor:pointer">Share on LinkedIn</button>
+        <button onclick="copyCertificateText()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-secondary);font-family:var(--font-sans);font-size:12px;cursor:pointer">Copy Text</button>
+      </div>
+    </div>`;
+
+  // Stash cert data for sharing
+  modal._cert = cert;
+  document.body.appendChild(modal);
+}
+
+function shareCertificateLinkedIn() {
+  const modal = document.getElementById('certModal');
+  const cert = modal?._cert;
+  if (!cert) return;
+  const text = encodeURIComponent(`I just completed "${cert.programTitle}" on myAIforOne AI Gym! 🎓\n\n#AITraining #myAIforOne`);
+  window.open(`https://www.linkedin.com/sharing/share-offsite/?text=${text}`, '_blank');
+}
+
+function copyCertificateText() {
+  const modal = document.getElementById('certModal');
+  const cert = modal?._cert;
+  if (!cert) return;
+  const completedDate = cert.completedAt ? new Date(cert.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+  const text = `Certificate of Completion\n\n${cert.learnerName} has completed "${cert.programTitle}"${cert.projectName ? ' (' + cert.projectName + ')' : ''}\nCompleted: ${completedDate}\n\n#myAIforOne #AIGym`;
+  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
 }
 
 // ─── Dimension Label Map ──────────────────────
@@ -2565,7 +2779,7 @@ async function openGuide(slug) {
     guideChatMessages = [];
 
     // Hide all gym views + chat
-    ['gymBrowseView','gymCreateView','gymGrowthView'].forEach(id => {
+    ['gymBrowseView','gymTrainingView','gymCreateView','gymGrowthView'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.remove('active');
     });

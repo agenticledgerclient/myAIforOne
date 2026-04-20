@@ -416,3 +416,10 @@ export const createGymSeries = (projectSlug: string, body: any) => api(`/api/gym
 export const updateGymSeries = (projectSlug: string, seriesSlug: string, body: any) => api(`/api/gym/projects/${projectSlug}/series/${seriesSlug}`, { method: "PATCH", body });
 export const deleteGymSeries = (projectSlug: string, seriesSlug: string) => api(`/api/gym/projects/${projectSlug}/series/${seriesSlug}`, { method: "DELETE" });
 export const importFromAigym = (body: any) => api("/api/gym/import-from-aigym", { method: "POST", body });
+
+// Enrollment & Certificates
+export const enrollGymProgram = (slug: string) => api(`/api/gym/enroll/${slug}`, { method: "POST" });
+export const unenrollGymProgram = (slug: string) => api(`/api/gym/enroll/${slug}`, { method: "DELETE" });
+export const listGymEnrollments = (status?: string) => api(`/api/gym/enrollments${status ? `?status=${status}` : ''}`);
+export const completeGymProgram = (slug: string) => api(`/api/gym/programs/${slug}/complete`, { method: "POST" });
+export const getGymCertificate = (slug: string) => api(`/api/gym/certificate/${slug}`);
