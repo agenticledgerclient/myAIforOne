@@ -1707,6 +1707,16 @@ server.tool("complete_gym_program", "Mark a training program as completed", {
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
+server.tool("submit_gym_quiz", "Submit quiz answers for a training program. Returns score, pass/fail, and attempt count. Learner must score >= 70% to pass.", {
+  slug: z.string().describe("Program slug"),
+  answers: z.array(z.number()).describe("Array of selected option indices (0-based), one per question"),
+  score: z.number().describe("Calculated score as percentage (0-100)"),
+  passed: z.boolean().describe("Whether the score meets the 70% passing threshold"),
+}, async ({ slug, answers, score, passed }) => {
+  const r = await api.submitGymQuiz(slug, { answers, score, passed });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
 server.tool("get_gym_certificate", "Get completion certificate for a completed training program", {
   slug: z.string().describe("Program slug to get certificate for"),
 }, async ({ slug }) => {

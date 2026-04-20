@@ -124,9 +124,42 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
 
   router.put("/api/gym/progress", (req, res) => {
     ensureDir(memoryDir);
-    const data = { ...req.body, updatedAt: new Date().toISOString() };
-    writeJson(progressPath(), data);
-    res.json(data);
+    const { programSlug, moduleId, stepId, completed, lastModuleIndex, lastStepIndex } = req.body;
+
+    // Merge step completion into existing progress (never overwrite the whole file)
+    const progress = readJson(progressPath(), { programs: {}, updatedAt: null }) as any;
+    if (!progress.programs) progress.programs = {};
+
+    if (programSlug) {
+      if (!progress.programs[programSlug]) {
+        progress.programs[programSlug] = { status: "not-started", enrolledAt: new Date().toISOString(), completedSteps: [] };
+      }
+      const entry = progress.programs[programSlug];
+      const key = moduleId && stepId ? `${moduleId}:${stepId}` : null;
+
+      if (key) {
+        if (!Array.isArray(entry.completedSteps)) entry.completedSteps = [];
+        if (completed && !entry.completedSteps.includes(key)) {
+          entry.completedSteps.push(key);
+        } else if (!completed) {
+          entry.completedSteps = entry.completedSteps.filter((k: string) => k !== key);
+        }
+      }
+
+      // Track last position
+      if (lastModuleIndex !== undefined) entry.lastModuleIndex = lastModuleIndex;
+      if (lastStepIndex !== undefined) entry.lastStepIndex = lastStepIndex;
+
+      // Auto-update status based on progress
+      if (entry.completedSteps?.length > 0 && entry.status === "not-started") {
+        entry.status = "in-progress";
+        if (!entry.startedAt) entry.startedAt = new Date().toISOString();
+      }
+    }
+
+    progress.updatedAt = new Date().toISOString();
+    writeJson(progressPath(), progress);
+    res.json(progress);
   });
 
   // ── 4. Cards ───────────────────────────────────────────────────────
@@ -1351,6 +1384,34 @@ export function createGymRouter(baseDir: string, opts?: { memoryDir?: string; pr
     progress.updatedAt = new Date().toISOString();
     writeJson(progressPath(), progress);
     res.json({ completed: true, slug, completedAt: progress.programs[slug].completedAt });
+  });
+
+  // Submit quiz answers for a program
+  router.post("/api/gym/programs/:slug/submit-quiz", (req, res) => {
+    ensureDir(memoryDir);
+    const slug = req.params.slug;
+    const { answers, score, passed } = req.body;
+    const progress = readJson(progressPath(), { programs: {}, updatedAt: null });
+    if (!progress.programs) progress.programs = {};
+    if (!progress.programs[slug]) {
+      res.status(404).json({ error: "Not enrolled in this program" });
+      return;
+    }
+    // Store quiz attempt
+    if (!progress.programs[slug].quizAttempts) progress.programs[slug].quizAttempts = [];
+    progress.programs[slug].quizAttempts.push({
+      answers,
+      score,
+      passed,
+      attemptedAt: new Date().toISOString(),
+    });
+    if (passed) {
+      progress.programs[slug].quizPassed = true;
+      progress.programs[slug].quizScore = score;
+    }
+    progress.updatedAt = new Date().toISOString();
+    writeJson(progressPath(), progress);
+    res.json({ score, passed, attempts: progress.programs[slug].quizAttempts.length });
   });
 
   // Get completion certificate for a program

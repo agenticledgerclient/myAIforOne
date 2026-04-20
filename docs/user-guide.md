@@ -2037,6 +2037,8 @@ Guides have two forms: human-readable (browsable in gym) and agent-executable (a
 | | **Query:** `status` (not-started, in-progress, completed) | **Params:** `status?` |
 | Mark program complete | `POST /api/gym/programs/:slug/complete` | `complete_gym_program` |
 | | Auto-enrolls if not already enrolled | **Params:** `slug` |
+| Submit quiz answers | `POST /api/gym/programs/:slug/submit-quiz` | `submit_gym_quiz` |
+| | **Body:** `{ answers: number[], score, passed }`. 70% to pass. Stores attempt. Returns `{ score, passed, attempts }` | **Params:** `slug`, `answers`, `score`, `passed` |
 | Get completion certificate | `GET /api/gym/certificate/:slug` | `get_gym_certificate` |
 | | Returns learnerName, programTitle, completedAt, enrolledAt, issuedAt, moduleCount, dimensions, projectName, seriesName | **Params:** `slug` |
 | Import program from markdown | `POST /api/gym/programs/import-markdown` | `import_program` |
@@ -2096,6 +2098,8 @@ Guides have two forms: human-readable (browsable in gym) and agent-executable (a
 | | **Query:** `?status=` filter (`not-started`, `in-progress`, `completed`). Returns array of enrollment objects with slug, status, enrolledAt, startedAt, completedAt. | **Params:** `status?` |
 | Complete a program | `POST /api/gym/programs/:slug/complete` | `complete_gym_program` |
 | | Marks program as completed, sets completedAt timestamp. Auto-enrolls if not already enrolled. Also adds slug to learner profile's completed list. | **Params:** `slug` |
+| Submit quiz answers | `POST /api/gym/programs/:slug/submit-quiz` | `submit_gym_quiz` |
+| | Submit multiple-choice quiz answers. 70% score required to pass. Stores each attempt with answers, score, and timestamp. Can retry on failure. | **Params:** `slug`, `answers` (number[]), `score`, `passed` |
 | Get completion certificate | `GET /api/gym/certificate/:slug` | `get_gym_certificate` |
 | | Returns certificate data: learnerName, programTitle, completedAt, enrolledAt, issuedAt, moduleCount, dimensions. Returns 404 if program not completed. | **Params:** `slug` |
 
@@ -2284,6 +2288,7 @@ Quick reference — all MCP tools alphabetically:
 | 82 | `search_memory` | Memory |
 | 83 | `send_message` | Chat |
 | -- | `snapshot_dimensions` | AI Gym |
+| -- | `submit_gym_quiz` | AI Gym |
 | 84 | `send_webhook` | Webhook |
 | 85 | `set_model` | Model |
 | -- | `set_channel_credentials` | Channels |

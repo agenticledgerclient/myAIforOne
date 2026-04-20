@@ -124,6 +124,21 @@ Trigger: "create a program", "make me a program about X", etc.
 4. Preview structure, confirm with user, save via `import_program`
 - 2-4 steps/module · 3-4 modules for 30min · 5-6 for 60min · map to relevant dimensions
 
+### Course Summary & Quiz (optional)
+
+Every program can include two optional top-level fields:
+
+- **`summary`** (string): A 2-4 sentence recap of what the learner covered. Shown on the completion screen before the certificate. Always include one — it makes completion feel meaningful.
+- **`quiz`** (array): Optional 10-question multiple choice final assessment. If present, the learner must score 70% to earn the certificate. Each question:
+  ```json
+  { "question": "What is...?", "options": ["A", "B", "C", "D"], "correctIndex": 2 }
+  ```
+  - Keep questions fair — test comprehension, not trick knowledge
+  - 4 options per question, exactly 1 correct answer
+  - Cover material from across all modules, not just one
+
+When to include a quiz: any program ≥3 modules or ≥30 min. Skip for short walkthroughs.
+
 ## Weekly Insight Goal (Monday 7am)
 
 Heuristic digest (6am) handles scoring by rules and template cards. Your job: actually *think*.

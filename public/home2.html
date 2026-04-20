@@ -442,7 +442,7 @@ text-decoration:none;}
 .gym-guide-card-tag.difficulty{background:var(--purple-bg);color:var(--purple)}
 .gym-guide-card-footer{display:flex;align-items:center;justify-content:space-between}
 .gym-guide-card-source{font-family:var(--font-mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
-.gym-guide-card-cta{font-family:var(--font-sans);font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;transition:all .2s}
+.gym-guide-card-cta{font-family:var(--font-sans);font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;transition:all .2s}
 .gym-guide-card-cta:hover{opacity:.88}
 /* Project cards (expandable) */
 .gym-project-card{padding:16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-dim);margin-bottom:10px;cursor:pointer;transition:all .2s}
@@ -499,7 +499,7 @@ text-decoration:none;}
 .gv-inline{display:none;flex:1;min-height:0;overflow:hidden}
 .gv-inline.open{display:flex}
 .gv-wrapper{display:flex;flex:1;overflow:hidden}
-.gv-main{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border-dim);min-width:0}
+.gv-main{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border-dim);min-width:0;position:relative}
 .gv-topbar{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;background:var(--bg-surface)}
 .gv-back{font-family:var(--font-sans);font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;white-space:nowrap}
 .gv-back:hover{text-decoration:underline}
@@ -552,6 +552,28 @@ text-decoration:none;}
 }
 .gv-nav-btn:hover:not(:disabled){border-color:var(--border-glow);color:var(--text-primary)}
 .gv-nav-btn:disabled{opacity:.3;cursor:not-allowed}
+/* Guide TOC overlay */
+.gv-toc-btn{font-family:var(--font-sans);font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;border:1px solid var(--border-dim);background:none;color:var(--text-secondary);cursor:pointer;transition:all .2s;margin-left:auto}
+.gv-toc-btn:hover{border-color:var(--border-glow);color:var(--text-primary)}
+.gv-toc-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:50;background:var(--bg-surface);overflow-y:auto;padding:24px}
+.gv-toc-overlay.open{display:block}
+.gv-toc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.gv-toc-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary)}
+.gv-toc-close{font-size:18px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 8px}
+.gv-toc-close:hover{color:var(--text-primary)}
+.gv-toc-progress{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:16px}
+.gv-toc-module{margin-bottom:16px}
+.gv-toc-module-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-tertiary);border-radius:8px;margin-bottom:6px}
+.gv-toc-module-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-primary)}
+.gv-toc-module-meta{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.gv-toc-step{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;cursor:pointer;transition:background .15s}
+.gv-toc-step:hover{background:var(--bg-tertiary)}
+.gv-toc-step-check{width:18px;height:18px;border-radius:4px;border:2px solid var(--border-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;font-size:11px;color:transparent}
+.gv-toc-step-check.done{background:var(--accent);border-color:var(--accent);color:#fff}
+.gv-toc-step-title{font-size:12px;color:var(--text-secondary);flex:1}
+.gv-toc-step.active .gv-toc-step-title{color:var(--accent);font-weight:600}
+.gv-toc-mark-all{font-family:var(--font-sans);font-size:10px;font-weight:600;padding:3px 10px;border-radius:6px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer;white-space:nowrap}
+.gv-toc-mark-all:hover{background:var(--accent);color:#fff}
 /* Guide viewer chat (right side) */
 .gv-chat{width:360px;min-width:200px;max-width:600px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .gv-chat-resize{position:absolute;top:0;left:-3px;bottom:0;width:6px;cursor:col-resize;z-index:10}
@@ -914,7 +936,7 @@ text-decoration:none;}
           </div>
           <div class="gym-hub-action" onclick="gymHubDrillIn('training')">
             <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5"/></svg></div>
-            <span class="gym-hub-action-label">My Training</span>
+            <span class="gym-hub-action-label">My Courses & Certificates</span>
           </div>
           <div class="gym-hub-action" onclick="gymHubDrillIn('coach')">
             <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
@@ -923,6 +945,10 @@ text-decoration:none;}
           <div class="gym-hub-action" onclick="gymHubDrillIn('progress')">
             <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
             <span class="gym-hub-action-label">My Growth</span>
+          </div>
+          <div class="gym-hub-action" onclick="gymHubDrillIn('create')">
+            <div class="gym-hub-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+            <span class="gym-hub-action-label">Create Guide</span>
           </div>
         </div>
         <!-- Continue row -->
@@ -954,12 +980,17 @@ text-decoration:none;}
             <button data-view="guides" onclick="gymBrowseSwitchView('guides')">Guides</button>
           </div>
           <input type="text" class="gym-hub-search" id="gymBrowseSearch" placeholder="Search..." oninput="gymBrowseFilter()">
+          <button id="gymMultiSelectBtn" onclick="toggleMultiSelect()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border-dim);color:var(--text-secondary);background:transparent;cursor:pointer;font-family:var(--font-body);white-space:nowrap" title="Select multiple programs to enroll">☐ Select</button>
+        </div>
+        <div id="gymMultiSelectBar" style="display:none;padding:8px 12px;background:var(--accent);border-radius:8px;margin-bottom:10px;align-items:center;justify-content:space-between">
+          <span id="gymSelectedCount" style="font-size:12px;color:#fff;font-weight:600">Select programs</span>
+          <button onclick="enrollSelected()" style="font-size:11px;padding:4px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.4);color:#fff;background:transparent;cursor:pointer;font-family:var(--font-body)">Enroll Selected</button>
         </div>
         <div class="gym-hub-filters" id="gymBrowseFilters"></div>
         <div id="gymBrowseContent"></div>
       </div>
     </div>
-    <!-- My Training View -->
+    <!-- My Courses & Certificates View -->
     <div class="gym-view" id="gymTrainingView">
       <div class="gym-browse-view">
         <div class="gym-hub-browse-header">
@@ -969,7 +1000,7 @@ text-decoration:none;}
             <button data-view="in-progress" onclick="gymTrainingSwitchFilter('in-progress')">In Progress</button>
             <button data-view="completed" onclick="gymTrainingSwitchFilter('completed')">Completed</button>
           </div>
-          <input type="text" class="gym-hub-search" id="gymTrainingSearch" placeholder="Search my training..." oninput="renderGymTraining()">
+          <input type="text" class="gym-hub-search" id="gymTrainingSearch" placeholder="Search my courses..." oninput="renderGymTraining()">
         </div>
         <div id="gymTrainingContent"></div>
       </div>
@@ -1049,7 +1080,7 @@ text-decoration:none;}
           </button>
           <button class="sidebar-mini-action" onclick="gymHubDrillIn('training')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5"/></svg>
-            My Training
+            My Courses & Certificates
           </button>
           <button class="sidebar-mini-action" onclick="gymHubDrillIn('coach')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -1058,6 +1089,10 @@ text-decoration:none;}
           <button class="sidebar-mini-action" onclick="gymHubDrillIn('progress')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             My Growth
+          </button>
+          <button class="sidebar-mini-action" onclick="gymHubDrillIn('create')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create Guide
           </button>
         </div>
         <div class="sidebar-mini-divider"></div>
@@ -1108,7 +1143,9 @@ text-decoration:none;}
           <div class="gv-topbar">
             <button class="gv-back" onclick="closeGuideAndBrowse()">&#x2190; Back to Guides</button>
             <span class="gv-title" id="gvTitle"></span>
+            <button class="gv-toc-btn" onclick="toggleGuideTOC()">&#x2630; Contents</button>
           </div>
+          <div class="gv-toc-overlay" id="gvTocOverlay"></div>
           <div class="gv-modules" id="gvModules"></div>
           <div class="gv-step-pills" id="gvStepPills"></div>
           <div class="gv-step-body" id="gvStepContent"></div>
@@ -1546,7 +1583,7 @@ function toggleCoachSidebarCollapse() {
 
 // ─── Sidebar Mini-Hub ──────────────────────────────────
 function updateSidebarActiveState(panel) {
-  const map = { browse: 'Browse Catalog', training: 'My Training', coach: 'Chat with Coach', create: 'Create a Guide', progress: 'My Growth' };
+  const map = { browse: 'Browse Catalog', training: 'My Courses & Certificates', coach: 'Chat with Coach', create: 'Create a Guide', progress: 'My Growth' };
   document.querySelectorAll('.sidebar-mini-action').forEach(btn => {
     const label = btn.textContent.trim();
     btn.classList.toggle('active', label === map[panel]);
@@ -1828,13 +1865,20 @@ function renderGuideCardsHTML(programs) {
     if (status === 'completed') {
       ctaHtml = `<button class="gym-guide-card-cta" style="background:var(--green);border-color:var(--green)" onclick="event.stopPropagation();viewCertificate('${slug}')">&#x2713; Completed</button>`;
     } else if (isEnrolled) {
-      ctaHtml = `<button class="gym-guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">${status === 'in-progress' ? 'Continue' : 'Start'}</button>`;
+      ctaHtml = `<span class="gym-guide-card-tag" style="color:var(--accent);font-size:10px">&#x2713; Enrolled</span>
+        <button class="gym-guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">${status === 'in-progress' ? 'Continue' : 'Start'}</button>`;
+    } else if (gymMultiSelectMode) {
+      const checked = gymSelectedSlugs.has(slug) ? 'checked' : '';
+      ctaHtml = `<label style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="event.stopPropagation()">
+        <input type="checkbox" id="gym-cb-${slug}" ${checked} onchange="toggleSelectProgram('${slug}', event)" style="accent-color:var(--accent);width:16px;height:16px">
+        <span style="font-size:11px;color:var(--text-secondary)">Select</span>
+      </label>`;
     } else {
-      ctaHtml = `<button class="gym-guide-card-cta" onclick="event.stopPropagation();enrollProgram('${slug}')">Enroll</button>`;
+      ctaHtml = `<button class="gym-guide-card-cta" onclick="event.stopPropagation();enrollProgram('${slug}', this)">Enroll</button>`;
     }
 
     return `
-      <div class="gym-guide-card" onclick="openGuide('${slug}')">
+      <div class="gym-guide-card" onclick="${gymMultiSelectMode ? `toggleSelectProgram('${slug}', event)` : `openGuide('${slug}')`}">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div class="gym-guide-card-title" style="flex:1;margin-right:8px">${escHtml(p.title || p.name || 'Untitled')}</div>
           <span class="gym-guide-card-source" style="color:${sourceColor};background:${sourceColor}15">${sourceLabel}</span>
@@ -1844,7 +1888,6 @@ function renderGuideCardsHTML(programs) {
           ${moduleCount ? `<span class="gym-guide-card-tag">${moduleCount} module${moduleCount!==1?'s':''}</span>` : ''}
           ${stepCount ? `<span class="gym-guide-card-tag">${stepCount} steps</span>` : ''}
           ${p.difficulty ? `<span class="gym-guide-card-tag difficulty">${p.difficulty}</span>` : ''}
-          ${isEnrolled ? `<span class="gym-guide-card-tag" style="color:var(--accent)">Enrolled</span>` : ''}
         </div>
         <div class="gym-guide-card-footer">
           <span></span>
@@ -1902,14 +1945,18 @@ async function toggleProjectCard(ctx, slug) {
 
     let html = '';
     const programsInSeries = new Set();
+    // Store series data on the body element for enrollSeries()
+    if (!body._seriesData) body._seriesData = {};
 
     // Render each series as a collapsible section
     if (allSeries.length) {
       for (const s of allSeries) {
         const seriesProgs = allPrograms.filter(p => p.seriesSlug === s.slug);
         seriesProgs.forEach(p => programsInSeries.add(p.slug || p.id));
+        body._seriesData[s.slug] = seriesProgs;
         const count = seriesProgs.length;
         const sid = `series-${ctx}-${slug}-${s.slug}`;
+        const allEnrolled = seriesProgs.every(p => gymProgress?.programs?.[p.slug || p.id]);
         html += `
           <div class="gym-series-section" style="margin-bottom:8px">
             <div onclick="event.stopPropagation();toggleSeriesInProject('${sid}')" style="background:var(--bg-tertiary);border:1px solid var(--border-dim);border-radius:8px;padding:10px 14px;cursor:pointer;transition:border-color .15s">
@@ -1921,7 +1968,10 @@ async function toggleProjectCard(ctx, slug) {
                     ${s.description ? `<div style="color:var(--text-secondary);font-size:11px;margin-top:2px">${escHtml(s.description)}</div>` : ''}
                   </div>
                 </div>
-                <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);flex-shrink:0">${count} guide${count !== 1 ? 's' : ''}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  ${!allEnrolled ? `<button onclick="event.stopPropagation();enrollSeries('${slug}','${s.slug}',this)" style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer;font-family:var(--font-body);white-space:nowrap">Enroll All</button>` : `<span style="font-size:10px;color:var(--green)">&#x2713; All Enrolled</span>`}
+                  <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);flex-shrink:0">${count} guide${count !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
             <div id="${sid}" style="display:none;padding:8px 0 0 0">
@@ -1956,7 +2006,7 @@ function toggleSeriesInProject(seriesId) {
   if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
 
-// ─── My Training View ──────────────────────────
+// ─── My Courses & Certificates View ──────────────────────────
 let gymTrainingFilter = 'all';
 let gymEnrollments = null; // cached from API
 
@@ -2028,24 +2078,161 @@ async function renderGymTraining() {
 }
 
 // ─── Enrollment Helpers ──────────────────────────
-async function enrollProgram(slug) {
+let gymMultiSelectMode = false;
+let gymSelectedSlugs = new Set();
+
+function invalidateProjectBodies() {
+  document.querySelectorAll('[id^="proj-body-"]').forEach(el => { delete el.dataset.loaded; });
+}
+
+async function refreshAfterEnrollment() {
+  const progRes = await fetch('/api/gym/progress');
+  if (progRes.ok) gymProgress = await progRes.json();
+  invalidateProjectBodies();
+  if (gymActiveView === 'browse') renderGymBrowse();
+  else if (gymActiveView === 'training') renderGymTraining();
+  renderGymHubBrowse();
+  // Re-expand any currently expanded project cards
+  document.querySelectorAll('.gym-project-card.expanded').forEach(card => {
+    card.classList.remove('expanded');
+    card.click();
+  });
+}
+
+async function enrollProgram(slug, btnEl) {
   if (!confirm('Enroll in this training program?')) return;
+  // Instant visual feedback on the clicked button
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Enrolling…'; }
   try {
     const res = await fetch(`/api/gym/enroll/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     if (res.ok) {
+      // Immediately update the button to enrolled state
+      if (btnEl) {
+        const footer = btnEl.closest('.gym-guide-card-footer');
+        if (footer) {
+          footer.innerHTML = `<span class="gym-guide-card-tag" style="color:var(--accent);font-size:10px">&#x2713; Enrolled</span>
+            <button class="gym-guide-card-cta" onclick="event.stopPropagation();openGuide('${slug}')">Start</button>`;
+        }
+      }
       showToast('Enrolled successfully');
-      // Refresh progress data
+      // Background refresh for full state sync
       const progRes = await fetch('/api/gym/progress');
       if (progRes.ok) gymProgress = await progRes.json();
-      // Re-render current view
-      if (gymActiveView === 'browse') renderGymBrowse();
-      else if (gymActiveView === 'training') renderGymTraining();
-      renderGymHubBrowse();
     } else {
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Enroll'; }
       const err = await res.json();
       showToast(err.error || 'Failed to enroll', 'error');
     }
-  } catch { showToast('Failed to enroll', 'error'); }
+  } catch {
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Enroll'; }
+    showToast('Failed to enroll', 'error');
+  }
+}
+
+async function enrollMultiple(slugs) {
+  if (!slugs.length) return;
+  const already = slugs.filter(s => gymProgress?.programs?.[s]);
+  const toEnroll = slugs.filter(s => !gymProgress?.programs?.[s]);
+  if (!toEnroll.length) { showToast('All already enrolled'); return; }
+  if (!confirm(`Enroll in ${toEnroll.length} program${toEnroll.length !== 1 ? 's' : ''}?`)) return;
+  let ok = 0, fail = 0;
+  for (const slug of toEnroll) {
+    try {
+      const res = await fetch(`/api/gym/enroll/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      if (res.ok) ok++; else fail++;
+    } catch { fail++; }
+  }
+  showToast(`Enrolled in ${ok} program${ok !== 1 ? 's' : ''}${fail ? `, ${fail} failed` : ''}`);
+  gymSelectedSlugs.clear();
+  gymMultiSelectMode = false;
+  const bar = document.getElementById('gymMultiSelectBar');
+  if (bar) bar.style.display = 'none';
+  const btn = document.getElementById('gymMultiSelectBtn');
+  if (btn) { btn.style.background = 'transparent'; btn.style.color = 'var(--text-secondary)'; btn.textContent = '☐ Select'; }
+  await refreshAfterEnrollment();
+}
+
+async function enrollSeries(projectSlug, seriesSlug, btnEl) {
+  // Find the body element from the button's ancestor project card, or fall back to selector
+  let body = btnEl ? btnEl.closest('[id^="proj-body-"]') : null;
+  if (!body) body = document.querySelector(`[id^="proj-body-"][id$="-${projectSlug}"]`);
+  if (!body || !body._seriesData) { showToast('Series data not loaded', 'error'); return; }
+  const seriesProgs = body._seriesData[seriesSlug] || [];
+  const slugs = seriesProgs.map(p => p.slug || p.id);
+  if (!slugs.length) { showToast('No guides in this series'); return; }
+  // Filter to only unenrolled
+  const toEnroll = slugs.filter(s => !gymProgress?.programs?.[s]);
+  if (!toEnroll.length) {
+    if (btnEl) btnEl.outerHTML = '<span style="font-size:10px;color:var(--green)">&#x2713; All Enrolled</span>';
+    showToast('All guides already enrolled');
+    return;
+  }
+  if (!confirm(`Enroll in ${toEnroll.length} guide${toEnroll.length !== 1 ? 's' : ''}?`)) return;
+  // Instant feedback on button
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Enrolling…'; }
+  try {
+    let ok = 0, fail = 0;
+    for (const slug of toEnroll) {
+      try {
+        const res = await fetch(`/api/gym/enroll/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        if (res.ok) ok++; else fail++;
+      } catch { fail++; }
+    }
+    showToast(`Enrolled in ${ok} guide${ok !== 1 ? 's' : ''}${fail ? `, ${fail} failed` : ''}`);
+    // Always update button — replace with "All Enrolled" if no failures
+    if (btnEl && btnEl.parentNode && !fail) {
+      btnEl.outerHTML = '<span style="font-size:10px;color:var(--green)">&#x2713; All Enrolled</span>';
+    } else if (btnEl) {
+      btnEl.disabled = false; btnEl.textContent = 'Enroll All';
+    }
+    // Sync progress
+    const progRes = await fetch('/api/gym/progress');
+    if (progRes.ok) gymProgress = await progRes.json();
+  } catch (e) {
+    console.error('enrollSeries error:', e);
+    showToast('Enrollment failed', 'error');
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Enroll All'; }
+  }
+}
+
+function toggleMultiSelect() {
+  gymMultiSelectMode = !gymMultiSelectMode;
+  gymSelectedSlugs.clear();
+  // Re-render current view to show/hide checkboxes
+  invalidateProjectBodies();
+  if (gymActiveView === 'browse') renderGymBrowse();
+  renderGymHubBrowse();
+  // Re-expand any currently expanded project cards
+  document.querySelectorAll('.gym-project-card.expanded').forEach(card => {
+    card.classList.remove('expanded');
+    card.click();
+  });
+  // Update button state
+  const btn = document.getElementById('gymMultiSelectBtn');
+  if (btn) {
+    btn.classList.toggle('active', gymMultiSelectMode);
+    btn.style.background = gymMultiSelectMode ? 'var(--accent)' : 'transparent';
+    btn.style.color = gymMultiSelectMode ? '#fff' : 'var(--text-secondary)';
+    btn.textContent = gymMultiSelectMode ? '✕ Cancel' : '☐ Select';
+  }
+  // Show/hide multi-select bar
+  const bar = document.getElementById('gymMultiSelectBar');
+  if (bar) bar.style.display = gymMultiSelectMode ? 'flex' : 'none';
+}
+
+function toggleSelectProgram(slug, ev) {
+  if (ev) ev.stopPropagation();
+  if (gymSelectedSlugs.has(slug)) gymSelectedSlugs.delete(slug); else gymSelectedSlugs.add(slug);
+  // Update checkbox visual
+  const cb = document.getElementById(`gym-cb-${slug}`);
+  if (cb) cb.checked = gymSelectedSlugs.has(slug);
+  // Update enroll selected count
+  const countEl = document.getElementById('gymSelectedCount');
+  if (countEl) countEl.textContent = gymSelectedSlugs.size ? `Enroll ${gymSelectedSlugs.size} Selected` : 'Select programs';
+}
+
+async function enrollSelected() {
+  await enrollMultiple([...gymSelectedSlugs]);
 }
 
 async function unenrollProgram(slug) {
@@ -2054,11 +2241,7 @@ async function unenrollProgram(slug) {
     const res = await fetch(`/api/gym/enroll/${slug}`, { method: 'DELETE' });
     if (res.ok) {
       showToast('Removed from training');
-      const progRes = await fetch('/api/gym/progress');
-      if (progRes.ok) gymProgress = await progRes.json();
-      if (gymActiveView === 'training') renderGymTraining();
-      else if (gymActiveView === 'browse') renderGymBrowse();
-      renderGymHubBrowse();
+      await refreshAfterEnrollment();
     } else {
       showToast('Failed to remove', 'error');
     }
@@ -2101,26 +2284,61 @@ function showCertificateModal(cert) {
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
   modal.innerHTML = `
-    <div id="certContent" style="background:var(--bg-primary);border:1px solid var(--border-dim);border-radius:16px;padding:48px;max-width:600px;width:90%;text-align:center;position:relative">
-      <button onclick="document.getElementById('certModal').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer">&times;</button>
-      <div style="font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent);margin-bottom:8px">Certificate of Completion</div>
-      <div style="width:60px;height:2px;background:var(--accent);margin:0 auto 24px"></div>
-      <div style="font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--text-primary);margin-bottom:8px">${escHtml(cert.learnerName)}</div>
-      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:24px">has successfully completed</div>
-      <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px">${escHtml(cert.programTitle)}</div>
-      ${cert.projectName ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${escHtml(cert.projectName)}${cert.seriesName ? ' · ' + escHtml(cert.seriesName) : ''}</div>` : ''}
-      ${cert.moduleCount ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${cert.moduleCount} module${cert.moduleCount !== 1 ? 's' : ''}</div>` : ''}
-      <div style="width:40px;height:1px;background:var(--border-dim);margin:16px auto"></div>
-      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${completedDate}</div>
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:24px">
+    <div id="certContent" style="background:#ffffff;border-radius:16px;padding:48px 48px 36px;max-width:600px;width:90%;text-align:center;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+      <button onclick="document.getElementById('certModal').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:#999;font-size:18px;cursor:pointer">&times;</button>
+      <!-- Decorative border -->
+      <div style="position:absolute;inset:8px;border:2px solid var(--accent-bg);border-radius:10px;pointer-events:none"></div>
+      <!-- Grad cap icon -->
+      <div style="font-size:40px;margin-bottom:12px">🎓</div>
+      <div style="font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);margin-bottom:8px">Certificate of Completion</div>
+      <div style="width:80px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:0 auto 24px"></div>
+      <div style="font-size:13px;color:#666;margin-bottom:6px">This certifies that</div>
+      ${cert.learnerName === 'Learner' ? `
+      <div id="certNamePrompt" style="margin-bottom:6px">
+        <div style="font-family:var(--font-sans);font-size:12px;color:#e08700;margin-bottom:8px">Add your name to personalize this certificate</div>
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+          <input id="certNameInput" type="text" placeholder="Your full name" style="font-family:var(--font-display);font-size:20px;font-weight:700;color:#1a1a1a;border:none;border-bottom:2px solid var(--accent);background:transparent;text-align:center;padding:4px 8px;outline:none;width:260px" onkeydown="if(event.key==='Enter')saveCertName()">
+          <button onclick="saveCertName()" style="padding:6px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">Save</button>
+        </div>
+      </div>` : `
+      <div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:#1a1a1a;margin-bottom:6px">${escHtml(cert.learnerName)}</div>`}
+      <div style="font-size:13px;color:#666;margin-bottom:24px">has successfully completed</div>
+      <div style="font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--accent);margin-bottom:8px">${escHtml(cert.programTitle)}</div>
+      ${cert.projectName ? `<div style="font-size:12px;color:#888;margin-bottom:4px">${escHtml(cert.projectName)}${cert.seriesName ? ' · ' + escHtml(cert.seriesName) : ''}</div>` : ''}
+      ${cert.moduleCount ? `<div style="font-size:12px;color:#888;margin-bottom:16px">${cert.moduleCount} module${cert.moduleCount !== 1 ? 's' : ''}</div>` : ''}
+      <div style="width:60px;height:1px;background:var(--accent-bg);margin:16px auto"></div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:#999">${completedDate}</div>
+      <!-- myAIforOne branding -->
+      <div style="margin-top:20px;font-family:var(--font-display);font-size:11px;letter-spacing:.08em;color:#bbb">Issued by <span style="color:var(--accent);font-weight:600">myAIforOne</span> AI Gym</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:20px">
         <button onclick="shareCertificateLinkedIn()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:var(--font-sans);font-size:12px;cursor:pointer">Share on LinkedIn</button>
-        <button onclick="copyCertificateText()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-secondary);font-family:var(--font-sans);font-size:12px;cursor:pointer">Copy Text</button>
+        <button onclick="copyCertificateText()" style="padding:8px 16px;border-radius:8px;border:1px solid #ddd;background:transparent;color:#666;font-family:var(--font-sans);font-size:12px;cursor:pointer">Copy Text</button>
       </div>
     </div>`;
 
   // Stash cert data for sharing
   modal._cert = cert;
   document.body.appendChild(modal);
+  // Auto-focus the name input if shown
+  const nameInput = document.getElementById('certNameInput');
+  if (nameInput) nameInput.focus();
+}
+
+async function saveCertName() {
+  const input = document.getElementById('certNameInput');
+  const name = input?.value?.trim();
+  if (!name) { input?.focus(); return; }
+  try {
+    await fetch('/api/gym/learner-profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    // Update stashed cert and re-render the name area
+    const modal = document.getElementById('certModal');
+    if (modal?._cert) modal._cert.learnerName = name;
+    const prompt = document.getElementById('certNamePrompt');
+    if (prompt) {
+      prompt.outerHTML = `<div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:#1a1a1a;margin-bottom:6px">${escHtml(name)}</div>`;
+    }
+    showToast('Name saved to your profile');
+  } catch { showToast('Failed to save name', 'error'); }
 }
 
 function shareCertificateLinkedIn() {
@@ -2373,7 +2591,9 @@ function tryParseGuidePreview(text) {
       preview.innerHTML = `<div style="margin-bottom:12px"><div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px">${escHtml(guide.title || '')}</div><div style="font-size:11px;color:var(--text-secondary)">${escHtml(guide.description || '')}</div></div>` +
         (guide.modules || []).map((m, i) => `<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">Module ${i+1}: ${escHtml(m.title || '')}</div>` +
           (m.steps || []).map(s => `<div style="font-size:11px;color:var(--text-secondary);padding:2px 0 2px 12px">&#x2022; ${escHtml(s.title || '')}</div>`).join('') +
-        '</div>').join('');
+        '</div>').join('') +
+        (guide.summary ? `<div style="margin-top:8px;padding:8px;background:var(--bg-tertiary);border-radius:6px;font-size:11px;color:var(--text-muted)"><strong>Summary:</strong> ${escHtml(guide.summary)}</div>` : '') +
+        (guide.quiz?.length ? `<div style="margin-top:6px;font-size:10px;color:var(--accent)">&#x2713; Includes ${guide.quiz.length}-question final quiz</div>` : '');
       document.getElementById('gymCreateImportBtn').disabled = false;
       document.getElementById('gymCreateImportBtn').dataset.guide = jsonMatch[1];
     } catch {}
@@ -2929,10 +3149,389 @@ function guideNavNext() {
   const flat = getAllGuideSteps();
   const idx = getCurrentFlatStepIndex();
   if (idx < flat.length - 1) {
+    // Auto-mark current step as complete when advancing
+    autoMarkCurrentStepComplete();
     const next = flat[idx + 1];
     guideViewerState.moduleIndex = next.mi;
     guideViewerState.stepIndex = next.si;
     renderGuideViewer();
+  }
+}
+
+function autoMarkCurrentStepComplete() {
+  const gv = guideViewerState;
+  if (!gv) return;
+  const module = gv.program.modules?.[gv.moduleIndex];
+  const step = module?.steps?.[gv.stepIndex];
+  if (!module || !step) return;
+  const key = `${module.id}:${step.id}`;
+  if (gv.completedSteps.has(key)) return; // already done
+  gv.completedSteps.add(key);
+  // Persist silently
+  persistStepProgress(gv.slug, module.id, step.id, true, gv.moduleIndex, gv.stepIndex);
+}
+
+function persistStepProgress(slug, moduleId, stepId, completed, mi, si) {
+  fetch('/api/gym/progress', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ programSlug: slug, moduleId, stepId, completed, lastModuleIndex: mi, lastStepIndex: si })
+  }).catch(() => {});
+}
+
+// ─── Table of Contents ──────────────────────────────────
+function toggleGuideTOC() {
+  const overlay = document.getElementById('gvTocOverlay');
+  if (overlay.classList.contains('open')) { overlay.classList.remove('open'); return; }
+  renderGuideTOC();
+  overlay.classList.add('open');
+}
+
+function renderGuideTOC() {
+  const gv = guideViewerState;
+  if (!gv) return;
+  const modules = gv.program.modules || [];
+  const totalSteps = modules.reduce((n, m) => n + (m.steps?.length || 0), 0);
+  const doneSteps = [...gv.completedSteps].length;
+  const pct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
+
+  const allComplete = totalSteps > 0 && doneSteps === totalSteps;
+
+  let html = `
+    <div class="gv-toc-header">
+      <div class="gv-toc-title">${escHtml(gv.program.title || 'Guide')} &mdash; Contents</div>
+      <button class="gv-toc-close" onclick="toggleGuideTOC()">&times;</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="gv-toc-progress" style="margin-bottom:0">${doneSteps}/${totalSteps} steps complete (${pct}%)</div>
+      ${allComplete
+        ? `<button class="gv-toc-mark-all" onclick="startCourseCompletion()" style="background:var(--green);color:#fff;border-color:var(--green);font-size:12px;padding:6px 16px">&#x1F393; Complete Course</button>`
+        : `<button class="gv-toc-mark-all" onclick="tocMarkAllSteps()" style="font-size:11px;padding:4px 12px">Mark All Steps Complete</button>`
+      }
+    </div>`;
+
+  modules.forEach((m, mi) => {
+    const steps = m.steps || [];
+    const moduleDone = steps.filter(s => gv.completedSteps.has(`${m.id}:${s.id}`)).length;
+    const allDone = moduleDone === steps.length && steps.length > 0;
+    html += `<div class="gv-toc-module">
+      <div class="gv-toc-module-header">
+        <span class="gv-toc-module-name">${escHtml(m.title || 'Module ' + (mi + 1))}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="gv-toc-module-meta">${moduleDone}/${steps.length}</span>
+          ${allDone
+            ? `<button class="gv-toc-mark-all" onclick="event.stopPropagation();tocUnmarkModule(${mi})" style="border-color:var(--green);color:var(--green)">&#x2713; All Done</button>`
+            : `<button class="gv-toc-mark-all" onclick="event.stopPropagation();tocMarkModule(${mi})">Mark All</button>`
+          }
+        </div>
+      </div>`;
+    steps.forEach((s, si) => {
+      const key = `${m.id}:${s.id}`;
+      const done = gv.completedSteps.has(key);
+      const isActive = mi === gv.moduleIndex && si === gv.stepIndex;
+      html += `<div class="gv-toc-step${isActive ? ' active' : ''}" onclick="tocJumpTo(${mi},${si})">
+        <div class="gv-toc-step-check${done ? ' done' : ''}" onclick="event.stopPropagation();tocToggleStep(${mi},${si})">&#x2713;</div>
+        <span class="gv-toc-step-title">${escHtml(s.title || 'Step ' + (si + 1))}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('gvTocOverlay').innerHTML = html;
+}
+
+function tocJumpTo(mi, si) {
+  guideViewerState.moduleIndex = mi;
+  guideViewerState.stepIndex = si;
+  document.getElementById('gvTocOverlay').classList.remove('open');
+  renderGuideViewer();
+}
+
+function tocToggleStep(mi, si) {
+  const gv = guideViewerState;
+  const module = gv.program.modules?.[mi];
+  const step = module?.steps?.[si];
+  if (!module || !step) return;
+  const key = `${module.id}:${step.id}`;
+  const nowComplete = !gv.completedSteps.has(key);
+  if (nowComplete) gv.completedSteps.add(key);
+  else gv.completedSteps.delete(key);
+  persistStepProgress(gv.slug, module.id, step.id, nowComplete, gv.moduleIndex, gv.stepIndex);
+  renderGuideTOC();
+  renderGuideStepPills();
+  // Update checkbox if we toggled the current step
+  if (mi === gv.moduleIndex && si === gv.stepIndex) {
+    document.getElementById('gvComplete').checked = nowComplete;
+  }
+}
+
+function tocMarkModule(mi) {
+  const gv = guideViewerState;
+  const module = gv.program.modules?.[mi];
+  if (!module?.steps?.length) return;
+  for (const step of module.steps) {
+    const key = `${module.id}:${step.id}`;
+    if (!gv.completedSteps.has(key)) {
+      gv.completedSteps.add(key);
+      persistStepProgress(gv.slug, module.id, step.id, true, gv.moduleIndex, gv.stepIndex);
+    }
+  }
+  renderGuideTOC();
+  renderGuideStepPills();
+  const currentModule = gv.program.modules?.[gv.moduleIndex];
+  const currentStep = currentModule?.steps?.[gv.stepIndex];
+  if (currentModule && currentStep) {
+    document.getElementById('gvComplete').checked = gv.completedSteps.has(`${currentModule.id}:${currentStep.id}`);
+  }
+}
+
+function tocUnmarkModule(mi) {
+  const gv = guideViewerState;
+  const module = gv.program.modules?.[mi];
+  if (!module?.steps?.length) return;
+  for (const step of module.steps) {
+    const key = `${module.id}:${step.id}`;
+    if (gv.completedSteps.has(key)) {
+      gv.completedSteps.delete(key);
+      persistStepProgress(gv.slug, module.id, step.id, false, gv.moduleIndex, gv.stepIndex);
+    }
+  }
+  renderGuideTOC();
+  renderGuideStepPills();
+  const currentModule = gv.program.modules?.[gv.moduleIndex];
+  const currentStep = currentModule?.steps?.[gv.stepIndex];
+  if (currentModule && currentStep) {
+    document.getElementById('gvComplete').checked = gv.completedSteps.has(`${currentModule.id}:${currentStep.id}`);
+  }
+}
+
+function tocMarkAllSteps() {
+  const gv = guideViewerState;
+  if (!gv) return;
+  for (const m of (gv.program.modules || [])) {
+    for (const s of (m.steps || [])) {
+      const key = `${m.id}:${s.id}`;
+      if (!gv.completedSteps.has(key)) {
+        gv.completedSteps.add(key);
+        persistStepProgress(gv.slug, m.id, s.id, true, gv.moduleIndex, gv.stepIndex);
+      }
+    }
+  }
+  renderGuideTOC();
+  renderGuideStepPills();
+  const currentModule = gv.program.modules?.[gv.moduleIndex];
+  const currentStep = currentModule?.steps?.[gv.stepIndex];
+  if (currentModule && currentStep) {
+    document.getElementById('gvComplete').checked = gv.completedSteps.has(`${currentModule.id}:${currentStep.id}`);
+  }
+}
+
+// ─── Course Completion Flow ──────────────────────────────
+function startCourseCompletion() {
+  const gv = guideViewerState;
+  if (!gv) return;
+  // Close TOC and show completion overlay
+  document.getElementById('gvTocOverlay').classList.remove('open');
+  renderCompletionScreen();
+}
+
+function renderCompletionScreen() {
+  const gv = guideViewerState;
+  if (!gv) return;
+  const p = gv.program;
+  const modules = p.modules || [];
+  const totalSteps = modules.reduce((n, m) => n + (m.steps?.length || 0), 0);
+  const hasQuiz = p.quiz?.length > 0;
+
+  let html = `
+    <div style="max-width:600px;margin:0 auto;padding:32px 24px">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="font-size:48px;margin-bottom:12px">&#x1F393;</div>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Course Summary</div>
+        <div style="font-size:13px;color:var(--text-secondary)">${escHtml(p.title || 'Untitled')}</div>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:12px;padding:20px;margin-bottom:20px">
+        <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:12px">What You Covered</div>
+        ${p.summary
+          ? `<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px">${escHtml(p.summary)}</div>`
+          : ''
+        }
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--accent)">${modules.length} module${modules.length !== 1 ? 's' : ''}</div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--accent)">${totalSteps} steps completed</div>
+        </div>
+        ${modules.map(m => `
+          <div style="padding:6px 0;border-top:1px solid var(--border-dim)">
+            <div style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(m.title || 'Module')}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${(m.steps || []).length} steps</div>
+          </div>
+        `).join('')}
+      </div>
+
+      ${hasQuiz
+        ? `<div style="background:var(--accent-bg);border:1px solid var(--border-glow);border-radius:12px;padding:20px;margin-bottom:20px;text-align:center">
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent);margin-bottom:8px">Final Assessment</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px">${p.quiz.length} multiple choice questions &middot; 70% to pass</div>
+            <button onclick="startQuiz()" style="padding:10px 28px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;cursor:pointer">Take the Quiz</button>
+          </div>`
+        : `<div style="text-align:center;margin-top:24px">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Ready to earn your certificate?</div>
+            <button onclick="finalizeCourseCompletion(this)" style="padding:12px 32px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:var(--font-sans);font-size:14px;font-weight:700;cursor:pointer">&#x1F393; Complete Course</button>
+          </div>`
+      }
+
+      <div style="text-align:center;margin-top:16px">
+        <button onclick="document.getElementById('gvCompletionOverlay').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:var(--font-sans)">Go back to course</button>
+      </div>
+    </div>`;
+
+  let overlay = document.getElementById('gvCompletionOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'gvCompletionOverlay';
+    overlay.className = 'gv-toc-overlay';
+    document.querySelector('.gv-main').appendChild(overlay);
+  }
+  overlay.innerHTML = html;
+  overlay.classList.add('open');
+}
+
+function startQuiz() {
+  const gv = guideViewerState;
+  if (!gv?.program?.quiz?.length) return;
+  const quiz = gv.program.quiz;
+  // Store quiz state
+  gv._quizAnswers = new Array(quiz.length).fill(null);
+  gv._quizSubmitted = false;
+  gv._quizScore = null;
+  renderQuizScreen();
+}
+
+function renderQuizScreen() {
+  const gv = guideViewerState;
+  const quiz = gv.program.quiz;
+  const answers = gv._quizAnswers;
+  const submitted = gv._quizSubmitted;
+  const score = gv._quizScore;
+  const passed = score !== null && score >= 70;
+
+  let html = `
+    <div style="max-width:600px;margin:0 auto;padding:32px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary)">Final Assessment</div>
+        ${submitted ? `<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${passed ? 'var(--green)' : 'var(--red)'}">${score}% ${passed ? '— Passed!' : '— Not yet (70% required)'}</div>` : ''}
+      </div>`;
+
+  quiz.forEach((q, qi) => {
+    const userAnswer = answers[qi];
+    const isCorrect = submitted ? userAnswer === q.correctIndex : null;
+    html += `
+      <div style="background:var(--bg-card);border:1px solid ${submitted ? (isCorrect ? 'var(--green)' : userAnswer !== null ? 'var(--red)' : 'var(--border-dim)') : 'var(--border-dim)'};border-radius:10px;padding:16px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px">${qi + 1}. ${escHtml(q.question)}</div>
+        ${q.options.map((opt, oi) => {
+          let optStyle = 'background:var(--bg-tertiary);border:1px solid var(--border-dim);color:var(--text-secondary)';
+          if (userAnswer === oi && !submitted) optStyle = 'background:var(--accent-bg);border:1px solid var(--accent);color:var(--accent)';
+          if (submitted && oi === q.correctIndex) optStyle = 'background:rgba(74,222,128,0.1);border:1px solid var(--green);color:var(--green)';
+          if (submitted && userAnswer === oi && oi !== q.correctIndex) optStyle = 'background:rgba(239,68,68,0.1);border:1px solid var(--red);color:var(--red);text-decoration:line-through';
+          return `<div onclick="${submitted ? '' : `selectQuizAnswer(${qi},${oi})`}" style="${optStyle};padding:8px 12px;border-radius:6px;margin-bottom:6px;font-size:12px;cursor:${submitted ? 'default' : 'pointer'};transition:all .15s">${escHtml(opt)}</div>`;
+        }).join('')}
+      </div>`;
+  });
+
+  if (submitted && passed) {
+    html += `
+      <div style="text-align:center;margin-top:24px">
+        <div style="font-size:36px;margin-bottom:8px">&#x1F389;</div>
+        <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:16px">Congratulations! You passed!</div>
+        <button onclick="finalizeCourseCompletion(this)" style="padding:12px 32px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:var(--font-sans);font-size:14px;font-weight:700;cursor:pointer">&#x1F393; Earn Your Certificate</button>
+      </div>`;
+  } else if (submitted && !passed) {
+    html += `
+      <div style="text-align:center;margin-top:24px">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Review the correct answers above and try again.</div>
+        <button onclick="retryQuiz()" style="padding:10px 24px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer">Retry Quiz</button>
+      </div>`;
+  } else {
+    const answered = answers.filter(a => a !== null).length;
+    html += `
+      <div style="text-align:center;margin-top:24px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${answered}/${quiz.length} answered</div>
+        <button onclick="submitQuiz()" ${answered < quiz.length ? 'disabled' : ''} style="padding:10px 24px;border-radius:8px;border:none;background:${answered < quiz.length ? 'var(--bg-tertiary)' : 'var(--accent)'};color:${answered < quiz.length ? 'var(--text-muted)' : '#fff'};font-family:var(--font-sans);font-size:13px;font-weight:700;cursor:${answered < quiz.length ? 'not-allowed' : 'pointer'}">Submit Answers</button>
+      </div>`;
+  }
+
+  html += '</div>';
+
+  const overlay = document.getElementById('gvCompletionOverlay');
+  overlay.innerHTML = html;
+}
+
+function selectQuizAnswer(qi, oi) {
+  const gv = guideViewerState;
+  if (gv._quizSubmitted) return;
+  gv._quizAnswers[qi] = oi;
+  renderQuizScreen();
+}
+
+function submitQuiz() {
+  const gv = guideViewerState;
+  const quiz = gv.program.quiz;
+  let correct = 0;
+  quiz.forEach((q, i) => { if (gv._quizAnswers[i] === q.correctIndex) correct++; });
+  gv._quizScore = Math.round((correct / quiz.length) * 100);
+  gv._quizSubmitted = true;
+  renderQuizScreen();
+
+  // Persist quiz result
+  fetch(`/api/gym/programs/${gv.slug}/submit-quiz`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answers: gv._quizAnswers, score: gv._quizScore, passed: gv._quizScore >= 70 })
+  }).catch(() => {});
+}
+
+function retryQuiz() {
+  const gv = guideViewerState;
+  gv._quizAnswers = new Array(gv.program.quiz.length).fill(null);
+  gv._quizSubmitted = false;
+  gv._quizScore = null;
+  renderQuizScreen();
+}
+
+async function finalizeCourseCompletion(btn) {
+  const gv = guideViewerState;
+  if (!gv) { console.error('No guide viewer state'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Completing...'; }
+  try {
+    const res = await fetch(`/api/gym/programs/${gv.slug}/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    if (res.ok) {
+      showToast('Course completed! Certificate earned!');
+      // Refresh progress
+      const progRes = await fetch('/api/gym/progress');
+      if (progRes.ok) gymProgress = await progRes.json();
+      // Show certificate
+      const overlay = document.getElementById('gvCompletionOverlay');
+      overlay.innerHTML = `
+        <div style="max-width:500px;margin:0 auto;padding:48px 24px;text-align:center">
+          <div style="font-size:64px;margin-bottom:16px">&#x1F393;</div>
+          <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Course Complete!</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:24px">${escHtml(gv.program.title || 'Untitled')}</div>
+          <div style="display:flex;gap:12px;justify-content:center">
+            <button onclick="viewCertificate('${gv.slug}')" style="padding:10px 24px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;cursor:pointer">View Certificate</button>
+            <button onclick="document.getElementById('gvCompletionOverlay').classList.remove('open')" style="padding:10px 24px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-secondary);font-family:var(--font-sans);font-size:13px;cursor:pointer">Close</button>
+          </div>
+        </div>`;
+    } else {
+      const err = await res.text();
+      console.error('Complete failed:', res.status, err);
+      showToast('Failed to complete course', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '\u{1F393} Complete Course'; }
+    }
+  } catch (e) {
+    console.error('Complete error:', e);
+    showToast('Failed to complete course', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '\u{1F393} Complete Course'; }
   }
 }
 
@@ -2948,20 +3547,7 @@ async function toggleGuideStepComplete() {
   renderGuideStepPills();
 
   // Persist to backend
-  try {
-    await fetch('/api/gym/progress', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        programSlug: gv.slug,
-        moduleId: module.id,
-        stepId: step.id,
-        completed: checked,
-        lastModuleIndex: gv.moduleIndex,
-        lastStepIndex: gv.stepIndex,
-      })
-    });
-  } catch {}
+  persistStepProgress(gv.slug, module.id, step.id, checked, gv.moduleIndex, gv.stepIndex);
 }
 
 // ─── Guide AI Actions ──────────────────────────────────

@@ -360,6 +360,7 @@ const TOOLS = [
   {cat:"AI Gym",name:"unenroll_gym_program",desc:"Remove user enrollment from a training program",params:[{n:"slug",t:"string",r:true}]},
   {cat:"AI Gym",name:"list_gym_enrollments",desc:"List all user enrollments with optional status filter",params:[{n:"status",t:"string",r:false,d:"not-started | in-progress | completed"}]},
   {cat:"AI Gym",name:"complete_gym_program",desc:"Mark a training program as completed",params:[{n:"slug",t:"string",r:true}]},
+  {cat:"AI Gym",name:"submit_gym_quiz",desc:"Submit quiz answers for a training program. 70% required to pass. Returns score, pass/fail, attempt count.",params:[{n:"slug",t:"string",r:true},{n:"answers",t:"number[]",r:true,d:"Selected option indices (0-based)"},{n:"score",t:"number",r:true,d:"Score as percentage 0-100"},{n:"passed",t:"boolean",r:true,d:"Whether score >= 70%"}]},
   {cat:"AI Gym",name:"get_gym_certificate",desc:"Get completion certificate for a completed training program",params:[{n:"slug",t:"string",r:true}]},
 
   // Session Tabs

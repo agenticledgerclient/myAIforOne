@@ -422,4 +422,5 @@ export const enrollGymProgram = (slug: string) => api(`/api/gym/enroll/${slug}`,
 export const unenrollGymProgram = (slug: string) => api(`/api/gym/enroll/${slug}`, { method: "DELETE" });
 export const listGymEnrollments = (status?: string) => api(`/api/gym/enrollments${status ? `?status=${status}` : ''}`);
 export const completeGymProgram = (slug: string) => api(`/api/gym/programs/${slug}/complete`, { method: "POST" });
+export const submitGymQuiz = (slug: string, body: { answers: number[]; score: number; passed: boolean }) => api(`/api/gym/programs/${slug}/submit-quiz`, { method: "POST", body });
 export const getGymCertificate = (slug: string) => api(`/api/gym/certificate/${slug}`);
