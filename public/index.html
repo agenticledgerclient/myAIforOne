@@ -1360,6 +1360,7 @@ function renderFileDrawer() {
       <span class="file-drawer-icon">${icon}</span>
       <div class="file-drawer-info">
         <div class="file-drawer-name">${escapeHtml(f.name)}</div>
+        ${f.folder ? `<div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:1px">📂 ${escapeHtml(f.folder)}</div>` : ''}
         <div class="file-drawer-meta">
           <span>${size}</span>
           <span>${ago}</span>

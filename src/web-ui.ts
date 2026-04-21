@@ -3350,8 +3350,9 @@ export function startWebUI(opts: WebUIOptions): void {
     // Scan FileStorage dirs + workspace root for downloadable files
     const files: Array<{ name: string; path: string; size: number; modified: string; source: string }> = [];
 
-    const scanDir = (dir: string, source: string, recursive = false) => {
+    const scanDir = (dir: string, source: string, recursive = false, rootDir?: string) => {
       if (!existsSync(dir)) return;
+      const root = rootDir || dir;
       try {
         const entries = readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
@@ -3360,24 +3361,26 @@ export function startWebUI(opts: WebUIOptions): void {
           if (entry.isFile()) {
             try {
               const stat = statSync(fullPath);
+              const rel = fullPath.slice(root.length + 1); // relative path within storage folder
               files.push({
                 name: entry.name,
                 path: fullPath,
                 size: stat.size,
                 modified: stat.mtime.toISOString(),
                 source,
+                ...(rel !== entry.name ? { folder: rel.slice(0, rel.length - entry.name.length - 1) } : {}),
               });
             } catch { /* skip */ }
           } else if (entry.isDirectory() && recursive) {
-            scanDir(fullPath, source, true);
+            scanDir(fullPath, source, true, root);
           }
         }
       } catch { /* skip */ }
     };
 
     // FileStorage (always scan)
-    scanDir(join(agentHome, "FileStorage", "Temp"), "temp");
-    scanDir(join(agentHome, "FileStorage", "Permanent"), "permanent");
+    scanDir(join(agentHome, "FileStorage", "Temp"), "temp", true);
+    scanDir(join(agentHome, "FileStorage", "Permanent"), "permanent", true);
 
     // Sort by modified descending
     files.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());

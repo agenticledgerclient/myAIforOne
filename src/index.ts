@@ -288,7 +288,7 @@ async function main(): Promise<void> {
         driver = new IMessageDriver(channelCfg.config);
         break;
       case "slack":
-        driver = new SlackDriver(channelCfg.config);
+        driver = new SlackDriver(channelCfg.config, channelId);
         break;
       case "whatsapp":
         driver = new WhatsAppDriver(channelCfg.config);

@@ -30,7 +30,7 @@ interface SlackMessageEvent {
 }
 
 export class SlackDriver implements ChannelDriver {
-  readonly channelId = "slack";
+  readonly channelId: string;
 
   private web: WebClient;
   private socket: SocketModeClient;
@@ -38,7 +38,8 @@ export class SlackDriver implements ChannelDriver {
   private messageHandler: ((msg: InboundMessage) => Promise<void>) | null = null;
   private botUserId: string | null = null;
 
-  constructor(config: Record<string, unknown>) {
+  constructor(config: Record<string, unknown>, channelName?: string) {
+    this.channelId = channelName || "slack";
     const botToken = config.botToken as string;
     const appToken = config.appToken as string;
 
