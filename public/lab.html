@@ -1432,8 +1432,20 @@ function appendMsgEl(role,text){
   return div;
 }
 
+function _clipCopy(text, cb) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(cb).catch(() => _fallbackCopy(text, cb));
+  } else { _fallbackCopy(text, cb); }
+}
+function _fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); if(cb) cb(); } catch(e) {}
+  document.body.removeChild(ta);
+}
 function copyMsg(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
+  _clipCopy(text, () => {
     btn.classList.add('copied');
     btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     setTimeout(() => {
@@ -1554,9 +1566,9 @@ function renderCanvas(){
 function clearCanvas(){canvasBlocks=[];renderCanvas();document.getElementById('deployBtn').disabled=true}
 function copyCanvas(){
   const text=canvasBlocks.map(b=>'```'+b.lang+'\n'+b.content+'\n```').join('\n\n');
-  navigator.clipboard.writeText(text).catch(()=>{});
+  _clipCopy(text);
 }
-function copyBlock(i){navigator.clipboard.writeText(canvasBlocks[i]?.content||'').catch(()=>{})}
+function copyBlock(i){_clipCopy(canvasBlocks[i]?.content||'')}
 function handleDeploy(){
   const input=document.getElementById('chatInput');
   input.value='Deploy this — write the files and register it.';

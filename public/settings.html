@@ -412,15 +412,23 @@ function showLoginPanel(url, sessionId) {
   `;
 }
 
+function _fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); if(cb) cb(); } catch(e) {}
+  document.body.removeChild(ta);
+}
+function _clipCopy(text, cb) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(cb).catch(() => _fallbackCopy(text, cb));
+  } else { _fallbackCopy(text, cb); }
+}
 async function copyUrl(url) {
-  try {
-    await navigator.clipboard.writeText(url);
-    showToast('URL copied to clipboard', 'info');
-  } catch {
-    // Fallback: select the text
+  _clipCopy(url, () => showToast('URL copied to clipboard', 'info'));
+  if (!(navigator.clipboard && window.isSecureContext)) {
     const el = document.getElementById('loginUrlText');
     if (el) { const r = document.createRange(); r.selectNode(el); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); }
-    showToast('Select + copy the URL above', 'info');
   }
 }
 

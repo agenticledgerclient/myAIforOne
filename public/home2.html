@@ -826,6 +826,30 @@ text-decoration:none;}
 .drawer-agent-alias{font-size:11px;color:var(--text-muted);font-family:var(--font-mono)}
 .drawer-agent-time{font-size:10px;color:var(--text-muted)}
 
+/* Remote agent styling */
+.drawer-gw-header{
+  display:flex;align-items:center;gap:6px;padding:8px 12px 4px;
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--purple);margin-top:8px;
+}
+.drawer-agent-remote .drawer-agent-avatar,
+.remote-avatar{
+  background:var(--purple-bg) !important;
+  border-color:rgba(139,92,246,0.3) !important;
+  color:var(--purple) !important;
+}
+.drawer-agent-badge-remote{
+  font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;
+  background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,0.2);
+  white-space:nowrap;
+}
+.agent-tile-remote .tile-avatar{
+  background:var(--purple-bg);border-color:rgba(139,92,246,0.3);color:var(--purple);
+}
+.tile-remote-badge{
+  font-size:10px;color:var(--purple);margin-left:2px;
+}
+
 /* Logs drawer (inline bottom panel — pushes chat up) */
 .logs-drawer{
   height:0;overflow:hidden;
@@ -1256,6 +1280,7 @@ text-decoration:none;}
 <script src="/server-mode.js"></script>
 <script>
 let agents = [];
+let remoteAgents = [];
 let messages = [];
 let hubAgentId = null;
 
@@ -1277,6 +1302,136 @@ let guideViewerState = null;
 let coachDataLoaded = false;
 let gymHubActive = false;
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// ─── Remote Agents (Team Gateways) ──────────────────
+async function loadRemoteAgents() {
+  try {
+    const res = await fetch('/api/team-gateways/all-remote-agents');
+    if (!res.ok) return;
+    const data = await res.json();
+    remoteAgents = (data.agents || []).map(a => ({
+      ...a,
+      _remote: true,
+      _gatewayId: a._gatewayId,
+      _gatewayName: a._gatewayName,
+      aliases: a.aliases || (a.id ? ['@' + a.id] : []),
+    }));
+    // Merge into agents array (avoid duplicates by id+gateway)
+    agents = agents.filter(a => !a._remote);
+    agents.push(...remoteAgents);
+    renderTiles();
+    renderDrawer();
+  } catch (e) {
+    console.warn('[Home2] Failed to load remote agents:', e);
+  }
+}
+
+async function executeRemoteAgent(gatewayId, agentId, text, tabId) {
+  const tid = tabId || homeActiveTabId;
+  const ts = getTabState(tid);
+  const isActive = () => tid === homeActiveTabId;
+
+  if (ts.text) {
+    addMessage('agent', ts.text, tid);
+    ts.text = '';
+    if (isActive()) streamingText = '';
+  }
+  ts.isThinking = true;
+  if (isActive()) isThinking = true;
+  renderMessages();
+  scrollChat();
+  renderHomeTabBar();
+
+  try {
+    const startRes = await fetch(`/api/team-gateways/${gatewayId}/remote/chat/${agentId}/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const startData = await startRes.json();
+    if (!startData.jobId) throw new Error(startData.error || `No jobId (HTTP ${startRes.status})`);
+    const { jobId } = startData;
+
+    ts.jobId = jobId;
+    if (isActive()) { currentJobId = jobId; }
+    updateHomeInputButtons();
+
+    ts.text = '';
+    if (isActive()) streamingText = '';
+    let lastEventId = 0;
+    let isDone = false;
+    let retries = 0;
+    const MAX_RETRIES = 10;
+
+    while (!isDone && retries < MAX_RETRIES) {
+      try {
+        const streamRes = await fetch(`/api/chat/jobs/${jobId}/stream?after=${lastEventId}`);
+        if (!streamRes.ok) { retries++; await new Promise(r => setTimeout(r, 1000)); continue; }
+        const reader = streamRes.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done: rdDone, value } = await reader.read();
+          if (rdDone) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('id: ')) {
+              lastEventId = parseInt(line.slice(4), 10) + 1;
+            } else if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') { isDone = true; break; }
+              try {
+                const event = JSON.parse(data);
+                if (event.type === 'text') {
+                  ts.text += event.data;
+                  ts.isThinking = false;
+                  if (isActive()) { streamingText = ts.text; isThinking = false; }
+                  renderMessages();
+                  scrollChat();
+                } else if (event.type === 'error') {
+                  addMessage('agent', 'Error: ' + event.data, tid);
+                }
+              } catch { /* skip non-JSON */ }
+              retries = 0;
+            }
+          }
+          if (isDone) break;
+        }
+      } catch (e) {
+        retries++;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    // Finalize
+    if (ts.text) {
+      const agent = agents.find(a => a._remote && a._gatewayId === gatewayId && a.id === agentId);
+      const via = agent ? ` [via:${agent._gatewayName}/${agentId}]` : '';
+      addMessage('agent', ts.text + via, tid);
+      ts.text = '';
+    }
+  } catch (err) {
+    addMessage('agent', 'Remote agent error: ' + err.message, tid);
+  } finally {
+    ts.isThinking = false;
+    ts.jobId = null;
+    if (isActive()) { isThinking = false; streamingText = ''; currentJobId = null; }
+    renderMessages();
+    scrollChat();
+    renderHomeTabBar();
+    updateHomeInputButtons();
+    if (ts.queue.length > 0) {
+      const next = ts.queue.shift();
+      if (tid === homeActiveTabId) { homeQueue = ts.queue; }
+      renderHomeQueue();
+      sendMessage(next);
+    }
+  }
+}
 
 // ─── Coach Session Tabs ──────────────────────────────
 let coachTabs = [];
@@ -2355,7 +2510,7 @@ function copyCertificateText() {
   if (!cert) return;
   const completedDate = cert.completedAt ? new Date(cert.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const text = `Certificate of Completion\n\n${cert.learnerName} has completed "${cert.programTitle}"${cert.projectName ? ' (' + cert.projectName + ')' : ''}\nCompleted: ${completedDate}\n\n#myAIforOne #AIGym`;
-  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
+  _clipCopy(text, () => showToast('Copied to clipboard'));
 }
 
 // ─── Dimension Label Map ──────────────────────
@@ -3900,6 +4055,9 @@ async function init() {
     agents = data.agents || [];
     availableAccounts = data.claudeAccounts || [];
 
+    // Load remote agents from team gateways (non-blocking)
+    loadRemoteAgents();
+
     // Use the default group agent from config, or find first group agent
     hubAgentId = data.defaultGroupAgent
       || agents.find(a => a.subAgents)?.id
@@ -4066,10 +4224,11 @@ function renderTiles() {
     const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
     const alias = a.aliases?.[0] || ('@' + a.id);
     const time = activeOrgFilter === 'recent' ? `<span class="tile-time">${formatRelativeTime(a.lastMessage)}</span>` : '';
-    return `<div class="agent-tile" onclick="mentionAgent('${alias}')">
-      <div class="tile-avatar">${initials}</div>
+    const remoteBadge = a._remote ? `<span class="tile-remote-badge" title="${escHtml(a._gatewayName || '')}">&#9729;</span>` : '';
+    return `<div class="agent-tile${a._remote ? ' agent-tile-remote' : ''}" onclick="mentionAgent('${alias}')">
+      <div class="tile-avatar${a._remote ? ' remote-avatar' : ''}">${initials}</div>
       <span class="tile-name">${a.name}</span>
-      ${time}
+      ${remoteBadge}${time}
     </div>`;
   }).join('') || `<span style="font-size:12px;color:var(--text-muted)">No agents in this org</span>`;
 
@@ -4135,7 +4294,9 @@ function sendFirst() {
   addMessage('user', text);
   syncToActiveTab();
   const direct = parseDirectAgent(text);
-  if (direct) {
+  if (direct && direct.agent._remote) {
+    executeRemoteAgent(direct.agent._gatewayId, direct.agentId, direct.message, homeActiveTabId);
+  } else if (direct) {
     executeDirectAgent(direct.agentId, direct.message, homeActiveTabId);
   } else {
     executeHub(text, homeActiveTabId);
@@ -4189,7 +4350,9 @@ async function sendMessage(queuedText) {
   syncToActiveTab();
   updateHomeInputButtons();
   const direct = parseDirectAgent(text);
-  if (direct) {
+  if (direct && direct.agent._remote) {
+    executeRemoteAgent(direct.agent._gatewayId, direct.agentId, direct.message, tabId);
+  } else if (direct) {
     executeDirectAgent(direct.agentId, direct.message, tabId);
   } else {
     executeHub(text, tabId);
@@ -4288,12 +4451,14 @@ function renderAutocomplete() {
   el.innerHTML = acFiltered.map((a, i) => {
     const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
     const alias = a.aliases?.[0] || a.id;
+    const remoteBadge = a._remote ? `<span class="drawer-agent-badge-remote" style="margin-left:auto">${escHtml(a._gatewayName || 'remote')}</span>` : '';
     return `<div class="autocomplete-item${i === acSelectedIdx ? ' selected' : ''}" onmousedown="selectAutocomplete(${i})">
-      <div class="autocomplete-item-avatar">${initials}</div>
+      <div class="autocomplete-item-avatar${a._remote ? ' remote-avatar' : ''}">${initials}</div>
       <div class="autocomplete-item-info">
         <div class="autocomplete-item-alias">${alias}</div>
         <div class="autocomplete-item-name">${escapeHtml(a.name)}</div>
       </div>
+      ${remoteBadge}
     </div>`;
   }).join('');
   el.classList.add('visible');
@@ -4682,8 +4847,20 @@ function fileDrawerTimeAgo(ts) {
   return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
+function _clipCopy(text, cb) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(cb).catch(() => _fallbackCopy(text, cb));
+  } else { _fallbackCopy(text, cb); }
+}
+function _fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); if(cb) cb(); } catch(e) {}
+  document.body.removeChild(ta);
+}
 function copyMsg(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
+  _clipCopy(text, () => {
     btn.classList.add('copied');
     btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     setTimeout(() => {
@@ -4846,15 +5023,22 @@ function toggleDrawer() {
 
 function renderDrawer() {
   const list = document.getElementById('drawerList');
-  const sorted = agents
-    .filter(a => !a.subAgents)
+  // Local agents first (sorted by recent), then remote agents grouped by gateway
+  const localAgents = agents
+    .filter(a => !a.subAgents && !a._remote)
     .sort((a, b) => {
       const aT = a.lastMessage && a.lastMessage !== 'never' ? new Date(a.lastMessage).getTime() : 0;
       const bT = b.lastMessage && b.lastMessage !== 'never' ? new Date(b.lastMessage).getTime() : 0;
       return bT - aT;
     });
+  const remoteByGw = {};
+  agents.filter(a => a._remote).forEach(a => {
+    const gw = a._gatewayName || a._gatewayId || 'Remote';
+    if (!remoteByGw[gw]) remoteByGw[gw] = [];
+    remoteByGw[gw].push(a);
+  });
 
-  list.innerHTML = sorted.map(a => {
+  let html = localAgents.map(a => {
     const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
     const alias = a.aliases?.[0] || ('@' + a.id);
     const time = a.lastMessage && a.lastMessage !== 'never' ? formatRelativeTime(a.lastMessage) : '';
@@ -4867,6 +5051,28 @@ function renderDrawer() {
       <span class="drawer-agent-time">${time}</span>
     </div>`;
   }).join('');
+
+  // Remote agents grouped by gateway
+  for (const [gwName, gwAgents] of Object.entries(remoteByGw)) {
+    html += `<div class="drawer-gw-header">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+      ${escHtml(gwName)}
+    </div>`;
+    html += gwAgents.map(a => {
+      const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+      const alias = a.aliases?.[0] || ('@' + a.id);
+      return `<div class="drawer-agent drawer-agent-remote" onclick="toggleDrawer();mentionAgent('${alias}')">
+        <div class="drawer-agent-avatar remote-avatar">${initials}</div>
+        <div class="drawer-agent-info">
+          <div class="drawer-agent-name">${escHtml(a.name)}</div>
+          <div class="drawer-agent-alias">${escHtml(alias)}</div>
+        </div>
+        <span class="drawer-agent-badge-remote">remote</span>
+      </div>`;
+    }).join('');
+  }
+
+  list.innerHTML = html;
 }
 
 // ─── File Attachment ───────────────────────────────────

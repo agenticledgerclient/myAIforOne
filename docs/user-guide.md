@@ -1534,6 +1534,24 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Disconnect | `DELETE /api/team-gateways/:id` | `disconnect_team_gateway` |
 | | Detaches MCP, removes registry entry, deletes key file, drops metadata | **Params:** `id` |
 
+#### Working with Remote Resources via Team Gateways
+
+When you connect a team gateway, its **remote MCP** is registered locally and attached to agents. This means agents can already use all remote capabilities — **no additional local MCP tools are needed**. The remote MCP tools handle everything:
+
+| Capability | How it works | Remote MCP tools used |
+|------------|-------------|----------------------|
+| **Chat with remote agents** | Send messages to agents running on the remote gateway. The remote agent executes with its own tools, MCPs, skills, and memory — you get the response back locally. | `get_platform_agents`, `delegate_message`, `send_message` |
+| **Browse remote catalog** | View the remote gateway's skills, MCPs, prompts, and apps as a read-only catalog. Think of it as a shared library you can browse. | `browse_registry`, `get_org_skills`, `get_mcp_catalog`, `get_skill_content` |
+| **Install remote resources locally** | Found a useful skill or prompt on the team gateway? Install it to your local instance so your local agents can use it natively. | `install_registry_item`, `import_skills` |
+
+**Key principles:**
+- **Remote = catalog, local = runtime.** You never invoke a remote skill from a local chat. If you want to use a skill, you install it locally first.
+- **Remote agents execute remotely.** When you chat with a remote agent, your message is proxied to the remote gateway. The agent runs on that server with all its capabilities. You get text back.
+- **Multiple gateways are independent.** Each connected gateway is like a separate workspace. An agent can be attached to multiple gateways and access all their tools.
+- **The Web UI proxies through local API routes** that call the team gateway's REST API. These are standard endpoints — not new MCP tools — since the UI talks to the local server, which forwards to the remote gateway.
+
+> **Example workflow:** You connect your company's Railway gateway → attach it to your Hub agent → Hub can now call `get_platform_agents` to list remote agents, `delegate_message` to chat with them, `browse_registry` to see shared skills, and `import_skills` to install one locally.
+
 ### SaaS Publishing Section
 - **Description:** "Publish skills, prompts, agents, and apps from your Library to a shared SaaS workspace"
 - **Status dot** — green when connected, hidden otherwise

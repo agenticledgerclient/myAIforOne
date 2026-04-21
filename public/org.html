@@ -382,6 +382,36 @@ text-decoration:none;}
 .compact-ctx a{display:block;padding:6px 10px;font-size:11px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:5px;cursor:pointer}
 .compact-ctx a:hover{background:var(--accent-bg);color:var(--accent)}
 
+/* Remote agent cards */
+.remote-node{border-color:rgba(139,92,246,0.2) !important}
+.remote-node:hover{border-color:rgba(139,92,246,0.4) !important;box-shadow:0 2px 12px rgba(139,92,246,0.15) !important}
+.remote-node-avatar{
+  background:rgba(139,92,246,0.12) !important;
+  border-color:rgba(139,92,246,0.3) !important;
+  color:rgba(139,92,246,0.7) !important;
+}
+.remote-badge-corner{
+  position:absolute;top:6px;right:8px;
+  display:flex;align-items:center;gap:4px;
+  font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;
+  color:rgba(139,92,246,0.7);padding:2px 7px;border-radius:4px;
+  background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.15);
+}
+.remote-badge-compact{
+  font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;
+  background:rgba(139,92,246,0.08);color:rgba(139,92,246,0.7);
+  border:1px solid rgba(139,92,246,0.15);white-space:nowrap;
+}
+
+/* Remote file browser modal */
+.remote-file-modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:10000}
+.remote-file-panel{background:var(--bg-primary);border:1px solid var(--border-dim);border-radius:12px;padding:24px;width:600px;max-width:92vw;max-height:80vh;overflow:auto}
+.remote-file-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-dim);margin-bottom:4px;cursor:default}
+.remote-file-item:hover{border-color:var(--border-glow)}
+.remote-file-name{flex:1;font-size:13px;color:var(--text-primary);font-family:var(--font-mono)}
+.remote-file-size{font-size:11px;color:var(--text-muted)}
+.remote-file-dl{padding:4px 10px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer}
+
 /* ─── List/Table View ─────────────────────────────────────────── */
 .list-view{padding:20px}
 .list-table{width:100%;border-collapse:separate;border-spacing:0}
@@ -1497,6 +1527,7 @@ text-decoration:none;}
 <script src="/server-mode.js"></script>
 <script>
 let agents = [];
+let orgSubView = 'local'; // 'local' | 'cloud'
 let visibleClasses = (function() {
   try { const s = JSON.parse(localStorage.getItem('orgVisibleClasses')); if (Array.isArray(s)) return new Set(s); } catch {}
   return new Set(['standard', 'platform', 'gym']);
@@ -1605,6 +1636,22 @@ async function fetchData() {
   availableAccounts = data.claudeAccounts || [];
 
   try { channelsData = (await chRes.json()).channels || []; } catch { channelsData = []; }
+
+  // Load remote agents from team gateways (non-blocking merge)
+  try {
+    const remRes = await fetch('/api/team-gateways/all-remote-agents');
+    if (remRes.ok) {
+      const remData = await remRes.json();
+      const remoteAgents = (remData.agents || []).map(a => ({
+        ...a,
+        _remote: true,
+        _gatewayId: a._gatewayId,
+        _gatewayName: a._gatewayName,
+        aliases: a.aliases || (a.id ? ['@' + a.id] : []),
+      }));
+      agents.push(...remoteAgents);
+    }
+  } catch (e) { console.warn('[Org] Failed to load remote agents:', e); }
 
   // Collect unique orgs
   const orgSet = new Set();
@@ -1737,6 +1784,15 @@ function matchesSearch(agent) {
   return name.includes(q) || alias.includes(q) || title.includes(q) || desc.includes(q);
 }
 
+function switchOrgView(view) {
+  orgSubView = view;
+  const teamsLink = document.getElementById('teamsLink');
+  const cloudLink = document.getElementById('cloudTeamLink');
+  if (teamsLink) teamsLink.classList.toggle('active', view === 'local');
+  if (cloudLink) cloudLink.classList.toggle('active', view === 'cloud');
+  renderOrg();
+}
+
 function renderOrg() {
   if (isChannelsPage) {
     const canvas = document.getElementById('canvas');
@@ -1759,6 +1815,9 @@ function renderOrg() {
   // Find agents in this org
   const nodesInOrg = [];
   for (const a of agents) {
+    // Filter by local/cloud sub-view
+    if (orgSubView === 'cloud' && !a._remote) continue;
+    if (orgSubView === 'local' && a._remote) continue;
     const ac = a.agentClass || 'standard';
     if (!visibleClasses.has(ac)) continue;
     if (!matchesSearch(a)) continue;
@@ -1887,6 +1946,28 @@ function renderNode(a, dimmed, isLead, blurNames) {
   const opacity = dimmed ? 'opacity:.5;' : '';
   const leadClass = isLead ? ' is-lead' : '';
   const blurClass = blurNames ? ' name-blurred' : '';
+  const isRemote = !!a._remote;
+
+  if (isRemote) {
+    // Remote agent card — purple accent, cloud badge, read-only actions
+    return `<div class="agent-node remote-node" style="${opacity};width:300px" data-agent-id="${a.id}">
+      <div class="remote-badge-corner">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        ${escapeHtml(a._gatewayName || 'Remote')}
+      </div>
+      <div class="node-avatar remote-node-avatar">${initials}</div>
+      <div class="node-info">
+        ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
+        <div class="node-name">${escapeHtml(a.name)}</div>
+        <div class="node-alias">${a.aliases?.[0] || a.id}</div>
+        ${a.shared ? '<div style="margin-top:4px"><span class="node-func-tag">shared</span></div>' : ''}
+      </div>
+      <div class="node-actions">
+        <button class="node-btn" onclick="event.stopPropagation();window.location='/ui#${a.id}'">Chat</button>
+        <button class="node-btn" onclick="event.stopPropagation();openRemoteFileBrowser('${escapeHtml(a._gatewayId)}','${a.id}')">Files</button>
+      </div>
+    </div>`;
+  }
 
   return `<div class="agent-node${leadClass}" style="${opacity};width:300px" data-agent-id="${a.id}" data-agent-alias="${a.aliases?.[0] || a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}">
     <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
@@ -1923,6 +2004,19 @@ function renderCompactNode(a, blurNames) {
   const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
   const isActive = a.sessionActive || (a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000);
   const blurClass = blurNames ? ' name-blurred' : '';
+  const isRemote = !!a._remote;
+
+  if (isRemote) {
+    return `<div class="compact-node remote-node" data-agent-id="${a.id}">
+      <div class="node-avatar remote-node-avatar" style="width:28px;height:28px;border-radius:8px;font-size:10px">${initials}</div>
+      <div class="compact-info">
+        <div class="compact-name">${escapeHtml(a.name)}</div>
+        <div class="compact-alias">${a.aliases?.[0] || a.id}</div>
+      </div>
+      <span class="remote-badge-compact">${escapeHtml(a._gatewayName || 'Remote')}</span>
+    </div>`;
+  }
+
   return `<div class="compact-node" data-agent-id="${a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}openModal('${a.id}')">
     <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
     ${renderAccountBadge(a)}
@@ -1980,6 +2074,9 @@ function renderByAccount(canvas) {
   // Group agents by account
   const accountGroups = {};
   for (const a of agents) {
+    // Filter by local/cloud sub-view
+    if (orgSubView === 'cloud' && !a._remote) continue;
+    if (orgSubView === 'local' && a._remote) continue;
     const ac = a.agentClass || 'standard';
     if (!visibleClasses.has(ac)) continue;
     if (!matchesSearch(a)) continue;
@@ -2124,6 +2221,9 @@ function getFilteredAgents() {
   const orgGroups = {};
   const noOrg = [];
   for (const a of agents) {
+    // Filter by local/cloud sub-view
+    if (orgSubView === 'cloud' && !a._remote) continue;
+    if (orgSubView === 'local' && a._remote) continue;
     const ac = a.agentClass || 'standard';
     if (!visibleClasses.has(ac)) continue;
     if (!matchesSearch(a)) continue;
@@ -4274,6 +4374,52 @@ async function removeMonitoredId(chatId) {
   }
 }
 
+// ─── Remote File Browser ─────────────────────────────────────────
+async function openRemoteFileBrowser(gatewayId, agentId) {
+  const overlay = document.createElement('div');
+  overlay.className = 'remote-file-modal';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="remote-file-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary)">Remote Files — ${escapeHtml(agentId)}</div>
+      <button onclick="this.closest('.remote-file-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer">&times;</button>
+    </div>
+    <div id="remoteFileList" style="color:var(--text-muted);font-size:13px">Loading...</div>
+  </div>`;
+  document.body.appendChild(overlay);
+
+  try {
+    const res = await fetch(`/api/team-gateways/${gatewayId}/remote/agents/${agentId}/files`);
+    if (!res.ok) throw new Error('Failed to fetch files');
+    const data = await res.json();
+    const files = data.files || [];
+    const listEl = document.getElementById('remoteFileList');
+    if (files.length === 0) {
+      listEl.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center">No files found</div>';
+      return;
+    }
+    listEl.innerHTML = files.map(f => {
+      const name = f.name || f.path || 'unknown';
+      const size = f.size ? `${(f.size / 1024).toFixed(1)} KB` : '';
+      return `<div class="remote-file-item">
+        <span class="remote-file-name">${escapeHtml(name)}</span>
+        <span class="remote-file-size">${size}</span>
+        <button class="remote-file-dl" onclick="downloadRemoteFile('${escapeHtml(gatewayId)}','${escapeHtml(agentId)}','${escapeHtml(f.path || name)}')">Download</button>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    document.getElementById('remoteFileList').textContent = 'Error: ' + err.message;
+  }
+}
+
+function downloadRemoteFile(gatewayId, agentId, filePath) {
+  const url = `/api/team-gateways/${gatewayId}/remote/agents/${agentId}/files/download?path=${encodeURIComponent(filePath)}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filePath.split('/').pop() || 'download';
+  a.click();
+}
+
 // Set active tab based on URL
 const isChannelsPage = location.pathname === '/channels';
 document.getElementById('tabAgents')?.classList.add('active');
@@ -4281,7 +4427,8 @@ document.getElementById('tabAgents')?.classList.add('active');
 // Render contextual sub-nav (Agents section) with agent controls inline
 const subNav = document.getElementById('subNav');
 const agentsSubNav = `
-  <a class="sub-nav-link active" href="/org">Teams</a>
+  <a class="sub-nav-link active" href="#" onclick="switchOrgView('local');return false" id="teamsLink">Teams</a>
+  <a class="sub-nav-link" href="#" onclick="switchOrgView('cloud');return false" id="cloudTeamLink" style="display:none;color:rgba(139,92,246,0.9)">&#9729; Cloud Team</a>
   <a class="sub-nav-link" href="/tasks">Tasks</a>
   <a class="sub-nav-link" href="/projects">Projects</a>
   <a class="sub-nav-link" href="/automations">Automations</a>
@@ -4314,6 +4461,11 @@ fetchData().then(() => {
     // Auto-show channels panel
     const canvas = document.getElementById('orgCanvas');
     if (canvas) renderChannelsPanel(canvas);
+  }
+  // Show Cloud Team link if remote agents exist
+  if (agents.some(a => a._remote)) {
+    const cl = document.getElementById('cloudTeamLink');
+    if (cl) cl.style.display = '';
   }
 });
 setInterval(fetchData, 30000);

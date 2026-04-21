@@ -981,12 +981,11 @@ async function checkForUpdates() {
 
 async function copyUpdateCmd() {
   const cmd = document.getElementById('updateCmd').textContent;
-  try {
-    await navigator.clipboard.writeText(cmd);
+  _clipCopy(cmd, () => {
     const btn = document.getElementById('copyCmdBtn');
     btn.textContent = 'Copied!';
     setTimeout(() => btn.textContent = 'Copy', 2000);
-  } catch { showToast('Copy failed — select the command manually', 'err'); }
+  });
 }
 
 async function runUpdate() {
@@ -2405,7 +2404,7 @@ function showApiKeySecret(key) {
 
 function copyApiKeySecret() {
   const s = document.getElementById('apiKeyFullSecret')?.textContent || '';
-  navigator.clipboard.writeText(s).then(() => showToast('Copied'));
+  _clipCopy(s, () => showToast('Copied'));
 }
 
 async function deleteApiKey(id, name) {
@@ -2861,14 +2860,21 @@ async function copyGatewayKey() {
   } catch (e) { showToast('Error: ' + e.message); }
 }
 
-// Shared tiny clipboard helper (keeps a single toast wording across the page).
+// Shared clipboard helper with fallback for non-secure contexts (Windows HTTP)
+function _fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); if(cb) cb(); } catch(e) {}
+  document.body.removeChild(ta);
+}
+function _clipCopy(text, cb) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(cb).catch(() => _fallbackCopy(text, cb));
+  } else { _fallbackCopy(text, cb); }
+}
 async function copyPlain(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast('Copied');
-  } catch (e) {
-    showToast('Copy failed: ' + e.message);
-  }
+  _clipCopy(text, () => showToast('Copied'));
 }
 
 function toggleRotateKeyForm() {

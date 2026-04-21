@@ -596,6 +596,56 @@ export function startWebUI(opts: WebUIOptions): void {
     return out;
   }
 
+  // GET /api/team-gateways/all-remote-agents — aggregate agents from ALL connected gateways
+  // IMPORTANT: Must be registered BEFORE /:id to avoid Express treating "all-remote-agents" as an id
+  app.get("/api/team-gateways/all-remote-agents", async (_req, res) => {
+    const gws = getTeamGateways().filter(g => g.lastStatus === "ok");
+    const results = await Promise.allSettled(
+      gws.map(async gw => {
+        const r = await gatewayFetch(gw.id, "/api/agents");
+        if (!r.ok) return [];
+        const data = await r.json() as any;
+        return (data.agents || []).map((a: any) => ({
+          ...a,
+          _remote: true,
+          _gatewayId: gw.id,
+          _gatewayName: gw.name,
+          _gatewayUrl: gw.url,
+        }));
+      })
+    );
+    const allAgents = results
+      .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
+      .flatMap(r => r.value);
+    return res.json({ agents: allAgents });
+  });
+
+  // GET /api/team-gateways/all-remote-library/:type — aggregate from ALL gateways
+  // IMPORTANT: Must be registered BEFORE /:id
+  app.get("/api/team-gateways/all-remote-library/:type", async (req, res) => {
+    const { type } = req.params;
+    const validTypes = ["skills", "mcps", "prompts", "apps"];
+    if (!validTypes.includes(type)) return res.status(400).json({ error: `Invalid type` });
+    const gws = getTeamGateways().filter(g => g.lastStatus === "ok");
+    const results = await Promise.allSettled(
+      gws.map(async gw => {
+        const r = await gatewayFetch(gw.id, `/api/marketplace/${type}?source=personal`);
+        if (!r.ok) return [];
+        const data = await r.json() as any;
+        return (data.items || data.skills || data.mcps || data.prompts || data.apps || []).map((item: any) => ({
+          ...item,
+          _remote: true,
+          _gatewayId: gw.id,
+          _gatewayName: gw.name,
+        }));
+      })
+    );
+    const allItems = results
+      .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
+      .flatMap(r => r.value);
+    return res.json({ items: allItems });
+  });
+
   // GET /api/team-gateways/:id — full record + derived attached agents.
   // Drives the per-gateway Configure modal.
   app.get("/api/team-gateways/:id", (req, res) => {
@@ -746,6 +796,315 @@ export function startWebUI(opts: WebUIOptions): void {
     (opts.config.service as any).teamGateways = gws;
     persistFullConfig();
     return res.json({ ok: true, id });
+  });
+
+  // ─── API: Team Gateway Proxy (Unified Remote Experience) ────────────
+  // These endpoints proxy requests to remote gateways so the local UI can
+  // list remote agents, chat with them, browse their library, and download files.
+
+  // Helper: make an authenticated fetch to a remote gateway
+  async function gatewayFetch(gwId: string, path: string, init?: RequestInit & { timeout?: number }): Promise<Response> {
+    const gw = getTeamGateways().find(g => g.id === gwId);
+    if (!gw) throw new Error(`Gateway "${gwId}" not found`);
+    const key = readGatewayKey(gwId);
+    if (!key) throw new Error(`API key missing for gateway "${gwId}"`);
+    const url = `${gw.url}${path}`;
+    const headers: Record<string, string> = {
+      "Authorization": `Bearer ${key}`,
+      ...(init?.headers as Record<string, string> || {}),
+    };
+    return fetch(url, {
+      ...init,
+      headers,
+      signal: init?.signal || AbortSignal.timeout(init?.timeout || 15000),
+    });
+  }
+
+  // GET /api/team-gateways/:id/remote/agents — list agents on a remote gateway
+  app.get("/api/team-gateways/:id/remote/agents", async (req, res) => {
+    try {
+      const r = await gatewayFetch(req.params.id, "/api/agents");
+      if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+      const data = await r.json() as any;
+      // Enrich each agent with gateway metadata
+      const gw = getTeamGateways().find(g => g.id === req.params.id);
+      const agents = (data.agents || []).map((a: any) => ({
+        ...a,
+        _remote: true,
+        _gatewayId: req.params.id,
+        _gatewayName: gw?.name || req.params.id,
+        _gatewayUrl: gw?.url || "",
+      }));
+      return res.json({ agents });
+    } catch (err: any) {
+      return res.status(502).json({ error: err.message });
+    }
+  });
+
+  // POST /api/team-gateways/:id/remote/chat — proxy a chat message to a remote agent
+  // Returns a local jobId that streams the remote response back via SSE
+  app.post("/api/team-gateways/:id/remote/chat/:agentId/stream", async (req, res) => {
+    const { id: gwId, agentId } = req.params;
+    const { text } = req.body as { text?: string };
+    if (!text?.trim()) return res.status(400).json({ error: "Missing 'text' in body" });
+
+    try {
+      // Start streaming job on the remote gateway
+      const startRes = await gatewayFetch(gwId, `/api/chat/${agentId}/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+        timeout: 15000,
+      });
+      if (!startRes.ok) {
+        const errBody = await startRes.text().catch(() => "");
+        return res.status(startRes.status).json({ error: `Remote returned ${startRes.status}: ${errBody}` });
+      }
+      const { jobId: remoteJobId } = await startRes.json() as { jobId: string };
+
+      // Create a local job that proxies the remote SSE stream
+      const localJobId = `rjob-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const job: StreamJob = { events: [], rawLines: [], rawListeners: new Set(), done: false, stopped: false, createdAt: Date.now(), listeners: new Set() };
+      jobStore.set(localJobId, job);
+
+      const pushEvent = (data: string) => {
+        const idx = job.events.length;
+        job.events.push({ idx, data });
+        for (const cb of job.listeners) cb(idx);
+      };
+
+      res.json({ jobId: localJobId, remoteJobId });
+
+      // Background: stream from remote and relay events locally
+      (async () => {
+        const heartbeat = setInterval(() => {
+          if (!job.done && !job.stopped) pushEvent(JSON.stringify({ type: "heartbeat" }));
+          else clearInterval(heartbeat);
+        }, 30_000);
+
+        try {
+          const gw = getTeamGateways().find(g => g.id === gwId);
+          const key = readGatewayKey(gwId);
+          if (!gw || !key) throw new Error("Gateway or key unavailable");
+
+          let lastEventId = 0;
+          let retries = 0;
+          const MAX_RETRIES = 10;
+
+          while (!job.done && !job.stopped && retries < MAX_RETRIES) {
+            try {
+              const streamRes = await fetch(`${gw.url}/api/chat/jobs/${remoteJobId}/stream?after=${lastEventId}`, {
+                headers: { "Authorization": `Bearer ${key}` },
+                signal: AbortSignal.timeout(120_000),
+              });
+              if (!streamRes.ok || !streamRes.body) {
+                retries++;
+                continue;
+              }
+
+              const reader = streamRes.body.getReader();
+              const decoder = new TextDecoder();
+              let buffer = "";
+
+              while (true) {
+                const { done: rdDone, value } = await reader.read();
+                if (rdDone) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                  if (line.startsWith("id: ")) {
+                    lastEventId = parseInt(line.slice(4), 10) + 1;
+                  } else if (line.startsWith("data: ")) {
+                    const data = line.slice(6);
+                    if (data === "[DONE]") {
+                      pushEvent("[DONE]");
+                      job.done = true;
+                      break;
+                    }
+                    pushEvent(data);
+                    retries = 0; // reset on success
+                  }
+                }
+                if (job.done || job.stopped) break;
+              }
+            } catch (streamErr: any) {
+              if (job.stopped) break;
+              retries++;
+              log.warn(`[GW Proxy] Retry ${retries}/${MAX_RETRIES} for remote job ${remoteJobId}: ${streamErr.message}`);
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          }
+        } catch (err) {
+          if (!job.stopped) pushEvent(JSON.stringify({ type: "error", data: String(err) }));
+        } finally {
+          clearInterval(heartbeat);
+          if (!job.done) {
+            pushEvent("[DONE]");
+            job.done = true;
+          }
+        }
+      })();
+    } catch (err: any) {
+      return res.status(502).json({ error: err.message });
+    }
+  });
+
+  // ─── Tier 2: Remote Library Proxy ──────────────────────────────────
+
+  // GET /api/team-gateways/:id/remote/library/:type — browse remote library
+  // type: skills | mcps | prompts | apps
+  app.get("/api/team-gateways/:id/remote/library/:type", async (req, res) => {
+    const { id: gwId, type } = req.params;
+    const validTypes = ["skills", "mcps", "prompts", "apps", "agents"];
+    if (!validTypes.includes(type)) return res.status(400).json({ error: `Invalid type. Must be one of: ${validTypes.join(", ")}` });
+    try {
+      const r = await gatewayFetch(gwId, `/api/marketplace/${type}?source=personal`);
+      if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+      const data = await r.json() as any;
+      const gw = getTeamGateways().find(g => g.id === gwId);
+      // Tag each item with gateway info
+      const items = (data.items || data.skills || data.mcps || data.prompts || data.apps || []).map((item: any) => ({
+        ...item,
+        _remote: true,
+        _gatewayId: gwId,
+        _gatewayName: gw?.name || gwId,
+      }));
+      return res.json({ items });
+    } catch (err: any) {
+      return res.status(502).json({ error: err.message });
+    }
+  });
+
+  // POST /api/team-gateways/:id/remote/library/:type/:itemId/install — download + install locally
+  app.post("/api/team-gateways/:id/remote/library/:type/:itemId/install", async (req, res) => {
+    const { id: gwId, type, itemId } = req.params;
+    const validTypes = ["skills", "mcps", "prompts"];
+    if (!validTypes.includes(type)) return res.status(400).json({ error: `Can only install skills, mcps, or prompts` });
+
+    try {
+      // Fetch the item detail from remote
+      let content: string | null = null;
+      let itemMeta: any = null;
+
+      if (type === "skills") {
+        // Get skill content from remote
+        const r = await gatewayFetch(gwId, `/api/skills/${encodeURIComponent(itemId)}/content`);
+        if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+        const data = await r.json() as any;
+        content = data.content || data.body || "";
+        itemMeta = data;
+      } else if (type === "prompts") {
+        const r = await gatewayFetch(gwId, `/api/marketplace/prompts`);
+        if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+        const data = await r.json() as any;
+        const items = data.items || [];
+        itemMeta = items.find((i: any) => i.id === itemId);
+        if (!itemMeta) return res.status(404).json({ error: "Item not found on remote" });
+        content = itemMeta.template || itemMeta.content || "";
+      }
+
+      if (type === "skills" && content !== null) {
+        // Write skill file to PersonalRegistry/skills/
+        const skillsDir = join(opts.baseDir, "PersonalRegistry", "skills");
+        mkdirSync(skillsDir, { recursive: true });
+        const fileName = itemId.endsWith(".md") ? itemId : `${itemId}.md`;
+        writeFileSync(join(skillsDir, fileName), content);
+        return res.json({ ok: true, type, id: itemId, installed: true });
+      }
+
+      if (type === "prompts" && itemMeta) {
+        // Write prompt to PersonalRegistry/prompts.json
+        const promptsPath = join(opts.baseDir, "PersonalRegistry", "prompts.json");
+        let prompts: any[] = [];
+        if (existsSync(promptsPath)) {
+          try { prompts = JSON.parse(readFileSync(promptsPath, "utf-8")); } catch { prompts = []; }
+        }
+        if (!prompts.find((p: any) => p.id === itemId)) {
+          prompts.push(itemMeta);
+          mkdirSync(dirname(promptsPath), { recursive: true });
+          writeFileSync(promptsPath, JSON.stringify(prompts, null, 2));
+        }
+        return res.json({ ok: true, type, id: itemId, installed: true });
+      }
+
+      // MCPs — just return the metadata so user can configure locally
+      if (type === "mcps") {
+        const r = await gatewayFetch(gwId, `/api/marketplace/mcps`);
+        if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+        const data = await r.json() as any;
+        const items = data.items || [];
+        itemMeta = items.find((i: any) => i.id === itemId);
+        if (!itemMeta) return res.status(404).json({ error: "Item not found on remote" });
+        return res.json({ ok: true, type, id: itemId, meta: itemMeta, note: "MCP metadata retrieved. Configure the connection locally." });
+      }
+
+      return res.status(400).json({ error: "Unsupported install type" });
+    } catch (err: any) {
+      return res.status(502).json({ error: err.message });
+    }
+  });
+
+  // ─── Tier 3: Remote File Proxy ─────────────────────────────────────
+
+  // GET /api/team-gateways/:id/remote/agents/:agentId/files — list files on remote agent
+  app.get("/api/team-gateways/:id/remote/agents/:agentId/files", async (req, res) => {
+    const { id: gwId, agentId } = req.params;
+    try {
+      const r = await gatewayFetch(gwId, `/api/agents/${agentId}/files`);
+      if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+      const data = await r.json();
+      return res.json(data);
+    } catch (err: any) {
+      return res.status(502).json({ error: err.message });
+    }
+  });
+
+  // GET /api/team-gateways/:id/remote/agents/:agentId/files/download?path=...
+  // Download a specific file from a remote agent
+  app.get("/api/team-gateways/:id/remote/agents/:agentId/files/download", async (req, res) => {
+    const { id: gwId, agentId } = req.params;
+    const filePath = req.query.path as string;
+    if (!filePath) return res.status(400).json({ error: "path query param required" });
+    try {
+      const r = await gatewayFetch(gwId, `/api/agents/${agentId}/files/download?path=${encodeURIComponent(filePath)}`, { timeout: 30000 });
+      if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+      // Forward content-type and content-disposition headers
+      const ct = r.headers.get("content-type");
+      const cd = r.headers.get("content-disposition");
+      if (ct) res.setHeader("Content-Type", ct);
+      if (cd) res.setHeader("Content-Disposition", cd);
+      // Pipe the response body through
+      if (r.body) {
+        const reader = r.body.getReader();
+        const pump = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) { res.end(); break; }
+            res.write(value);
+          }
+        };
+        await pump();
+      } else {
+        const buf = Buffer.from(await r.arrayBuffer());
+        res.send(buf);
+      }
+    } catch (err: any) {
+      return res.status(502).json({ error: err.message });
+    }
+  });
+
+  // GET /api/team-gateways/:id/remote/sessions — list sessions on a remote agent
+  app.get("/api/team-gateways/:id/remote/agents/:agentId/sessions", async (req, res) => {
+    const { id: gwId, agentId } = req.params;
+    try {
+      const r = await gatewayFetch(gwId, `/api/agents/${agentId}/sessions`);
+      if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+      return res.json(await r.json());
+    } catch (err: any) {
+      return res.status(502).json({ error: err.message });
+    }
   });
 
   // ─── API: Open folder in Finder / Explorer ─────────────────────────
@@ -5947,10 +6306,11 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       // The delay ensures the current process has fully exited and released
       // the port before the new one starts. This avoids the race condition
       // where both the child AND launchd/KeepAlive try to grab the port.
-      const shell = process.platform === "win32" ? "cmd" : "/bin/sh";
+      const restartCmd = `"${process.execPath}" ${process.argv.slice(1).map(a => `"${a}"`).join(" ")}`;
+      const shell = process.platform === "win32" ? "powershell.exe" : "/bin/sh";
       const shellArgs = process.platform === "win32"
-        ? ["/c", `timeout /t 2 /nobreak >nul && "${process.execPath}" ${process.argv.slice(1).map(a => `"${a}"`).join(" ")}`]
-        : ["-c", `sleep 2 && "${process.execPath}" ${process.argv.slice(1).map(a => `"${a}"`).join(" ")} &`];
+        ? ["-NoProfile", "-Command", `Start-Sleep -Seconds 2; & ${restartCmd}`]
+        : ["-c", `sleep 2 && ${restartCmd} &`];
       const child = cpSpawn(shell, shellArgs, {
         cwd: process.cwd(),
         env: { ...process.env },

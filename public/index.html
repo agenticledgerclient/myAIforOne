@@ -220,6 +220,8 @@ text-decoration:none;}
 .agent-card-compact .compact-info{flex:1;min-width:0}
 .agent-card-compact .compact-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .agent-card-compact .compact-time{font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}
+.agent-card-compact.remote-agent .compact-avatar{background:rgba(168,85,247,.15);color:#a855f7;border-color:rgba(168,85,247,.3)}
+.agent-card-compact .cloud-badge{font-size:8px;color:#a855f7;margin-left:2px;flex-shrink:0}
 .thinking-pulse{
   width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0;
   animation:think-pulse 1.2s ease-in-out infinite;
@@ -1590,6 +1592,23 @@ async function fetchDashboard() {
     agents = data.agents;
     availableAccounts = data.claudeAccounts || [];
     renderStatus(data);
+
+    // Merge remote agents from team gateways (non-blocking)
+    try {
+      const remRes = await fetch('/api/team-gateways/all-remote-agents');
+      if (remRes.ok) {
+        const remData = await remRes.json();
+        const remoteAgents = (remData.agents || []).map(a => ({
+          ...a,
+          _remote: true,
+          _gatewayId: a._gatewayId,
+          _gatewayName: a._gatewayName,
+          aliases: a.aliases || (a.id ? ['@' + a.id] : []),
+        }));
+        agents.push(...remoteAgents);
+      }
+    } catch (e) { console.warn('[Chat] Failed to load remote agents:', e); }
+
     buildFilterDropdowns();
     renderAgentList();
   } catch (err) {
@@ -1693,7 +1712,7 @@ async function sendMessage(agentId, text, _tabKeyOverride) {
   scrollChat();
 
   const agent = agents.find(a => a.id === agentId);
-  const useStreaming = agent?.streaming;
+  const useStreaming = agent?.streaming || agent?._remote; // remote always streams via proxy
 
   if (useStreaming) {
     // SSE streaming mode — use per-tab state so switching tabs doesn't bleed
@@ -1707,9 +1726,12 @@ async function sendMessage(agentId, text, _tabKeyOverride) {
     scrollChat();
 
     try {
-      // Step 1: Start job
+      // Step 1: Start job (route through proxy for remote agents)
       const senderId = tk.split('::')[1] || 'default';
-      const startRes = await fetch(`/api/chat/${agentId}/stream`, {
+      const chatUrl = agent?._remote
+        ? `/api/team-gateways/${agent._gatewayId}/remote/chat/${agentId}/stream`
+        : `/api/chat/${agentId}/stream`;
+      const startRes = await fetch(chatUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, accountOverride: accountOverrides[agentId], senderId }),
@@ -1983,10 +2005,12 @@ function renderAgentList() {
   function compactCard(a, showPulse) {
     const initials = a.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || a.id.slice(0,2).toUpperCase();
     const sel = selectedAgent === a.id ? ' selected' : '';
+    const remoteCls = a._remote ? ' remote-agent' : '';
     const blur = isAgentOrgHidden(a) ? ' name-blurred' : '';
     const time = a.lastMessage && a.lastMessage !== 'never' ? formatRelativeTime(a.lastMessage) : '';
     const pulse = showPulse ? '<div class="thinking-pulse" title="Processing..."></div>' : '';
-    return '<div class="agent-card-compact' + sel + '" onclick="selectAgent(\''+a.id+'\')"><div class="compact-avatar">'+initials+'</div><div class="compact-info"><div class="compact-name'+blur+'">'+a.name+'</div><div class="compact-time">'+((a.aliases||[])[0]||a.id)+(time?' · '+time:'')+'</div></div>'+pulse+'</div>';
+    const cloud = a._remote ? '<span class="cloud-badge" title="Remote · '+((a._gatewayName||'Team'))+'">☁</span>' : '';
+    return '<div class="agent-card-compact' + sel + remoteCls + '" onclick="selectAgent(\''+a.id+'\')"><div class="compact-avatar">'+initials+'</div><div class="compact-info"><div class="compact-name'+blur+'">'+a.name+cloud+'</div><div class="compact-time">'+((a.aliases||[])[0]||a.id)+(time?' · '+time:'')+'</div></div>'+pulse+'</div>';
   }
 
   let html = '';
@@ -2042,7 +2066,7 @@ function renderChat() {
         </div>
         <div class="chat-header-info">
           <div class="chat-header-name${isAgentOrgHidden(agent) ? ' name-blurred' : ''}">${agent.name}</div>
-          <div class="chat-header-alias"><span class="${isAgentOrgHidden(agent) ? 'name-blurred' : ''}">${agent.aliases[0] || agent.id}</span> · ${agent.persistent?'persistent session':'single-shot'}</div>
+          <div class="chat-header-alias"><span class="${isAgentOrgHidden(agent) ? 'name-blurred' : ''}">${agent.aliases[0] || agent.id}</span> · ${agent._remote ? '<span style="color:#a855f7">☁ '+((agent._gatewayName||'Remote'))+'</span>' : (agent.persistent?'persistent session':'single-shot')}</div>
         </div>
         <div class="chat-header-actions">
           ${availableAccounts.length > 0 ? `<select class="header-btn" style="padding:2px 6px;font-size:11px;cursor:pointer" onchange="accountOverrides['${agent.id}']=this.value||undefined" title="Claude Account override (in-memory only)">
@@ -2554,14 +2578,30 @@ function viewConfig(agentId) {
 
 // ─── Formatting ────────────────────────────────────────────────
 function copyMsg(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
+  const onSuccess = () => {
     btn.classList.add('copied');
     btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     setTimeout(() => {
       btn.classList.remove('copied');
       btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
     }, 1500);
-  });
+  };
+  // navigator.clipboard requires secure context (HTTPS or localhost)
+  // Fall back to execCommand for HTTP or non-localhost
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(() => fallbackCopy(text, onSuccess));
+  } else {
+    fallbackCopy(text, onSuccess);
+  }
+}
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); cb(); } catch(e) { /* silent */ }
+  document.body.removeChild(ta);
 }
 
 function escapeHtml(s) {

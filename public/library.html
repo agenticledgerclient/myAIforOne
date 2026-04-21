@@ -366,6 +366,10 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
       <button class="type-tab" data-type="mcps" onclick="switchType('mcps')">MCPs</button>
       <button class="type-tab" data-type="prompts" onclick="switchType('prompts')">Prompts</button>
     </div>
+    <div class="type-tabs" id="sourceTabs" style="display:none">
+      <button class="type-tab active" data-source="local" onclick="switchSource('local')">Local</button>
+      <button class="type-tab" data-source="cloud" onclick="switchSource('cloud')" style="color:rgba(139,92,246,0.9)">&#9729; Cloud</button>
+    </div>
     <div id="trigger-config" style="display:none;align-items:center;gap:6px;background:var(--bg-input);border:1px solid var(--border-dim);border-radius:8px;padding:5px 10px">
       <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">trigger:</span>
       <span id="trigger-display" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--accent);min-width:16px;text-align:center"></span>
@@ -441,6 +445,8 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 // ─── State ────────────────────────────────────────────────────────
 let currentType = 'apps';
 let allItems = [];
+let remoteItems = [];
+let currentSource = 'local';
 let activeCategory = 'all';
 let showPlatformDefaultsOnly = false;
 let modalItem = null;
@@ -499,12 +505,21 @@ function editTrigger(){
 // ─── Type switch ──────────────────────────────────────────────────
 function switchType(type){
   currentType = type; activeCategory = 'all'; showPlatformDefaultsOnly = false;
+  currentSource = 'local';
   document.querySelectorAll('.type-tab').forEach(t=>t.classList.toggle('active', t.dataset.type===type));
+  document.querySelectorAll('#sourceTabs .type-tab').forEach(t=>t.classList.toggle('active', t.dataset.source==='local'));
+  document.getElementById('sourceTabs').style.display = 'none';
   document.getElementById('search-input').value = '';
   // Show trigger config only on Prompts tab
   const tc = document.getElementById('trigger-config');
   tc.style.display = type==='prompts' ? 'flex' : 'none';
   loadItems();
+}
+
+function switchSource(src){
+  currentSource = src;
+  document.querySelectorAll('#sourceTabs .type-tab').forEach(t=>t.classList.toggle('active', t.dataset.source===src));
+  render();
 }
 
 // ─── Load items ───────────────────────────────────────────────────
@@ -513,10 +528,31 @@ async function loadItems(){
   try{
     const d = await (await fetch(`/api/marketplace/${currentType}?source=personal`)).json();
     allItems = (d.items||[]);
+    // Load remote items from team gateways (non-blocking)
+    remoteItems = [];
+    if (['skills','mcps','prompts','apps'].includes(currentType)) {
+      loadRemoteLibrary();
+    }
     buildPills();
     render();
   } catch{
     document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)">Failed to load registry.</div>';
+  }
+}
+
+async function loadRemoteLibrary() {
+  try {
+    const res = await fetch(`/api/team-gateways/all-remote-library/${currentType}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    remoteItems = (data.items || []);
+    if (remoteItems.length > 0) {
+      const st = document.getElementById('sourceTabs');
+      if (st) st.style.display = '';
+    }
+    render(); // re-render with remote items
+  } catch (e) {
+    console.warn('[Library] Failed to load remote items:', e);
   }
 }
 
@@ -551,6 +587,16 @@ function mkPill(cat, active){
 // ─── Main render ──────────────────────────────────────────────────
 function render(){
   const q = (document.getElementById('search-input').value||'').toLowerCase().trim();
+
+  if (currentSource === 'cloud') {
+    // Show only remote items
+    let items = [...remoteItems];
+    if (q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q));
+    items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    renderCloudItems(items);
+    return;
+  }
+
   let items = allItems;
   if(activeCategory!=='all') items = items.filter(i=>i.category===activeCategory);
   if(q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q)||(i.tags||[]).some(t=>t.toLowerCase().includes(q)));
@@ -558,25 +604,61 @@ function render(){
   items = [...items].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   if(currentType==='agents'){
-    renderFlat(items);
+    renderFlatLocal(items);
   } else {
-    renderSections(items);
+    renderSectionsLocal(items);
   }
 
 }
 
-function renderFlat(items){
+function renderFlatLocal(items){
   const el = document.getElementById('content');
-  if(!items.length){ el.innerHTML = emptyHtml('Nothing found'); return; }
-  el.innerHTML = `<div class="grid">${items.map(i=>cardHtml(i, currentType==='mcps'?'mcp':'agent')).join('')}</div>`;
+  const typeSingular = currentType==='mcps'?'mcp':'agent';
+  let html = '';
+  if(items.length) html += `<div class="grid">${items.map(i=>cardHtml(i, typeSingular)).join('')}</div>`;
+  if(!html){ el.innerHTML = emptyHtml('Nothing found'); return; }
+  el.innerHTML = html;
 }
 
-function renderSections(items){
+function renderFlat(items){ renderFlatLocal(items); }
+
+function renderSectionsLocal(items){
   const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':'skill';
   const myItems = items.filter(i=>i.provider==='me');
   const othersItems = items.filter(i=>i.provider!=='me');
-  const html = '<div class="sections">' + sectionPersonal(myItems, typeSingular) + sectionOthers(othersItems, typeSingular) + '</div>';
+  let html = '<div class="sections">' + sectionPersonal(myItems, typeSingular) + sectionOthers(othersItems, typeSingular);
+  html += '</div>';
   document.getElementById('content').innerHTML = html;
+}
+
+function renderSections(items){ renderSectionsLocal(items); }
+
+function renderCloudItems(items){
+  const el = document.getElementById('content');
+  const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':'skill';
+  if (!items.length) { el.innerHTML = emptyHtml('No cloud items found'); return; }
+  // Group by gateway
+  const byGw = {};
+  for (const item of items) {
+    const gw = item._gatewayName || item._gatewayId || 'Remote';
+    if (!byGw[gw]) byGw[gw] = [];
+    byGw[gw].push(item);
+  }
+  let html = '<div class="sections">';
+  for (const [gwName, gwItems] of Object.entries(byGw)) {
+    html += `<div>
+      <div class="section-header">
+        <span class="section-title" style="color:rgba(139,92,246,0.8)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          ${esc(gwName)}
+        </span>
+        <span class="section-count">${gwItems.length}</span>
+      </div>
+      <div class="grid">${gwItems.map(i => remoteCardHtml(i, typeSingular)).join('')}</div>
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 function section(title, items, typeSingular, count, actionBtn=''){
@@ -894,6 +976,52 @@ async function doAddMcp(){
     document.getElementById('add-mcp-panel').classList.add('hidden');
     await loadItems();
   } catch(e){ toast(`Error: ${e.message}`,'error'); }
+}
+
+// ─── Remote Card ──────────────────────────────────────────────────
+function remoteCardHtml(item, typeSingular) {
+  const canInstall = ['skill','mcp','prompt'].includes(typeSingular);
+  const installBtn = canInstall
+    ? `<button class="btn btn-install" id="ri-${esc(item.id)}" onclick="installRemoteItem('${esc(item._gatewayId)}','${typeSingular}','${esc(item.id)}',this)">+ Install Locally</button>`
+    : '';
+  const tagsHtml = (item.tags||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+
+  return `<div class="card" style="border-color:rgba(139,92,246,0.15)" id="rcard-${esc(item.id)}">
+    <div class="card-top">
+      <div><div class="card-name">${esc(item.name)}</div><div class="card-provider" style="color:rgba(139,92,246,0.6)">${esc(item._gatewayName || 'remote')}</div></div>
+      <div class="card-badges">
+        <span class="badge" style="background:rgba(139,92,246,0.08);color:rgba(139,92,246,0.7);border:1px solid rgba(139,92,246,0.2)">remote</span>
+      </div>
+    </div>
+    <div class="card-desc">${esc(item.description||'')}</div>
+    <div class="card-meta">${tagsHtml}</div>
+    <div class="card-actions">${installBtn}</div>
+  </div>`;
+}
+
+async function installRemoteItem(gatewayId, type, itemId, btn) {
+  const origText = btn.textContent;
+  btn.textContent = 'Installing...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api/team-gateways/${gatewayId}/remote/library/${type}s/${itemId}/install`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok || data.installed) {
+      btn.textContent = 'Installed';
+      btn.className = 'btn btn-manage';
+      toast(`${type} "${itemId}" installed locally`, 'success');
+      // Reload local items
+      setTimeout(() => loadItems(), 1000);
+    } else {
+      btn.textContent = origText;
+      btn.disabled = false;
+      toast(data.error || data.note || 'Install failed', 'error');
+    }
+  } catch (err) {
+    btn.textContent = origText;
+    btn.disabled = false;
+    toast('Install failed: ' + err.message, 'error');
+  }
 }
 
 // ─── Card ─────────────────────────────────────────────────────────

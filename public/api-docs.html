@@ -834,7 +834,10 @@ function switchTab(tab) {
 
 // ═══ UTILS ═══════════════════════════════════════════════════════════
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function copyText(t) { navigator.clipboard.writeText(t).catch(() => {}); }
+function copyText(t) {
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).catch(()=>_fbCopy(t))}else{_fbCopy(t)}
+}
+function _fbCopy(t){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;left:-9999px';document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(a)}
 
 function setApiNav(id) {
   document.querySelectorAll('#apiNav a').forEach(a => { a.className = a.className.replace(/active-api/g,'').trim(); });
