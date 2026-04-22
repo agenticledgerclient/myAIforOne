@@ -278,6 +278,64 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 .btn-default-off{background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-dim);font-size:11px;padding:5px 10px;border-radius:7px;cursor:pointer;font-family:var(--font-mono);font-weight:600;transition:all .2s;white-space:nowrap}
 .btn-default-off:hover{border-color:rgba(251,191,36,0.4);color:var(--amber)}
 .card-platform-default{border-color:rgba(251,191,36,0.25)}
+/* Template preview overlay */
+.tmpl-preview-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:310;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.tmpl-preview-overlay.open{opacity:1;pointer-events:auto}
+.tmpl-preview-panel{
+  width:560px;max-width:95vw;max-height:85vh;overflow-y:auto;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:16px;box-shadow:0 16px 64px rgba(0,0,0,0.6);
+  padding:28px;
+}
+.tmpl-preview-close{
+  position:absolute;top:12px;right:16px;background:none;border:none;
+  color:var(--text-muted);font-size:18px;cursor:pointer;padding:4px 8px;
+  border-radius:6px;transition:all .15s;
+}
+.tmpl-preview-close:hover{color:var(--text-primary);background:var(--bg-input)}
+.tmpl-preview-actions{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-dim)}
+.tmpl-preview-actions .btn{flex:1}
+/* Resume styles (shared with org) */
+.template-resume-header{padding:0 0 16px;border:none}
+.template-resume-header-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:12px}
+.template-resume-name{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1.2}
+.template-resume-role{font-family:var(--font-sans);font-size:12px;color:var(--text-secondary);margin-top:2px}
+.template-resume-class{
+  font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;
+  color:var(--accent);margin-top:4px;opacity:0.7;
+}
+.template-resume-desc{font-family:var(--font-sans);font-size:13px;color:var(--text-secondary);line-height:1.6;font-style:italic}
+.template-resume-section{padding-top:20px}
+.template-resume-section-title{
+  font-family:var(--font-sans);font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:0.5px;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:10px;
+}
+.template-resume-section-title::after{content:'';flex:1;height:1px;background:var(--border-dim)}
+.template-resume-capabilities{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.template-resume-capabilities li{
+  font-family:var(--font-sans);font-size:12px;color:var(--text-secondary);line-height:1.5;
+  display:flex;align-items:flex-start;gap:8px;
+}
+.template-resume-capabilities li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px}
+.template-resume-tags{display:flex;flex-wrap:wrap;gap:6px}
+.template-resume-tag{
+  font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:6px;
+  background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.15);
+}
+.template-resume-tag.mcp{background:rgba(139,92,246,0.1);color:var(--purple);border-color:rgba(139,92,246,0.2)}
+.template-resume-empty{font-family:var(--font-sans);font-size:11px;color:var(--text-muted);font-style:italic}
+.card-avatar{
+  width:48px;height:48px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;
+  border:1px solid;overflow:hidden;
+}
+.card-avatar img{width:100%;height:100%;object-fit:cover}
 </style>
 </head>
 <body>
@@ -365,6 +423,7 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
       <button class="type-tab" data-type="skills" onclick="switchType('skills')">Skills</button>
       <button class="type-tab" data-type="mcps" onclick="switchType('mcps')">MCPs</button>
       <button class="type-tab" data-type="prompts" onclick="switchType('prompts')">Prompts</button>
+      <button class="type-tab" data-type="templates" onclick="switchType('templates')">Agent Templates</button>
     </div>
     <div class="type-tabs" id="sourceTabs" style="display:none">
       <button class="type-tab active" data-source="local" onclick="switchSource('local')">Local</button>
@@ -526,11 +585,16 @@ function switchSource(src){
 async function loadItems(){
   document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)">Loading…</div>';
   try{
-    const d = await (await fetch(`/api/marketplace/${currentType}?source=personal`)).json();
-    allItems = (d.items||[]);
+    if (currentType === 'templates') {
+      const d = await (await fetch('/api/templates')).json();
+      allItems = (d.templates||[]);
+    } else {
+      const d = await (await fetch(`/api/marketplace/${currentType}?source=personal`)).json();
+      allItems = (d.items||[]);
+    }
     // Load remote items from team gateways (non-blocking)
     remoteItems = [];
-    if (['skills','mcps','prompts','apps'].includes(currentType)) {
+    if (['skills','mcps','prompts','apps','templates'].includes(currentType)) {
       loadRemoteLibrary();
     }
     buildPills();
@@ -558,13 +622,18 @@ async function loadRemoteLibrary() {
 
 // ─── Category pills ───────────────────────────────────────────────
 function buildPills(){
-  const cats = [...new Set(allItems.map(i=>i.category).filter(Boolean))].sort();
+  let cats;
+  if (currentType === 'templates') {
+    cats = [...new Set(allItems.flatMap(i=>(i.categories||[])))].sort();
+  } else {
+    cats = [...new Set(allItems.map(i=>i.category).filter(Boolean))].sort();
+  }
   const el = document.getElementById('filter-pills');
   el.innerHTML = '';
   const all = mkPill('all', true); el.appendChild(all);
   cats.forEach(c=>el.appendChild(mkPill(c, false)));
   // Platform Defaults pill (skills and MCPs only)
-  if(currentType !== 'agents' && currentType !== 'apps'){
+  if(currentType !== 'agents' && currentType !== 'apps' && currentType !== 'templates'){
     const pd = document.createElement('button');
     pd.id = 'pill-platform-defaults';
     pd.className = 'pill pill-platform' + (showPlatformDefaultsOnly ? ' active' : '');
@@ -598,13 +667,18 @@ function render(){
   }
 
   let items = allItems;
-  if(activeCategory!=='all') items = items.filter(i=>i.category===activeCategory);
-  if(q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q)||(i.tags||[]).some(t=>t.toLowerCase().includes(q)));
+  if(activeCategory!=='all'){
+    if(currentType==='templates') items = items.filter(i=>(i.categories||[]).includes(activeCategory));
+    else items = items.filter(i=>i.category===activeCategory);
+  }
+  if(q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q)||(i.tags||[]).some(t=>t.toLowerCase().includes(q))||(i.categories||[]).some(c=>c.toLowerCase().includes(q)));
   if(showPlatformDefaultsOnly) items = items.filter(i=>i.isPlatformDefault);
   items = [...items].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   if(currentType==='agents'){
     renderFlatLocal(items);
+  } else if(currentType==='templates'){
+    renderTemplateSections(items);
   } else {
     renderSectionsLocal(items);
   }
@@ -623,7 +697,7 @@ function renderFlatLocal(items){
 function renderFlat(items){ renderFlatLocal(items); }
 
 function renderSectionsLocal(items){
-  const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':'skill';
+  const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':currentType==='templates'?'template':'skill';
   const myItems = items.filter(i=>i.provider==='me');
   const othersItems = items.filter(i=>i.provider!=='me');
   let html = '<div class="sections">' + sectionPersonal(myItems, typeSingular) + sectionOthers(othersItems, typeSingular);
@@ -635,7 +709,7 @@ function renderSections(items){ renderSectionsLocal(items); }
 
 function renderCloudItems(items){
   const el = document.getElementById('content');
-  const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':'skill';
+  const typeSingular = currentType==='mcps'?'mcp':currentType==='prompts'?'prompt':currentType==='apps'?'app':currentType==='templates'?'template':'skill';
   if (!items.length) { el.innerHTML = emptyHtml('No cloud items found'); return; }
   // Group by gateway
   const byGw = {};
@@ -654,7 +728,7 @@ function renderCloudItems(items){
         </span>
         <span class="section-count">${gwItems.length}</span>
       </div>
-      <div class="grid">${gwItems.map(i => remoteCardHtml(i, typeSingular)).join('')}</div>
+      <div class="grid">${gwItems.map(i => typeSingular==='template' ? remoteTemplateCardHtml(i) : remoteCardHtml(i, typeSingular)).join('')}</div>
     </div>`;
   }
   html += '</div>';
@@ -753,6 +827,241 @@ function sectionOthers(items, typeSingular){
 }
 
 // ─── Scan panel (skills) ──────────────────────────────────────────
+// ─── Template sections ───────────────────────────────────────────
+function renderTemplateSections(items){
+  const myItems = items.filter(i=>i.source==='user');
+  const builtinItems = items.filter(i=>i.source==='builtin');
+  const serverMode = !!window._ma1ServerMode;
+  const actionBtn = serverMode ? '' : addSplitBtn('template','Template',[
+    ['Save Agent as Template', "openSaveAsTemplate()"],
+    ['AI Build', "window.location='/lab?build=template'", true]]);
+  const emptyMsg = serverMode
+    ? 'Ask the hub agent to save an agent as a template.'
+    : 'Save any agent as a reusable template from the Agents page.';
+  let html = '<div class="sections">';
+  html += '<div>'
+    + '<div class="section-header">'
+    + '<span class="section-title">Built by Me \u2014 Agent Templates</span>'
+    + '<span class="section-count">' + myItems.length + '</span>'
+    + actionBtn
+    + '</div>'
+    + (myItems.length
+      ? '<div class="grid">' + myItems.map(i=>templateCardHtml(i)).join('') + '</div>'
+      : '<div class="empty-state"><div class="empty-icon">\u25CE</div><div class="empty-title">None yet</div><div class="empty-sub">' + emptyMsg + '</div></div>')
+    + '</div>';
+  if(builtinItems.length){
+    html += '<div>'
+      + '<div class="section-header">'
+      + '<span class="section-title">Built by Platform \u2014 Agent Templates</span>'
+      + '<span class="section-count">' + builtinItems.length + '</span>'
+      + '</div>'
+      + '<div class="grid">' + builtinItems.map(i=>templateCardHtml(i)).join('') + '</div>'
+      + '</div>';
+  }
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function templateCardHtml(item){
+  const sourceBadge = item.source==='user'
+    ? '<span class="badge badge-personal">built by me</span>'
+    : '<span class="badge badge-verified">\u2713 built-in</span>';
+  const catTags = (item.categories||[]).map(c=>'<span class="tag">'+esc(c)+'</span>').join('');
+  const capList = (item.capabilities||[]).slice(0,2).map(c=>'<span class="tag" style="background:var(--green-bg);color:var(--green);border-color:rgba(74,222,128,0.2)">'+esc(c.length>40?c.slice(0,38)+'\u2026':c)+'</span>').join('');
+
+  const previewBtn = '<button class="btn btn-install" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-secondary)" onclick=\'previewTemplate("'+esc(item.id)+'")\'>Preview</button>';
+  const deployBtn = '<button class="btn btn-install" onclick=\'deployTemplate("'+esc(item.id)+'")\'>Deploy \u2192</button>';
+  const editBtn = item.source==='user' ? '<button class="btn-icon" onclick=\'editTemplate("'+esc(item.id)+'")\' title="Edit">\u270E</button>' : '';
+  const deleteBtn = item.source==='user' ? '<button class="btn-icon danger" onclick=\'deleteTemplate("'+esc(item.id)+'","'+esc(item.name)+'")\' title="Delete">\u2715</button>' : '';
+
+  return '<div class="card" id="card-'+esc(item.id)+'">'
+    + '<div class="card-top">'
+    + '<div><div class="card-name">'+esc(item.name)+'</div><div class="card-provider">'+esc(item.agentClass||'')+'</div></div>'
+    + '<div class="card-badges">'+sourceBadge+'</div>'
+    + '</div>'
+    + '<div class="card-desc">'+esc(item.description||'')+'</div>'
+    + '<div class="card-meta">'+catTags+capList+'</div>'
+    + '<div class="card-actions">'+previewBtn+deployBtn+editBtn+deleteBtn+'</div>'
+    + '</div>';
+}
+
+function remoteTemplateCardHtml(item){
+  const tagsHtml = (item.categories||[]).map(c=>'<span class="tag">'+esc(c)+'</span>').join('');
+  const deployBtn = '<button class="btn btn-install" onclick=\'installRemoteTemplate("'+esc(item._gatewayId)+'","'+esc(item.id)+'",this)\'>\u2193 Import</button>';
+  return '<div class="card">'
+    + '<div class="card-top">'
+    + '<div><div class="card-name">'+esc(item.name)+'</div><div class="card-provider" style="color:rgba(139,92,246,0.6)">'+esc(item._gatewayName||'remote')+'</div></div>'
+    + '<div class="card-badges"><span class="badge" style="background:rgba(139,92,246,0.08);color:rgba(139,92,246,0.7);border:1px solid rgba(139,92,246,0.2)">remote</span></div>'
+    + '</div>'
+    + '<div class="card-desc">'+esc(item.description||'')+'</div>'
+    + '<div class="card-meta">'+tagsHtml+'</div>'
+    + '<div class="card-actions">'+deployBtn+'</div>'
+    + '</div>';
+}
+
+function deployTemplate(id){
+  window.location = '/org?deploy-template=' + encodeURIComponent(id);
+}
+
+function previewTemplate(id){
+  const item = allItems.find(i=>i.id===id);
+  if(!item) return;
+
+  let overlay = document.getElementById('tmplPreviewOverlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'tmplPreviewOverlay';
+    overlay.className = 'tmpl-preview-overlay';
+    overlay.onclick = function(e){ if(e.target===overlay) closeTemplatePreview(); };
+    document.body.appendChild(overlay);
+  }
+
+  const resumeHtml = buildTemplateResumeHtml(item);
+  overlay.innerHTML = '<div class="tmpl-preview-panel" style="position:relative">'
+    + '<button class="tmpl-preview-close" onclick="closeTemplatePreview()">\u2715</button>'
+    + resumeHtml
+    + '<div class="tmpl-preview-actions">'
+    + '<button class="btn btn-install" onclick="closeTemplatePreview();deployTemplate(\''+esc(id)+'\')">Deploy \u2192</button>'
+    + '</div>'
+    + '</div>';
+  overlay.classList.add('open');
+}
+
+function closeTemplatePreview(){
+  const overlay = document.getElementById('tmplPreviewOverlay');
+  if(overlay) overlay.classList.remove('open');
+}
+
+function buildTemplateResumeHtml(t){
+  const initials = (t.name||'T').slice(0,2).toUpperCase();
+  const iconId = t.icon;
+  let avatarHtml;
+  if(iconId && iconId.startsWith('avatar-')){
+    avatarHtml = '<div class="card-avatar" style="width:48px;height:48px;border-radius:14px;background:var(--purple-bg);border-color:var(--purple)"><img src="/avatars/'+esc(iconId)+'.png" alt="'+esc(t.name)+'"></div>';
+  } else {
+    avatarHtml = '<div class="card-avatar" style="width:48px;height:48px;font-size:16px;border-radius:14px;background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">'+initials+'</div>';
+  }
+  const roleTitle = (t.org&&t.org.title)||'';
+  const roleFunction = (t.org&&t.org.function)||'';
+  const roleLine = [roleTitle,roleFunction].filter(Boolean).join(' \u00B7 ');
+
+  const caps = t.capabilities||[];
+  const capsHtml = caps.length
+    ? '<ul class="template-resume-capabilities">'+caps.map(function(c){return '<li>'+esc(c)+'</li>';}).join('')+'</ul>'
+    : '<div class="template-resume-empty">No capabilities listed</div>';
+
+  const tools = t.suggestedTools||[];
+  const skillsHtml = tools.map(function(s){return '<span class="template-resume-tag">'+esc(s)+'</span>';}).join('');
+
+  const mcps = t.suggestedMcps||[];
+  const mcpsHtml = mcps.length
+    ? mcps.map(function(m){return '<span class="template-resume-tag mcp">'+esc(m)+'</span>';}).join('')
+    : '<span class="template-resume-empty">Works standalone \u2014 no integrations required</span>';
+
+  return '<div class="template-resume-header">'
+    + '<div class="template-resume-header-top">'
+    + avatarHtml
+    + '<div>'
+    + '<div class="template-resume-name">'+esc(t.name)+'</div>'
+    + (roleLine ? '<div class="template-resume-role">'+esc(roleLine)+'</div>' : '')
+    + '<div class="template-resume-class">'+esc(t.agentClass||'standard')+' agent</div>'
+    + '</div></div>'
+    + '<div class="template-resume-desc" style="margin-top:12px">\u201C'+esc(t.description||'')+'\u201D</div>'
+    + '</div>'
+    + '<div class="template-resume-section">'
+    + '<div class="template-resume-section-title">Training & Experience</div>'
+    + capsHtml
+    + '</div>'
+    + (skillsHtml ? '<div class="template-resume-section"><div class="template-resume-section-title">Skills</div><div class="template-resume-tags">'+skillsHtml+'</div></div>' : '')
+    + '<div class="template-resume-section">'
+    + '<div class="template-resume-section-title">Tools & Integrations</div>'
+    + '<div class="template-resume-tags">'+mcpsHtml+'</div>'
+    + '</div>';
+}
+
+async function editTemplate(id){
+  try{
+    const res = await fetch('/api/templates/' + encodeURIComponent(id));
+    if(!res.ok) throw new Error('Not found');
+    const tmpl = await res.json();
+    openTemplateEditModal(tmpl);
+  } catch(e){ toast('Error: '+e.message,'error'); }
+}
+
+async function deleteTemplate(id, name){
+  if(!confirm('Delete template "'+name+'"? This cannot be undone.')) return;
+  try{
+    const res = await fetch('/api/templates/'+encodeURIComponent(id),{method:'DELETE'});
+    if(!res.ok){ const d = await res.json(); throw new Error(d.error||'Delete failed'); }
+    toast('Template deleted','success');
+    await loadItems();
+  } catch(e){ toast('Error: '+e.message,'error'); }
+}
+
+async function installRemoteTemplate(gwId, id, btn){
+  const origText = btn.textContent;
+  btn.textContent = 'Importing\u2026'; btn.disabled = true;
+  try{
+    const res = await fetch('/api/team-gateways/'+gwId+'/remote/library/templates/'+encodeURIComponent(id)+'/install',{method:'POST'});
+    const data = await res.json();
+    if(data.ok||data.installed){
+      btn.textContent = 'Imported'; btn.className = 'btn btn-manage';
+      toast('Template "'+id+'" imported locally','success');
+      setTimeout(function(){ loadItems(); },1000);
+    } else {
+      btn.textContent = origText; btn.disabled = false;
+      toast(data.error||'Import failed','error');
+    }
+  } catch(err){
+    btn.textContent = origText; btn.disabled = false;
+    toast('Import failed: '+err.message,'error');
+  }
+}
+
+function openSaveAsTemplate(){
+  window.location = '/org?action=save-as-template';
+}
+
+function openTemplateEditModal(tmpl){
+  var prev = document.getElementById('tmpl-edit-overlay');
+  if(prev) prev.remove();
+  var cats = (tmpl.categories||[]).join(', ');
+  var html = '<div class="modal-overlay" id="tmpl-edit-overlay" style="opacity:1;pointer-events:auto">'
+    + '<div class="modal" style="max-width:520px;width:90%">'
+    + '<div class="modal-title">Edit Template</div>'
+    + '<div style="display:flex;flex-direction:column;gap:10px;margin:12px 0">'
+    + '<div><div class="panel-label">Name</div><input class="panel-input" id="tmpl-edit-name" value="'+esc(tmpl.name||'')+'" style="width:100%"></div>'
+    + '<div><div class="panel-label">Description</div><textarea class="panel-input" id="tmpl-edit-desc" style="width:100%;height:60px;resize:vertical">'+esc(tmpl.description||'')+'</textarea></div>'
+    + '<div><div class="panel-label">Categories <span style="font-size:9px;color:var(--text-muted)">(comma-separated)</span></div><input class="panel-input" id="tmpl-edit-cats" value="'+esc(cats)+'" style="width:100%"></div>'
+    + '<div><div class="panel-label">System Prompt</div><textarea class="panel-input" id="tmpl-edit-sysprompt" style="width:100%;height:100px;resize:vertical;font-family:var(--font-mono);font-size:11px">'+esc(tmpl.systemPrompt||'')+'</textarea></div>'
+    + '</div>'
+    + '<div class="modal-actions">'
+    + '<button class="modal-btn modal-btn-primary" onclick="doSaveTemplate(\''+esc(tmpl.id)+'\')">Save</button>'
+    + '<button class="modal-btn modal-btn-secondary" onclick="closeTmplEditModal()">Cancel</button>'
+    + '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function closeTmplEditModal(){
+  var el = document.getElementById('tmpl-edit-overlay');
+  if(el) el.remove();
+}
+
+async function doSaveTemplate(id){
+  var name = document.getElementById('tmpl-edit-name').value.trim();
+  var description = document.getElementById('tmpl-edit-desc').value.trim();
+  var categories = document.getElementById('tmpl-edit-cats').value.split(',').map(function(c){return c.trim()}).filter(Boolean);
+  var systemPrompt = document.getElementById('tmpl-edit-sysprompt').value.trim();
+  if(!name){ toast('Name is required','error'); return; }
+  try{
+    var res = await fetch('/api/templates/'+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,description:description,categories:categories,systemPrompt:systemPrompt})});
+    if(!res.ok){ var d = await res.json(); throw new Error(d.error||'Update failed'); }
+    toast('Template updated','success');
+    closeTmplEditModal();
+    await loadItems();
+  } catch(e){ toast('Error: '+e.message,'error'); }
+}
+
 function scanPanelHtml(){
   return `
   <div class="panel hidden" id="scan-panel">

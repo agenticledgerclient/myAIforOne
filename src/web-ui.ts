@@ -16,7 +16,7 @@ import { createGymRouter } from "./gym/gym-router.js";
 import { startActivityDigest } from "./gym/activity-digest.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
-import { isSharedAgentsAllowed } from "./license.js";
+import { isSharedAgentsAllowed, filterTemplatesByLicense, isTemplateAccessible, getTemplateAccess } from "./license.js";
 
 interface WebUIOptions {
   config: AppConfig;
@@ -624,15 +624,17 @@ export function startWebUI(opts: WebUIOptions): void {
   // IMPORTANT: Must be registered BEFORE /:id
   app.get("/api/team-gateways/all-remote-library/:type", async (req, res) => {
     const { type } = req.params;
-    const validTypes = ["skills", "mcps", "prompts", "apps"];
+    const validTypes = ["skills", "mcps", "prompts", "apps", "templates"];
     if (!validTypes.includes(type)) return res.status(400).json({ error: `Invalid type` });
     const gws = getTeamGateways().filter(g => g.lastStatus === "ok");
     const results = await Promise.allSettled(
       gws.map(async gw => {
-        const r = await gatewayFetch(gw.id, `/api/marketplace/${type}?source=personal`);
+        // Templates use /api/templates, everything else uses /api/marketplace/{type}
+        const endpoint = type === "templates" ? `/api/templates` : `/api/marketplace/${type}?source=personal`;
+        const r = await gatewayFetch(gw.id, endpoint);
         if (!r.ok) return [];
         const data = await r.json() as any;
-        return (data.items || data.skills || data.mcps || data.prompts || data.apps || []).map((item: any) => ({
+        return (data.templates || data.items || data.skills || data.mcps || data.prompts || data.apps || []).map((item: any) => ({
           ...item,
           _remote: true,
           _gatewayId: gw.id,
@@ -957,15 +959,17 @@ export function startWebUI(opts: WebUIOptions): void {
   // type: skills | mcps | prompts | apps
   app.get("/api/team-gateways/:id/remote/library/:type", async (req, res) => {
     const { id: gwId, type } = req.params;
-    const validTypes = ["skills", "mcps", "prompts", "apps", "agents"];
+    const validTypes = ["skills", "mcps", "prompts", "apps", "agents", "templates"];
     if (!validTypes.includes(type)) return res.status(400).json({ error: `Invalid type. Must be one of: ${validTypes.join(", ")}` });
     try {
-      const r = await gatewayFetch(gwId, `/api/marketplace/${type}?source=personal`);
+      // Templates use /api/templates, everything else uses /api/marketplace/{type}
+      const endpoint = type === "templates" ? `/api/templates` : `/api/marketplace/${type}?source=personal`;
+      const r = await gatewayFetch(gwId, endpoint);
       if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
       const data = await r.json() as any;
       const gw = getTeamGateways().find(g => g.id === gwId);
       // Tag each item with gateway info
-      const items = (data.items || data.skills || data.mcps || data.prompts || data.apps || []).map((item: any) => ({
+      const items = (data.templates || data.items || data.skills || data.mcps || data.prompts || data.apps || []).map((item: any) => ({
         ...item,
         _remote: true,
         _gatewayId: gwId,
@@ -980,8 +984,8 @@ export function startWebUI(opts: WebUIOptions): void {
   // POST /api/team-gateways/:id/remote/library/:type/:itemId/install — download + install locally
   app.post("/api/team-gateways/:id/remote/library/:type/:itemId/install", async (req, res) => {
     const { id: gwId, type, itemId } = req.params;
-    const validTypes = ["skills", "mcps", "prompts"];
-    if (!validTypes.includes(type)) return res.status(400).json({ error: `Can only install skills, mcps, or prompts` });
+    const validTypes = ["skills", "mcps", "prompts", "templates"];
+    if (!validTypes.includes(type)) return res.status(400).json({ error: `Can only install skills, mcps, prompts, or templates` });
 
     try {
       // Fetch the item detail from remote
@@ -1038,6 +1042,18 @@ export function startWebUI(opts: WebUIOptions): void {
         itemMeta = items.find((i: any) => i.id === itemId);
         if (!itemMeta) return res.status(404).json({ error: "Item not found on remote" });
         return res.json({ ok: true, type, id: itemId, meta: itemMeta, note: "MCP metadata retrieved. Configure the connection locally." });
+      }
+
+      // Templates — fetch from remote /api/templates/:id and save to user templates dir
+      if (type === "templates") {
+        const r = await gatewayFetch(gwId, `/api/templates/${encodeURIComponent(itemId)}`);
+        if (!r.ok) return res.status(r.status).json({ error: `Remote returned ${r.status}` });
+        const tmplData = await r.json() as any;
+        // Strip source field — it will be "user" when saved locally
+        delete tmplData.source;
+        mkdirSync(userTemplatesDir, { recursive: true });
+        writeFileSync(join(userTemplatesDir, `${itemId}.json`), JSON.stringify(tmplData, null, 2));
+        return res.json({ ok: true, type, id: itemId, installed: true });
       }
 
       return res.status(400).json({ error: "Unsupported install type" });
@@ -1939,6 +1955,7 @@ export function startWebUI(opts: WebUIOptions): void {
         agentClass: agent.agentClass || (agent.platformAgent ? "platform" : "standard"),
         taskCounts,
         subAgents: agent.subAgents || null,
+        avatar: (agent as any).avatar || null,
       };
     });
 
@@ -3479,7 +3496,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, shared, conversationLogMode } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, shared, conversationLogMode, avatar } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -3501,6 +3518,7 @@ export function startWebUI(opts: WebUIOptions): void {
       wikiSync?: { enabled?: boolean; schedule?: string };
       shared?: boolean;
       conversationLogMode?: "shared" | "per-user";
+      avatar?: string;
     };
 
     if (!agentId || !name || !alias) {
@@ -3596,6 +3614,18 @@ export function startWebUI(opts: WebUIOptions): void {
       if (shared) agentConfig.shared = true;
       if (conversationLogMode) agentConfig.conversationLogMode = conversationLogMode;
 
+      // Avatar — use provided, or auto-assign a random unused one
+      const usedAvatars = new Set(Object.values(opts.config.agents).map((a: any) => a.avatar).filter(Boolean));
+      if (avatar) {
+        agentConfig.avatar = avatar;
+      } else {
+        const allAvatarIds = Array.from({ length: 80 }, (_, i) => `avatar-${String(i + 1).padStart(2, "0")}`);
+        const unused = allAvatarIds.filter(id => !usedAvatars.has(id));
+        if (unused.length > 0) {
+          agentConfig.avatar = unused[Math.floor(Math.random() * unused.length)];
+        }
+      }
+
       // Build routes
       agentConfig.routes = (routes || []).map(r => ({
         channel: r.channel,
@@ -3655,7 +3685,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, conversationLogMode } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, conversationLogMode, avatar } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -3676,6 +3706,7 @@ export function startWebUI(opts: WebUIOptions): void {
       wiki?: boolean;
       wikiSync?: { enabled?: boolean; schedule?: string };
       conversationLogMode?: "shared" | "per-user";
+      avatar?: string;
     };
 
     if (!name || !alias) {
@@ -3723,6 +3754,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (wiki !== undefined) existing.wiki = wiki;
       if (wikiSync !== undefined) existing.wikiSync = wikiSync ? { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" } : undefined;
       if (conversationLogMode !== undefined) existing.conversationLogMode = conversationLogMode;
+      if (avatar !== undefined) existing.avatar = avatar || undefined;
       // Note: `shared` and `agentHome` cannot be changed after creation to prevent orphaning data.
 
       // Build routes if provided
@@ -4158,6 +4190,510 @@ export function startWebUI(opts: WebUIOptions): void {
       res.json({ ok: true });
     } catch (err) {
       log.error(`Failed to delete MCP connection: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Agent Templates ──────────────────────────────────────
+
+  const builtinTemplatesDir = resolve(opts.baseDir, "agents", "templates");
+  const _paDir = getPersonalAgentsDir(opts.config);
+  const userTemplatesDir = resolve(_paDir.startsWith("~") ? _paDir.replace("~", homedir()) : _paDir, "templates");
+
+  /** Load all templates from a directory (each .json file = one template) */
+  function loadTemplatesFrom(dir: string, source: "builtin" | "user"): any[] {
+    if (!existsSync(dir)) return [];
+    const templates: any[] = [];
+    try {
+      for (const file of readdirSync(dir)) {
+        if (!file.endsWith(".json")) continue;
+        try {
+          const data = JSON.parse(readFileSync(join(dir, file), "utf-8"));
+          templates.push({ ...data, source });
+        } catch { /* skip malformed */ }
+      }
+    } catch { /* dir unreadable */ }
+    return templates;
+  }
+
+  // GET /api/templates — list all templates (builtin + user), filtered by license
+  app.get("/api/templates", (_req, res) => {
+    const access = getTemplateAccess();
+    if (!access.allowed) return res.json({ templates: [] });
+
+    const category = _req.query.category as string | undefined;
+    const builtin = loadTemplatesFrom(builtinTemplatesDir, "builtin");
+    const user = loadTemplatesFrom(userTemplatesDir, "user");
+    let all = filterTemplatesByLicense([...builtin, ...user]);
+    if (category) {
+      all = all.filter((t: any) => t.categories && t.categories.includes(category));
+    }
+    res.json({ templates: all });
+  });
+
+  // GET /api/templates/:id — get a single template (license-gated)
+  app.get("/api/templates/:id", (req, res) => {
+    const id = req.params.id;
+    const builtin = loadTemplatesFrom(builtinTemplatesDir, "builtin");
+    const user = loadTemplatesFrom(userTemplatesDir, "user");
+    const all = [...builtin, ...user];
+    const tmpl = all.find((t: any) => t.id === id);
+    if (!tmpl) return res.status(404).json({ error: `Template "${id}" not found` });
+    if (!isTemplateAccessible(tmpl.id, tmpl.categories, tmpl.source)) {
+      return res.status(403).json({ error: "Your license does not include access to this template" });
+    }
+    res.json(tmpl);
+  });
+
+  // POST /api/templates — create a user template
+  app.post("/api/templates", (req, res) => {
+    const { id, name, description, categories } = req.body as any;
+    if (!id || !name || !description || !categories) {
+      return res.status(400).json({ error: "Missing required fields: id, name, description, categories" });
+    }
+    if (!/^[a-z0-9-]+$/.test(id)) {
+      return res.status(400).json({ error: "Template id must be lowercase alphanumeric with hyphens" });
+    }
+    // Check for duplicate across builtin + user
+    const existing = [
+      ...loadTemplatesFrom(builtinTemplatesDir, "builtin"),
+      ...loadTemplatesFrom(userTemplatesDir, "user"),
+    ].find((t: any) => t.id === id);
+    if (existing) {
+      return res.status(409).json({ error: `Template "${id}" already exists` });
+    }
+    try {
+      mkdirSync(userTemplatesDir, { recursive: true });
+      const template = { ...req.body, source: undefined }; // strip source if sent
+      delete template.source;
+      writeFileSync(join(userTemplatesDir, `${id}.json`), JSON.stringify(template, null, 2));
+      res.json({ ok: true, template: { ...template, source: "user" } });
+    } catch (err) {
+      log.error(`Failed to create template: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // PUT /api/templates/:id — update a user template
+  app.put("/api/templates/:id", (req, res) => {
+    const id = req.params.id;
+    const filePath = join(userTemplatesDir, `${id}.json`);
+    if (!existsSync(filePath)) {
+      // Check if it's a builtin
+      const builtinPath = join(builtinTemplatesDir, `${id}.json`);
+      if (existsSync(builtinPath)) {
+        return res.status(403).json({ error: "Cannot update a built-in template. Save it as a new user template instead." });
+      }
+      return res.status(404).json({ error: `Template "${id}" not found` });
+    }
+    try {
+      const existing = JSON.parse(readFileSync(filePath, "utf-8"));
+      const updated = { ...existing, ...req.body, id }; // id is immutable
+      delete updated.source;
+      writeFileSync(filePath, JSON.stringify(updated, null, 2));
+      res.json({ ok: true, template: { ...updated, source: "user" } });
+    } catch (err) {
+      log.error(`Failed to update template: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // DELETE /api/templates/:id — delete a user template
+  app.delete("/api/templates/:id", (req, res) => {
+    const id = req.params.id;
+    const filePath = join(userTemplatesDir, `${id}.json`);
+    if (!existsSync(filePath)) {
+      const builtinPath = join(builtinTemplatesDir, `${id}.json`);
+      if (existsSync(builtinPath)) {
+        return res.status(403).json({ error: "Cannot delete a built-in template." });
+      }
+      return res.status(404).json({ error: `Template "${id}" not found` });
+    }
+    try {
+      unlinkSync(filePath);
+      res.json({ ok: true });
+    } catch (err) {
+      log.error(`Failed to delete template: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/templates/:id/personalize — AI-assisted template personalization (license-gated)
+  // Takes template seed data + user customization notes, returns personalized agent config
+  app.post("/api/templates/:id/personalize", async (req, res) => {
+    const templateId = req.params.id;
+    const builtin = loadTemplatesFrom(builtinTemplatesDir, "builtin");
+    const userT = loadTemplatesFrom(userTemplatesDir, "user");
+    const template = [...builtin, ...userT].find((t: any) => t.id === templateId);
+    if (!template) return res.status(404).json({ error: `Template "${templateId}" not found` });
+    if (!isTemplateAccessible(template.id, template.categories, template.source)) {
+      return res.status(403).json({ error: "Your license does not include access to this template" });
+    }
+
+    const { userNotes, agentName, agentAlias } = req.body as {
+      userNotes: string; agentName?: string; agentAlias?: string;
+    };
+    if (!userNotes || !userNotes.trim()) {
+      return res.status(400).json({ error: "userNotes is required" });
+    }
+
+    const displayName = agentName || template.name;
+    const alias = agentAlias || `@${templateId.replace(/-/g, '')}`;
+
+    const prompt = `You are an expert AI agent architect. A user wants to hire an agent from a template. Your job is to personalize the agent's configuration based on the template's seed data and the user's specific needs.
+
+TEMPLATE DATA:
+Name: ${template.name}
+Description: ${template.description}
+Role: ${template.org?.title || 'General Agent'} — ${template.org?.function || 'General'}
+Agent Class: ${template.agentClass || 'standard'}
+
+TEMPLATE SYSTEM PROMPT:
+${template.systemPrompt || ''}
+
+TEMPLATE SEED INSTRUCTIONS:
+${template.seedInstructions || '(none)'}
+
+TEMPLATE SEED CONTEXT:
+${template.seedContext || '(none)'}
+
+TEMPLATE CAPABILITIES:
+${(template.capabilities || []).map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}
+
+TEMPLATE SUGGESTED TOOLS: ${(template.suggestedTools || []).join(', ')}
+TEMPLATE SUGGESTED MCPS: ${(template.suggestedMcps || []).join(', ') || '(none)'}
+
+TEMPLATE SEED GOALS:
+${(template.seedGoals || []).map((g: any) => `- ${g.id}: ${g.description} (${g.heartbeat})`).join('\n') || '(none)'}
+
+USER'S DISPLAY NAME FOR AGENT: ${displayName}
+USER'S ALIAS FOR AGENT: ${alias}
+
+USER'S CUSTOMIZATION NOTES:
+${userNotes}
+
+---
+
+Based on the template and the user's notes, generate a PERSONALIZED agent configuration. Adapt everything to the user's specific context while keeping the template's core competencies.
+
+Return ONLY a JSON object (no markdown, no code fences) with these fields:
+{
+  "name": "Personalized display name (keep short)",
+  "description": "One-line description personalized to the user's context",
+  "capabilities": ["5-6 bullet points personalized to the user's specific use case"],
+  "claudeMd": "Full CLAUDE.md content — start with # Name, include the personalized system prompt, identity section with the alias, personalized guidelines, and any workflow instructions adapted to the user's needs",
+  "contextMd": "Full context.md content — personalized getting-started guide based on what the user told you",
+  "goals": [{"id": "kebab-case-id", "description": "Personalized goal description", "heartbeat": "cron expression"}]
+}
+
+Rules:
+- Personalize capabilities to the user's specific industry/role/use case
+- Adapt the CLAUDE.md instructions to reference the user's specific tools, workflow, and context
+- Keep the context.md actionable — reference what the user told you
+- Adjust goals to match the user's rhythm (e.g., weekly for a small business vs. daily for high volume)
+- If the user mentions specific tools/integrations, note them even if they're not in the template
+- Keep the tone professional but approachable
+- The claudeMd should include ## Identity with the alias ${alias}`;
+
+    try {
+      // Resolve claude binary
+      let claudeBin = "claude";
+      try {
+        claudeBin = execSync("which claude", { encoding: "utf-8" }).trim().split("\n")[0].trim();
+      } catch { /* fallback to "claude" */ }
+
+      const result = await new Promise<string>((resolveP, rejectP) => {
+        const env = { ...process.env };
+        delete env.CLAUDECODE;
+        delete env.CLAUDE_CODE_ENTRYPOINT;
+
+        const proc = cpSpawn(claudeBin, ["-p", prompt, "--output-format", "text"], {
+          cwd: homedir(),
+          stdio: ["pipe", "pipe", "pipe"],
+          env,
+          windowsHide: true,
+        });
+
+        let stdout = "";
+        let stderr = "";
+        proc.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
+        proc.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+
+        const timer = setTimeout(() => {
+          proc.kill("SIGTERM");
+          rejectP(new Error("Personalization timed out (60s)"));
+        }, 60000);
+
+        proc.on("close", (code) => {
+          clearTimeout(timer);
+          if (code !== 0) {
+            log.warn(`[Templates] personalize claude -p failed: code=${code} stderr=${stderr.slice(0, 300)}`);
+            rejectP(new Error(`AI personalization failed (exit ${code})`));
+          } else {
+            resolveP(stdout);
+          }
+        });
+      });
+
+      // Parse the JSON response — handle potential markdown fences
+      let cleaned = result.trim();
+      if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+      }
+      const parsed = JSON.parse(cleaned);
+
+      // Validate required fields
+      const personalized = {
+        name: parsed.name || displayName,
+        description: parsed.description || template.description,
+        capabilities: Array.isArray(parsed.capabilities) ? parsed.capabilities : (template.capabilities || []),
+        claudeMd: parsed.claudeMd || "",
+        contextMd: parsed.contextMd || "",
+        goals: Array.isArray(parsed.goals) ? parsed.goals : (template.seedGoals || []),
+        // Pass through template metadata for the resume display
+        suggestedTools: template.suggestedTools || [],
+        suggestedMcps: template.suggestedMcps || [],
+        agentClass: template.agentClass || "standard",
+        org: template.org,
+        icon: template.icon,
+      };
+
+      log.info(`[Templates] Personalized template "${templateId}" for user`);
+      res.json({ ok: true, personalized });
+    } catch (err: any) {
+      log.error(`[Templates] Personalize failed: ${err.message || err}`);
+      // If AI fails, return seed data as fallback so user can still deploy
+      res.json({
+        ok: true,
+        personalized: {
+          name: displayName,
+          description: template.description,
+          capabilities: template.capabilities || [],
+          claudeMd: template.systemPrompt
+            ? `# ${displayName}\n\n${template.systemPrompt}\n\n## Identity\n- Mention alias: ${alias}\n- Respond when mentioned with ${alias}\n\n## Guidelines\n- Keep responses concise — you're replying to phone messages\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n${template.seedInstructions ? '\n' + template.seedInstructions : ''}`
+            : `# ${displayName}\n\n${template.description}\n`,
+          contextMd: template.seedContext || `# ${displayName} Context\n\nCreated from template "${templateId}".`,
+          goals: template.seedGoals || [],
+          suggestedTools: template.suggestedTools || [],
+          suggestedMcps: template.suggestedMcps || [],
+          agentClass: template.agentClass || "standard",
+          org: template.org,
+          icon: template.icon,
+        },
+        fallback: true,
+        error: err.message,
+      });
+    }
+  });
+
+  // POST /api/templates/:id/deploy — deploy a template as a real agent (license-gated)
+  app.post("/api/templates/:id/deploy", async (req, res) => {
+    const templateId = req.params.id;
+    const builtin = loadTemplatesFrom(builtinTemplatesDir, "builtin");
+    const user = loadTemplatesFrom(userTemplatesDir, "user");
+    const template = [...builtin, ...user].find((t: any) => t.id === templateId);
+    if (!template) return res.status(404).json({ error: `Template "${templateId}" not found` });
+    if (!isTemplateAccessible(template.id, template.categories, template.source)) {
+      return res.status(403).json({ error: "Your license does not include access to this template" });
+    }
+
+    const { agentId, name, alias, workspace, org, personalizedClaudeMd, personalizedContextMd, personalizedGoals, personalizedDescription } = req.body as {
+      agentId: string; name?: string; alias?: string; workspace?: string;
+      org?: Array<{ organization: string; function: string; title: string; reportsTo?: string }>;
+      personalizedClaudeMd?: string; personalizedContextMd?: string;
+      personalizedGoals?: Array<{ id: string; description: string; heartbeat: string; budget?: { maxDailyUsd: number } }>;
+      personalizedDescription?: string;
+    };
+    if (!agentId) return res.status(400).json({ error: "Missing required field: agentId" });
+    if (!/^[a-z0-9-]+$/.test(agentId)) {
+      return res.status(400).json({ error: "agentId must be lowercase alphanumeric with hyphens" });
+    }
+    if (opts.config.agents[agentId]) {
+      return res.status(409).json({ error: `Agent "${agentId}" already exists` });
+    }
+
+    const agentName = name || template.name;
+    const agentAlias = alias || `@${agentId}`;
+    const normalAlias = agentAlias.startsWith("@") ? agentAlias : `@${agentAlias}`;
+
+    // Check alias uniqueness
+    const allAliases = Object.values(opts.config.agents).flatMap((a: any) => a.mentionAliases || []);
+    if (allAliases.includes(normalAlias)) {
+      return res.status(409).json({ error: `Alias "${normalAlias}" is already in use` });
+    }
+
+    try {
+      // Derive org from template or override
+      const agentOrg = org || (template.org ? [{ organization: "My Team", function: template.org.function, title: template.org.title }] : undefined);
+      const orgName = agentOrg?.[0]?.organization;
+
+      // Create agent directory
+      const baseDir2 = getPersonalAgentsDir();
+      const agentHome = orgName ? join(baseDir2, orgName, agentId) : join(baseDir2, agentId);
+      const memoryDir = join(agentHome, "memory");
+      mkdirSync(memoryDir, { recursive: true });
+      mkdirSync(join(agentHome, "mcp-keys"), { recursive: true });
+      mkdirSync(join(agentHome, "skills"), { recursive: true });
+      mkdirSync(join(agentHome, "FileStorage", "Temp"), { recursive: true });
+      mkdirSync(join(agentHome, "FileStorage", "Permanent"), { recursive: true });
+
+      // Write tasks.json
+      writeFileSync(join(agentHome, "tasks.json"), JSON.stringify({
+        agentId, projects: [{ id: "general", name: "General", color: "#6b7280" }], tasks: [],
+      }, null, 2));
+
+      // Write CLAUDE.md — use personalized version if available, otherwise build from template
+      if (personalizedClaudeMd) {
+        writeFileSync(join(agentHome, "CLAUDE.md"), personalizedClaudeMd);
+      } else {
+        let claudeMd = template.systemPrompt
+          ? `# ${agentName}\n\n${template.systemPrompt}\n\n## Identity\n- Mention alias: ${normalAlias}\n- Respond when mentioned with ${normalAlias}\n\n## Guidelines\n- Keep responses concise — you're replying to phone messages\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n`
+          : `# ${agentName}\n\n${template.description || "General-purpose agent."}\n\n## Identity\n- Mention alias: ${normalAlias}\n`;
+        if (template.seedInstructions) {
+          claudeMd += `\n${template.seedInstructions}\n`;
+        }
+        writeFileSync(join(agentHome, "CLAUDE.md"), claudeMd);
+      }
+
+      // Write context.md — use personalized version if available
+      if (personalizedContextMd) {
+        writeFileSync(join(memoryDir, "context.md"), personalizedContextMd);
+      } else {
+        const contextContent = template.seedContext
+          ? `# ${agentName} Context\n\nCreated ${new Date().toISOString().split("T")[0]} from template "${templateId}".\n\n${template.seedContext}\n`
+          : `# ${agentName} Context\n\nCreated ${new Date().toISOString().split("T")[0]} from template "${templateId}".\n`;
+        writeFileSync(join(memoryDir, "context.md"), contextContent);
+      }
+
+      // Build config entry
+      const cfgBaseDir = getPersonalAgentsDir();
+      const cfgBaseDirTilde = cfgBaseDir.startsWith(homedir()) ? cfgBaseDir.replace(homedir(), "~") : cfgBaseDir;
+      const cfgAgentPath = orgName ? `${cfgBaseDirTilde}/${orgName}/${agentId}` : `${cfgBaseDirTilde}/${agentId}`;
+
+      const agentConfig: any = {
+        name: agentName,
+        description: personalizedDescription || template.description || `Agent ${agentName}`,
+        agentHome: cfgAgentPath,
+        workspace: workspace || "~",
+        claudeMd: `${cfgAgentPath}/CLAUDE.md`,
+        memoryDir: `${cfgAgentPath}/memory`,
+        persistent: true,
+        streaming: true,
+        advancedMemory: true,
+        autonomousCapable: true,
+        mentionAliases: [normalAlias],
+        autoCommit: false,
+        allowedTools: template.suggestedTools || ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],
+        timeout: 14400000,
+        agentClass: template.agentClass || "standard",
+        deployedFrom: templateId,
+      };
+
+      if (template.suggestedMcps && template.suggestedMcps.length > 0) agentConfig.mcps = template.suggestedMcps;
+      if (agentOrg && agentOrg.length > 0) agentConfig.org = agentOrg;
+      if (template.icon) agentConfig.avatar = template.icon;
+      const goalsSource = personalizedGoals || template.seedGoals;
+      if (goalsSource && goalsSource.length > 0) {
+        agentConfig.goals = goalsSource.map((g: any) => ({ ...g, enabled: false }));
+        mkdirSync(join(agentHome, "goals"), { recursive: true });
+      }
+      if (template.seedCron && template.seedCron.length > 0) {
+        agentConfig.cron = template.seedCron.map((c: any) => ({ ...c, enabled: false }));
+      }
+
+      // Default web route
+      agentConfig.routes = [{
+        channel: "web",
+        match: { type: "channel_id", value: "web-ui" },
+        permissions: { allowFrom: ["*"], requireMention: false },
+      }];
+
+      // Save to config.json
+      const configPath2 = join(opts.dataDir || opts.baseDir, "config.json");
+      const rawConfig = JSON.parse(readFileSync(configPath2, "utf-8"));
+      rawConfig.agents[agentId] = agentConfig;
+      writeFileSync(configPath2, JSON.stringify(rawConfig, null, 2));
+
+      // Update in-memory config
+      const resolveTildeHere = (p: string) => p.startsWith("~") ? p.replace("~", homedir()) : p;
+      const memConfig = { ...agentConfig };
+      memConfig.workspace = resolveTildeHere(memConfig.workspace);
+      memConfig.claudeMd = resolveTildeHere(memConfig.claudeMd);
+      memConfig.memoryDir = resolveTildeHere(memConfig.memoryDir);
+      memConfig.agentHome = resolveTildeHere(memConfig.agentHome);
+      opts.config.agents[agentId] = memConfig;
+
+      log.info(`[Templates] Deployed template "${templateId}" as agent "${agentId}" (${normalAlias})`);
+      res.json({ ok: true, agentId, alias: normalAlias, home: agentHome, deployedFrom: templateId });
+    } catch (err) {
+      log.error(`Failed to deploy template: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // POST /api/agents/:id/save-as-template — save an existing agent as a template
+  app.post("/api/agents/:id/save-as-template", (req, res) => {
+    const agentId = req.params.id;
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+
+    const { templateId, name, description, categories } = req.body as {
+      templateId: string; name?: string; description?: string; categories: string[];
+    };
+    if (!templateId || !categories || !categories.length) {
+      return res.status(400).json({ error: "Missing required fields: templateId, categories" });
+    }
+    if (!/^[a-z0-9-]+$/.test(templateId)) {
+      return res.status(400).json({ error: "templateId must be lowercase alphanumeric with hyphens" });
+    }
+
+    // Check for duplicate
+    const existing = [
+      ...loadTemplatesFrom(builtinTemplatesDir, "builtin"),
+      ...loadTemplatesFrom(userTemplatesDir, "user"),
+    ].find((t: any) => t.id === templateId);
+    if (existing) {
+      return res.status(409).json({ error: `Template "${templateId}" already exists` });
+    }
+
+    try {
+      // Read the agent's CLAUDE.md as system prompt
+      const home3 = homedir();
+      const resolveTilde3 = (p: string) => p.startsWith("~") ? p.replace("~", home3) : p;
+      let systemPrompt = "";
+      if (agent.claudeMd) {
+        const claudePath = resolveTilde3(agent.claudeMd);
+        if (existsSync(claudePath)) {
+          systemPrompt = readFileSync(claudePath, "utf-8");
+        }
+      }
+
+      const template: any = {
+        id: templateId,
+        name: name || agent.name,
+        description: description || agent.description || `Template from agent ${agentId}`,
+        categories,
+        systemPrompt,
+        suggestedTools: agent.allowedTools || [],
+        suggestedMcps: (agent.mcps || []).filter((m: string) => {
+          // Strip instance-specific MCP names — only keep base names (no underscores from named connections)
+          return !m.includes("_");
+        }),
+        agentClass: agent.agentClass || "standard",
+        icon: (agent as any).avatar || "bot",
+      };
+
+      if (agent.org && agent.org.length > 0) {
+        template.org = { function: agent.org[0].function, title: agent.org[0].title };
+      }
+
+      mkdirSync(userTemplatesDir, { recursive: true });
+      writeFileSync(join(userTemplatesDir, `${templateId}.json`), JSON.stringify(template, null, 2));
+
+      log.info(`[Templates] Saved agent "${agentId}" as template "${templateId}"`);
+      res.json({ ok: true, template: { ...template, source: "user" } });
+    } catch (err) {
+      log.error(`Failed to save agent as template: ${err}`);
       res.status(500).json({ error: String(err) });
     }
   });
@@ -6759,6 +7295,10 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
         heartbeat: {
           description: "Agent health checks",
           actions: ["trigger_heartbeat", "get_heartbeat_history"]
+        },
+        templates: {
+          description: "Agent templates — browse, deploy, and save agent blueprints",
+          actions: ["list_templates", "deploy_template", "save_agent_as_template"]
         },
         platform: {
           description: "Platform-level tools",

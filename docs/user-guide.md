@@ -1,5 +1,5 @@
 # MyAIforOne — User Guide
-<!-- sync: 2026-04-17T01:49 -->
+<!-- sync: 2026-04-22T00:00 -->
 
 > Master reference for every page, button, action, API endpoint, and MCP tool in the MyAIforOne platform.
 > Organized by UI page. Each action includes its API and MCP mapping.
@@ -14,6 +14,7 @@
    - [Agent List](#21-agent-list)
    - [Agent Creation / Edit Modal](#22-agent-creation--edit-modal)
    - [Agent Dashboard](#23-agent-dashboard)
+   - [Agent Templates](#24-agent-templates)
 3. [Chat](#3-chat)
 4. [Library](#4-library)
 5. [Lab](#5-lab)
@@ -182,6 +183,7 @@ While an agent is streaming a response:
 
 ### Sub-Navigation Tabs
 - **Teams** (`/org`) — agents view (default)
+- **Templates** (`/org?tab=templates`) — pre-configured agent blueprints (see [2.4 Agent Templates](#24-agent-templates))
 - **Tasks** (`/tasks`) — cross-agent task panel
 - **Automations** (`/automations`) — goals and cron jobs across all agents
 
@@ -192,6 +194,7 @@ While an agent is streaming a response:
 | **Grid view (◊)** | 300px agent cards in a wrapping grid |
 | **Compact view (▬▬)** | Condensed cards with 3-dot menu |
 | **List view (≡)** | Sortable table with columns: Name, Alias, Org, Dept, Title, Class, Status, Last Active, Msgs |
+| **Cards view** | Full-width agent cards with expanded details — shows avatar, name, description, org info, class badge, and action buttons. A 4th view option alongside grid, compact, and list. |
 | **Search input** | Filter agents by name, alias, or description |
 | **Org select dropdown** | Filter by organization |
 | **Class filter dropdown** | Checkboxes: Standard, Builder, Platform |
@@ -642,6 +645,153 @@ Wiki Learning lets agents automatically capture facts and corrections from conve
 | | | **Params:** `agentId` |
 | Get wiki sync history | `GET /api/agents/:id/wiki-sync-history` | `get_wiki_sync_history` |
 | | **Query:** `?limit=N` | **Params:** `agentId`, `limit?` |
+
+## 2.4 Agent Templates
+
+**URL:** `/org?tab=templates`
+**Purpose:** Browse and deploy pre-configured agent blueprints. Templates provide a fast way to create specialized agents without manually configuring system prompts, tools, MCPs, and org placement.
+
+### What Are Templates?
+
+Templates are pre-configured agent blueprints — think of them as job candidates you can review and hire. Each template includes:
+
+- **Resume info** — name, description, capabilities, role title, department, agent class, avatar
+- **System prompt** — the agent's core instructions (becomes CLAUDE.md on deploy)
+- **Seed instructions** — additional workflow rules, data formats, and guidelines appended to CLAUDE.md
+- **Seed context** — initial memory/context.md with a getting-started guide and profile template
+- **Seed goals** — pre-configured autonomous goals (deployed as disabled — you enable them)
+- **Skills & tools** — suggested Claude skills (Read, Write, Bash, etc.) and MCP integrations
+
+When you deploy ("hire") a template, the system creates a fully configured agent directory with CLAUDE.md (including seed instructions), pre-populated context.md, tasks, goals, skills, and file storage — ready to use immediately.
+
+### Browsing Templates
+
+Templates are organized by category tabs:
+
+| Category | Description |
+|----------|-------------|
+| **Everyone** | General-purpose agents useful to any user |
+| **Business Owners** | Agents tailored for business operations, client management, and outreach |
+| **Builders** | Developer-focused agents for building apps, MCPs, and managing projects |
+| **Teams** | Agents designed for team collaboration and coordination |
+
+Each template card shows: avatar, name, description, and category badges. Click a card to open the **resume preview**.
+
+### Built-in Templates
+
+The platform ships with 10 built-in templates:
+
+| Template | Description |
+|----------|-------------|
+| **Mail & Calendar** | Email triage, calendar management, scheduling |
+| **Daily Digest** | Morning briefings, news summaries, daily planning |
+| **Health Tracker** | Health metrics, fitness tracking, wellness reminders |
+| **Tax Assistant** | Tax preparation, deduction tracking, filing guidance |
+| **Client Consultant** | Client relationship management, meeting prep, follow-ups |
+| **SDR & Outreach** | Sales development, prospecting, outreach sequences |
+| **Content Creator** | Blog posts, social media, newsletters, copywriting |
+| **App Builder** | Full-stack application development and deployment |
+| **MCP Builder** | Model Context Protocol server development |
+| **Project Manager** | Cross-agent project coordination and tracking |
+
+### Template Resume Preview
+
+Clicking a template card opens a resume-style preview panel with:
+
+| Section | What It Shows |
+|---------|--------------|
+| **Header** | Avatar, name, role title + department, agent class badge |
+| **Description** | The agent's elevator pitch (italic quote) |
+| **Training & Experience** | Bulleted list of capabilities — what this agent can do for you |
+| **Skills** | Claude capabilities the agent uses (Read, Write, Bash, WebSearch, etc.) |
+| **Tools & Integrations** | MCP connections in purple tags, or "Works standalone" if none |
+| **Hire This Agent** | Button to open the two-panel hiring experience |
+
+### Hiring (Deploying) an Agent
+
+Clicking **Hire This Agent** on the resume preview opens a two-panel hiring experience:
+
+**Left panel** — Live resume preview (starts with template defaults, updates after personalization)
+
+**Right panel** — Hiring form:
+- **Agent ID** — unique lowercase identifier (e.g., `my-digest`)
+- **Name** — display name
+- **Alias** — mention alias (e.g., `@mydigest`)
+- **Organization** — which org to place the agent in (optional)
+- **Tell us about your needs** — free-text area describing your specific use case, industry, workflow, and preferences
+
+**Two paths to hire:**
+
+1. **AI-personalized** — Fill in "Tell us about your needs" and click **Build My Agent**. The system uses AI to synthesize the template's seed data with your notes to create a personalized agent (custom CLAUDE.md, context.md, capabilities, and goals). The left panel updates to show the personalized resume with a "personalized" badge. Review and click **Confirm & Hire**.
+
+2. **Quick hire** — Click **Skip — Hire with Defaults** to create the agent immediately using the template's seed data as-is.
+
+The hired agent gets:
+- A `deployedFrom` field in its config linking back to the template
+- CLAUDE.md — personalized or from template seed (system prompt + seed instructions)
+- context.md — personalized or from template seed (getting-started guide)
+- Goals — personalized or from template seed (disabled by default — enable from the org page)
+- All suggested tools and MCP integrations attached
+
+### AI-Assisted Personalization (MCP / API)
+
+The personalization step is also available programmatically for agents that create other agents (e.g., a hub agent):
+
+1. **Personalize:** `POST /api/templates/:id/personalize` or MCP `personalize_template`
+   - Pass `userNotes` describing the user's needs + optional `agentName` and `agentAlias`
+   - Returns `{ personalized: { name, description, capabilities, claudeMd, contextMd, goals, suggestedTools, suggestedMcps, ... } }`
+   - Falls back to template seed data if AI is unavailable (returns `fallback: true`)
+
+2. **Deploy with personalized data:** `POST /api/templates/:id/deploy` or MCP `deploy_template`
+   - Pass the standard fields (`agentId`, `name`, `alias`, `org`) plus the personalized overrides:
+     - `personalizedClaudeMd` — full CLAUDE.md content
+     - `personalizedContextMd` — full context.md content
+     - `personalizedDescription` — one-line description
+     - `personalizedGoals` — array of goal objects
+   - If no personalized fields are provided, the template seed data is used as-is
+
+### Saving an Agent as a Template
+
+Any existing agent can be saved as a reusable template:
+
+- **API:** `POST /api/agents/:id/save-as-template`
+- **Body:** `{ templateId, name?, description?, categories }` where `templateId` is a lowercase alphanumeric ID with hyphens, and `categories` is a string array (e.g., `["everyone", "builders"]`)
+- The system extracts the agent's system prompt, tools, MCPs, org info, and icon to create the template
+- Saved templates appear under the "user" source and can be edited or deleted
+
+### Template API & MCP Reference
+
+| Action | API | MCP |
+|--------|-----|-----|
+| List all templates | `GET /api/templates` | `list_templates` |
+| | Returns `{ templates[] }` with both builtin and user templates | *(no params)* |
+| Get single template | `GET /api/templates/:id` | -- |
+| | Returns template object | |
+| Create user template | `POST /api/templates` | `create_template` |
+| | **Body:** `{ id, name, description, categories, capabilities?, systemPrompt?, seedInstructions?, seedContext?, seedGoals?, seedCron?, suggestedTools?, suggestedMcps?, agentClass?, icon?, org? }` | Same params |
+| Update user template | `PUT /api/templates/:id` | `update_template` |
+| | **Body:** any template fields. Cannot update built-in templates. | **Params:** `templateId` + any template fields |
+| Delete user template | `DELETE /api/templates/:id` | `delete_template` |
+| | Cannot delete built-in templates. | **Params:** `templateId` |
+| Personalize template | `POST /api/templates/:id/personalize` | `personalize_template` |
+| | **Body:** `{ userNotes, agentName?, agentAlias? }` — returns personalized agent config | **Params:** `templateId`, `userNotes`, `agentName?`, `agentAlias?` |
+| Deploy template as agent | `POST /api/templates/:id/deploy` | `deploy_template` |
+| | **Body:** `{ agentId, name?, alias?, workspace?, org?, personalizedClaudeMd?, personalizedContextMd?, personalizedDescription?, personalizedGoals? }` | Same params |
+| Save agent as template | `POST /api/agents/:id/save-as-template` | `save_agent_as_template` |
+| | **Body:** `{ templateId, name?, description?, categories }` | **Params:** `agentId`, `templateId`, `name?`, `description?`, `categories` |
+
+### Template Seed Data
+
+Templates can include seed data that gets written when the agent is deployed:
+
+| Seed Field | What It Does |
+|------------|-------------|
+| `seedInstructions` | Markdown appended to CLAUDE.md after the system prompt — workflows, rules, data formats |
+| `seedContext` | Written to `memory/context.md` — getting-started guide, profile templates, setup instructions |
+| `seedGoals` | Array of goal objects added to the agent config (deployed as **disabled** — user enables from org page) |
+| `seedCron` | Array of cron objects added to the agent config (deployed as **disabled**) |
+
+Seed goals and cron are always deployed disabled so the agent doesn't start running autonomously before the user is ready. Enable them from the org page Goals/Cron sections.
 
 ---
 
@@ -2201,6 +2351,8 @@ Quick reference — all MCP tools alphabetically:
 | 19 | `create_skill` | Skills |
 | 20 | `create_task` | Tasks |
 | 21 | `delegate_message` | Chat |
+| -- | `deploy_template` | Templates |
+| -- | `personalize_template` | Templates |
 | 22 | `delete_account` | Accounts |
 | 23 | `delete_agent` | Agents |
 | -- | `delete_gym_program` | AI Gym |
@@ -2272,6 +2424,7 @@ Quick reference — all MCP tools alphabetically:
 | 61 | `install_xbar` | Utilities |
 | -- | `link_to_project` | Projects |
 | 62 | `list_agents` | Agents |
+| -- | `list_templates` | Templates |
 | -- | `list_gym_cards` | AI Gym |
 | -- | `list_gym_enrollments` | AI Gym |
 | -- | `list_gym_guides` | AI Gym |
@@ -2345,6 +2498,7 @@ Quick reference — all MCP tools alphabetically:
 | 106 | `upload_file` | Files |
 | 107 | `whoami` | Accounts |
 | -- | `get_gym_insights` | AI Gym |
+| -- | `save_agent_as_template` | Templates |
 | -- | `save_gym_insights` | AI Gym |
 | -- | `list_api_keys` | Auth |
 | -- | `create_api_key` | Auth |

@@ -118,6 +118,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);
+  overflow:hidden;flex-shrink:0;
 }
 .tile-name{color:var(--text-secondary);font-weight:500}
 .tile-time{color:var(--text-muted);font-size:10px}
@@ -748,6 +749,7 @@ text-decoration:none;}
   background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);
+  overflow:hidden;
 }
 .autocomplete-item-info{flex:1;min-width:0}
 .autocomplete-item-alias{font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:500}
@@ -820,6 +822,7 @@ text-decoration:none;}
   background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--accent);
+  overflow:hidden;
 }
 .drawer-agent-info{flex:1;min-width:0}
 .drawer-agent-name{font-size:13px;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -4225,8 +4228,12 @@ function renderTiles() {
     const alias = a.aliases?.[0] || ('@' + a.id);
     const time = activeOrgFilter === 'recent' ? `<span class="tile-time">${formatRelativeTime(a.lastMessage)}</span>` : '';
     const remoteBadge = a._remote ? `<span class="tile-remote-badge" title="${escHtml(a._gatewayName || '')}">&#9729;</span>` : '';
+    const avatarId = a.avatar || a.icon;
+    const avatarInner = avatarId && avatarId.startsWith('avatar-')
+      ? `<img src="/avatars/${avatarId}.png" alt="${escHtml(a.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`
+      : initials;
     return `<div class="agent-tile${a._remote ? ' agent-tile-remote' : ''}" onclick="mentionAgent('${alias}')">
-      <div class="tile-avatar${a._remote ? ' remote-avatar' : ''}">${initials}</div>
+      <div class="tile-avatar${a._remote ? ' remote-avatar' : ''}">${avatarInner}</div>
       <span class="tile-name">${a.name}</span>
       ${remoteBadge}${time}
     </div>`;
@@ -4452,8 +4459,12 @@ function renderAutocomplete() {
     const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
     const alias = a.aliases?.[0] || a.id;
     const remoteBadge = a._remote ? `<span class="drawer-agent-badge-remote" style="margin-left:auto">${escHtml(a._gatewayName || 'remote')}</span>` : '';
+    const avatarId = a.avatar || a.icon;
+    const avatarInner = avatarId && avatarId.startsWith('avatar-')
+      ? `<img src="/avatars/${avatarId}.png" alt="${escapeHtml(a.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`
+      : initials;
     return `<div class="autocomplete-item${i === acSelectedIdx ? ' selected' : ''}" onmousedown="selectAutocomplete(${i})">
-      <div class="autocomplete-item-avatar${a._remote ? ' remote-avatar' : ''}">${initials}</div>
+      <div class="autocomplete-item-avatar${a._remote ? ' remote-avatar' : ''}">${avatarInner}</div>
       <div class="autocomplete-item-info">
         <div class="autocomplete-item-alias">${alias}</div>
         <div class="autocomplete-item-name">${escapeHtml(a.name)}</div>
@@ -5042,8 +5053,12 @@ function renderDrawer() {
     const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
     const alias = a.aliases?.[0] || ('@' + a.id);
     const time = a.lastMessage && a.lastMessage !== 'never' ? formatRelativeTime(a.lastMessage) : '';
+    const avatarId = a.avatar || a.icon;
+    const avatarInner = avatarId && avatarId.startsWith('avatar-')
+      ? `<img src="/avatars/${avatarId}.png" alt="${escapeHtml(a.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`
+      : initials;
     return `<div class="drawer-agent" onclick="toggleDrawer();mentionAgent('${alias}')">
-      <div class="drawer-agent-avatar">${initials}</div>
+      <div class="drawer-agent-avatar">${avatarInner}</div>
       <div class="drawer-agent-info">
         <div class="drawer-agent-name">${a.name}</div>
         <div class="drawer-agent-alias">${alias}</div>
@@ -5061,8 +5076,12 @@ function renderDrawer() {
     html += gwAgents.map(a => {
       const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
       const alias = a.aliases?.[0] || ('@' + a.id);
+      const avatarId = a.avatar || a.icon;
+      const avatarInner = avatarId && avatarId.startsWith('avatar-')
+        ? `<img src="/avatars/${avatarId}.png" alt="${escHtml(a.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`
+        : initials;
       return `<div class="drawer-agent drawer-agent-remote" onclick="toggleDrawer();mentionAgent('${alias}')">
-        <div class="drawer-agent-avatar remote-avatar">${initials}</div>
+        <div class="drawer-agent-avatar remote-avatar">${avatarInner}</div>
         <div class="drawer-agent-info">
           <div class="drawer-agent-name">${escHtml(a.name)}</div>
           <div class="drawer-agent-alias">${escHtml(alias)}</div>

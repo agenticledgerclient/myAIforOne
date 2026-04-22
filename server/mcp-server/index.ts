@@ -86,6 +86,7 @@ server.tool("create_agent", "Create a new agent with full configuration", {
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
   shared: z.boolean().optional().describe("Create as a shared agent (multi-user). Agent home is created under SharedAgents/ instead of PersonalAgents/."),
   conversationLogMode: z.enum(["shared", "per-user"]).optional().describe("Conversation log mode: 'shared' (default, all users share one log) or 'per-user' (separate log per sender)."),
+  avatar: z.string().optional().describe("Avatar identifier (e.g. 'avatar-01' through 'avatar-80'). If omitted, a random unused avatar is auto-assigned."),
 }, async (args) => {
   const body: any = { ...args };
   if (args.organization) {
@@ -124,6 +125,7 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
   conversationLogMode: z.enum(["shared", "per-user"]).optional().describe("Update conversation log mode: 'shared' (one log for all users) or 'per-user' (separate log per sender)."),
+  avatar: z.string().optional().describe("Avatar identifier (e.g. 'avatar-01' through 'avatar-80'). Set to empty string to remove."),
 }, async ({ agentId, ...body }) => {
   const payload: any = { ...body };
   if (body.organization !== undefined) {
@@ -995,6 +997,125 @@ server.tool("browse_dirs", "Browse subdirectories of a given path (for Lab direc
   path: z.string().optional().describe("Directory path to list (defaults to home directory, supports ~ prefix)"),
 }, async ({ path }) => {
   const r = await api.browseDirs(path);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  AGENT TEMPLATES
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_templates", "List agent templates (built-in and user-created)", {
+  category: z.string().optional().describe("Filter by category"),
+}, async ({ category }) => {
+  const r = await api.listTemplates(category);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_template", "Get details of a specific agent template", {
+  templateId: z.string().describe("Template ID"),
+}, async ({ templateId }) => {
+  const r = await api.getTemplate(templateId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_template", "Create a new agent template", {
+  id: z.string().describe("Unique template ID"),
+  name: z.string().describe("Display name"),
+  description: z.string().describe("Template description"),
+  categories: z.array(z.string()).describe("Category tags"),
+  capabilities: z.array(z.string()).optional().describe("List of capabilities shown on the template resume (e.g. 'Draft LinkedIn posts and newsletters')"),
+  systemPrompt: z.string().optional().describe("Default system prompt for agents created from this template"),
+  seedInstructions: z.string().optional().describe("Extra CLAUDE.md sections appended after the system prompt (workflows, rules, data formats)"),
+  seedContext: z.string().optional().describe("Initial context.md content (getting started guide, profile template)"),
+  seedGoals: z.array(z.object({
+    id: z.string().describe("Goal ID (kebab-case)"),
+    description: z.string().describe("What the agent should do when the goal fires"),
+    heartbeat: z.string().describe("Cron expression (e.g. '0 9 * * 1-5')"),
+    budget: z.object({ maxDailyUsd: z.number() }).optional(),
+  })).optional().describe("Goals pre-configured on deploy (deployed as disabled — user enables them)"),
+  seedCron: z.array(z.object({
+    id: z.string(), expression: z.string(), message: z.string(),
+  })).optional().describe("Cron jobs pre-configured on deploy (deployed as disabled)"),
+  suggestedTools: z.array(z.string()).optional().describe("Suggested Claude skills (e.g. Read, Write, Bash, WebSearch)"),
+  suggestedMcps: z.array(z.string()).optional().describe("Suggested MCP integrations (e.g. gmail, linkedin)"),
+  agentClass: z.string().optional().describe("Agent class (e.g. builder, advisor, monitor)"),
+  icon: z.string().optional().describe("Avatar ID (e.g. avatar-01 through avatar-80)"),
+  org: z.object({ function: z.string().optional(), title: z.string().optional() }).optional().describe("Suggested org placement"),
+}, async (params) => {
+  const r = await api.createTemplate(params);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_template", "Update an existing user template", {
+  templateId: z.string().describe("Template ID to update"),
+  name: z.string().optional().describe("Display name"),
+  description: z.string().optional().describe("Template description"),
+  categories: z.array(z.string()).optional().describe("Category tags"),
+  capabilities: z.array(z.string()).optional().describe("List of capabilities shown on the template resume (e.g. 'Draft LinkedIn posts and newsletters')"),
+  systemPrompt: z.string().optional().describe("Default system prompt"),
+  seedInstructions: z.string().optional().describe("Extra CLAUDE.md sections appended after the system prompt"),
+  seedContext: z.string().optional().describe("Initial context.md content"),
+  seedGoals: z.array(z.object({
+    id: z.string(), description: z.string(), heartbeat: z.string(),
+    budget: z.object({ maxDailyUsd: z.number() }).optional(),
+  })).optional().describe("Goals pre-configured on deploy (deployed as disabled)"),
+  seedCron: z.array(z.object({
+    id: z.string(), expression: z.string(), message: z.string(),
+  })).optional().describe("Cron jobs pre-configured on deploy (deployed as disabled)"),
+  suggestedTools: z.array(z.string()).optional().describe("Suggested Claude skills (e.g. Read, Write, Bash, WebSearch)"),
+  suggestedMcps: z.array(z.string()).optional().describe("Suggested MCP integrations (e.g. gmail, linkedin)"),
+  agentClass: z.string().optional().describe("Agent class"),
+  icon: z.string().optional().describe("Avatar ID (e.g. avatar-01 through avatar-80)"),
+  org: z.object({ function: z.string().optional(), title: z.string().optional() }).optional().describe("Suggested org placement"),
+}, async ({ templateId, ...body }) => {
+  const r = await api.updateTemplate(templateId, body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_template", "Delete a user template", {
+  templateId: z.string().describe("Template ID to delete"),
+}, async ({ templateId }) => {
+  const r = await api.deleteTemplate(templateId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("personalize_template", "AI-assisted template personalization. Takes a template + user's needs and returns a personalized agent config (CLAUDE.md, context, capabilities, goals). Use before deploy_template to create customized agents.", {
+  templateId: z.string().describe("Template ID to personalize"),
+  userNotes: z.string().describe("User's description of their needs, industry, workflow, and preferences — used to personalize the agent"),
+  agentName: z.string().optional().describe("Display name for the agent (used in personalized CLAUDE.md)"),
+  agentAlias: z.string().optional().describe("Mention alias (used in personalized CLAUDE.md identity section)"),
+}, async ({ templateId, ...body }) => {
+  const r = await api.personalizeTemplate(templateId, body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("deploy_template", "Deploy a template to create a new agent. Optionally pass personalized data from personalize_template to create a customized agent.", {
+  templateId: z.string().describe("Template ID to deploy"),
+  agentId: z.string().describe("ID for the new agent"),
+  name: z.string().optional().describe("Display name for the new agent"),
+  alias: z.string().optional().describe("Chat alias (e.g. @myagent)"),
+  workspace: z.string().optional().describe("Working directory for the agent"),
+  org: z.array(z.string()).optional().describe("Organization hierarchy"),
+  personalizedClaudeMd: z.string().optional().describe("Personalized CLAUDE.md content (from personalize_template)"),
+  personalizedContextMd: z.string().optional().describe("Personalized context.md content (from personalize_template)"),
+  personalizedDescription: z.string().optional().describe("Personalized one-line description (from personalize_template)"),
+  personalizedGoals: z.array(z.object({
+    id: z.string(), description: z.string(), heartbeat: z.string(),
+    budget: z.object({ maxDailyUsd: z.number() }).optional(),
+  })).optional().describe("Personalized goals (from personalize_template)"),
+}, async ({ templateId, ...body }) => {
+  const r = await api.deployTemplate(templateId, body);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("save_agent_as_template", "Save an existing agent as a reusable template", {
+  agentId: z.string().describe("Agent ID to save as template"),
+  templateId: z.string().describe("ID for the new template"),
+  name: z.string().optional().describe("Template display name (defaults to agent name)"),
+  description: z.string().optional().describe("Template description"),
+  categories: z.array(z.string()).describe("Category tags for the template"),
+}, async ({ agentId, ...body }) => {
+  const r = await api.saveAgentAsTemplate(agentId, body);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 

@@ -121,6 +121,8 @@ export interface AgentConfig {
   executor?: string;  // "claude" (default) or "ollama:modelname" (e.g., "ollama:gemma2")
   shared?: boolean;   // true = shared agent (multi-user); agentHome lives under SharedAgents/ root
   conversationLogMode?: "shared" | "per-user";  // "shared" (default) = one log for all users; "per-user" = separate log per sender
+  avatar?: string;           // avatar identifier (e.g., "avatar-01" or emoji)
+  deployedFrom?: string;     // template ID this agent was deployed from
 }
 
 export interface ChannelConfig {

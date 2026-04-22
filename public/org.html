@@ -240,8 +240,9 @@ text-decoration:none;}
   background:var(--accent-bg);border:2px solid var(--accent);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent);
-  position:relative;
+  position:relative;overflow:hidden;
 }
+.node-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 
 /* Heartbeat pulse for active agents — heart, top-right */
 .node-avatar.active::before{
@@ -382,6 +383,268 @@ text-decoration:none;}
 .compact-ctx a{display:block;padding:6px 10px;font-size:11px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:5px;cursor:pointer}
 .compact-ctx a:hover{background:var(--accent-bg);color:var(--accent)}
 
+/* ─── Cards View (Blink Claw style) ──────────────────────────── */
+.cards-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:20px;
+}
+.card-node{
+  padding:20px;position:relative;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  border-radius:14px;box-shadow:var(--shadow);cursor:pointer;
+  transition:all .3s;display:flex;flex-direction:column;gap:12px;
+  min-height:140px;
+}
+.card-node:hover{
+  border-color:var(--border-active);
+  box-shadow:0 4px 24px rgba(0,0,0,0.4),0 0 24px rgba(34,211,238,0.08);
+  transform:translateY(-2px);
+}
+.card-avatar{
+  width:48px;height:48px;border-radius:14px;flex-shrink:0;
+  background:var(--accent-bg);border:2px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);
+  position:relative;overflow:hidden;
+}
+.card-avatar img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.card-avatar.active::before{
+  content:'❤';position:absolute;top:-6px;right:-6px;
+  font-size:12px;line-height:1;color:var(--green);opacity:0;
+  filter:drop-shadow(0 0 4px rgba(74,222,128,0.5));
+  animation:heartbeat 1.5s ease-in-out infinite;
+}
+.card-node-name{font-family:var(--font-display);font-size:15px;font-weight:700;line-height:1.2}
+.card-node-desc{
+  font-family:var(--font-sans);font-size:12px;color:var(--text-secondary);
+  line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-node-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card-node-footer{
+  display:flex;align-items:center;justify-content:space-between;margin-top:auto;
+}
+.card-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.card-status-dot.active{background:var(--green);box-shadow:0 0 6px rgba(74,222,128,0.4)}
+.card-status-dot.inactive{background:var(--text-muted);opacity:.4}
+.card-status-label{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:6px}
+.card-class-tag{
+  font-family:var(--font-mono);font-size:9px;font-weight:500;
+  padding:2px 8px;border-radius:4px;
+  background:var(--accent-bg);color:var(--accent);
+}
+.card-gear{
+  position:absolute;top:12px;right:12px;
+  width:28px;height:28px;border-radius:8px;border:none;
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  font-size:16px;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .2s,background .2s;z-index:10;
+}
+.card-node:hover .card-gear{opacity:1}
+.card-gear:hover{background:var(--accent-bg);color:var(--accent)}
+.card-ctx{
+  position:absolute;top:42px;right:12px;z-index:200;min-width:140px;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);padding:4px;display:none;
+}
+.card-ctx.open{display:block}
+.card-ctx a{display:block;padding:8px 12px;font-size:12px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:5px;cursor:pointer}
+.card-ctx a:hover{background:var(--accent-bg);color:var(--accent)}
+
+/* ─── Templates Tab ──────────────────────────────────────────── */
+.templates-container{padding:20px}
+.template-category{margin-bottom:32px}
+.template-category-title{
+  font-family:var(--font-display);font-size:14px;font-weight:700;
+  color:var(--accent);letter-spacing:.04em;
+  padding-bottom:8px;margin-bottom:16px;
+  border-bottom:1px solid var(--border-glow);
+}
+.template-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;
+}
+.template-card{
+  padding:20px;position:relative;
+  background:var(--bg-surface);border:1px solid var(--border-dim);
+  border-radius:14px;box-shadow:var(--shadow);cursor:pointer;
+  transition:all .3s;display:flex;flex-direction:column;gap:12px;
+  min-height:140px;
+}
+.template-card:hover{
+  border-color:var(--border-active);
+  box-shadow:0 4px 24px rgba(0,0,0,0.4),0 0 24px rgba(34,211,238,0.08);
+  transform:translateY(-2px);
+}
+.template-card .card-avatar{
+  background:var(--purple-bg);border-color:var(--purple);color:var(--purple);
+}
+.template-badge{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;
+  padding:2px 8px;border-radius:4px;
+  background:var(--purple-bg);color:var(--purple);
+  border:1px solid rgba(139,92,246,0.15);
+}
+.template-source-badge{
+  font-family:var(--font-mono);font-size:8px;font-weight:600;
+  padding:1px 6px;border-radius:3px;margin-left:6px;
+  background:var(--accent-bg);color:var(--accent);
+}
+
+/* ─── Template Preview Modal ─────────────────────────────────── */
+.template-preview-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.template-preview-overlay.open{opacity:1;pointer-events:auto}
+.template-preview-panel{
+  width:520px;max-height:85vh;overflow-y:auto;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,0.5);
+  padding:0;
+}
+.template-resume-header{
+  padding:28px 28px 20px;
+  border-bottom:1px solid var(--border-dim);
+}
+.template-resume-header-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:12px}
+.template-resume-header .card-avatar{width:56px;height:56px;font-size:20px;border-radius:16px;flex-shrink:0}
+.template-resume-name{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1.2}
+.template-resume-role{font-family:var(--font-sans);font-size:12px;color:var(--text-secondary);margin-top:2px}
+.template-resume-class{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  padding:2px 8px;border-radius:4px;display:inline-block;margin-top:6px;
+  background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.15);
+}
+.template-resume-desc{font-family:var(--font-sans);font-size:13px;color:var(--text-secondary);line-height:1.6;font-style:italic}
+.template-resume-body{padding:0 28px 28px}
+.template-resume-section{padding-top:20px}
+.template-resume-section-title{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.template-resume-section-title::after{content:'';flex:1;height:1px;background:var(--border-dim)}
+.template-resume-capabilities{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.template-resume-capabilities li{
+  font-family:var(--font-sans);font-size:12px;color:var(--text-primary);
+  padding:6px 10px;border-radius:6px;background:var(--bg-card);
+  border:1px solid var(--border-dim);line-height:1.4;
+  display:flex;align-items:flex-start;gap:8px;
+}
+.template-resume-capabilities li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px}
+.template-resume-tags{display:flex;flex-wrap:wrap;gap:6px}
+.template-resume-tag{
+  font-family:var(--font-mono);font-size:10px;padding:4px 10px;
+  border-radius:5px;background:var(--accent-bg);color:var(--accent);
+  border:1px solid rgba(34,211,238,0.15);
+}
+.template-resume-tag.mcp{background:rgba(139,92,246,0.1);color:var(--purple);border-color:rgba(139,92,246,0.2)}
+.template-resume-empty{font-family:var(--font-sans);font-size:11px;color:var(--text-muted);font-style:italic}
+.template-deploy-form{display:flex;flex-direction:column;gap:12px;margin-top:4px;padding-top:20px;border-top:1px solid var(--border-dim)}
+.template-deploy-form legend{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.template-deploy-form legend::after{content:'';flex:1;height:1px;background:var(--border-dim)}
+.template-deploy-form label{font-family:var(--font-sans);font-size:12px;font-weight:600;color:var(--text-secondary)}
+.template-deploy-form input,.template-deploy-form select{
+  font-family:var(--font-mono);font-size:12px;padding:8px 12px;
+  border-radius:8px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);outline:none;
+  transition:border-color .2s;
+}
+.template-deploy-form input:focus,.template-deploy-form select:focus{border-color:var(--accent)}
+.template-deploy-actions{display:flex;gap:8px;margin-top:8px}
+.template-deploy-btn{
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  padding:10px 24px;border-radius:8px;cursor:pointer;border:none;
+  background:var(--accent);color:#000;transition:all .2s;
+}
+.template-deploy-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.template-cancel-btn{
+  font-family:var(--font-sans);font-size:13px;font-weight:500;
+  padding:10px 24px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-secondary);transition:all .2s;
+}
+.template-cancel-btn:hover{border-color:var(--text-muted)}
+
+/* Two-panel hire modal */
+.hire-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:310;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.hire-overlay.open{opacity:1;pointer-events:auto}
+.hire-panel{
+  width:1100px;max-width:95vw;max-height:90vh;display:flex;
+  background:var(--bg-surface);border:1px solid var(--border-glow);
+  border-radius:16px;box-shadow:0 16px 64px rgba(0,0,0,0.6);
+  overflow:hidden;
+}
+.hire-left{
+  flex:1;min-width:0;overflow-y:auto;padding:28px;border-right:1px solid var(--border-dim);
+}
+.hire-right{
+  width:480px;flex-shrink:0;overflow-y:auto;padding:28px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.hire-right-title{
+  font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:4px;
+}
+.hire-right-subtitle{
+  font-family:var(--font-sans);font-size:12px;color:var(--text-muted);line-height:1.5;
+}
+.hire-notes-area{
+  font-family:var(--font-sans);font-size:13px;padding:14px;
+  border-radius:10px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);
+  resize:vertical;min-height:200px;width:100%;outline:none;
+  transition:border-color .2s;line-height:1.6;
+}
+.hire-notes-area:focus{border-color:var(--accent)}
+.hire-notes-area::placeholder{color:var(--text-muted)}
+.hire-form-fields{display:flex;flex-direction:column;gap:10px}
+.hire-form-fields label{font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--text-secondary)}
+.hire-form-fields input{
+  font-family:var(--font-mono);font-size:12px;padding:7px 10px;
+  border-radius:7px;border:1px solid var(--border-dim);
+  background:var(--bg-input);color:var(--text-primary);outline:none;
+}
+.hire-form-fields input:focus{border-color:var(--accent)}
+.hire-actions{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:12px}
+.hire-build-btn{
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  padding:10px;border-radius:8px;cursor:pointer;border:none;
+  background:var(--purple);color:#fff;transition:all .2s;width:100%;
+}
+.hire-build-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.hire-build-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.hire-confirm-btn{
+  font-family:var(--font-sans);font-size:13px;font-weight:600;
+  padding:10px;border-radius:8px;cursor:pointer;border:none;
+  background:var(--accent);color:#000;transition:all .2s;width:100%;
+  display:none;
+}
+.hire-confirm-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.hire-confirm-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.hire-cancel-btn{
+  font-family:var(--font-sans);font-size:12px;font-weight:500;
+  padding:8px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border-dim);background:transparent;
+  color:var(--text-muted);transition:all .2s;width:100%;text-align:center;
+}
+.hire-cancel-btn:hover{border-color:var(--text-secondary);color:var(--text-secondary)}
+.hire-status{font-family:var(--font-sans);font-size:11px;color:var(--text-muted);min-height:16px;text-align:center}
+.hire-status.error{color:var(--amber)}
+.hire-status.success{color:var(--green)}
+.hire-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border-dim);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hire-personalized-badge{
+  display:inline-block;font-family:var(--font-mono);font-size:9px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:4px;
+  background:rgba(34,211,238,0.1);color:var(--accent);border:1px solid rgba(34,211,238,0.2);
+  margin-left:8px;
+}
+
 /* Remote agent cards */
 .remote-node{border-color:rgba(139,92,246,0.2) !important}
 .remote-node:hover{border-color:rgba(139,92,246,0.4) !important;box-shadow:0 2px 12px rgba(139,92,246,0.15) !important}
@@ -438,8 +701,9 @@ text-decoration:none;}
   background:var(--accent-bg);border:1px solid var(--accent);
   display:inline-flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-weight:600;color:var(--accent);
-  vertical-align:middle;margin-right:8px;
+  vertical-align:middle;margin-right:8px;overflow:hidden;
 }
+.list-table tr .row-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .list-table tr .row-status{
   display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;
 }
@@ -579,6 +843,20 @@ text-decoration:none;}
 .modal-tab-content.active{display:block}
 
 .modal-body{padding:20px 24px}
+
+/* Avatar Picker */
+.avatar-picker-section{margin-bottom:16px}
+.avatar-picker-preview{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.avatar-picker-thumb{width:48px;height:48px;border-radius:12px;background:var(--accent-bg);border:1px solid var(--border-dim);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);overflow:hidden;flex-shrink:0}
+.avatar-picker-thumb img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.avatar-picker-btn{font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid var(--border-dim);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .2s}
+.avatar-picker-btn:hover{border-color:var(--accent);color:var(--accent)}
+.avatar-picker-grid{display:none;grid-template-columns:repeat(10,1fr);gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:10px;max-height:240px;overflow-y:auto;margin-top:8px}
+.avatar-picker-grid.open{display:grid}
+.avatar-picker-grid .avatar-option{width:100%;aspect-ratio:1;border-radius:8px;border:2px solid transparent;cursor:pointer;overflow:hidden;transition:all .15s;background:var(--bg-card)}
+.avatar-picker-grid .avatar-option:hover{border-color:var(--accent);transform:scale(1.08)}
+.avatar-picker-grid .avatar-option.selected{border-color:var(--accent);box-shadow:0 0 8px rgba(34,211,238,0.3)}
+.avatar-picker-grid .avatar-option img{width:100%;height:100%;object-fit:cover;border-radius:6px}
 
 .form-group{margin-bottom:16px}
 .form-label{
@@ -1120,6 +1398,18 @@ text-decoration:none;}
         <input class="form-input" id="f-name" placeholder="My Agent">
       </div>
 
+      <!-- Avatar Picker -->
+      <div class="avatar-picker-section">
+        <label class="form-label">Avatar</label>
+        <div class="avatar-picker-preview">
+          <div class="avatar-picker-thumb" id="avatarPreview">?</div>
+          <button type="button" class="avatar-picker-btn" onclick="toggleAvatarGrid()">Choose Avatar</button>
+          <button type="button" class="avatar-picker-btn" onclick="clearAvatar()" style="color:var(--text-muted)">Clear</button>
+          <input type="hidden" id="f-avatar" value="">
+        </div>
+        <div class="avatar-picker-grid" id="avatarGrid"></div>
+      </div>
+
       <div class="form-group">
         <label class="form-label">Description</label>
         <input class="form-input" id="f-desc" placeholder="What does this agent do?">
@@ -1596,6 +1886,19 @@ function toggleHideOrg(orgName) {
       });
     }, 500);
   }
+
+  // Handle deploy-template param from library page
+  const deployTemplateId = params.get('deploy-template');
+  if (deployTemplateId) {
+    // Switch to templates tab, wait for it to load, then open hire modal
+    setTimeout(() => {
+      switchOrgView('templates');
+      // Wait for templates to render then open hire modal
+      setTimeout(() => { openHireModal(deployTemplateId); }, 600);
+    }, 500);
+    // Clean URL
+    window.history.replaceState({}, '', '/org');
+  }
 })();
 function isOrgHidden(orgName) {
   return getHiddenOrgs().includes(orgName);
@@ -1788,12 +2091,23 @@ function switchOrgView(view) {
   orgSubView = view;
   const teamsLink = document.getElementById('teamsLink');
   const cloudLink = document.getElementById('cloudTeamLink');
+  const templatesLink = document.getElementById('templatesLink');
+  const controlsBar = document.getElementById('agentControlsBar');
   if (teamsLink) teamsLink.classList.toggle('active', view === 'local');
   if (cloudLink) cloudLink.classList.toggle('active', view === 'cloud');
-  renderOrg();
+  if (templatesLink) templatesLink.classList.toggle('active', view === 'templates');
+  // Hide agent controls when on templates tab
+  if (controlsBar) controlsBar.style.display = view === 'templates' ? 'none' : '';
+  if (view === 'templates') {
+    renderTemplatesTab();
+  } else {
+    renderOrg();
+  }
 }
 
 function renderOrg() {
+  // Don't render org when on templates view
+  if (orgSubView === 'templates') { renderTemplatesTab(); return; }
   if (isChannelsPage) {
     const canvas = document.getElementById('canvas');
     if (canvas) renderChannelsPanel(canvas);
@@ -1834,6 +2148,18 @@ function renderOrg() {
   }
 
   const selHidden = isOrgHidden(selected);
+
+  // Cards view for single org
+  if (viewMode === 'cards') {
+    let html = renderOrgBanner(selected, selHidden);
+    html += '<div class="cards-grid">';
+    for (const a of nodesInOrg.sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+      html += renderCardNode(a, selHidden);
+    }
+    html += '</div>';
+    canvas.innerHTML = html;
+    return;
+  }
 
   // Compact view for single org
   if (viewMode === 'compact') {
@@ -1905,7 +2231,8 @@ function renderOrg() {
 }
 
 function renderFlatGrid(canvas) {
-  // Delegate to compact or list view if active
+  // Delegate to cards, compact, or list view if active
+  if (viewMode === 'cards') return renderCardsGrid(canvas);
   if (viewMode === 'compact') return renderCompactGrid(canvas);
   if (viewMode === 'list') return renderListView(canvas);
 
@@ -1935,6 +2262,14 @@ function renderFlatGrid(canvas) {
   canvas.innerHTML = html;
 }
 
+function getNodeAvatarContent(a, initials) {
+  const avatarId = a.avatar || a.icon;
+  if (avatarId && avatarId.startsWith('avatar-')) {
+    return `<img src="/avatars/${avatarId}.png" alt="${escapeHtml(a.name)}">`;
+  }
+  return initials;
+}
+
 function renderNode(a, dimmed, isLead, blurNames) {
   const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
   const orgData = a.orgData || (a.org && a.org[0]);
@@ -1955,7 +2290,7 @@ function renderNode(a, dimmed, isLead, blurNames) {
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
         ${escapeHtml(a._gatewayName || 'Remote')}
       </div>
-      <div class="node-avatar remote-node-avatar">${initials}</div>
+      <div class="node-avatar remote-node-avatar">${getNodeAvatarContent(a, initials)}</div>
       <div class="node-info">
         ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
         <div class="node-name">${escapeHtml(a.name)}</div>
@@ -1972,7 +2307,7 @@ function renderNode(a, dimmed, isLead, blurNames) {
   return `<div class="agent-node${leadClass}" style="${opacity};width:300px" data-agent-id="${a.id}" data-agent-alias="${a.aliases?.[0] || a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}">
     <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
     ${renderAccountBadge(a)}
-    <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}${hasAutomation ? ' automated' : ''}">${initials}</div>
+    <div class="node-avatar ${(isActive || isRecent) ? 'active' : ''}${hasAutomation ? ' automated' : ''}">${getNodeAvatarContent(a, initials)}</div>
     <div class="node-info">
       ${title ? `<div class="node-title">${escapeHtml(title)}</div>` : ''}
       <div class="node-name${blurClass}">${escapeHtml(a.name)}</div>
@@ -2008,7 +2343,7 @@ function renderCompactNode(a, blurNames) {
 
   if (isRemote) {
     return `<div class="compact-node remote-node" data-agent-id="${a.id}">
-      <div class="node-avatar remote-node-avatar" style="width:28px;height:28px;border-radius:8px;font-size:10px">${initials}</div>
+      <div class="node-avatar remote-node-avatar" style="width:28px;height:28px;border-radius:8px;font-size:10px">${getNodeAvatarContent(a, initials)}</div>
       <div class="compact-info">
         <div class="compact-name">${escapeHtml(a.name)}</div>
         <div class="compact-alias">${a.aliases?.[0] || a.id}</div>
@@ -2020,7 +2355,7 @@ function renderCompactNode(a, blurNames) {
   return `<div class="compact-node" data-agent-id="${a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}openModal('${a.id}')">
     <input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}>
     ${renderAccountBadge(a)}
-    <div class="node-avatar ${isActive ? 'active' : ''}" style="width:28px;height:28px;border-radius:8px;font-size:10px">${initials}</div>
+    <div class="node-avatar ${isActive ? 'active' : ''}" style="width:28px;height:28px;border-radius:8px;font-size:10px">${getNodeAvatarContent(a, initials)}</div>
     <div class="compact-info">
       <div class="compact-name${blurClass}">${escapeHtml(a.name)}</div>
       <div class="compact-alias${blurClass}">${a.aliases?.[0] || a.id}</div>
@@ -2039,9 +2374,24 @@ function toggleCompactMenu(btn) {
   document.querySelectorAll('.compact-ctx.open').forEach(m => { if (m !== ctx) m.classList.remove('open'); });
   ctx.classList.toggle('open');
 }
+function toggleCardMenu(btn) {
+  const ctx = btn.nextElementSibling;
+  document.querySelectorAll('.card-ctx.open').forEach(m => { if (m !== ctx) m.classList.remove('open'); });
+  document.querySelectorAll('.compact-ctx.open').forEach(m => m.classList.remove('open'));
+  ctx.classList.toggle('open');
+}
+function toggleListRowMenu(btn) {
+  const ctx = btn.nextElementSibling;
+  document.querySelectorAll('.card-ctx.open').forEach(m => { if (m !== ctx) m.classList.remove('open'); });
+  document.querySelectorAll('.compact-ctx.open').forEach(m => m.classList.remove('open'));
+  ctx.classList.toggle('open');
+}
 document.addEventListener('click', e => {
   if (!e.target.closest('.compact-menu') && !e.target.closest('.compact-ctx')) {
     document.querySelectorAll('.compact-ctx.open').forEach(m => m.classList.remove('open'));
+  }
+  if (!e.target.closest('.card-gear') && !e.target.closest('.card-ctx')) {
+    document.querySelectorAll('.card-ctx.open').forEach(m => m.classList.remove('open'));
   }
 });
 
@@ -2098,7 +2448,13 @@ function renderByAccount(canvas) {
     const dotColor = document.querySelector(`.${colorCls}`)?.style?.color || 'var(--accent)';
     html += `<div class="account-group-banner"><span class="account-badge ${colorCls}" style="font-size:11px;padding:2px 10px">${escapeHtml(acctName)}</span><span style="font-size:12px;color:var(--text-muted)">${accountGroups[acctName].length} agent${accountGroups[acctName].length !== 1 ? 's' : ''}</span></div>`;
 
-    if (viewMode === 'compact') {
+    if (viewMode === 'cards') {
+      html += '<div class="cards-grid">';
+      for (const a of accountGroups[acctName].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+        html += renderCardNode(a, false);
+      }
+      html += '</div>';
+    } else if (viewMode === 'compact') {
       html += '<div class="compact-grid">';
       for (const a of accountGroups[acctName].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
         html += renderCompactNode(a, false);
@@ -2191,6 +2547,7 @@ function renderListView(canvas) {
   html += `<th class="${sorted('status')}" onclick="sortList('status')">Status ${arrow('status')}</th>`;
   html += `<th class="${sorted('lastActive')}" onclick="sortList('lastActive')">Last Active ${arrow('lastActive')}</th>`;
   html += `<th class="${sorted('msgs')}" onclick="sortList('msgs')">Msgs ${arrow('msgs')}</th>`;
+  html += '<th style="width:40px"></th>';
   html += '</tr></thead><tbody>';
 
   for (const a of all) {
@@ -2200,7 +2557,7 @@ function renderListView(canvas) {
     const title = a.orgData?.title || a.org?.[0]?.title || '';
     const cls = a.agentClass || 'standard';
     html += `<tr data-agent-id="${a.id}" onclick="if(selectMode){toggleAgentSelect('${a.id}');return}openModal('${a.id}')">`;
-    html += `<td><input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}><span class="row-avatar">${initials}</span>${escapeHtml(a.name)}</td>`;
+    html += `<td><input type="checkbox" class="select-check" data-id="${a.id}" onclick="event.stopPropagation();toggleAgentSelect('${a.id}')" ${selectedAgents.has(a.id)?'checked':''}><span class="row-avatar">${getNodeAvatarContent(a, initials)}</span>${escapeHtml(a.name)}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${a.aliases?.[0] || a.id}</td>`;
     html += `<td>${escapeHtml(a._org)}</td>`;
     html += `<td>${escapeHtml(dept)}</td>`;
@@ -2210,6 +2567,7 @@ function renderListView(canvas) {
     html += `<td><span class="row-status ${isActive ? 'active' : 'inactive'}"></span> ${isActive ? 'Active' : 'Idle'}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${formatRelativeTime(a.lastMessage)}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px">${a.messageCount||0}</td>`;
+    html += `<td style="position:relative"><button class="compact-menu" onclick="event.stopPropagation();toggleListRowMenu(this)" title="Actions" style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px">&#8943;</button><div class="card-ctx"><a onclick="event.stopPropagation();window.location='/ui#${a.id}'">&#128172; Chat</a><a onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">&#128202; Dashboard</a><a onclick="event.stopPropagation();openModal('${a.id}')">&#9881; Config</a></div></td>`;
     html += '</tr>';
   }
   html += '</tbody></table></div>';
@@ -2244,6 +2602,559 @@ function getFilteredAgents() {
     }
   }
   return { orgGroups, noOrg };
+}
+
+// ─── Cards View Rendering ───────────────────────────────────────
+function getAvatarHtml(a, size) {
+  const sz = size || 48;
+  const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+  const isActive = a.sessionActive || (a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000);
+  const activeClass = isActive ? ' active' : '';
+  const avatarId = a.avatar || a.icon;
+  if (avatarId && avatarId.startsWith('avatar-')) {
+    return `<div class="card-avatar${activeClass}" style="width:${sz}px;height:${sz}px"><img src="/avatars/${avatarId}.png" alt="${escapeHtml(a.name)}"></div>`;
+  }
+  return `<div class="card-avatar${activeClass}" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*0.33)}px">${initials}</div>`;
+}
+
+function renderCardNode(a, blurNames) {
+  const initials = (a.aliases?.[0] || a.id).replace('@','').slice(0,2).toUpperCase();
+  const isActive = a.sessionActive || (a.lastMessage !== 'never' && (Date.now() - new Date(a.lastMessage).getTime()) < 3600000);
+  const desc = a.description || '';
+  const orgData = a.orgData || (a.org && a.org[0]);
+  const title = orgData?.title || '';
+  const cls = a.agentClass || 'standard';
+  const blurClass = blurNames ? ' name-blurred' : '';
+  const isRemote = !!a._remote;
+
+  return `<div class="card-node${isRemote ? ' remote-node' : ''}" data-agent-id="${a.id}" onclick="window.location='/ui#${a.id}'">
+    <button class="card-gear" onclick="event.stopPropagation();toggleCardMenu(this)" title="Actions">&#9881;</button>
+    <div class="card-ctx">
+      <a onclick="event.stopPropagation();window.location='/ui#${a.id}'">&#128172; Chat</a>
+      <a onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">&#128202; Dashboard</a>
+      <a onclick="event.stopPropagation();openModal('${a.id}')">&#9881; Config</a>
+    </div>
+    ${getAvatarHtml(a, 48)}
+    <div class="card-node-name${blurClass}">${escapeHtml(a.name)}</div>
+    <div class="card-node-desc">${escapeHtml(desc)}</div>
+    <div class="card-node-footer">
+      <span class="card-status-label">
+        <span class="card-status-dot ${isActive ? 'active' : 'inactive'}"></span>
+        ${isActive ? 'Running' : 'Idle'}
+      </span>
+      <span class="card-class-tag">${cls}</span>
+    </div>
+  </div>`;
+}
+
+function renderCardsGrid(canvas) {
+  const { orgGroups, noOrg } = getFilteredAgents();
+  let html = '';
+  for (const orgName of Object.keys(orgGroups).sort()) {
+    const oHidden = isOrgHidden(orgName);
+    html += renderOrgBanner(orgName, oHidden);
+    html += '<div class="cards-grid">';
+    for (const a of orgGroups[orgName].sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+      html += renderCardNode(a, oHidden);
+    }
+    html += '</div>';
+  }
+  if (noOrg.length > 0) {
+    html += '<div class="org-title-banner" style="opacity:.5">Unassigned</div>';
+    html += '<div class="cards-grid">';
+    for (const a of noOrg.sort((a,b)=>(a.name||a.id||'').localeCompare(b.name||b.id||''))) {
+      html += renderCardNode(a, false);
+    }
+    html += '</div>';
+  }
+  canvas.innerHTML = html;
+}
+
+// ─── Templates Tab ──────────────────────────────────────────────
+let templatesCache = null;
+const categoryLabels = {
+  'everyone': 'For Everyone',
+  'business-owners': 'For Business Owners',
+  'Finance Team': 'Finance Team',
+  'builders': 'For Builders',
+  'teams': 'For Teams',
+};
+const categoryOrder = ['everyone', 'business-owners', 'Finance Team', 'builders', 'teams'];
+
+async function loadTemplates() {
+  try {
+    const res = await fetch('/api/templates');
+    const data = await res.json();
+    templatesCache = data.templates || [];
+  } catch (e) {
+    console.warn('Failed to load templates:', e);
+    templatesCache = [];
+  }
+  return templatesCache;
+}
+
+async function renderTemplatesTab() {
+  const canvas = document.getElementById('canvas');
+  if (!canvas) return;
+
+  const templates = await loadTemplates();
+  if (templates.length === 0) {
+    canvas.innerHTML = '<div class="empty-org"><div class="empty-org-icon">&#10024;</div><div class="empty-org-text">No templates available yet</div></div>';
+    return;
+  }
+
+  // Group by category
+  const grouped = {};
+  const uncategorized = [];
+  for (const t of templates) {
+    if (!t.categories || t.categories.length === 0) {
+      uncategorized.push(t);
+      continue;
+    }
+    // Add to first category for display grouping (appears in all matched categories)
+    let placed = false;
+    for (const cat of categoryOrder) {
+      if (t.categories.includes(cat)) {
+        if (!grouped[cat]) grouped[cat] = [];
+        if (!placed) { grouped[cat].push(t); placed = true; }
+        else { /* show in additional categories too */ grouped[cat].push(t); }
+      }
+    }
+    // If categories don't match known ones, show in uncategorized
+    if (!placed) uncategorized.push(t);
+  }
+
+  let html = '<div class="templates-container">';
+
+  // Search bar for templates
+  html += '<div style="margin-bottom:20px"><input type="text" id="templateSearch" placeholder="Search templates..." oninput="filterTemplates()" style="font-family:var(--font-sans);font-size:13px;padding:10px 16px;border-radius:10px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);width:100%;max-width:400px;outline:none"></div>';
+
+  for (const cat of categoryOrder) {
+    const items = grouped[cat];
+    if (!items || items.length === 0) continue;
+    html += `<div class="template-category" data-category="${cat}">`;
+    html += `<div class="template-category-title">${categoryLabels[cat] || cat}</div>`;
+    html += '<div class="template-grid">';
+    for (const t of items) {
+      html += renderTemplateCard(t);
+    }
+    html += '</div></div>';
+  }
+
+  if (uncategorized.length > 0) {
+    html += '<div class="template-category" data-category="other">';
+    html += '<div class="template-category-title">Other</div>';
+    html += '<div class="template-grid">';
+    for (const t of uncategorized) {
+      html += renderTemplateCard(t);
+    }
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  canvas.innerHTML = html;
+}
+
+function renderTemplateCard(t) {
+  const initials = (t.name || 'T').slice(0, 2).toUpperCase();
+  const sourceBadge = t.source === 'user' ? '<span class="template-source-badge">Custom</span>' : '';
+  const avatarId = t.icon;
+  let avatarHtml;
+  if (avatarId && avatarId.startsWith('avatar-')) {
+    avatarHtml = `<div class="card-avatar" style="width:48px;height:48px;background:var(--purple-bg);border-color:var(--purple)"><img src="/avatars/${avatarId}.png" alt="${escapeHtml(t.name)}"></div>`;
+  } else {
+    avatarHtml = `<div class="card-avatar" style="background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">${initials}</div>`;
+  }
+  return `<div class="template-card" onclick="openTemplatePreview('${escapeHtml(t.id)}')">
+    ${avatarHtml}
+    <div class="card-node-name">${escapeHtml(t.name)}</div>
+    <div class="card-node-desc">${escapeHtml(t.description || '')}</div>
+    <div class="card-node-footer">
+      <span class="template-badge">Template</span>
+      ${sourceBadge}
+    </div>
+  </div>`;
+}
+
+function filterTemplates() {
+  const q = (document.getElementById('templateSearch')?.value || '').toLowerCase();
+  const cards = document.querySelectorAll('.template-card');
+  const categories = document.querySelectorAll('.template-category');
+
+  cards.forEach(card => {
+    const name = card.querySelector('.card-node-name')?.textContent?.toLowerCase() || '';
+    const desc = card.querySelector('.card-node-desc')?.textContent?.toLowerCase() || '';
+    card.style.display = (!q || name.includes(q) || desc.includes(q)) ? '' : 'none';
+  });
+
+  // Hide empty categories
+  categories.forEach(cat => {
+    const visibleCards = cat.querySelectorAll('.template-card:not([style*="display: none"])');
+    cat.style.display = visibleCards.length > 0 ? '' : 'none';
+  });
+}
+
+// ─── Template Preview Modal ─────────────────────────────────────
+function openTemplatePreview(templateId) {
+  const t = (templatesCache || []).find(x => x.id === templateId);
+  if (!t) return;
+
+  // Build preview overlay
+  let overlay = document.getElementById('templatePreviewOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'templatePreviewOverlay';
+    overlay.className = 'template-preview-overlay';
+    overlay.onclick = function(e) { if (e.target === overlay) closeTemplatePreview(); };
+    document.body.appendChild(overlay);
+  }
+
+  const initials = (t.name || 'T').slice(0, 2).toUpperCase();
+  const suggestedId = t.id.replace(/-/g, '');
+  const suggestedAlias = '@' + suggestedId;
+  const previewAvatarId = t.icon;
+  let previewAvatarHtml;
+  if (previewAvatarId && previewAvatarId.startsWith('avatar-')) {
+    previewAvatarHtml = `<div class="card-avatar" style="width:56px;height:56px;border-radius:16px;background:var(--purple-bg);border-color:var(--purple)"><img src="/avatars/${previewAvatarId}.png" alt="${escapeHtml(t.name)}"></div>`;
+  } else {
+    previewAvatarHtml = `<div class="card-avatar" style="width:56px;height:56px;font-size:20px;border-radius:16px;background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">${initials}</div>`;
+  }
+
+  // Role line from org
+  const roleTitle = t.org?.title || '';
+  const roleFunction = t.org?.function || '';
+  const roleLine = [roleTitle, roleFunction].filter(Boolean).join(' · ');
+
+  // Capabilities list
+  const caps = (t.capabilities || []);
+  const capsHtml = caps.length
+    ? `<ul class="template-resume-capabilities">${caps.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`
+    : `<div class="template-resume-empty">No capabilities listed yet</div>`;
+
+  // Skills (Claude tools)
+  const skills = (t.suggestedTools || []).map(s => `<span class="template-resume-tag">${escapeHtml(s)}</span>`).join('');
+
+  // Tools & Integrations (MCPs)
+  const mcps = (t.suggestedMcps || []);
+  const mcpsHtml = mcps.length
+    ? mcps.map(m => `<span class="template-resume-tag mcp">${escapeHtml(m)}</span>`).join('')
+    : `<span class="template-resume-empty">Works standalone — no integrations required</span>`;
+
+  overlay.innerHTML = `<div class="template-preview-panel">
+    <div class="template-resume-header">
+      <div class="template-resume-header-top">
+        ${previewAvatarHtml}
+        <div>
+          <div class="template-resume-name">${escapeHtml(t.name)}</div>
+          ${roleLine ? `<div class="template-resume-role">${escapeHtml(roleLine)}</div>` : ''}
+          <div class="template-resume-class">${escapeHtml(t.agentClass || 'standard')} agent</div>
+        </div>
+      </div>
+      <div class="template-resume-desc">"${escapeHtml(t.description || '')}"</div>
+    </div>
+
+    <div class="template-resume-body">
+      <div class="template-resume-section">
+        <div class="template-resume-section-title">Training & Experience</div>
+        ${capsHtml}
+      </div>
+
+      ${skills ? `<div class="template-resume-section">
+        <div class="template-resume-section-title">Skills</div>
+        <div class="template-resume-tags">${skills}</div>
+      </div>` : ''}
+
+      <div class="template-resume-section">
+        <div class="template-resume-section-title">Tools & Integrations</div>
+        <div class="template-resume-tags">${mcpsHtml}</div>
+      </div>
+
+      <div style="padding-top:20px;border-top:1px solid var(--border-dim);display:flex;gap:8px">
+        <button class="template-deploy-btn" style="flex:1" onclick="openHireModal('${escapeHtml(t.id)}')">Hire This Agent</button>
+        <button class="template-cancel-btn" onclick="closeTemplatePreview()">Close</button>
+      </div>
+    </div>
+  </div>`;
+
+  overlay.classList.add('open');
+}
+
+function closeTemplatePreview() {
+  const overlay = document.getElementById('templatePreviewOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+// ─── Hire Modal (two-panel AI-assisted deploy) ───
+
+let hireTemplateId = null;
+let hirePersonalizedData = null;
+
+function openHireModal(templateId) {
+  closeTemplatePreview();
+  hireTemplateId = templateId;
+  hirePersonalizedData = null;
+
+  const t = (templatesCache || []).find(x => x.id === templateId);
+  if (!t) return;
+
+  let overlay = document.getElementById('hireOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'hireOverlay';
+    overlay.className = 'hire-overlay';
+    overlay.onclick = function(e) { if (e.target === overlay) closeHireModal(); };
+    document.body.appendChild(overlay);
+  }
+
+  const suggestedId = t.id.replace(/-/g, '');
+  const suggestedAlias = '@' + suggestedId;
+
+  // Build left-side resume from template seed data
+  const leftHtml = buildResumeHtml(t, t.capabilities || [], t.suggestedTools || [], t.suggestedMcps || []);
+
+  overlay.innerHTML = `<div class="hire-panel">
+    <div class="hire-left" id="hireResumePanel">
+      ${leftHtml}
+    </div>
+    <div class="hire-right">
+      <div>
+        <div class="hire-right-title">Hire This Agent</div>
+        <div class="hire-right-subtitle">Tell us about your needs and we'll personalize this agent for you. Or skip straight to hiring with the defaults.</div>
+      </div>
+
+      <div class="hire-form-fields">
+        <label>Agent ID</label>
+        <input type="text" id="hireAgentId" placeholder="${suggestedId}" value="${suggestedId}">
+        <label>Display Name</label>
+        <input type="text" id="hireName" placeholder="${escapeHtml(t.name)}" value="${escapeHtml(t.name)}">
+        <label>Mention Alias</label>
+        <input type="text" id="hireAlias" placeholder="${suggestedAlias}" value="${suggestedAlias}">
+        <label>Organization <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+        <input type="text" id="hireOrg" placeholder="My Team" list="dl-orgs">
+      </div>
+
+      <div>
+        <label style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px">Tell us about your needs</label>
+        <textarea class="hire-notes-area" id="hireNotes" placeholder="Example: I'm a solo CPA managing 30 small business clients. I need this agent focused on quarterly tax prep and 1099 tracking. I use QuickBooks Online and prefer weekly check-ins..."></textarea>
+      </div>
+
+      <div class="hire-actions">
+        <button class="hire-build-btn" id="hireBuildBtn" onclick="personalizeAgent()">Build My Agent</button>
+        <button class="hire-confirm-btn" id="hireConfirmBtn" onclick="confirmHire()">Confirm & Hire</button>
+        <button class="hire-build-btn" id="hireSkipBtn" onclick="skipAndHire()" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-secondary)">Skip — Hire with Defaults</button>
+        <div class="hire-status" id="hireStatus"></div>
+        <button class="hire-cancel-btn" onclick="closeHireModal()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+
+  overlay.classList.add('open');
+}
+
+function closeHireModal() {
+  const overlay = document.getElementById('hireOverlay');
+  if (overlay) overlay.classList.remove('open');
+  hireTemplateId = null;
+  hirePersonalizedData = null;
+}
+
+function buildResumeHtml(t, capabilities, tools, mcps) {
+  const initials = (t.name || 'T').slice(0, 2).toUpperCase();
+  const previewAvatarId = t.icon;
+  let avatarHtml;
+  if (previewAvatarId && previewAvatarId.startsWith('avatar-')) {
+    avatarHtml = `<div class="card-avatar" style="width:48px;height:48px;border-radius:14px;background:var(--purple-bg);border-color:var(--purple)"><img src="/avatars/${previewAvatarId}.png" alt="${escapeHtml(t.name)}"></div>`;
+  } else {
+    avatarHtml = `<div class="card-avatar" style="width:48px;height:48px;font-size:16px;border-radius:14px;background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">${initials}</div>`;
+  }
+  const roleTitle = t.org?.title || '';
+  const roleFunction = t.org?.function || '';
+  const roleLine = [roleTitle, roleFunction].filter(Boolean).join(' · ');
+
+  const capsHtml = capabilities.length
+    ? `<ul class="template-resume-capabilities">${capabilities.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`
+    : `<div class="template-resume-empty">No capabilities listed</div>`;
+
+  const skillsHtml = tools.map(s => `<span class="template-resume-tag">${escapeHtml(s)}</span>`).join('');
+  const mcpsHtml = mcps.length
+    ? mcps.map(m => `<span class="template-resume-tag mcp">${escapeHtml(m)}</span>`).join('')
+    : `<span class="template-resume-empty">Works standalone — no integrations required</span>`;
+
+  return `
+    <div class="template-resume-header" style="border:none;padding:0 0 16px">
+      <div class="template-resume-header-top">
+        ${avatarHtml}
+        <div>
+          <div class="template-resume-name" style="font-size:18px">${escapeHtml(t.name)}</div>
+          ${roleLine ? `<div class="template-resume-role">${escapeHtml(roleLine)}</div>` : ''}
+          <div class="template-resume-class">${escapeHtml(t.agentClass || 'standard')} agent</div>
+        </div>
+      </div>
+      <div class="template-resume-desc" style="margin-top:12px">"${escapeHtml(t.description || '')}"</div>
+    </div>
+    <div class="template-resume-section">
+      <div class="template-resume-section-title">Training & Experience</div>
+      ${capsHtml}
+    </div>
+    ${skillsHtml ? `<div class="template-resume-section">
+      <div class="template-resume-section-title">Skills</div>
+      <div class="template-resume-tags">${skillsHtml}</div>
+    </div>` : ''}
+    <div class="template-resume-section">
+      <div class="template-resume-section-title">Tools & Integrations</div>
+      <div class="template-resume-tags">${mcpsHtml}</div>
+    </div>`;
+}
+
+async function personalizeAgent() {
+  const notes = document.getElementById('hireNotes')?.value?.trim();
+  if (!notes) {
+    document.getElementById('hireStatus').innerHTML = '<span class="error">Please describe your needs first</span>';
+    return;
+  }
+
+  const buildBtn = document.getElementById('hireBuildBtn');
+  const skipBtn = document.getElementById('hireSkipBtn');
+  const status = document.getElementById('hireStatus');
+  const agentName = document.getElementById('hireName')?.value?.trim();
+  const agentAlias = document.getElementById('hireAlias')?.value?.trim();
+
+  buildBtn.disabled = true;
+  skipBtn.style.display = 'none';
+  buildBtn.innerHTML = '<span class="hire-spinner"></span>Personalizing...';
+  status.innerHTML = '';
+
+  try {
+    const res = await fetch(`/api/templates/${hireTemplateId}/personalize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userNotes: notes, agentName, agentAlias }),
+    });
+    const data = await res.json();
+
+    if (data.ok && data.personalized) {
+      hirePersonalizedData = data.personalized;
+
+      // Update the left panel with personalized resume
+      const panel = document.getElementById('hireResumePanel');
+      const t = {
+        name: data.personalized.name,
+        description: data.personalized.description,
+        icon: data.personalized.icon,
+        org: data.personalized.org,
+        agentClass: data.personalized.agentClass,
+      };
+      let badgeHtml = data.fallback
+        ? '<span class="hire-personalized-badge" style="background:rgba(251,191,36,0.1);color:var(--amber);border-color:rgba(251,191,36,0.2)">defaults (AI unavailable)</span>'
+        : '<span class="hire-personalized-badge">personalized</span>';
+      panel.innerHTML = buildResumeHtml(t, data.personalized.capabilities, data.personalized.suggestedTools || [], data.personalized.suggestedMcps || []);
+      // Add badge to the name
+      const nameEl = panel.querySelector('.template-resume-name');
+      if (nameEl) nameEl.innerHTML = nameEl.innerHTML + badgeHtml;
+
+      // Update name field if AI changed it
+      if (data.personalized.name) {
+        document.getElementById('hireName').value = data.personalized.name;
+      }
+
+      // Show confirm, hide build
+      buildBtn.style.display = 'none';
+      document.getElementById('hireConfirmBtn').style.display = 'block';
+      status.innerHTML = data.fallback
+        ? '<span class="error">AI was unavailable — showing defaults. You can still hire.</span>'
+        : '<span class="success">Agent personalized! Review the resume and confirm.</span>';
+    } else {
+      status.innerHTML = `<span class="error">${escapeHtml(data.error || 'Personalization failed')}</span>`;
+      buildBtn.disabled = false;
+      buildBtn.innerHTML = 'Build My Agent';
+      skipBtn.style.display = '';
+    }
+  } catch (e) {
+    status.innerHTML = `<span class="error">Network error: ${escapeHtml(String(e))}</span>`;
+    buildBtn.disabled = false;
+    buildBtn.innerHTML = 'Build My Agent';
+    skipBtn.style.display = '';
+  }
+}
+
+async function confirmHire() {
+  await doHire(hirePersonalizedData);
+}
+
+async function skipAndHire() {
+  await doHire(null);
+}
+
+async function doHire(personalized) {
+  const agentId = document.getElementById('hireAgentId')?.value?.trim();
+  const name = document.getElementById('hireName')?.value?.trim();
+  const alias = document.getElementById('hireAlias')?.value?.trim();
+  const orgName = document.getElementById('hireOrg')?.value?.trim();
+  const status = document.getElementById('hireStatus');
+
+  if (!agentId) {
+    status.innerHTML = '<span class="error">Agent ID is required</span>';
+    return;
+  }
+
+  // Disable buttons
+  const confirmBtn = document.getElementById('hireConfirmBtn');
+  const skipBtn = document.getElementById('hireSkipBtn');
+  const buildBtn = document.getElementById('hireBuildBtn');
+  if (confirmBtn) confirmBtn.disabled = true;
+  if (skipBtn) skipBtn.disabled = true;
+  if (buildBtn) buildBtn.disabled = true;
+  status.innerHTML = '<span class="hire-spinner"></span>Creating agent...';
+
+  const t = (templatesCache || []).find(x => x.id === hireTemplateId);
+  const body = {
+    agentId,
+    name: name || undefined,
+    alias: alias || undefined,
+  };
+  if (orgName) {
+    body.org = [{
+      organization: orgName,
+      function: t?.org?.function || '',
+      title: t?.org?.title || '',
+    }];
+  }
+  // Add personalized data if available
+  if (personalized) {
+    body.personalizedClaudeMd = personalized.claudeMd;
+    body.personalizedContextMd = personalized.contextMd;
+    body.personalizedDescription = personalized.description;
+    if (personalized.goals && personalized.goals.length) {
+      body.personalizedGoals = personalized.goals;
+    }
+  }
+
+  try {
+    const res = await fetch(`/api/templates/${hireTemplateId}/deploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      status.innerHTML = `<span class="success">Agent "${data.agentId}" hired! (${data.alias})</span>`;
+      setTimeout(() => {
+        closeHireModal();
+        switchOrgView('local');
+        fetchData();
+      }, 1500);
+    } else {
+      status.innerHTML = `<span class="error">${escapeHtml(data.error || 'Hire failed')}</span>`;
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (skipBtn) skipBtn.disabled = false;
+      if (buildBtn) buildBtn.disabled = false;
+    }
+  } catch (e) {
+    status.innerHTML = `<span class="error">Network error: ${escapeHtml(String(e))}</span>`;
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (skipBtn) skipBtn.disabled = false;
+    if (buildBtn) buildBtn.disabled = false;
+  }
 }
 
 function renderOrgBanner(orgName, oHidden) {
@@ -2334,6 +3245,54 @@ async function loadExecutorOptions(currentValue) {
   sel.value = currentValue || '';
 }
 
+// ── Avatar Picker ──
+function initAvatarGrid() {
+  const grid = document.getElementById('avatarGrid');
+  if (grid.children.length > 0) return; // already populated
+  let html = '';
+  for (let i = 1; i <= 80; i++) {
+    const id = 'avatar-' + String(i).padStart(2, '0');
+    html += `<div class="avatar-option" data-avatar="${id}" onclick="selectAvatar('${id}')"><img src="/avatars/${id}.png" alt="${id}" loading="lazy"></div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function toggleAvatarGrid() {
+  const grid = document.getElementById('avatarGrid');
+  initAvatarGrid();
+  grid.classList.toggle('open');
+}
+
+function selectAvatar(avatarId) {
+  document.getElementById('f-avatar').value = avatarId;
+  const preview = document.getElementById('avatarPreview');
+  preview.innerHTML = `<img src="/avatars/${avatarId}.png" alt="${avatarId}">`;
+  // Highlight selected
+  document.querySelectorAll('#avatarGrid .avatar-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.avatar === avatarId);
+  });
+  document.getElementById('avatarGrid').classList.remove('open');
+}
+
+function clearAvatar() {
+  document.getElementById('f-avatar').value = '';
+  const preview = document.getElementById('avatarPreview');
+  const nameVal = document.getElementById('f-name')?.value || '?';
+  preview.textContent = nameVal.slice(0, 2).toUpperCase();
+  document.querySelectorAll('#avatarGrid .avatar-option').forEach(el => el.classList.remove('selected'));
+}
+
+function setAvatarPreview(avatarId) {
+  if (avatarId && avatarId.startsWith('avatar-')) {
+    document.getElementById('f-avatar').value = avatarId;
+    document.getElementById('avatarPreview').innerHTML = `<img src="/avatars/${avatarId}.png" alt="${avatarId}">`;
+  } else {
+    document.getElementById('f-avatar').value = '';
+    const nameVal = document.getElementById('f-name')?.value || '?';
+    document.getElementById('avatarPreview').textContent = nameVal.slice(0, 2).toUpperCase();
+  }
+}
+
 function autoAlias() {
   if (editingAgentId) return; // don't auto-alias in edit mode
   const id = document.getElementById('f-agentId')?.value || ''.trim();
@@ -2395,6 +3354,7 @@ async function openModal(agentId) {
     idField.readOnly = true;
     aliasField.value = a.aliases?.[0] || '';
     nameField.value = a.name;
+    setAvatarPreview(a.avatar || a.icon);
     descField.value = a.description || '';
     wsField.value = a.workspace || '~';
     homeField.value = a.agentHome || '';
@@ -2520,6 +3480,7 @@ async function openModal(agentId) {
     aliasField.value = '';
     aliasField.dataset.auto = '';
     nameField.value = '';
+    setAvatarPreview(null);
     descField.value = '';
     instrField.value = '# Agent Name\n\nDescription of what this agent does.\n\n## Identity\n- Mention alias: @alias\n- Respond when mentioned\n\n## Guidelines\n- Keep responses concise\n- If a task requires multiple steps, summarize what you did\n- If you need clarification, ask\n';
     wsField.value = '~';
@@ -3889,6 +4850,7 @@ async function saveAgent() {
   const conversationLogMode = document.getElementById('f-conversationLogMode')?.value || 'shared';
   const skills = getSelectedSkills();
   const agentSkills = [];
+  const avatar = document.getElementById('f-avatar')?.value || undefined;
   const heartbeatInstructions = document.getElementById('f-heartbeatInstructions')?.value?.trim() || undefined;
   const heartbeatCron = buildHeartbeatCron() || undefined;
   const heartbeatEnabled = document.getElementById('f-heartbeatEnabled')?.classList?.contains('checked') ?? false;
@@ -3949,7 +4911,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled, shared: shared || undefined, conversationLogMode: shared ? conversationLogMode : undefined }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled, shared: shared || undefined, conversationLogMode: shared ? conversationLogMode : undefined, avatar }),
     });
     const data = await res.json();
 
@@ -4429,12 +5391,14 @@ const subNav = document.getElementById('subNav');
 const agentsSubNav = `
   <a class="sub-nav-link active" href="#" onclick="switchOrgView('local');return false" id="teamsLink">Teams</a>
   <a class="sub-nav-link" href="#" onclick="switchOrgView('cloud');return false" id="cloudTeamLink" style="display:none;color:rgba(139,92,246,0.9)">&#9729; Cloud Team</a>
+  <a class="sub-nav-link" href="#" onclick="switchOrgView('templates');return false" id="templatesLink">Templates</a>
   <a class="sub-nav-link" href="/tasks">Tasks</a>
   <a class="sub-nav-link" href="/projects">Projects</a>
   <a class="sub-nav-link" href="/automations">Automations</a>
-  <div class="agent-controls">
+  <div class="agent-controls" id="agentControlsBar">
     <div class="view-toggle" id="viewToggle">
-      <button class="view-toggle-btn${viewMode==='grid'?' active':''}" data-view="grid" onclick="setViewMode('grid')" title="Grid view">&#9638;</button>
+      <button class="view-toggle-btn${viewMode==='grid'?' active':''}" data-view="grid" onclick="setViewMode('grid')" title="Hierarchy view">&#9638;</button>
+      <button class="view-toggle-btn${viewMode==='cards'?' active':''}" data-view="cards" onclick="setViewMode('cards')" title="Cards view">&#9642;&#9642;&#9642;</button>
       <button class="view-toggle-btn${viewMode==='compact'?' active':''}" data-view="compact" onclick="setViewMode('compact')" title="Compact view">&#9642;&#9642;</button>
       <button class="view-toggle-btn${viewMode==='list'?' active':''}" data-view="list" onclick="setViewMode('list')" title="List view">&#9776;</button>
     </div>

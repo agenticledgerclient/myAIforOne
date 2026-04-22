@@ -109,7 +109,9 @@ html,body{
   background:var(--accent-bg);border:1px solid var(--accent);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);flex-shrink:0;
+  overflow:hidden;
 }
+.agent-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .agent-info{flex:1;min-width:0}
 .agent-name{font-family:var(--font-display);font-size:20px;font-weight:800}
 .agent-meta{display:flex;align-items:center;gap:10px;margin-top:4px}
@@ -413,7 +415,13 @@ async function loadDashboard(){
     const displayAlias=aliases[0]||(a.mentionAlias)||`@${agentId}`;
     document.getElementById('agentAlias').textContent=displayAlias.startsWith('@')?displayAlias:`@${displayAlias}`;
     document.getElementById('agentDesc').textContent=a.description||'';
-    document.getElementById('agentAvatar').textContent=(a.name||agentId).slice(0,2).toUpperCase();
+    const avatarEl=document.getElementById('agentAvatar');
+    const avatarId=a.avatar||a.icon;
+    if(avatarId&&avatarId.startsWith('avatar-')){
+      avatarEl.innerHTML=`<img src="/avatars/${avatarId}.png" alt="${(a.name||agentId)}">`;
+    } else {
+      avatarEl.textContent=(a.name||agentId).slice(0,2).toUpperCase();
+    }
     document.title=`${a.name||agentId} — Dashboard`;
     // Shared agent indicators
     if(a.shared){

@@ -135,7 +135,8 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
 .activity-entry{padding:12px 16px;margin-bottom:6px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border-dim);transition:all .2s;cursor:pointer}
 .activity-entry:hover{border-color:var(--border-glow)}
 .activity-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.activity-avatar{width:28px;height:28px;border-radius:7px;flex-shrink:0;background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent)}
+.activity-avatar{width:28px;height:28px;border-radius:7px;flex-shrink:0;background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);overflow:hidden}
+.activity-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .activity-agent{font-size:13px;font-weight:600;color:var(--accent)}
 .activity-channel{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--purple-bg);color:var(--purple);font-weight:500}
 .activity-time{font-size:11px;color:var(--text-muted);margin-left:auto}
@@ -1371,6 +1372,10 @@ function renderActivity() {
   const html = entries.map((e) => {
     const agent = activityAgents.find(a => a.id === e.agentId);
     const initials = (agent?.aliases?.[0] || e.agentId || '??').replace('@','').slice(0,2).toUpperCase();
+    const avatarId = agent?.avatar || agent?.icon;
+    const avatarContent = avatarId && avatarId.startsWith('avatar-')
+      ? `<img src="/avatars/${avatarId}.png" alt="${escHtml(agent?.name || '')}">`
+      : initials;
     const name = agent?.name || e.agentId;
     const time = formatTime(e.ts);
     const date = formatDate(e.ts);
@@ -1380,7 +1385,7 @@ function renderActivity() {
     const agentLink = e.agentId ? `/ui#${e.agentId}${e.ts ? '?ts=' + encodeURIComponent(e.ts) : ''}` : '#';
     return `<div class="activity-entry" onclick="this.classList.toggle('expanded')">
       <div class="activity-top">
-        <div class="activity-avatar">${initials}</div>
+        <div class="activity-avatar">${avatarContent}</div>
         <a class="activity-agent" href="${agentLink}" onclick="event.stopPropagation()" style="text-decoration:none">${escHtml(name)}</a>
         ${channel ? `<span class="activity-channel">${channel}</span>` : ''}
         ${e.sessionId ? `<span class="activity-channel" style="background:var(--green-bg);color:var(--green)">session</span>` : ''}

@@ -216,7 +216,9 @@ text-decoration:none;}
   background:var(--accent-bg);border:1px solid var(--border-dim);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--accent);
+  overflow:hidden;
 }
+.agent-card-compact .compact-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .agent-card-compact .compact-info{flex:1;min-width:0}
 .agent-card-compact .compact-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .agent-card-compact .compact-time{font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}
@@ -250,8 +252,9 @@ text-decoration:none;}
   background:var(--accent-bg);border:1px solid var(--accent);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent);
-  flex-shrink:0;
+  flex-shrink:0;overflow:hidden;
 }
+.agent-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .agent-name{font-family:var(--font-display);font-size:14px;font-weight:700;flex:1}
 .agent-session-dot{
   width:8px;height:8px;border-radius:50%;flex-shrink:0;
@@ -2011,7 +2014,11 @@ function renderAgentList() {
     const time = a.lastMessage && a.lastMessage !== 'never' ? formatRelativeTime(a.lastMessage) : '';
     const pulse = showPulse ? '<div class="thinking-pulse" title="Processing..."></div>' : '';
     const cloud = a._remote ? '<span class="cloud-badge" title="Remote · '+((a._gatewayName||'Team'))+'">☁</span>' : '';
-    return '<div class="agent-card-compact' + sel + remoteCls + '" onclick="selectAgent(\''+a.id+'\')"><div class="compact-avatar">'+initials+'</div><div class="compact-info"><div class="compact-name'+blur+'">'+a.name+cloud+'</div><div class="compact-time">'+((a.aliases||[])[0]||a.id)+(time?' · '+time:'')+'</div></div>'+pulse+'</div>';
+    const avatarId = a.avatar || a.icon;
+    const avatarInner = avatarId && avatarId.startsWith('avatar-')
+      ? '<img src="/avatars/'+avatarId+'.png" alt="'+escapeHtml(a.name)+'">'
+      : initials;
+    return '<div class="agent-card-compact' + sel + remoteCls + '" onclick="selectAgent(\''+a.id+'\')"><div class="compact-avatar">'+avatarInner+'</div><div class="compact-info"><div class="compact-name'+blur+'">'+a.name+cloud+'</div><div class="compact-time">'+((a.aliases||[])[0]||a.id)+(time?' · '+time:'')+'</div></div>'+pulse+'</div>';
   }
 
   let html = '';
@@ -2063,7 +2070,7 @@ function renderChat() {
     main.innerHTML = `
       <div class="chat-header">
         <div class="agent-avatar" style="width:40px;height:40px;font-size:14px">
-          ${agent.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || '??'}
+          ${(agent.avatar || agent.icon || '').startsWith('avatar-') ? '<img src="/avatars/'+(agent.avatar||agent.icon)+'.png" alt="'+escapeHtml(agent.name)+'">' : (agent.aliases[0]?.replace('@','').slice(0,2).toUpperCase() || '??')}
         </div>
         <div class="chat-header-info">
           <div class="chat-header-name${isAgentOrgHidden(agent) ? ' name-blurred' : ''}">${agent.name}</div>

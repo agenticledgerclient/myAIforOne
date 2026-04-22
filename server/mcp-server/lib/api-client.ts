@@ -424,3 +424,14 @@ export const listGymEnrollments = (status?: string) => api(`/api/gym/enrollments
 export const completeGymProgram = (slug: string) => api(`/api/gym/programs/${slug}/complete`, { method: "POST" });
 export const submitGymQuiz = (slug: string, body: { answers: number[]; score: number; passed: boolean }) => api(`/api/gym/programs/${slug}/submit-quiz`, { method: "POST", body });
 export const getGymCertificate = (slug: string) => api(`/api/gym/certificate/${slug}`);
+
+// ─── Agent Templates ─────────────────────────────────────────────
+export const listTemplates = (category?: string) => api("/api/templates", { query: { category } });
+export const getTemplate = (id: string) => api(`/api/templates/${id}`);
+export const createTemplate = (body: any) => api("/api/templates", { method: "POST", body });
+export const updateTemplate = (id: string, body: any) => api(`/api/templates/${id}`, { method: "PUT", body });
+export const deleteTemplate = (id: string) => api(`/api/templates/${id}`, { method: "DELETE" });
+export const personalizeTemplate = (id: string, body: any) => api(`/api/templates/${id}/personalize`, { method: "POST", body });
+export const deployTemplate = (id: string, body: any) => api(`/api/templates/${id}/deploy`, { method: "POST", body });
+export const saveAgentAsTemplate = (agentId: string, body: any) =>
+  api(`/api/agents/${agentId}/save-as-template`, { method: "POST", body });

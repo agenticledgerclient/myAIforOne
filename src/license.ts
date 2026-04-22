@@ -22,7 +22,7 @@ export interface LicenseInfo {
   valid: boolean;
   org?: string;
   name?: string;
-  features?: Record<string, boolean | number>;
+  features?: Record<string, boolean | number | string[]>;
   expiresAt?: string;
   error?: string;
   /** True when the server could not be reached and we're running on a fail-open grace period. */
@@ -181,6 +181,73 @@ export function getFeatureLimit(feature: string): number {
   const val = _cachedLicense.features[feature];
   if (typeof val === "number") return val;
   return Infinity;
+}
+
+/**
+ * Get template access policy from the current license.
+ *
+ * Returns:
+ *   { allowed: true }                                — no restrictions (no license, unlicensed, or templates not in features)
+ *   { allowed: false }                               — templates explicitly disabled
+ *   { allowed: true, categories?, ids? }             — access limited to matching categories/ids
+ *
+ * When both categories AND ids are present, a template passes if it matches EITHER.
+ */
+export function getTemplateAccess(): { allowed: boolean; categories?: string[]; ids?: string[] } {
+  if (!_cachedLicense || !_cachedLicense.features) return { allowed: true };
+  const f = _cachedLicense.features;
+
+  // Master toggle — if explicitly false, block all templates
+  if (f.templates === false) return { allowed: false };
+
+  // If templates key is missing or true, check for granular filters
+  const categories = Array.isArray(f.templateCategories) ? f.templateCategories as string[] : undefined;
+  const ids = Array.isArray(f.templateIds) ? f.templateIds as string[] : undefined;
+
+  // Has granular filters → return them; otherwise unrestricted
+  if (categories || ids) return { allowed: true, categories, ids };
+  return { allowed: true };
+}
+
+/**
+ * Filter a list of templates based on the current license.
+ * Each template is expected to have `id: string` and optionally `categories: string[]`.
+ * License gating only applies to builtin (platform) templates — user-created templates
+ * are always accessible.
+ */
+export function filterTemplatesByLicense(templates: any[]): any[] {
+  const access = getTemplateAccess();
+  if (!access.categories && !access.ids) return access.allowed ? templates : templates.filter((t: any) => t.source === "user");
+
+  return templates.filter((t: any) => {
+    // User-created templates always pass through
+    if (t.source === "user") return true;
+    // Match by individual template ID
+    if (access.ids && access.ids.includes(t.id)) return true;
+    // Match by category overlap
+    if (access.categories && Array.isArray(t.categories)) {
+      return t.categories.some((c: string) => access.categories!.includes(c));
+    }
+    return false;
+  });
+}
+
+/**
+ * Check if a single template is accessible under the current license.
+ * User-created templates (source: "user") are always accessible.
+ */
+export function isTemplateAccessible(templateId: string, templateCategories?: string[], source?: string): boolean {
+  if (source === "user") return true; // user templates bypass license gating
+
+  const access = getTemplateAccess();
+  if (!access.allowed) return false;
+  if (!access.categories && !access.ids) return true; // unrestricted
+
+  if (access.ids && access.ids.includes(templateId)) return true;
+  if (access.categories && Array.isArray(templateCategories)) {
+    return templateCategories.some((c: string) => access.categories!.includes(c));
+  }
+  return false;
 }
 
 /**

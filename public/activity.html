@@ -101,7 +101,9 @@ text-decoration:none;}
   background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);
+  overflow:hidden;
 }
+.activity-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .activity-agent{font-size:13px;font-weight:600;color:var(--accent)}
 .activity-channel{
   font-size:10px;padding:2px 6px;border-radius:4px;
@@ -233,6 +235,10 @@ function renderActivity() {
   const html = entries.map((e, i) => {
     const agent = agents.find(a => a.id === e.agentId);
     const initials = (agent?.aliases?.[0] || e.agentId || '??').replace('@','').slice(0,2).toUpperCase();
+    const avatarId = agent?.avatar || agent?.icon;
+    const avatarContent = avatarId && avatarId.startsWith('avatar-')
+      ? `<img src="/avatars/${avatarId}.png" alt="${escapeHtml(agent?.name || '')}">`
+      : initials;
     const name = agent?.name || e.agentId;
     const time = formatTime(e.ts);
     const date = formatDate(e.ts);
@@ -243,7 +249,7 @@ function renderActivity() {
 
     return `<div class="activity-entry" onclick="this.classList.toggle('expanded')">
       <div class="activity-top">
-        <div class="activity-avatar">${initials}</div>
+        <div class="activity-avatar">${avatarContent}</div>
         <a class="activity-agent" href="${agentLink}" onclick="event.stopPropagation()" style="text-decoration:none">${escapeHtml(name)}</a>
         ${channel ? `<span class="activity-channel">${channel}</span>` : ''}
         ${e.sessionId ? `<span class="activity-channel" style="background:var(--green-bg);color:var(--green)">session</span>` : ''}

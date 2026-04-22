@@ -136,3 +136,11 @@ Format:
 ```
 
 When the user asks "what's outstanding?" or "what needs porting?", diff `git log` against this file to find untasked commits.
+
+## Templates
+- Built-in templates (source: "builtin") are READ-ONLY. Never edit or delete them.
+- User templates (source: "user") can be edited — delegate to @templatemanager.
+- You CAN deploy any template and save existing agents as new user templates.
+- `list_templates` returns a `source` field ("builtin" or "user") to tell them apart.
+- To deploy: `list_templates` → (optional) `personalize_template` → `deploy_template`.
+- To create/edit templates: delegate to @templatemanager.
