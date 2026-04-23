@@ -21,13 +21,14 @@ export function setAppConfig(config: AppConfig): void { _appConfig = config; }
 
 // Resolve the claude executable.
 // Windows: npm shims (.cmd/.ps1) can't be spawned without shell:true.
-// Instead, find the actual cli.js and run it via node.exe directly.
+// Instead, find the actual cli.js or native .exe and run it directly.
 // macOS/Linux: use `which claude` as before — unchanged behavior.
 let _CLAUDE_CLI_JS: string | null = null;
+let _CLAUDE_NEEDS_SHELL = false; // true when we fell back to a .cmd shim on Windows
 
 function resolveClaudeBin(): string {
   if (process.platform === "win32") {
-    // Strategy 1: npm root -g → @anthropic-ai/claude-code/cli.js
+    // Strategy 1: npm root -g → @anthropic-ai/claude-code/cli.js (older Node.js-based installs)
     try {
       const npmRoot = execSync("npm root -g", { encoding: "utf8" }).trim();
       const cliPath = resolve(npmRoot, "@anthropic-ai", "claude-code", "cli.js");
@@ -48,6 +49,30 @@ function resolveClaudeBin(): string {
         }
       }
     } catch { /* fall through */ }
+    // Strategy 3: Claude Code 2.x ships a native .exe — find it directly
+    try {
+      const npmRoot = execSync("npm root -g", { encoding: "utf8" }).trim();
+      const exePath = resolve(npmRoot, "@anthropic-ai", "claude-code", "bin", "claude.exe");
+      if (existsSync(exePath)) return exePath;
+    } catch { /* fall through */ }
+    // Strategy 3b: derive .exe path from claude.cmd location
+    try {
+      const cmdPath = execSync("where.exe claude.cmd", { encoding: "utf8" })
+        .trim().split("\n")[0].trim();
+      if (cmdPath) {
+        const exePath = resolve(cmdPath, "..", "node_modules", "@anthropic-ai", "claude-code", "bin", "claude.exe");
+        if (existsSync(exePath)) return exePath;
+      }
+    } catch { /* fall through */ }
+    // Strategy 4 (fallback): use claude.cmd with shell:true — degrades gracefully
+    try {
+      const cmdPath = execSync("where.exe claude.cmd", { encoding: "utf8" })
+        .trim().split("\n")[0].trim();
+      if (cmdPath && existsSync(cmdPath)) {
+        _CLAUDE_NEEDS_SHELL = true;
+        return cmdPath;
+      }
+    } catch { /* fall through */ }
   }
   // macOS / Linux — use which claude
   try {
@@ -59,6 +84,7 @@ function resolveClaudeBin(): string {
   }
 }
 const CLAUDE_BIN = resolveClaudeBin();
+log.info(`Claude binary: ${CLAUDE_BIN}${_CLAUDE_CLI_JS ? ` (via ${_CLAUDE_CLI_JS})` : ""}${_CLAUDE_NEEDS_SHELL ? " (shell mode)" : ""}`);
 
 // Windows CreateProcessW has a hard 32,767-char command-line limit.
 // When the system prompt is too long, write it to a temp CLAUDE.md and
@@ -1584,6 +1610,7 @@ function spawnClaude(args: string[], cwd: string, timeout: number, stdinData?: s
       stdio: ["pipe", "pipe", "pipe"],
       env,
       windowsHide: true,
+      ..._CLAUDE_NEEDS_SHELL && { shell: true },
     });
 
     if (stdinData && proc.stdin) {
@@ -2141,7 +2168,8 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
   if (claudeConfigDir) env.CLAUDE_CONFIG_DIR = claudeConfigDir;
 
   const spawnArgs = _CLAUDE_CLI_JS ? [_CLAUDE_CLI_JS, ...args] : args;
-  const proc = spawn(CLAUDE_BIN, spawnArgs, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env, windowsHide: true });
+  const spawnStartTime = Date.now();
+  const proc = spawn(CLAUDE_BIN, spawnArgs, { cwd: workspace, stdio: ["pipe", "pipe", "pipe"], env, windowsHide: true, ..._CLAUDE_NEEDS_SHELL && { shell: true } });
 
   if (stdinPayload && proc.stdin) {
     proc.stdin.write(stdinPayload);
@@ -2314,7 +2342,8 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
   if (spCleanup) spCleanup();
 
   if (exitCode !== 0 && !fullResponse) {
-    log.error(`Agent ${agentId} exited with code ${exitCode}. stderr: ${stderrBuf.slice(0, 1000)} stdout: ${rawStdout.slice(0, 500)}`);
+    const elapsedMs = Date.now() - spawnStartTime;
+    log.error(`Agent ${agentId} exited with code ${exitCode} after ${elapsedMs}ms. stderr: ${stderrBuf.slice(0, 1000)} stdout: ${rawStdout.slice(0, 500)}`);
     const accountName = agentConfig.claudeAccount || "default";
     const combinedErr = stderrBuf.toLowerCase();
     const isAuthError = combinedErr.includes("not authenticated") ||
@@ -2324,14 +2353,25 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
       combinedErr.includes("expired") ||
       combinedErr.includes("auth") ||
       combinedErr.includes("login required");
+
+    // Stale session: explicit "no conversation found" OR empty-stderr exit that ran
+    // long enough to have actually connected (>2s). Instant failures (<2s) with empty
+    // stderr are spawn/binary issues, not stale sessions — don't mask them.
     const isStaleSession = combinedErr.includes("no conversation found") ||
-      (isPersistent && session && (stderrBuf.trim() === "" || stderrBuf.includes("exited with code 1")));
+      (isPersistent && session && elapsedMs > 2000 && (stderrBuf.trim() === "" || stderrBuf.includes("exited with code 1")));
 
     if (isStaleSession && session) {
       // Stale session — clear it so next message creates a fresh one
       log.warn(`Stale session for ${agentId} (${session.sessionId}) — clearing for next retry`);
       try { unlinkSync(join(memoryDir, senderSessionKey ? `session-${senderSessionKey}.json` : "session.json")); } catch { /* ignore */ }
       yield { type: "error", data: "Session expired — please send your message again." };
+      return;
+    }
+
+    // Instant failure with empty stderr — likely a spawn/binary resolution issue
+    if (elapsedMs < 2000 && stderrBuf.trim() === "") {
+      log.error(`Agent ${agentId} process died instantly (${elapsedMs}ms) with no output — possible spawn failure. CLAUDE_BIN=${CLAUDE_BIN}`);
+      yield { type: "error", data: "Agent failed to start — the Claude binary may not be installed or accessible. Check server logs for details." };
       return;
     }
 
