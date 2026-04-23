@@ -129,6 +129,7 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/channels", (_req, res) => res.redirect("/admin?tab=channels"));
   app.get("/tasks", (_req, res) => servePage(res, "tasks.html"));
   app.get("/projects", (_req, res) => servePage(res, "projects.html"));
+  app.get("/boards", (_req, res) => servePage(res, "boards.html"));
   app.get("/lab", (_req, res) => servePage(res, "lab.html"));
   app.get("/agent-dashboard", (_req, res) => servePage(res, "agent-dashboard.html", "/org"));
   app.get("/mini", (_req, res) => servePage(res, "mini.html"));
@@ -3496,7 +3497,7 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── API: Create agent ──────────────────────────────────────────
   app.post("/api/agents", async (req, res) => {
-    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, shared, conversationLogMode, avatar } = req.body as {
+    const { agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, shared, conversationLogMode, avatar, boardEnabled, boardLayout } = req.body as {
       agentId?: string; name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -3512,13 +3513,15 @@ export function startWebUI(opts: WebUIOptions): void {
       heartbeatInstructions?: string;
       heartbeatCron?: string;
       heartbeatEnabled?: boolean;
-      agentClass?: "standard" | "platform" | "builder";
+      agentClass?: "standard" | "platform" | "builder" | "board";
       executor?: string;
       wiki?: boolean;
       wikiSync?: { enabled?: boolean; schedule?: string };
       shared?: boolean;
       conversationLogMode?: "shared" | "per-user";
       avatar?: string;
+      boardEnabled?: boolean;
+      boardLayout?: "small" | "medium" | "large";
     };
 
     if (!agentId || !name || !alias) {
@@ -3613,6 +3616,9 @@ export function startWebUI(opts: WebUIOptions): void {
       if (wikiSync) agentConfig.wikiSync = { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" };
       if (shared) agentConfig.shared = true;
       if (conversationLogMode) agentConfig.conversationLogMode = conversationLogMode;
+      // Board config — board class agents are auto board-enabled
+      if (boardEnabled || agentClass === "board") agentConfig.boardEnabled = true;
+      if (boardLayout) agentConfig.boardLayout = boardLayout;
 
       // Avatar — use provided, or auto-assign a random unused one
       const usedAvatars = new Set(Object.values(opts.config.agents).map((a: any) => a.avatar).filter(Boolean));
@@ -3685,7 +3691,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, conversationLogMode, avatar } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, conversationLogMode, avatar, boardEnabled, boardLayout } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -3701,12 +3707,14 @@ export function startWebUI(opts: WebUIOptions): void {
       heartbeatInstructions?: string;
       heartbeatCron?: string;
       heartbeatEnabled?: boolean;
-      agentClass?: "standard" | "platform" | "builder";
+      agentClass?: "standard" | "platform" | "builder" | "board";
       executor?: string;
       wiki?: boolean;
       wikiSync?: { enabled?: boolean; schedule?: string };
       conversationLogMode?: "shared" | "per-user";
       avatar?: string;
+      boardEnabled?: boolean;
+      boardLayout?: "small" | "medium" | "large";
     };
 
     if (!name || !alias) {
@@ -3755,6 +3763,10 @@ export function startWebUI(opts: WebUIOptions): void {
       if (wikiSync !== undefined) existing.wikiSync = wikiSync ? { enabled: !!wikiSync.enabled, schedule: wikiSync.schedule || "0 0 * * *" } : undefined;
       if (conversationLogMode !== undefined) existing.conversationLogMode = conversationLogMode;
       if (avatar !== undefined) existing.avatar = avatar || undefined;
+      if (boardEnabled !== undefined) existing.boardEnabled = boardEnabled || undefined;
+      if (boardLayout !== undefined) existing.boardLayout = boardLayout || undefined;
+      // Board class agents are always board-enabled
+      if (agentClass === "board") existing.boardEnabled = true;
       // Note: `shared` and `agentHome` cannot be changed after creation to prevent orphaning data.
 
       // Build routes if provided
@@ -5864,6 +5876,334 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  BOARDS — glanceable widget surfaces showing agent output
+  // ═══════════════════════════════════════════════════════════════════
+
+  interface BoardWidget {
+    agentId: string;
+    x: number;      // grid column (0-based)
+    y: number;      // grid row (0-based)
+    w: number;      // width in grid columns (1-4)
+    h: number;      // height in grid rows (1+)
+    goalId?: string; // show output from a specific goal
+    title?: string;  // override display title
+  }
+
+  interface BoardEntity {
+    id: string;
+    name: string;
+    description: string;
+    status: "active" | "paused" | "archived";
+    widgets: BoardWidget[];
+    refreshSchedule?: string;   // cron expression for auto-refresh
+    defaultBoard?: boolean;
+    lastRefreshedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  const boardsBaseDir = join(getPersonalAgentsDir(opts.config), "boards");
+
+  function loadBoards(): BoardEntity[] {
+    if (!existsSync(boardsBaseDir)) return [];
+    const boards: BoardEntity[] = [];
+    try {
+      const dirs = readdirSync(boardsBaseDir, { withFileTypes: true })
+        .filter(d => d.isDirectory())
+        .map(d => d.name);
+      for (const dir of dirs) {
+        const boardFile = join(boardsBaseDir, dir, "board.json");
+        if (!existsSync(boardFile)) continue;
+        try {
+          boards.push(JSON.parse(readFileSync(boardFile, "utf-8")));
+        } catch { /* skip corrupt */ }
+      }
+    } catch { /* dir read error */ }
+    return boards;
+  }
+
+  function saveBoard(board: BoardEntity): void {
+    const boardDir = join(boardsBaseDir, board.id);
+    if (!existsSync(boardDir)) mkdirSync(boardDir, { recursive: true });
+    writeFileSync(join(boardDir, "board.json"), JSON.stringify(board, null, 2));
+  }
+
+  function deleteBoardFolder(boardId: string): void {
+    const boardDir = join(boardsBaseDir, boardId);
+    if (existsSync(boardDir)) rmSync(boardDir, { recursive: true });
+  }
+
+  // Helper: get agent's last output from conversation_log.jsonl
+  function getAgentLastOutput(agentId: string, goalId?: string): { text: string; response: string; ts: string; channel?: string } | null {
+    const agent = opts.config.agents[agentId];
+    if (!agent) return null;
+    const rt = (p: string) => p?.startsWith("~") ? p.replace("~", homedir()) : p;
+    const memDir = rt(agent.memoryDir || join(agent.agentHome || "", "memory"));
+    if (!existsSync(memDir)) return null;
+
+    // If goalId specified, check goal log files
+    if (goalId) {
+      const goalsDir = join(memDir, "..", "goals");
+      if (existsSync(goalsDir)) {
+        try {
+          const logFiles = readdirSync(goalsDir)
+            .filter(f => f.startsWith("log-") && f.endsWith(".jsonl"))
+            .sort().reverse();
+          for (const logFile of logFiles) {
+            const lines = readFileSync(join(goalsDir, logFile), "utf-8").trim().split("\n").filter(Boolean);
+            for (let i = lines.length - 1; i >= 0; i--) {
+              try {
+                const entry = JSON.parse(lines[i]);
+                if (entry.goalId === goalId) return { text: entry.text || entry.message || "", response: entry.response || "", ts: entry.ts || "", channel: entry.channel };
+              } catch { continue; }
+            }
+          }
+        } catch { /* ignore */ }
+      }
+      return null;
+    }
+
+    // Read conversation log (handle per-user mode)
+    const isPerUser = (agent as any)?.conversationLogMode === "per-user";
+    const logFiles = isPerUser
+      ? (existsSync(memDir) ? readdirSync(memDir).filter(f => f.startsWith("conversation_log_") && f.endsWith(".jsonl")).map(f => join(memDir, f)) : [])
+      : [join(memDir, "conversation_log.jsonl")];
+
+    let latest: { text: string; response: string; ts: string; channel?: string } | null = null;
+    for (const logPath of logFiles) {
+      if (!existsSync(logPath)) continue;
+      try {
+        const content = readFileSync(logPath, "utf-8").trim();
+        if (!content) continue;
+        const lines = content.split("\n");
+        // Read from end to find most recent
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (!lines[i]) continue;
+          try {
+            const entry = JSON.parse(lines[i]);
+            if (!latest || (entry.ts && entry.ts > latest.ts)) {
+              latest = { text: entry.text || "", response: entry.response || "", ts: entry.ts || "", channel: entry.channel };
+            }
+            break; // Only need the last entry per file
+          } catch { continue; }
+        }
+      } catch { /* ignore */ }
+    }
+    return latest;
+  }
+
+  // GET /api/boards — list all boards
+  app.get("/api/boards", (_req, res) => {
+    const boards = loadBoards();
+    res.json(boards);
+  });
+
+  // GET /api/boards/:id — get single board with enriched widget data
+  app.get("/api/boards/:id", (req, res) => {
+    const boards = loadBoards();
+    const board = boards.find(b => b.id === req.params.id);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+
+    const enrichedWidgets = board.widgets.map(w => {
+      const agent = opts.config.agents[w.agentId];
+      const lastOutput = getAgentLastOutput(w.agentId, w.goalId);
+      return {
+        ...w,
+        agentName: agent?.name || w.agentId,
+        agentDescription: agent?.description || "",
+        avatar: agent?.avatar || null,
+        lastOutput,
+      };
+    });
+
+    res.json({ ...board, widgets: enrichedWidgets });
+  });
+
+  // POST /api/boards — create a new board
+  app.post("/api/boards", (req, res) => {
+    const { name, description, widgets, refreshSchedule, defaultBoard } = req.body as {
+      name?: string; description?: string; widgets?: BoardWidget[];
+      refreshSchedule?: string; defaultBoard?: boolean;
+    };
+    if (!name) return res.status(400).json({ error: "Missing required field: name" });
+
+    const board: BoardEntity = {
+      id: `board_${Date.now()}`,
+      name,
+      description: description || "",
+      status: "active",
+      widgets: widgets || [],
+      refreshSchedule,
+      defaultBoard: defaultBoard || false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // If this is marked as default, unmark others
+    if (board.defaultBoard) {
+      const existing = loadBoards();
+      for (const b of existing) {
+        if (b.defaultBoard) {
+          b.defaultBoard = false;
+          saveBoard(b);
+        }
+      }
+    }
+
+    saveBoard(board);
+    log.info(`Board created: ${board.id} "${board.name}"`);
+    res.json(board);
+  });
+
+  // PUT /api/boards/:id — update a board
+  app.put("/api/boards/:id", (req, res) => {
+    const boards = loadBoards();
+    const board = boards.find(b => b.id === req.params.id);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+
+    const { name, description, status, widgets, refreshSchedule, defaultBoard } = req.body;
+    if (name !== undefined) board.name = name;
+    if (description !== undefined) board.description = description;
+    if (status !== undefined) board.status = status;
+    if (widgets !== undefined) board.widgets = widgets;
+    if (refreshSchedule !== undefined) board.refreshSchedule = refreshSchedule;
+    if (defaultBoard !== undefined) {
+      board.defaultBoard = defaultBoard;
+      // Unmark other default boards
+      if (defaultBoard) {
+        for (const b of boards) {
+          if (b.id !== board.id && b.defaultBoard) {
+            b.defaultBoard = false;
+            saveBoard(b);
+          }
+        }
+      }
+    }
+    board.updatedAt = new Date().toISOString();
+    saveBoard(board);
+    log.info(`Board updated: ${board.id}`);
+    res.json(board);
+  });
+
+  // DELETE /api/boards/:id — delete a board
+  app.delete("/api/boards/:id", (req, res) => {
+    const boards = loadBoards();
+    const board = boards.find(b => b.id === req.params.id);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+    deleteBoardFolder(board.id);
+    log.info(`Board deleted: ${board.id}`);
+    res.json({ ok: true });
+  });
+
+  // POST /api/boards/:id/widgets — add a widget to a board
+  app.post("/api/boards/:id/widgets", (req, res) => {
+    const boards = loadBoards();
+    const board = boards.find(b => b.id === req.params.id);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+
+    const { agentId, x, y, w, h, goalId, title } = req.body as {
+      agentId?: string; x?: number; y?: number; w?: number; h?: number;
+      goalId?: string; title?: string;
+    };
+    if (!agentId) return res.status(400).json({ error: "Missing required field: agentId" });
+
+    // Check agent exists and is board-enabled
+    const agent = opts.config.agents[agentId];
+    if (!agent) return res.status(404).json({ error: `Agent "${agentId}" not found` });
+    if (!agent.boardEnabled && agent.agentClass !== "board") {
+      return res.status(400).json({ error: `Agent "${agentId}" is not board-enabled` });
+    }
+
+    // Auto-position: find next available slot if x/y not specified
+    const widget: BoardWidget = {
+      agentId,
+      x: x ?? 0,
+      y: y ?? (board.widgets.length > 0 ? Math.max(...board.widgets.map(w2 => w2.y + w2.h)) : 0),
+      w: w ?? 2,
+      h: h ?? 1,
+      goalId,
+      title,
+    };
+
+    board.widgets.push(widget);
+    board.updatedAt = new Date().toISOString();
+    saveBoard(board);
+    res.json(board);
+  });
+
+  // PUT /api/boards/:id/widgets — update widget positions/sizes (batch)
+  app.put("/api/boards/:id/widgets", (req, res) => {
+    const boards = loadBoards();
+    const board = boards.find(b => b.id === req.params.id);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+
+    const { widgets } = req.body as { widgets: Array<{ agentId: string; x: number; y: number; w: number; h: number; goalId?: string; title?: string }> };
+    if (!widgets || !Array.isArray(widgets)) return res.status(400).json({ error: "Missing widgets array" });
+
+    board.widgets = widgets;
+    board.updatedAt = new Date().toISOString();
+    saveBoard(board);
+    res.json(board);
+  });
+
+  // DELETE /api/boards/:id/widgets/:agentId — remove a widget from a board
+  app.delete("/api/boards/:id/widgets/:agentId", (req, res) => {
+    const boards = loadBoards();
+    const board = boards.find(b => b.id === req.params.id);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+
+    const before = board.widgets.length;
+    board.widgets = board.widgets.filter(w => w.agentId !== req.params.agentId);
+    if (board.widgets.length === before) return res.status(404).json({ error: "Widget not found" });
+
+    board.updatedAt = new Date().toISOString();
+    saveBoard(board);
+    res.json(board);
+  });
+
+  // POST /api/boards/:id/refresh — manual refresh (returns enriched board data)
+  app.post("/api/boards/:id/refresh", (_req, res) => {
+    const boards = loadBoards();
+    const board = boards.find(b => b.id === _req.params.id);
+    if (!board) return res.status(404).json({ error: "Board not found" });
+
+    // Re-read all widget outputs (fresh from disk)
+    const enrichedWidgets = board.widgets.map(w => {
+      const agent = opts.config.agents[w.agentId];
+      const lastOutput = getAgentLastOutput(w.agentId, w.goalId);
+      return {
+        ...w,
+        agentName: agent?.name || w.agentId,
+        agentDescription: agent?.description || "",
+        avatar: agent?.avatar || null,
+        lastOutput,
+      };
+    });
+
+    board.lastRefreshedAt = new Date().toISOString();
+    saveBoard(board);
+    res.json({ ...board, widgets: enrichedWidgets });
+  });
+
+  // GET /api/agents/board-enabled — list agents eligible for boards
+  app.get("/api/agents/board-enabled", (_req, res) => {
+    const result: Array<{ agentId: string; name: string; description: string; avatar: string | null; boardLayout?: string; agentClass?: string }> = [];
+    for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+      if (agent.boardEnabled || agent.agentClass === "board") {
+        result.push({
+          agentId,
+          name: agent.name,
+          description: agent.description || "",
+          avatar: agent.avatar || null,
+          boardLayout: agent.boardLayout,
+          agentClass: agent.agentClass,
+        });
+      }
+    }
+    res.json(result);
   });
 
   // ─── API: Channels ───────────────────────────────────────────────

@@ -28,14 +28,15 @@
    - [Setup Checklist](#81-setup-checklist)
    - [Dashboard](#82-dashboard)
 9. [Projects](#9-projects)
-10. [AI Gym](#10-ai-gym)
-   - [Onboarding](#101-onboarding-first-visit)
-   - [Main Gym View](#102-main-gym-view)
-   - [Dimensions](#103-ai-strength-dimensions)
-   - [Programs](#104-programs)
-   - [Activity Digest](#105-activity-digest)
-   - [Trainer Souls](#106-trainer-souls)
-   - [API & MCP Reference](#107-api--mcp-reference)
+10. [Boards](#10-boards)
+11. [AI Gym](#11-ai-gym)
+   - [Onboarding](#111-onboarding-first-visit)
+   - [Main Gym View](#112-main-gym-view)
+   - [Dimensions](#113-ai-strength-dimensions)
+   - [Programs](#114-programs)
+   - [Activity Digest](#115-activity-digest)
+   - [Trainer Souls](#116-trainer-souls)
+   - [API & MCP Reference](#117-api--mcp-reference)
 11. [Appendix E: Remote Gateway — Deploy, Connect, and Manage](#appendix-e-remote-gateway--deploy-connect-and-manage)
     - [E.2 Deploying to Railway](#e2-deploying-to-railway)
     - [E.3 Deployment Mode](#e3-deployment-mode--what-changes-on-the-server)
@@ -1981,7 +1982,83 @@ Use `pause_project` to stop execution. The goal is disabled but preserved.
 
 ---
 
-# 10. AI Gym
+# 10. Boards
+
+Glanceable widget surfaces that display agent outputs as cards — like a morning briefing dashboard. Any agent can be board-enabled; agents with `agentClass: "board"` exist solely for board output.
+
+**Route:** `/boards`
+
+## 10.1 Board Toolbar
+
+| Element | Description |
+|---------|-------------|
+| **Board Dropdown** | Select which board to view. Default board auto-loads on page open. |
+| **Board Chips** | Quick-switch chips for your most recent boards. |
+| **Refresh** | Re-reads all widget agent outputs from disk. |
+| **Edit** | Opens the edit panel to rename, configure, add/remove widgets. |
+| **+ New Board** | Create a new board with name, description, auto-refresh schedule. |
+
+## 10.2 Widget Grid
+
+A 4-column CSS grid where each widget card shows an agent's last output. Widgets are resizable via drag handle (bottom-right corner). Click a widget to expand it in an overlay showing the full output.
+
+| Element | Description |
+|---------|-------------|
+| **Widget Card** | Shows agent avatar, name, timestamp, and truncated response. |
+| **Resize Handle** | Drag bottom-right corner to resize (snaps to grid columns/rows). |
+| **Per-widget Refresh** | Circular arrow button in widget header. |
+| **+ Add Widget** | Dashed card at the end — opens the agent picker (shows only board-enabled agents). |
+
+## 10.3 Board Management
+
+| Action | How |
+|--------|-----|
+| **Create** | Click "+ New Board" → set name, description, auto-refresh schedule, default flag. |
+| **Edit** | Click "Edit" → rename, change status (active/paused/archived), set auto-refresh, manage widgets. |
+| **Delete** | From edit panel → "Delete Board" (with confirmation). |
+| **Set Default** | Toggle "Default board" checkbox — this board loads automatically on page open. |
+
+## 10.4 Agent Board Config
+
+Enable any agent for boards from the agent edit form (Org → click agent → Settings tab):
+
+| Field | Description |
+|-------|-------------|
+| **Board Enabled** | Checkbox — allow this agent's output to appear on boards. |
+| **Board Layout** | Default widget size: Small (1 col), Medium (2 col), Large (3 col). |
+| **Agent Class: Board** | Board-only agents are auto board-enabled and excluded from chat dropdowns. |
+
+## 10.5 API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/boards` | List all boards |
+| `POST` | `/api/boards` | Create a board |
+| `GET` | `/api/boards/:id` | Get board with enriched widget data |
+| `PUT` | `/api/boards/:id` | Update board |
+| `DELETE` | `/api/boards/:id` | Delete board |
+| `POST` | `/api/boards/:id/widgets` | Add widget to board |
+| `PUT` | `/api/boards/:id/widgets` | Update widget positions/sizes |
+| `DELETE` | `/api/boards/:id/widgets/:agentId` | Remove widget |
+| `POST` | `/api/boards/:id/refresh` | Manual refresh |
+| `GET` | `/api/agents/board-enabled` | List board-eligible agents |
+
+## 10.6 MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_boards` | List all boards |
+| `get_board` | Get board with widget data |
+| `create_board` | Create a new board |
+| `update_board` | Update board fields |
+| `delete_board` | Delete a board |
+| `add_board_widget` | Add agent widget to board |
+| `remove_board_widget` | Remove widget from board |
+| `refresh_board` | Refresh board data |
+
+---
+
+# 11. AI Gym
 
 Personal AI training area with a coach agent, structured programs, dimension tracking, and personalized learning plans. Gated behind `gymEnabled: true` in settings.
 

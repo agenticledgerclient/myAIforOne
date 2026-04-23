@@ -117,11 +117,13 @@ export interface AgentConfig {
   };
   subAgents?: string[] | "*";  // Group agent: list of agent IDs to delegate to, or "*" for all
   platformAgent?: boolean;     // DEPRECATED — use agentClass instead
-  agentClass?: "standard" | "platform" | "builder" | "gym";  // standard (default), platform (Lab creators), builder (app developer agents), gym (AI Gym agents)
+  agentClass?: "standard" | "platform" | "builder" | "gym" | "board";  // standard (default), platform (Lab creators), builder (app developer agents), gym (AI Gym agents), board (board-only widget agents)
   executor?: string;  // "claude" (default) or "ollama:modelname" (e.g., "ollama:gemma2")
   shared?: boolean;   // true = shared agent (multi-user); agentHome lives under SharedAgents/ root
   conversationLogMode?: "shared" | "per-user";  // "shared" (default) = one log for all users; "per-user" = separate log per sender
   avatar?: string;           // avatar identifier (e.g., "avatar-01" or emoji)
+  boardEnabled?: boolean;    // opt-in: allow this agent's output to appear on boards
+  boardLayout?: "small" | "medium" | "large";  // default widget size when added to a board
   deployedFrom?: string;     // template ID this agent was deployed from
 }
 

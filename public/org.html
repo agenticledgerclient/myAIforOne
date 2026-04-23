@@ -1340,6 +1340,7 @@ text-decoration:none;}
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/org" id="tabAgents">Agents</a>
     <a class="tab-btn" href="/ui">Chat</a>
+    <a class="tab-btn" href="/boards">Boards</a>
     <a class="tab-btn" href="/library" id="tabLibrary">Library</a>
       <a class="tab-btn" href="/lab">Lab</a>
   </div>
@@ -1428,8 +1429,27 @@ text-decoration:none;}
           <option value="builder">Builder</option>
           <option value="platform">Platform</option>
           <option value="gym">Gym</option>
+          <option value="board">Board</option>
         </select>
-        <div class="form-hint">Standard (default), Builder (app developer agents), Platform (Lab creators), Gym (training coach).</div>
+        <div class="form-hint">Standard (default), Builder (app developer agents), Platform (Lab creators), Gym (training coach), Board (board-only widget agents).</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="f-boardEnabled" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" />
+          <span>Board Enabled</span>
+        </label>
+        <div class="form-hint">Allow this agent's output to appear on Boards. Board-class agents are always board-enabled.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Board Layout (default size)</label>
+        <select class="form-input" id="f-boardLayout">
+          <option value="">None</option>
+          <option value="small">Small (1 column)</option>
+          <option value="medium">Medium (2 columns)</option>
+          <option value="large">Large (3 columns)</option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -3395,6 +3415,12 @@ async function openModal(agentId) {
     const agentClassEl = document.getElementById('f-agentClass');
     if (agentClassEl) agentClassEl.value = a.agentClass || 'standard';
 
+    // Board config
+    const boardEnabledEl = document.getElementById('f-boardEnabled');
+    if (boardEnabledEl) boardEnabledEl.checked = !!a.boardEnabled || a.agentClass === 'board';
+    const boardLayoutEl = document.getElementById('f-boardLayout');
+    if (boardLayoutEl) boardLayoutEl.value = a.boardLayout || '';
+
     // Show/hide gym-specific tabs
     const isGym = (a.agentClass || 'standard') === 'gym';
     document.querySelectorAll('.gym-only-tab').forEach(el => {
@@ -4845,6 +4871,8 @@ async function saveAgent() {
   const timeout = timeoutSec * 1000;
   const claudeAccount = document.getElementById('f-claudeAccount')?.value || undefined;
   const agentClass = document.getElementById('f-agentClass')?.value || 'standard';
+  const boardEnabled = document.getElementById('f-boardEnabled')?.checked || false;
+  const boardLayout = document.getElementById('f-boardLayout')?.value || undefined;
   const executor = document.getElementById('f-executor')?.value || undefined;
   const shared = document.getElementById('f-shared')?.checked || false;
   const conversationLogMode = document.getElementById('f-conversationLogMode')?.value || 'shared';
@@ -4911,7 +4939,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled, shared: shared || undefined, conversationLogMode: shared ? conversationLogMode : undefined, avatar }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled, shared: shared || undefined, conversationLogMode: shared ? conversationLogMode : undefined, avatar, boardEnabled: boardEnabled || undefined, boardLayout }),
     });
     const data = await res.json();
 
@@ -5394,6 +5422,7 @@ const agentsSubNav = `
   <a class="sub-nav-link" href="#" onclick="switchOrgView('templates');return false" id="templatesLink">Templates</a>
   <a class="sub-nav-link" href="/tasks">Tasks</a>
   <a class="sub-nav-link" href="/projects">Projects</a>
+  <a class="sub-nav-link" href="/boards">Boards</a>
   <a class="sub-nav-link" href="/automations">Automations</a>
   <div class="agent-controls" id="agentControlsBar">
     <div class="view-toggle" id="viewToggle">

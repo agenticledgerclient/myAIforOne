@@ -240,6 +240,21 @@ export const executeProject = (id: string, body?: any) =>
   api(`/api/projects/${id}/execute`, { method: "POST", body: body || {} });
 export const pauseProject = (id: string) =>
   api(`/api/projects/${id}/pause`, { method: "POST" });
+// ─── Boards (glanceable widget surfaces) ─────────────────────────
+export const listBoards = () => api("/api/boards");
+export const getBoard = (id: string) => api(`/api/boards/${id}`);
+export const createBoard = (body: any) =>
+  api("/api/boards", { method: "POST", body });
+export const updateBoard = (id: string, body: any) =>
+  api(`/api/boards/${id}`, { method: "PUT", body });
+export const deleteBoard = (id: string) =>
+  api(`/api/boards/${id}`, { method: "DELETE" });
+export const addBoardWidget = (id: string, body: any) =>
+  api(`/api/boards/${id}/widgets`, { method: "POST", body });
+export const removeBoardWidget = (id: string, agentId: string) =>
+  api(`/api/boards/${id}/widgets/${agentId}`, { method: "DELETE" });
+export const refreshBoard = (id: string) =>
+  api(`/api/boards/${id}/refresh`, { method: "POST" });
 export const addMonitoredChat = (channelName: string, chatId: string) =>
   api(`/api/channels/${channelName}/monitored`, { method: "POST", body: { chatId: Number(chatId) } });
 export const removeMonitoredChat = (channelName: string, chatId: string) =>

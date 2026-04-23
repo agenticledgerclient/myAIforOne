@@ -80,13 +80,15 @@ server.tool("create_agent", "Create a new agent with full configuration", {
   claudeAccount: z.string().optional().describe("Claude account name"),
   timeout: z.number().optional().describe("Timeout in ms"),
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
-  agentClass: z.enum(["standard", "platform", "builder"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents)"),
+  agentClass: z.enum(["standard", "platform", "builder", "board"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents), board (board-only widget agents)"),
   executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
   shared: z.boolean().optional().describe("Create as a shared agent (multi-user). Agent home is created under SharedAgents/ instead of PersonalAgents/."),
   conversationLogMode: z.enum(["shared", "per-user"]).optional().describe("Conversation log mode: 'shared' (default, all users share one log) or 'per-user' (separate log per sender)."),
   avatar: z.string().optional().describe("Avatar identifier (e.g. 'avatar-01' through 'avatar-80'). If omitted, a random unused avatar is auto-assigned."),
+  boardEnabled: z.boolean().optional().describe("Enable this agent's output to appear on boards"),
+  boardLayout: z.enum(["small", "medium", "large"]).optional().describe("Default widget size when added to a board"),
 }, async (args) => {
   const body: any = { ...args };
   if (args.organization) {
@@ -120,12 +122,14 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   claudeAccount: z.string().optional(),
   instructions: z.string().optional().describe("Update CLAUDE.md content"),
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
-  agentClass: z.enum(["standard", "platform", "builder"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents)"),
+  agentClass: z.enum(["standard", "platform", "builder", "board"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents), board (board-only widget agents)"),
   executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
   conversationLogMode: z.enum(["shared", "per-user"]).optional().describe("Update conversation log mode: 'shared' (one log for all users) or 'per-user' (separate log per sender)."),
   avatar: z.string().optional().describe("Avatar identifier (e.g. 'avatar-01' through 'avatar-80'). Set to empty string to remove."),
+  boardEnabled: z.boolean().optional().describe("Enable this agent's output to appear on boards"),
+  boardLayout: z.enum(["small", "medium", "large"]).optional().describe("Default widget size when added to a board"),
 }, async ({ agentId, ...body }) => {
   const payload: any = { ...body };
   if (body.organization !== undefined) {
@@ -734,6 +738,78 @@ server.tool("pause_project", "Pause autonomous execution of a project", {
   projectId: z.string().describe("Project ID"),
 }, async ({ projectId }) => {
   const r = await api.pauseProject(projectId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  BOARDS (glanceable widget surfaces)
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_boards", "List all boards", {}, async () => {
+  const r = await api.listBoards();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("get_board", "Get a board with enriched widget data (agent names, last output)", {
+  boardId: z.string().describe("Board ID"),
+}, async ({ boardId }) => {
+  const r = await api.getBoard(boardId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("create_board", "Create a new board", {
+  name: z.string().describe("Board name"),
+  description: z.string().optional().describe("Board description"),
+  defaultBoard: z.boolean().optional().describe("Set as the default board (shown on page load)"),
+  refreshSchedule: z.string().optional().describe("Cron expression for auto-refresh (e.g. '0 */2 * * *' for every 2 hours)"),
+}, async ({ name, description, defaultBoard, refreshSchedule }) => {
+  const r = await api.createBoard({ name, description, defaultBoard, refreshSchedule });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("update_board", "Update a board's name, description, status, or refresh schedule", {
+  boardId: z.string().describe("Board ID"),
+  name: z.string().optional().describe("New board name"),
+  description: z.string().optional().describe("New description"),
+  status: z.enum(["active", "paused", "archived"]).optional().describe("Board status"),
+  defaultBoard: z.boolean().optional().describe("Set as default board"),
+  refreshSchedule: z.string().optional().describe("Cron expression for auto-refresh"),
+}, async ({ boardId, ...updates }) => {
+  const r = await api.updateBoard(boardId, updates);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("delete_board", "Delete a board", {
+  boardId: z.string().describe("Board ID"),
+}, async ({ boardId }) => {
+  const r = await api.deleteBoard(boardId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("add_board_widget", "Add an agent widget to a board", {
+  boardId: z.string().describe("Board ID"),
+  agentId: z.string().describe("Agent ID to add as a widget"),
+  w: z.number().optional().describe("Widget width in grid columns (1-4, default 2)"),
+  h: z.number().optional().describe("Widget height in grid rows (default 1)"),
+  title: z.string().optional().describe("Override display title"),
+  goalId: z.string().optional().describe("Show output from a specific goal instead of latest conversation"),
+}, async ({ boardId, agentId, w, h, title, goalId }) => {
+  const r = await api.addBoardWidget(boardId, { agentId, w, h, title, goalId });
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("remove_board_widget", "Remove a widget from a board", {
+  boardId: z.string().describe("Board ID"),
+  agentId: z.string().describe("Agent ID to remove from the board"),
+}, async ({ boardId, agentId }) => {
+  const r = await api.removeBoardWidget(boardId, agentId);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("refresh_board", "Manually refresh a board — re-reads all widget agent outputs", {
+  boardId: z.string().describe("Board ID"),
+}, async ({ boardId }) => {
+  const r = await api.refreshBoard(boardId);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 

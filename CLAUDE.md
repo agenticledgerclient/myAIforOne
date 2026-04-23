@@ -79,6 +79,18 @@ Projects are long-running, multi-faceted initiatives that span multiple agents. 
 - **Key fields**: owner (agent), teamMembers (agents[]), plan (markdown), linkedTasks, linkedAgents, linkedOrgs, linkedApps, linkedArtifacts
 - **Autonomous execution**: `execute_project` creates a scheduled goal on the owner agent that works through tasks. `pause_project` disables it. Notifications go to the owner agent's Slack channel.
 
+## Boards
+
+Boards are glanceable widget surfaces that display agent outputs as cards — like a morning briefing dashboard.
+
+- **Data**: Stored in Drive at `PersonalAgents/boards/<id>/` — each board is a folder with `board.json`
+- **Web UI**: `/boards` page with dropdown board selector, chips for quick switching, resizable widget grid, expand overlay
+- **MCP Tools**: `list_boards`, `get_board`, `create_board`, `update_board`, `delete_board`, `add_board_widget`, `remove_board_widget`, `refresh_board`
+- **API**: `GET/POST /api/boards`, `GET/PUT/DELETE /api/boards/:id`, `POST/PUT /api/boards/:id/widgets`, `DELETE /api/boards/:id/widgets/:agentId`, `POST /api/boards/:id/refresh`, `GET /api/agents/board-enabled`
+- **Key fields**: name, description, status, widgets[] (agentId, x, y, w, h, goalId, title), refreshSchedule, defaultBoard
+- **Agent config**: `boardEnabled` (boolean) — opt any agent into boards. `boardLayout` ("small"|"medium"|"large") — default widget size. `agentClass: "board"` — board-only agents (auto board-enabled, excluded from chat dropdowns)
+- **Widget data**: Each widget shows the agent's last output from `conversation_log.jsonl` or goal logs. Refresh re-reads from disk.
+
 ## Multi-Model Support
 
 When `multiModelEnabled: true` in service config, agents can use open-source models via Ollama instead of Claude.
