@@ -938,8 +938,8 @@ export async function executeAgent(
     : join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
-  // Auto-isolate web UI session tabs — they always send senderId as "tab-{id}"
-  const isWebTab = typeof msg.sender === "string" && msg.sender.startsWith("tab-");
+  // Auto-isolate web UI session tabs — senderId is "tab-{id}" (UI), "htab-{id}" (home), or "ctab-{id}" (coach)
+  const isWebTab = typeof msg.sender === "string" && /^[hc]?tab-/.test(msg.sender);
   const senderSessionKey = (isPersistent && (perSender || isWebTab)) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
   const useWiki = agentConfig.wiki ?? false;
@@ -1681,8 +1681,8 @@ export async function* executeAgentStreaming(
     : join(memoryDir, "conversation_log.jsonl");
   const isPersistent = agentConfig.persistent ?? false;
   const perSender = agentConfig.perSenderSessions ?? false;
-  // Auto-isolate web UI session tabs — they always send senderId as "tab-{id}"
-  const isWebTab = typeof msg.sender === "string" && msg.sender.startsWith("tab-");
+  // Auto-isolate web UI session tabs — senderId is "tab-{id}" (UI), "htab-{id}" (home), or "ctab-{id}" (coach)
+  const isWebTab = typeof msg.sender === "string" && /^[hc]?tab-/.test(msg.sender);
   const senderSessionKey = (isPersistent && (perSender || isWebTab)) ? msg.sender : undefined;
   const useAdvancedMemory = agentConfig.advancedMemory ?? false;
   const useWiki = agentConfig.wiki ?? false;
