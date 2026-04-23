@@ -36,9 +36,9 @@
   --font-sans:'DM Sans',system-ui,sans-serif;
   --font-mono:'IBM Plex Mono',monospace;
   --font-display:'Syne',sans-serif;
-  --grid-cols:4;
-  --grid-gap:16px;
-  --grid-row-h:140px;
+  --grid-cols:36;
+  --grid-gap:4px;
+  --grid-row-h:120px;
 }
 [data-theme="light"]{
   --bg-deep:#f4f6f9;
@@ -116,9 +116,9 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 
 /* ── Widget Grid ── */
 .widget-grid{display:grid;grid-template-columns:repeat(var(--grid-cols),1fr);grid-auto-rows:var(--grid-row-h);gap:var(--grid-gap);min-height:200px;position:relative}
-@media(max-width:1100px){.widget-grid{--grid-cols:3}}
-@media(max-width:800px){.widget-grid{--grid-cols:2}}
-@media(max-width:500px){.widget-grid{--grid-cols:1}.canvas{padding:16px 12px}}
+@media(max-width:1100px){.widget-grid{--grid-cols:24}}
+@media(max-width:800px){.widget-grid{--grid-cols:18}}
+@media(max-width:500px){.widget-grid{--grid-cols:12}.canvas{padding:16px 12px}}
 
 /* ── Widget Card ── */
 .widget-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);display:flex;flex-direction:column;transition:all .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden;cursor:pointer;position:relative}
@@ -128,15 +128,21 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 .widget-avatar img{width:100%;height:100%;border-radius:6px;object-fit:cover}
 .widget-title{font-family:var(--font-sans);font-size:12px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .widget-ts{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);flex-shrink:0;white-space:nowrap}
-.widget-refresh-btn{width:22px;height:22px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;flex-shrink:0}
-.widget-refresh-btn:hover{background:var(--accent-bg);color:var(--accent)}
-.widget-body{flex:1;padding:12px 14px;overflow:hidden;font-size:12px;color:var(--text-secondary);line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.widget-refresh-btn,.widget-settings-btn{width:22px;height:22px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;flex-shrink:0}
+.widget-refresh-btn:hover,.widget-settings-btn:hover{background:var(--accent-bg);color:var(--accent)}
+.widget-body{flex:1;padding:12px 14px;overflow-y:auto;font-size:12px;color:var(--text-secondary);line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .widget-empty{color:var(--text-muted);font-style:italic;font-size:11px}
 
-/* ── Resize Handle ── */
-.widget-card .resize-handle{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;opacity:0;transition:opacity .2s}
-.widget-card:hover .resize-handle{opacity:1}
-.resize-handle::after{content:'';position:absolute;bottom:3px;right:3px;width:8px;height:8px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);border-radius:0 0 2px 0}
+/* ── Resize Handles ── */
+.widget-card .resize-right{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:ew-resize;opacity:0;transition:opacity .2s;z-index:2}
+.widget-card .resize-bottom{position:absolute;bottom:-4px;left:0;width:100%;height:8px;cursor:ns-resize;opacity:0;transition:opacity .2s;z-index:2}
+.widget-card .resize-corner{position:absolute;bottom:-4px;right:-4px;width:16px;height:16px;cursor:se-resize;opacity:0;transition:opacity .2s;z-index:3}
+.widget-card:hover .resize-right,.widget-card:hover .resize-bottom,.widget-card:hover .resize-corner{opacity:1}
+.widget-card .resize-right:hover{background:linear-gradient(to left,var(--accent) 0%,transparent 100%);border-radius:0 4px 4px 0}
+.widget-card .resize-bottom:hover{background:linear-gradient(to top,var(--accent) 0%,transparent 100%);border-radius:0 0 4px 4px}
+.widget-card .resize-corner::after{content:'';position:absolute;bottom:5px;right:5px;width:8px;height:8px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);border-radius:0 0 2px 0}
+.widget-card .resize-corner:hover::after{border-color:var(--accent)}
+.widget-card.resizing{z-index:10;box-shadow:0 0 0 2px var(--accent),var(--shadow-glow);transition:none}
 
 /* ── Edit Mode ── */
 .widget-grid.edit-mode .widget-card{cursor:move;border-style:dashed}
@@ -191,6 +197,18 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 .agent-picker-name{font-size:13px;font-weight:600;color:var(--text-primary)}
 .agent-picker-desc{font-size:11px;color:var(--text-muted)}
 
+/* ── Scope Picker ── */
+.scope-section-header{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-dim);margin-top:4px}
+.scope-section-label{font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;flex:1}
+.scope-select-all{font-size:10px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:var(--font-sans);font-weight:600;padding:2px 6px;border-radius:4px;transition:background .15s}
+.scope-select-all:hover{background:var(--accent-bg)}
+.scope-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border-dim);border-radius:6px;cursor:pointer;transition:all .15s;font-size:12px;color:var(--text-secondary)}
+.scope-item:hover{border-color:var(--border-glow);background:var(--accent-bg)}
+.scope-item.checked{border-color:var(--accent);background:var(--accent-bg)}
+.scope-item input[type="checkbox"]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.scope-item-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scope-item-meta{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);flex-shrink:0}
+
 /* ── Widget list in edit panel ── */
 .widget-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-dim);border-radius:8px;margin-bottom:6px}
 .widget-list-name{font-size:12px;font-weight:600;flex:1}
@@ -222,14 +240,13 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
     <a class="tab-btn" href="/">Home</a>
     <a class="tab-btn" href="/org">Agents</a>
     <a class="tab-btn" href="/ui">Chat</a>
-    <a class="tab-btn active" href="/boards">Boards</a>
     <a class="tab-btn" href="/library">Library</a>
     <a class="tab-btn" href="/lab">Lab</a>
   </nav>
   <div class="topbar-right">
+    <a href="/boards" class="gear-btn" title="Boards" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Boards</a>
     <a href="/monitor" class="gear-btn" title="Monitor" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Monitor</a>
     <a href="/admin" class="gear-btn" title="Admin" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">Admin</a>
-    <a href="/user-guide" class="gear-btn" title="User Guide" style="font-size:11px;font-weight:700;letter-spacing:.03em;padding:0 10px;width:auto">User Guide</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="themeBtn">&#x1F319;</button>
   </div>
 </div>
@@ -286,6 +303,10 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
       <button class="expand-close" onclick="closeExpand()">&times;</button>
     </div>
     <div class="expand-body" id="expandBody"></div>
+    <div style="display:flex;gap:8px;padding:12px 20px;border-top:1px solid var(--border-dim)">
+      <button class="btn btn-ghost" id="expandEditBtn" style="font-size:11px">&#x2699; Edit Agent</button>
+      <button class="btn btn-ghost" id="expandRemoveBtn" style="font-size:11px;color:var(--danger,#f87171)">&#x2715; Remove from Board</button>
+    </div>
   </div>
 </div>
 
@@ -356,19 +377,66 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
         <label class="form-label">Select a board-enabled agent</label>
         <div class="agent-picker" id="agentPicker"></div>
       </div>
-      <div class="form-group" id="widgetSizeGroup" style="display:none">
-        <label class="form-label">Widget Size</label>
-        <select class="form-select" id="addWidgetSize">
-          <option value="1">Small (1 column)</option>
-          <option value="2" selected>Medium (2 columns)</option>
-          <option value="3">Large (3 columns)</option>
-          <option value="4">Full width (4 columns)</option>
+      <div id="scopeSection" style="display:none">
+        <div class="form-group">
+          <label class="form-label">What to show</label>
+          <div id="scopePicker" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Widget Size (each)</label>
+          <select class="form-select" id="addWidgetSize">
+            <option value="9">Small</option>
+            <option value="12">Medium</option>
+            <option value="18" selected>Large</option>
+            <option value="24">Wide</option>
+            <option value="36">Full width</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="addWidgetBtn" onclick="addWidget()" disabled>Add Widget(s)</button>
+      <button class="btn btn-ghost" onclick="closeAddWidget()" style="margin-left:auto">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Widget Settings Modal -->
+<div class="modal-overlay" id="widgetSettingsOverlay" onclick="if(event.target===this)closeWidgetSettings()">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title" id="widgetSettingsTitle">Widget Settings</span>
+      <button class="modal-close" onclick="closeWidgetSettings()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Display Title</label>
+        <input class="form-input" id="wsTitle" placeholder="Leave blank for agent name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Width</label>
+        <select class="form-select" id="wsWidth">
+          <option value="6">Tiny</option>
+          <option value="9">Small</option>
+          <option value="12">Medium</option>
+          <option value="18">Large</option>
+          <option value="24">Wide</option>
+          <option value="36">Full width</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Height</label>
+        <select class="form-select" id="wsHeight">
+          <option value="1">Short (1 row)</option>
+          <option value="2">Medium (2 rows)</option>
+          <option value="3">Tall (3 rows)</option>
+          <option value="4">Extra tall (4 rows)</option>
         </select>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" id="addWidgetBtn" onclick="addWidget()" disabled>Add Widget</button>
-      <button class="btn btn-ghost" onclick="closeAddWidget()" style="margin-left:auto">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWidgetSettings()">Save</button>
+      <button class="btn btn-ghost" onclick="closeWidgetSettings()" style="margin-left:auto">Cancel</button>
     </div>
   </div>
 </div>
@@ -383,6 +451,10 @@ let currentBoard = null;
 let boardEnabledAgents = [];
 let selectedAgentId = null;
 let resizing = null; // { el, startX, startY, startW, startH, widget }
+let editingWidgetIdx = null; // for widget settings modal
+
+/* ── Migrate old 4-col widths to 12-col ── */
+function migrateW(w){ if(!w) return 18; if(w<=4) return w*9; if(w<=12) return w*3; return w; }
 
 /* ── Theme ── */
 function toggleTheme(){
@@ -409,12 +481,12 @@ function showToast(msg,type='success'){
 }
 
 /* ── API helpers ── */
-async function api(url,opts={}){
+async function api(url,opts={},silent=false){
   try{
     const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});
     if(!r.ok) throw new Error(await r.text()||r.statusText);
     return r.json();
-  }catch(e){showToast(e.message,'error');throw e;}
+  }catch(e){if(!silent) showToast(e.message,'error');throw e;}
 }
 
 /* ── Time helpers ── */
@@ -441,7 +513,7 @@ function avatarHtml(av,size){
 /* ── Load data ── */
 async function loadAll(){
   try{
-    boards = await api('/api/boards');
+    boards = await api('/api/boards',{},true);
     if(!Array.isArray(boards)) boards=[];
   }catch(e){ boards=[]; }
 
@@ -478,7 +550,7 @@ function renderBoardSelector(){
 async function switchBoard(boardId){
   if(!boardId) return;
   try{
-    currentBoard = await api(`/api/boards/${boardId}`);
+    currentBoard = await api(`/api/boards/${boardId}`,{},true);
     localStorage.setItem('lastBoardId',boardId);
   }catch(e){ return; }
   renderBoardSelector();
@@ -492,26 +564,31 @@ async function switchBoard(boardId){
 function renderWidgets(){
   const grid=document.getElementById('widgetGrid');
   if(!currentBoard||!currentBoard.widgets||currentBoard.widgets.length===0){
-    grid.innerHTML=`<div class="add-widget-card" onclick="openAddWidget()" style="grid-column:span 2">+ Add Widget</div>`;
+    grid.innerHTML=`<div class="add-widget-card" onclick="openAddWidget()" style="grid-column:span 18">+ Add Agent</div>`;
     return;
   }
 
   grid.innerHTML=currentBoard.widgets.map((w,i)=>{
-    const name=w.title||w.agentName||w.agentId;
+    let name=w.title||w.agentName||w.agentId;
+    if(w.scope==='goal'&&w.goalId) name+=' — '+w.goalId;
+    if(w.scope==='cron'&&w.cronIndex!==undefined) name+=' — Schedule #'+(w.cronIndex+1);
     const ts=w.lastOutput?.ts ? timeAgo(w.lastOutput.ts) : '';
+    const colSpan=migrateW(w.w);
     const body=w.lastOutput?.response || '';
-    const truncated=body.length>400 ? body.slice(0,400)+'...' : body;
-    return `<div class="widget-card" style="grid-column:span ${w.w||2};grid-row:span ${w.h||1}" data-idx="${i}" onclick="expandWidget(${i})">
+    return `<div class="widget-card" style="grid-column:span ${colSpan};grid-row:span ${w.h||1}" data-idx="${i}" onclick="expandWidget(${i})">
       <div class="widget-card-header">
         ${avatarHtml(w.avatar)}
         <span class="widget-title">${esc(name)}</span>
         <span class="widget-ts">${ts}</span>
+        <button class="widget-settings-btn" onclick="event.stopPropagation();openWidgetSettings(${i})" title="Widget settings">&#x2699;</button>
         <button class="widget-refresh-btn" onclick="event.stopPropagation();refreshSingleWidget('${w.agentId}')" title="Refresh this widget">&#x21BB;</button>
       </div>
-      <div class="widget-body">${truncated ? esc(truncated) : '<span class="widget-empty">No output yet. Run the agent or trigger a goal.</span>'}</div>
-      <div class="resize-handle" onmousedown="event.stopPropagation();startResize(event,${i})"></div>
+      <div class="widget-body">${body ? esc(body) : '<span class="widget-empty">No output yet. Run the agent or trigger a goal.</span>'}</div>
+      <div class="resize-right" onmousedown="event.stopPropagation();startResize(event,${i},'right')"></div>
+      <div class="resize-bottom" onmousedown="event.stopPropagation();startResize(event,${i},'bottom')"></div>
+      <div class="resize-corner" onmousedown="event.stopPropagation();startResize(event,${i},'corner')"></div>
     </div>`;
-  }).join('') + `<div class="add-widget-card" onclick="openAddWidget()">+ Add Widget</div>`;
+  }).join('') + `<div class="add-widget-card" onclick="openAddWidget()">+ Add Agent</div>`;
 }
 
 function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
@@ -546,40 +623,63 @@ function updateRefreshIndicator(){
 function expandWidget(idx){
   const w=currentBoard.widgets[idx];
   if(!w) return;
-  const name=w.title||w.agentName||w.agentId;
+  let name=w.title||w.agentName||w.agentId;
+  if(w.scope==='goal'&&w.goalId) name+=' — '+w.goalId;
+  if(w.scope==='cron'&&w.cronIndex!==undefined) name+=' — Schedule #'+(w.cronIndex+1);
   document.getElementById('expandAvatar').innerHTML=avatarHtml(w.avatar,30).replace(/class="widget-avatar"/,'');
   document.getElementById('expandTitle').textContent=name;
   document.getElementById('expandTs').textContent=w.lastOutput?.ts ? new Date(w.lastOutput.ts).toLocaleString() : '';
   document.getElementById('expandBody').textContent=w.lastOutput?.response || 'No output yet.';
+  document.getElementById('expandEditBtn').onclick=()=>{ window.location.href='/org?edit='+w.agentId; };
+  document.getElementById('expandRemoveBtn').onclick=async()=>{
+    if(!confirm('Remove this widget from the board?')) return;
+    try{
+      currentBoard=await api(`/api/boards/${currentBoard.id}/widgets/${idx}?byIndex=true`,{method:'DELETE'});
+      closeExpand();
+      currentBoard=await api(`/api/boards/${currentBoard.id}`);
+      renderWidgets();
+      showToast('Widget removed');
+    }catch(e){}
+  };
   document.getElementById('expandOverlay').classList.add('open');
 }
 function closeExpand(){ document.getElementById('expandOverlay').classList.remove('open'); }
 
 /* ── Resize ── */
-function startResize(e,idx){
+function startResize(e,idx,axis){
   e.preventDefault();
   const card=e.target.closest('.widget-card');
   const w=currentBoard.widgets[idx];
   const gridEl=document.getElementById('widgetGrid');
-  const colW=gridEl.offsetWidth/4;
-  resizing={el:card,idx,startX:e.clientX,startY:e.clientY,startW:w.w||2,startH:w.h||1,colW};
+  const gap=parseInt(getComputedStyle(gridEl).gap)||16;
+  const cols=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cols'))||4;
+  const colW=(gridEl.offsetWidth-(cols-1)*gap)/cols;
+  const rowH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-row-h'))||140;
+  card.classList.add('resizing');
+  resizing={el:card,idx,axis,startX:e.clientX,startY:e.clientY,startW:migrateW(w.w),startH:w.h||1,colW,rowH,gap};
   document.addEventListener('mousemove',doResize);
   document.addEventListener('mouseup',stopResize);
 }
 function doResize(e){
   if(!resizing) return;
-  const dx=e.clientX-resizing.startX;
-  const dy=e.clientY-resizing.startY;
-  const rowH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-row-h'))||140;
-  let newW=Math.max(1,Math.min(4,Math.round(resizing.startW+dx/resizing.colW)));
-  let newH=Math.max(1,Math.round(resizing.startH+dy/(rowH+16)));
-  resizing.el.style.gridColumn='span '+newW;
-  resizing.el.style.gridRow='span '+newH;
-  resizing.newW=newW;
-  resizing.newH=newH;
+  const {axis,startX,startY,startW,startH,colW,rowH,gap,el}=resizing;
+  const dx=e.clientX-startX;
+  const dy=e.clientY-startY;
+  if(axis==='right'||axis==='corner'){
+    const cols=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cols'))||12;
+    const newW=Math.max(1,Math.min(cols,Math.round(startW+dx/(colW+gap))));
+    el.style.gridColumn='span '+newW;
+    resizing.newW=newW;
+  }
+  if(axis==='bottom'||axis==='corner'){
+    const newH=Math.max(1,Math.round(startH+dy/(rowH+gap)));
+    el.style.gridRow='span '+newH;
+    resizing.newH=newH;
+  }
 }
 async function stopResize(){
   if(!resizing) return;
+  resizing.el.classList.remove('resizing');
   const w=currentBoard.widgets[resizing.idx];
   if(resizing.newW) w.w=resizing.newW;
   if(resizing.newH) w.h=resizing.newH;
@@ -668,14 +768,17 @@ function renderEditWidgetList(){
     el.innerHTML='<div style="font-size:12px;color:var(--text-muted);padding:8px 0">No widgets. Add one from the board.</div>';
     return;
   }
-  el.innerHTML=currentBoard.widgets.map((w,i)=>`
-    <div class="widget-list-item">
+  el.innerHTML=currentBoard.widgets.map((w,i)=>{
+    let label=esc(w.title||w.agentName||w.agentId);
+    if(w.scope==='goal'&&w.goalId) label+=' <span style="color:var(--text-muted);font-weight:400">— '+esc(w.goalId)+'</span>';
+    if(w.scope==='cron'&&w.cronIndex!==undefined) label+=' <span style="color:var(--text-muted);font-weight:400">— Sched #'+(w.cronIndex+1)+'</span>';
+    return `<div class="widget-list-item">
       ${avatarHtml(w.avatar,22)}
-      <span class="widget-list-name">${esc(w.title||w.agentName||w.agentId)}</span>
-      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">${w.w||2}x${w.h||1}</span>
-      <button class="widget-list-remove" onclick="removeWidget('${w.agentId}')" title="Remove">&times;</button>
-    </div>
-  `).join('');
+      <span class="widget-list-name">${label}</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">${migrateW(w.w)}x${w.h||1}</span>
+      <button class="widget-list-remove" onclick="removeWidgetByIndex(${i})" title="Remove">&times;</button>
+    </div>`;
+  }).join('');
 }
 
 async function saveBoard(){
@@ -714,21 +817,18 @@ async function openAddWidget(){
   if(!currentBoard) return showToast('Select a board first','error');
   selectedAgentId=null;
   document.getElementById('addWidgetBtn').disabled=true;
-  document.getElementById('widgetSizeGroup').style.display='none';
+  document.getElementById('scopeSection').style.display='none';
+  document.getElementById('scopePicker').innerHTML='';
   try{
-    boardEnabledAgents=await api('/api/agents/board-enabled');
+    boardEnabledAgents=await api('/api/agents/board-enabled',{},true);
     if(!Array.isArray(boardEnabledAgents)) boardEnabledAgents=[];
   }catch(e){ boardEnabledAgents=[]; }
 
-  // Filter out agents already on this board
-  const existingIds=new Set((currentBoard.widgets||[]).map(w=>w.agentId));
-  const available=boardEnabledAgents.filter(a=>!existingIds.has(a.agentId));
-
   const picker=document.getElementById('agentPicker');
-  if(!available.length){
+  if(!boardEnabledAgents.length){
     picker.innerHTML='<div style="font-size:12px;color:var(--text-muted);padding:16px;text-align:center">No board-enabled agents available. Enable an agent for boards in its settings.</div>';
   } else {
-    picker.innerHTML=available.map(a=>`
+    picker.innerHTML=boardEnabledAgents.map(a=>`
       <div class="agent-picker-item" data-id="${a.agentId}" onclick="selectAgent('${a.agentId}',this)">
         ${avatarHtml(a.avatar,28).replace('widget-avatar','agent-picker-avatar')}
         <div style="flex:1;min-width:0">
@@ -746,26 +846,87 @@ function selectAgent(agentId,el){
   selectedAgentId=agentId;
   document.querySelectorAll('.agent-picker-item').forEach(e=>e.classList.remove('selected'));
   el.classList.add('selected');
-  document.getElementById('addWidgetBtn').disabled=false;
-  document.getElementById('widgetSizeGroup').style.display='block';
-  // Set default size from agent's boardLayout
   const agent=boardEnabledAgents.find(a=>a.agentId===agentId);
   if(agent?.boardLayout){
-    const sizeMap={small:'1',medium:'2',large:'3'};
-    document.getElementById('addWidgetSize').value=sizeMap[agent.boardLayout]||'2';
+    const sizeMap={small:'9',medium:'18',large:'24'};
+    document.getElementById('addWidgetSize').value=sizeMap[agent.boardLayout]||'18';
   }
+  buildScopePicker(agent);
+}
+
+function buildScopePicker(agent){
+  const picker=document.getElementById('scopePicker');
+  const goals=agent?.goals||[];
+  const crons=agent?.cron||[];
+  const hasItems=goals.length>0||crons.length>0;
+
+  let html=`<label class="scope-item" onclick="toggleScope(this)">
+    <input type="checkbox" checked data-scope="all"> <span class="scope-item-label">All output (combined)</span>
+  </label>`;
+
+  if(goals.length>0){
+    html+=`<div class="scope-section-header"><span class="scope-section-label">Goals (${goals.length})</span><button class="scope-select-all" onclick="selectAllSection(this,'goal')">Select all</button></div>`;
+    html+=goals.map(g=>`<label class="scope-item" onclick="toggleScope(this)">
+      <input type="checkbox" data-scope="goal" data-goal-id="${esc(g.id)}"> <span class="scope-item-label">${esc(g.description||g.id)}</span>
+      <span class="scope-item-meta">${g.enabled?'active':'paused'}</span>
+    </label>`).join('');
+  }
+
+  if(crons.length>0){
+    html+=`<div class="scope-section-header"><span class="scope-section-label">Schedules (${crons.length})</span><button class="scope-select-all" onclick="selectAllSection(this,'cron')">Select all</button></div>`;
+    html+=crons.map(c=>`<label class="scope-item" onclick="toggleScope(this)">
+      <input type="checkbox" data-scope="cron" data-cron-index="${c.index}"> <span class="scope-item-label">${esc(c.message?.slice(0,60)||'Schedule '+c.index)}</span>
+      <span class="scope-item-meta">${esc(c.schedule)}</span>
+    </label>`).join('');
+  }
+
+  picker.innerHTML=html;
+  document.getElementById('scopeSection').style.display='block';
+  updateAddBtn();
+}
+
+function toggleScope(el){
+  setTimeout(()=>{
+    const cb=el.querySelector('input[type="checkbox"]');
+    el.classList.toggle('checked',cb.checked);
+    updateAddBtn();
+  },0);
+}
+
+function selectAllSection(btn,scope){
+  const picker=document.getElementById('scopePicker');
+  const boxes=picker.querySelectorAll(`input[data-scope="${scope}"]`);
+  const allChecked=[...boxes].every(b=>b.checked);
+  boxes.forEach(b=>{b.checked=!allChecked;b.closest('.scope-item').classList.toggle('checked',!allChecked)});
+  btn.textContent=allChecked?'Select all':'Deselect all';
+  updateAddBtn();
+}
+
+function updateAddBtn(){
+  const checked=document.querySelectorAll('#scopePicker input[type="checkbox"]:checked');
+  const btn=document.getElementById('addWidgetBtn');
+  btn.disabled=!selectedAgentId||checked.length===0;
+  btn.textContent=checked.length>1?`Add ${checked.length} Widgets`:'Add Widget';
 }
 
 async function addWidget(){
   if(!selectedAgentId||!currentBoard) return;
-  const w=parseInt(document.getElementById('addWidgetSize').value)||2;
+  const w=parseInt(document.getElementById('addWidgetSize').value)||18;
+  const checked=[...document.querySelectorAll('#scopePicker input[type="checkbox"]:checked')];
+  if(!checked.length) return;
+
   try{
-    currentBoard=await api(`/api/boards/${currentBoard.id}/widgets`,{method:'POST',body:JSON.stringify({agentId:selectedAgentId,w,h:1})});
+    for(const cb of checked){
+      const scope=cb.dataset.scope;
+      const body={agentId:selectedAgentId,w,h:1,scope};
+      if(scope==='goal') body.goalId=cb.dataset.goalId;
+      if(scope==='cron') body.cronIndex=parseInt(cb.dataset.cronIndex);
+      currentBoard=await api(`/api/boards/${currentBoard.id}/widgets`,{method:'POST',body:JSON.stringify(body)});
+    }
     closeAddWidget();
-    // Re-fetch with enriched data
     currentBoard=await api(`/api/boards/${currentBoard.id}`);
     renderWidgets();
-    showToast('Widget added');
+    showToast(checked.length>1?`${checked.length} widgets added`:'Widget added');
   }catch(e){}
 }
 
@@ -773,11 +934,49 @@ async function removeWidget(agentId){
   if(!currentBoard) return;
   try{
     currentBoard=await api(`/api/boards/${currentBoard.id}/widgets/${agentId}`,{method:'DELETE'});
-    // Re-fetch enriched
     currentBoard=await api(`/api/boards/${currentBoard.id}`);
     renderWidgets();
     renderEditWidgetList();
     showToast('Widget removed');
+  }catch(e){}
+}
+
+async function removeWidgetByIndex(idx){
+  if(!currentBoard) return;
+  try{
+    currentBoard=await api(`/api/boards/${currentBoard.id}/widgets/${idx}?byIndex=true`,{method:'DELETE'});
+    currentBoard=await api(`/api/boards/${currentBoard.id}`);
+    renderWidgets();
+    renderEditWidgetList();
+    showToast('Widget removed');
+  }catch(e){}
+}
+
+/* ── Widget Settings ── */
+function openWidgetSettings(idx){
+  editingWidgetIdx=idx;
+  const w=currentBoard.widgets[idx];
+  if(!w) return;
+  document.getElementById('widgetSettingsTitle').textContent='Widget: '+(w.title||w.agentName||w.agentId);
+  document.getElementById('wsTitle').value=w.title||'';
+  document.getElementById('wsWidth').value=String(migrateW(w.w));
+  document.getElementById('wsHeight').value=String(w.h||1);
+  document.getElementById('widgetSettingsOverlay').classList.add('open');
+}
+function closeWidgetSettings(){ document.getElementById('widgetSettingsOverlay').classList.remove('open'); editingWidgetIdx=null; }
+
+async function saveWidgetSettings(){
+  if(editingWidgetIdx===null||!currentBoard) return;
+  const w=currentBoard.widgets[editingWidgetIdx];
+  const title=document.getElementById('wsTitle').value.trim();
+  w.title=title||undefined;
+  w.w=parseInt(document.getElementById('wsWidth').value)||6;
+  w.h=parseInt(document.getElementById('wsHeight').value)||1;
+  closeWidgetSettings();
+  renderWidgets();
+  try{
+    await api(`/api/boards/${currentBoard.id}/widgets`,{method:'PUT',body:JSON.stringify({widgets:currentBoard.widgets})});
+    showToast('Widget updated');
   }catch(e){}
 }
 
@@ -787,6 +986,7 @@ document.addEventListener('keydown',e=>{
     closeExpand();
     closeCreateModal();
     closeEditPanel();
+    closeWidgetSettings();
     closeAddWidget();
   }
 });

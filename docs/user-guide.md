@@ -2037,11 +2037,11 @@ Enable any agent for boards from the agent edit form (Org → click agent → Se
 | `GET` | `/api/boards/:id` | Get board with enriched widget data |
 | `PUT` | `/api/boards/:id` | Update board |
 | `DELETE` | `/api/boards/:id` | Delete board |
-| `POST` | `/api/boards/:id/widgets` | Add widget to board |
+| `POST` | `/api/boards/:id/widgets` | Add widget to board (supports `scope`, `goalId`, `cronIndex` for scoped widgets) |
 | `PUT` | `/api/boards/:id/widgets` | Update widget positions/sizes |
-| `DELETE` | `/api/boards/:id/widgets/:agentId` | Remove widget |
+| `DELETE` | `/api/boards/:id/widgets/:agentIdOrIndex` | Remove widget (add `?byIndex=true` to remove by index) |
 | `POST` | `/api/boards/:id/refresh` | Manual refresh |
-| `GET` | `/api/agents/board-enabled` | List board-eligible agents |
+| `GET` | `/api/agents/board-enabled` | List board-eligible agents (includes goals and crons) |
 
 ## 10.6 MCP Tools
 
@@ -2052,8 +2052,8 @@ Enable any agent for boards from the agent edit form (Org → click agent → Se
 | `create_board` | Create a new board |
 | `update_board` | Update board fields |
 | `delete_board` | Delete a board |
-| `add_board_widget` | Add agent widget to board |
-| `remove_board_widget` | Remove widget from board |
+| `add_board_widget` | Add agent widget to board (scope: all/goal/cron, supports goalId and cronIndex) |
+| `remove_board_widget` | Remove widget from board (by agentId or widgetIndex) |
 | `refresh_board` | Refresh board data |
 
 ---
@@ -2404,8 +2404,9 @@ Quick reference — all MCP tools alphabetically:
 | 1 | `add_account` | Accounts |
 | 2 | `add_agent_route` | Channels |
 | 3 | `add_monitored_chat` | Channels |
-| 4 | `add_mcp_to_registry` | Marketplace |
-| 5 | `assign_to_agent` | Marketplace |
+| 4 | `add_board_widget` | Boards |
+| 5 | `add_mcp_to_registry` | Marketplace |
+| 6 | `assign_to_agent` | Marketplace |
 | 6 | `browse_dirs` | Utilities |
 | 7 | `browse_registry` | Marketplace |
 | 8 | `check_account_status` | Accounts |
@@ -2413,6 +2414,7 @@ Quick reference — all MCP tools alphabetically:
 | 10 | `clear_memory_context` | Memory |
 | 11 | `clear_model` | Model |
 | 12 | `create_agent` | Agents |
+| -- | `create_board` | Boards |
 | -- | `complete_gym_program` | AI Gym |
 | -- | `create_gym_card` | AI Gym |
 | -- | `create_gym_guide` | AI Gym |
@@ -2432,6 +2434,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `personalize_template` | Templates |
 | 22 | `delete_account` | Accounts |
 | 23 | `delete_agent` | Agents |
+| -- | `delete_board` | Boards |
 | -- | `delete_gym_program` | AI Gym |
 | -- | `delete_gym_project` | AI Gym |
 | -- | `delete_gym_series` | AI Gym |
@@ -2451,6 +2454,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `enroll_gym_program` | AI Gym |
 | 32 | `get_activity` | Activity |
 | 33 | `get_agent` | Agents |
+| -- | `get_board` | Boards |
 | -- | `get_agent_activity_summary` | AI Gym |
 | 34 | `get_agent_cost` | Cost |
 | 35 | `get_agent_instructions` | Agents |
@@ -2501,6 +2505,7 @@ Quick reference — all MCP tools alphabetically:
 | 61 | `install_xbar` | Utilities |
 | -- | `link_to_project` | Projects |
 | 62 | `list_agents` | Agents |
+| -- | `list_boards` | Boards |
 | -- | `list_templates` | Templates |
 | -- | `list_gym_cards` | AI Gym |
 | -- | `list_gym_enrollments` | AI Gym |
@@ -2525,6 +2530,8 @@ Quick reference — all MCP tools alphabetically:
 | -- | `pause_project` | Projects |
 | 75 | `publish_to_saas` | SaaS |
 | 76 | `recover_agent` | Agents |
+| -- | `refresh_board` | Boards |
+| -- | `remove_board_widget` | Boards |
 | -- | `run_gym_digest` | AI Gym |
 | -- | `rename_session_tab` | Session Tabs |
 | 77 | `remove_agent_route` | Channels |
@@ -2558,6 +2565,7 @@ Quick reference — all MCP tools alphabetically:
 | -- | `unenroll_gym_program` | AI Gym |
 | -- | `unlink_from_project` | Projects |
 | 100 | `update_agent` | Agents |
+| -- | `update_board` | Boards |
 | -- | `update_gym_program` | AI Gym |
 | -- | `update_gym_progress` | AI Gym |
 | -- | `update_gym_project` | AI Gym |

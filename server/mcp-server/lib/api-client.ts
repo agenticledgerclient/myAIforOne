@@ -253,6 +253,8 @@ export const addBoardWidget = (id: string, body: any) =>
   api(`/api/boards/${id}/widgets`, { method: "POST", body });
 export const removeBoardWidget = (id: string, agentId: string) =>
   api(`/api/boards/${id}/widgets/${agentId}`, { method: "DELETE" });
+export const removeBoardWidgetByIndex = (id: string, index: number) =>
+  api(`/api/boards/${id}/widgets/${index}?byIndex=true`, { method: "DELETE" });
 export const refreshBoard = (id: string) =>
   api(`/api/boards/${id}/refresh`, { method: "POST" });
 export const addMonitoredChat = (channelName: string, chatId: string) =>

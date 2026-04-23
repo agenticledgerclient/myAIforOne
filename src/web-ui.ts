@@ -1957,6 +1957,13 @@ export function startWebUI(opts: WebUIOptions): void {
         taskCounts,
         subAgents: agent.subAgents || null,
         avatar: (agent as any).avatar || null,
+        boardEnabled: agent.boardEnabled || false,
+        boardLayout: agent.boardLayout || null,
+        executor: agent.executor || null,
+        wiki: agent.wiki || false,
+        wikiSync: agent.wikiSync || null,
+        shared: (agent as any).shared || false,
+        conversationLogMode: (agent as any).conversationLogMode || "shared",
       };
     });
 
@@ -2013,6 +2020,27 @@ export function startWebUI(opts: WebUIOptions): void {
         streaming: agent.streaming ?? false,
       }));
     res.json({ agents });
+  });
+
+  // GET /api/agents/board-enabled — list agents eligible for boards
+  // NOTE: Must be registered BEFORE /api/agents/:id to avoid Express treating "board-enabled" as an :id param
+  app.get("/api/agents/board-enabled", (_req, res) => {
+    const result: Array<{ agentId: string; name: string; description: string; avatar: string | null; boardLayout?: string; agentClass?: string; goals?: any[]; cron?: any[] }> = [];
+    for (const [agentId, agent] of Object.entries(opts.config.agents)) {
+      if (agent.boardEnabled || agent.agentClass === "board") {
+        result.push({
+          agentId,
+          name: agent.name,
+          description: agent.description || "",
+          avatar: agent.avatar || null,
+          boardLayout: agent.boardLayout,
+          agentClass: agent.agentClass,
+          goals: (agent.goals || []).map((g: any) => ({ id: g.id, description: g.description, enabled: g.enabled })),
+          cron: (agent.cron || []).map((c: any, i: number) => ({ index: i, schedule: c.schedule, message: c.message, enabled: c.enabled !== false })),
+        });
+      }
+    }
+    res.json(result);
   });
 
   // ─── API: Agent detail ────────────────────────────────────────────
@@ -5886,9 +5914,11 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     agentId: string;
     x: number;      // grid column (0-based)
     y: number;      // grid row (0-based)
-    w: number;      // width in grid columns (1-4)
+    w: number;      // width in grid columns
     h: number;      // height in grid rows (1+)
     goalId?: string; // show output from a specific goal
+    cronIndex?: number; // show output from a specific cron schedule
+    scope?: "all" | "goal" | "cron"; // widget scope filter
     title?: string;  // override display title
   }
 
@@ -6007,7 +6037,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     const board = boards.find(b => b.id === req.params.id);
     if (!board) return res.status(404).json({ error: "Board not found" });
 
-    const enrichedWidgets = board.widgets.map(w => {
+    const enrichedWidgets = (board.widgets || []).map(w => {
       const agent = opts.config.agents[w.agentId];
       const lastOutput = getAgentLastOutput(w.agentId, w.goalId);
       return {
@@ -6104,9 +6134,9 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     const board = boards.find(b => b.id === req.params.id);
     if (!board) return res.status(404).json({ error: "Board not found" });
 
-    const { agentId, x, y, w, h, goalId, title } = req.body as {
+    const { agentId, x, y, w, h, goalId, cronIndex, scope, title } = req.body as {
       agentId?: string; x?: number; y?: number; w?: number; h?: number;
-      goalId?: string; title?: string;
+      goalId?: string; cronIndex?: number; scope?: string; title?: string;
     };
     if (!agentId) return res.status(400).json({ error: "Missing required field: agentId" });
 
@@ -6122,9 +6152,11 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
       agentId,
       x: x ?? 0,
       y: y ?? (board.widgets.length > 0 ? Math.max(...board.widgets.map(w2 => w2.y + w2.h)) : 0),
-      w: w ?? 2,
+      w: w ?? 18,
       h: h ?? 1,
       goalId,
+      cronIndex: cronIndex !== undefined ? cronIndex : undefined,
+      scope: (scope === "goal" || scope === "cron") ? scope : "all",
       title,
     };
 
@@ -6140,7 +6172,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     const board = boards.find(b => b.id === req.params.id);
     if (!board) return res.status(404).json({ error: "Board not found" });
 
-    const { widgets } = req.body as { widgets: Array<{ agentId: string; x: number; y: number; w: number; h: number; goalId?: string; title?: string }> };
+    const { widgets } = req.body as { widgets: BoardWidget[] };
     if (!widgets || !Array.isArray(widgets)) return res.status(400).json({ error: "Missing widgets array" });
 
     board.widgets = widgets;
@@ -6149,15 +6181,22 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     res.json(board);
   });
 
-  // DELETE /api/boards/:id/widgets/:agentId — remove a widget from a board
-  app.delete("/api/boards/:id/widgets/:agentId", (req, res) => {
+  // DELETE /api/boards/:id/widgets/:agentIdOrIndex — remove a widget from a board
+  // If ?byIndex=true, treats param as a numeric index; otherwise filters by agentId
+  app.delete("/api/boards/:id/widgets/:agentIdOrIndex", (req, res) => {
     const boards = loadBoards();
     const board = boards.find(b => b.id === req.params.id);
     if (!board) return res.status(404).json({ error: "Board not found" });
 
-    const before = board.widgets.length;
-    board.widgets = board.widgets.filter(w => w.agentId !== req.params.agentId);
-    if (board.widgets.length === before) return res.status(404).json({ error: "Widget not found" });
+    if (req.query.byIndex === "true") {
+      const idx = parseInt(req.params.agentIdOrIndex);
+      if (isNaN(idx) || idx < 0 || idx >= board.widgets.length) return res.status(404).json({ error: "Widget not found" });
+      board.widgets.splice(idx, 1);
+    } else {
+      const before = board.widgets.length;
+      board.widgets = board.widgets.filter(w => w.agentId !== req.params.agentIdOrIndex);
+      if (board.widgets.length === before) return res.status(404).json({ error: "Widget not found" });
+    }
 
     board.updatedAt = new Date().toISOString();
     saveBoard(board);
@@ -6171,7 +6210,7 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     if (!board) return res.status(404).json({ error: "Board not found" });
 
     // Re-read all widget outputs (fresh from disk)
-    const enrichedWidgets = board.widgets.map(w => {
+    const enrichedWidgets = (board.widgets || []).map(w => {
       const agent = opts.config.agents[w.agentId];
       const lastOutput = getAgentLastOutput(w.agentId, w.goalId);
       return {
@@ -6186,24 +6225,6 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     board.lastRefreshedAt = new Date().toISOString();
     saveBoard(board);
     res.json({ ...board, widgets: enrichedWidgets });
-  });
-
-  // GET /api/agents/board-enabled — list agents eligible for boards
-  app.get("/api/agents/board-enabled", (_req, res) => {
-    const result: Array<{ agentId: string; name: string; description: string; avatar: string | null; boardLayout?: string; agentClass?: string }> = [];
-    for (const [agentId, agent] of Object.entries(opts.config.agents)) {
-      if (agent.boardEnabled || agent.agentClass === "board") {
-        result.push({
-          agentId,
-          name: agent.name,
-          description: agent.description || "",
-          avatar: agent.avatar || null,
-          boardLayout: agent.boardLayout,
-          agentClass: agent.agentClass,
-        });
-      }
-    }
-    res.json(result);
   });
 
   // ─── API: Channels ───────────────────────────────────────────────

@@ -69,6 +69,8 @@ Edit `agents/my-agent/CLAUDE.md` with:
 | `allowedTools` | Claude Code tools the agent can use. Add MCPs separately (see below). |
 | `mcps` | Optional. Array of MCP server names from the top-level `mcps` registry. See [AddNewMcpGuide.md](./AddNewMcpGuide.md). |
 | `executor` | Optional. Override the platform default executor for this agent: `"claude"` (default) or `"ollama:<model>"` (e.g. `"ollama:gemma2"`). Requires `multiModelEnabled: true` in service config. |
+| `boardEnabled` | Optional. Set `true` to let this agent's output appear as a widget on boards. Good for agents with periodic outputs (briefings, monitoring, reports). |
+| `boardLayout` | Optional. Default widget size when added to a board: `"small"`, `"medium"` (default), or `"large"`. |
 | `routes` | Which channels + chat IDs this agent listens on. Multiple agents can share a channel if they have different `mentionAliases`. |
 
 ### Route matching

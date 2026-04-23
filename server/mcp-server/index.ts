@@ -786,23 +786,28 @@ server.tool("delete_board", "Delete a board", {
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
-server.tool("add_board_widget", "Add an agent widget to a board", {
+server.tool("add_board_widget", "Add an agent widget to a board. Same agent can appear multiple times with different scopes (all, goal, cron).", {
   boardId: z.string().describe("Board ID"),
   agentId: z.string().describe("Agent ID to add as a widget"),
-  w: z.number().optional().describe("Widget width in grid columns (1-4, default 2)"),
+  w: z.number().optional().describe("Widget width in grid columns (default 18 of 36-column grid)"),
   h: z.number().optional().describe("Widget height in grid rows (default 1)"),
   title: z.string().optional().describe("Override display title"),
-  goalId: z.string().optional().describe("Show output from a specific goal instead of latest conversation"),
-}, async ({ boardId, agentId, w, h, title, goalId }) => {
-  const r = await api.addBoardWidget(boardId, { agentId, w, h, title, goalId });
+  scope: z.enum(["all", "goal", "cron"]).optional().describe("Widget scope: 'all' (combined output), 'goal' (specific goal), 'cron' (specific schedule). Default: all"),
+  goalId: z.string().optional().describe("Goal ID to show output from (required when scope is 'goal')"),
+  cronIndex: z.number().optional().describe("Cron schedule index to show output from (required when scope is 'cron')"),
+}, async ({ boardId, agentId, w, h, title, scope, goalId, cronIndex }) => {
+  const r = await api.addBoardWidget(boardId, { agentId, w, h, title, scope, goalId, cronIndex });
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
-server.tool("remove_board_widget", "Remove a widget from a board", {
+server.tool("remove_board_widget", "Remove a widget from a board by agent ID or by widget index", {
   boardId: z.string().describe("Board ID"),
-  agentId: z.string().describe("Agent ID to remove from the board"),
-}, async ({ boardId, agentId }) => {
-  const r = await api.removeBoardWidget(boardId, agentId);
+  agentId: z.string().optional().describe("Agent ID to remove (removes first matching widget). Use this OR widgetIndex."),
+  widgetIndex: z.number().optional().describe("Widget index to remove (0-based). Use for precise removal when same agent appears multiple times."),
+}, async ({ boardId, agentId, widgetIndex }) => {
+  const r = widgetIndex !== undefined
+    ? await api.removeBoardWidgetByIndex(boardId, widgetIndex)
+    : await api.removeBoardWidget(boardId, agentId!);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
 
