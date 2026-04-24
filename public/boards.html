@@ -36,9 +36,6 @@
   --font-sans:'DM Sans',system-ui,sans-serif;
   --font-mono:'IBM Plex Mono',monospace;
   --font-display:'Syne',sans-serif;
-  --grid-cols:36;
-  --grid-gap:4px;
-  --grid-row-h:120px;
 }
 [data-theme="light"]{
   --bg-deep:#f4f6f9;
@@ -111,27 +108,36 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 .btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border-dim)}
 .btn-ghost:hover{border-color:var(--border-glow);color:var(--text-primary)}
 .btn-sm{font-size:11px;padding:5px 12px;border-radius:6px}
-.btn-new{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:8px 18px;border-radius:8px;border:2px dashed var(--border-glow);background:transparent;color:var(--accent);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
-.btn-new:hover{border-color:var(--accent);background:var(--accent-bg)}
+.btn-new{font-family:var(--font-sans);font-size:12px;font-weight:600;padding:8px 18px;border-radius:8px;border:1px solid var(--border-glow);background:var(--accent-bg);color:var(--accent);cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:6px}
+.btn-new:hover{border-color:var(--accent);background:var(--accent);color:var(--bg-deep);box-shadow:0 0 16px rgba(34,211,238,0.2)}
 
-/* ── Widget Grid ── */
-.widget-grid{display:grid;grid-template-columns:repeat(var(--grid-cols),1fr);grid-auto-rows:var(--grid-row-h);gap:var(--grid-gap);min-height:200px;position:relative}
-@media(max-width:1100px){.widget-grid{--grid-cols:24}}
-@media(max-width:800px){.widget-grid{--grid-cols:18}}
-@media(max-width:500px){.widget-grid{--grid-cols:12}.canvas{padding:16px 12px}}
+/* ── Widget Grid (free-form canvas) ── */
+.widget-grid{position:relative;min-height:400px}
+@media(max-width:500px){.canvas{padding:16px 12px}}
 
 /* ── Widget Card ── */
-.widget-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);display:flex;flex-direction:column;transition:all .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden;cursor:pointer;position:relative}
+.widget-card{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius);display:flex;flex-direction:column;transition:box-shadow .25s,border-color .25s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden;cursor:grab;position:absolute}
+.widget-card.dragging{opacity:0.85;z-index:50;box-shadow:0 8px 32px rgba(0,0,0,0.4);cursor:grabbing;transition:none}
+.widget-card.drag-over{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
 .widget-card:hover{border-color:var(--border-glow);box-shadow:var(--shadow),var(--shadow-glow)}
 .widget-card-header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border-dim);flex-shrink:0}
 .widget-avatar{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:var(--accent-bg);color:var(--accent);border:1px solid rgba(34,211,238,0.2)}
 .widget-avatar img{width:100%;height:100%;border-radius:6px;object-fit:cover}
 .widget-title{font-family:var(--font-sans);font-size:12px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .widget-ts{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);flex-shrink:0;white-space:nowrap}
-.widget-refresh-btn,.widget-settings-btn{width:22px;height:22px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;flex-shrink:0}
-.widget-refresh-btn:hover,.widget-settings-btn:hover{background:var(--accent-bg);color:var(--accent)}
+.widget-refresh-btn,.widget-rerun-btn,.widget-settings-btn{width:22px;height:22px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;flex-shrink:0}
+.widget-refresh-btn:hover,.widget-rerun-btn:hover,.widget-settings-btn:hover{background:var(--accent-bg);color:var(--accent)}
+.widget-rerun-btn:disabled{opacity:.35;cursor:not-allowed}
+.widget-rerun-btn:disabled:hover{background:transparent;color:var(--text-muted)}
 .widget-body{flex:1;padding:12px 14px;overflow-y:auto;font-size:12px;color:var(--text-secondary);line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .widget-empty{color:var(--text-muted);font-style:italic;font-size:11px}
+/* running state */
+.widget-running-badge{display:none;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--accent);padding:2px 6px;border-radius:4px;background:var(--accent-bg);border:1px solid rgba(34,211,238,0.3);flex-shrink:0;letter-spacing:.5px;align-items:center;gap:5px}
+.widget-running-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:wpulse 1.2s ease-in-out infinite}
+.widget-card.running .widget-running-badge{display:inline-flex}
+.widget-card.running{border-color:rgba(34,211,238,0.45);box-shadow:0 0 18px rgba(34,211,238,0.12)}
+.widget-card.running .widget-body{opacity:.55}
+@keyframes wpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
 
 /* ── Resize Handles ── */
 .widget-card .resize-right{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:ew-resize;opacity:0;transition:opacity .2s;z-index:2}
@@ -144,13 +150,14 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
 .widget-card .resize-corner:hover::after{border-color:var(--accent)}
 .widget-card.resizing{z-index:10;box-shadow:0 0 0 2px var(--accent),var(--shadow-glow);transition:none}
 
-/* ── Edit Mode ── */
-.widget-grid.edit-mode .widget-card{cursor:move;border-style:dashed}
-.widget-grid.edit-mode .widget-card:hover{border-color:var(--accent)}
+/* ── Snap guide lines ── */
+.snap-guide-x,.snap-guide-y{position:absolute;background:var(--accent);opacity:0.3;z-index:100;pointer-events:none}
+.snap-guide-x{width:1px;top:0;bottom:0}
+.snap-guide-y{height:1px;left:0;right:0}
 
-/* ── Add Widget Card ── */
-.add-widget-card{background:transparent;border:2px dashed var(--border-glow);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;color:var(--text-muted);font-size:13px;font-weight:600;gap:6px;min-height:var(--grid-row-h)}
-.add-widget-card:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+/* ── Add Widget Button (floating) ── */
+.add-widget-btn{position:absolute;bottom:12px;right:12px;width:36px;height:36px;border-radius:10px;background:var(--bg-card);border:1px dashed var(--border-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;color:var(--text-muted);font-size:16px;opacity:.45;z-index:10}
+.add-widget-btn:hover{border-color:var(--accent);color:var(--accent);opacity:1;box-shadow:var(--shadow)}
 
 /* ── Empty state ── */
 .empty-state{text-align:center;padding:80px 20px;color:var(--text-muted)}
@@ -270,7 +277,9 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
     <div class="board-chips" id="boardChips"></div>
     <div class="toolbar-right">
       <span class="refresh-indicator" id="refreshIndicator"></span>
-      <button class="btn btn-ghost btn-sm" onclick="refreshBoard()" title="Refresh all widgets">&#x21BB; Refresh</button>
+      <button class="btn btn-ghost btn-sm" id="snapToggle" onclick="toggleSnap()" title="Toggle snap-to-grid" style="opacity:.5">&#x229E; Snap</button>
+      <button class="btn btn-ghost btn-sm" onclick="refreshBoard()" title="Refresh all outputs from disk (no trigger)">&#x21BB; Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="rerunBoard()" title="Rerun all widgets (triggers agents, uses tokens)">&#x25B6; Rerun All</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditPanel()" title="Edit board">&#x2699; Edit</button>
       <button class="btn-new btn-sm" onclick="openCreateModal()">+ New Board</button>
     </div>
@@ -304,6 +313,8 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
     </div>
     <div class="expand-body" id="expandBody"></div>
     <div style="display:flex;gap:8px;padding:12px 20px;border-top:1px solid var(--border-dim)">
+      <button class="btn btn-ghost" id="expandRefreshBtn" style="font-size:11px" title="Refresh output from disk">&#x21BB; Refresh</button>
+      <button class="btn btn-ghost" id="expandRerunBtn" style="font-size:11px" title="Rerun agent (uses tokens)">&#x25B6; Rerun</button>
       <button class="btn btn-ghost" id="expandEditBtn" style="font-size:11px">&#x2699; Edit Agent</button>
       <button class="btn btn-ghost" id="expandRemoveBtn" style="font-size:11px;color:var(--danger,#f87171)">&#x2715; Remove from Board</button>
     </div>
@@ -327,7 +338,7 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
         <input class="form-input" id="createDesc" placeholder="My daily overview dashboard">
       </div>
       <div class="form-group">
-        <label class="form-label">Auto-Refresh Schedule</label>
+        <label class="form-label">Auto-Rerun Schedule</label>
         <select class="form-select" id="createRefresh">
           <option value="">Manual only</option>
           <option value="*/30 * * * *">Every 30 minutes</option>
@@ -383,13 +394,12 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
           <div id="scopePicker" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto"></div>
         </div>
         <div class="form-group">
-          <label class="form-label">Widget Size (each)</label>
+          <label class="form-label">Widget Size</label>
           <select class="form-select" id="addWidgetSize">
-            <option value="9">Small</option>
-            <option value="12">Medium</option>
-            <option value="18" selected>Large</option>
-            <option value="24">Wide</option>
-            <option value="36">Full width</option>
+            <option value="240">Small</option>
+            <option value="340" selected>Medium</option>
+            <option value="500">Large</option>
+            <option value="700">Wide</option>
           </select>
         </div>
       </div>
@@ -414,29 +424,35 @@ html,body{width:100%;height:100%;overflow:hidden;max-width:100vw;background:var(
         <input class="form-input" id="wsTitle" placeholder="Leave blank for agent name">
       </div>
       <div class="form-group">
-        <label class="form-label">Width</label>
-        <select class="form-select" id="wsWidth">
-          <option value="6">Tiny</option>
-          <option value="9">Small</option>
-          <option value="12">Medium</option>
-          <option value="18">Large</option>
-          <option value="24">Wide</option>
-          <option value="36">Full width</option>
-        </select>
+        <label class="form-label">Width (px)</label>
+        <input class="form-input" id="wsWidth" type="number" min="160" step="20" placeholder="340">
       </div>
       <div class="form-group">
-        <label class="form-label">Height</label>
-        <select class="form-select" id="wsHeight">
-          <option value="1">Short (1 row)</option>
-          <option value="2">Medium (2 rows)</option>
-          <option value="3">Tall (3 rows)</option>
-          <option value="4">Extra tall (4 rows)</option>
-        </select>
+        <label class="form-label">Height (px)</label>
+        <input class="form-input" id="wsHeight" type="number" min="100" step="20" placeholder="220">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="saveWidgetSettings()">Save</button>
       <button class="btn btn-ghost" onclick="closeWidgetSettings()" style="margin-left:auto">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rerun Confirmation Modal -->
+<div class="modal-overlay" id="rerunConfirmOverlay" onclick="if(event.target===this)closeRerunConfirm()">
+  <div class="modal-panel" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">Confirm Rerun</span>
+      <button class="modal-close" onclick="closeRerunConfirm()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="rerunConfirmMsg" style="font-size:13px;color:var(--text-secondary);line-height:1.6"></p>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:8px">Each rerun triggers agent execution and consumes tokens.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="rerunConfirmBtn">Rerun</button>
+      <button class="btn btn-ghost" onclick="closeRerunConfirm()" style="margin-left:auto">Cancel</button>
     </div>
   </div>
 </div>
@@ -457,6 +473,13 @@ let editingWidgetIdx = null; // for widget settings modal
 function migrateW(w){ if(!w) return 18; if(w<=4) return w*9; if(w<=12) return w*3; return w; }
 
 /* ── Theme ── */
+function toggleSnap(){
+  snapEnabled=!snapEnabled;
+  const btn=document.getElementById('snapToggle');
+  btn.style.opacity=snapEnabled?'1':'.5';
+  btn.style.color=snapEnabled?'var(--accent)':'';
+}
+
 function toggleTheme(){
   const html=document.documentElement;
   const cur=html.getAttribute('data-theme');
@@ -561,66 +584,228 @@ async function switchBoard(boardId){
 }
 
 /* ── Render widgets ── */
+/* default sizes in px for new widgets */
+const DEFAULT_W=340, DEFAULT_H=220, GRID_SNAP=20;
+let snapEnabled=false;
+
+function assignDefaultPositions(widgets){
+  /* lay out widgets that have no px/py in a wrapping row */
+  const grid=document.getElementById('widgetGrid');
+  const containerW=grid?grid.offsetWidth:900;
+  const gap=16;
+  let cx=0, cy=0, rowH=0;
+  /* migrate old grid-span sizes → pixel sizes */
+  const colPx=containerW/36; /* approx pixel per old grid column */
+  widgets.forEach(w=>{
+    if(!w.pw && w.w){ w.pw=Math.round(migrateW(w.w)*colPx); }
+    if(!w.ph && w.h){ w.ph=Math.max(DEFAULT_H, w.h*140); }
+  });
+  widgets.forEach(w=>{
+    if(w.px!=null && w.py!=null) return; /* already positioned */
+    const ww=w.pw||DEFAULT_W, hh=w.ph||DEFAULT_H;
+    if(cx+ww>containerW){ cx=0; cy+=rowH+gap; rowH=0; }
+    w.px=cx; w.py=cy;
+    if(!w.pw) w.pw=ww;
+    if(!w.ph) w.ph=hh;
+    cx+=ww+gap;
+    rowH=Math.max(rowH,hh);
+  });
+}
+
 function renderWidgets(){
   const grid=document.getElementById('widgetGrid');
   if(!currentBoard||!currentBoard.widgets||currentBoard.widgets.length===0){
-    grid.innerHTML=`<div class="add-widget-card" onclick="openAddWidget()" style="grid-column:span 18">+ Add Agent</div>`;
+    grid.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:200px">
+      <div class="add-widget-btn" onclick="openAddWidget()" style="position:static;width:auto;height:auto;padding:12px 20px;gap:8px;opacity:.6"><span class="add-icon" style="width:20px;height:20px;border-radius:6px;border:1px solid var(--border-dim);display:flex;align-items:center;justify-content:center;font-size:12px">+</span>Add Agent</div></div>`;
+    grid.style.minHeight='200px';
     return;
   }
+
+  assignDefaultPositions(currentBoard.widgets);
+
+  /* compute container height from widget positions */
+  let maxBottom=400;
+  currentBoard.widgets.forEach(w=>{
+    const bot=(w.py||0)+(w.ph||DEFAULT_H)+40;
+    if(bot>maxBottom) maxBottom=bot;
+  });
+  grid.style.minHeight=maxBottom+'px';
 
   grid.innerHTML=currentBoard.widgets.map((w,i)=>{
     let name=w.title||w.agentName||w.agentId;
     if(w.scope==='goal'&&w.goalId) name+=' — '+w.goalId;
     if(w.scope==='cron'&&w.cronIndex!==undefined) name+=' — Schedule #'+(w.cronIndex+1);
     const ts=w.lastOutput?.ts ? timeAgo(w.lastOutput.ts) : '';
-    const colSpan=migrateW(w.w);
     const body=w.lastOutput?.response || '';
-    return `<div class="widget-card" style="grid-column:span ${colSpan};grid-row:span ${w.h||1}" data-idx="${i}" onclick="expandWidget(${i})">
+    const px=w.px||0, py=w.py||0, pw=w.pw||DEFAULT_W, ph=w.ph||DEFAULT_H;
+    const wKey=widgetKey(w);
+    const isRunning=runningWidgets.has(wKey);
+    return `<div class="widget-card${isRunning?' running':''}" style="left:${px}px;top:${py}px;width:${pw}px;height:${ph}px" data-idx="${i}" data-wkey="${esc(wKey)}" onmousedown="widgetMouseDown(event,${i})" onclick="expandWidget(${i})">
       <div class="widget-card-header">
         ${avatarHtml(w.avatar)}
         <span class="widget-title">${esc(name)}</span>
+        <span class="widget-running-badge">RUNNING</span>
         <span class="widget-ts">${ts}</span>
         <button class="widget-settings-btn" onclick="event.stopPropagation();openWidgetSettings(${i})" title="Widget settings">&#x2699;</button>
-        <button class="widget-refresh-btn" onclick="event.stopPropagation();refreshSingleWidget('${w.agentId}')" title="Refresh this widget">&#x21BB;</button>
+        <button class="widget-refresh-btn" onclick="event.stopPropagation();refreshWidget(${i})" title="Refresh output (re-read from disk)">&#x21BB;</button>
+        <button class="widget-rerun-btn" onclick="event.stopPropagation();rerunWidget(${i})" title="Rerun this widget (triggers agent, uses tokens)"${isRunning?' disabled':''}>&#x25B6;</button>
       </div>
       <div class="widget-body">${body ? esc(body) : '<span class="widget-empty">No output yet. Run the agent or trigger a goal.</span>'}</div>
       <div class="resize-right" onmousedown="event.stopPropagation();startResize(event,${i},'right')"></div>
       <div class="resize-bottom" onmousedown="event.stopPropagation();startResize(event,${i},'bottom')"></div>
       <div class="resize-corner" onmousedown="event.stopPropagation();startResize(event,${i},'corner')"></div>
     </div>`;
-  }).join('') + `<div class="add-widget-card" onclick="openAddWidget()">+ Add Agent</div>`;
+  }).join('') + `<div class="add-widget-btn" onclick="openAddWidget()">+</div>`;
 }
 
 function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
 
-/* ── Refresh ── */
+/* ── Rerun confirmation modal ── */
+function confirmRerun(msg,onConfirm){
+  document.getElementById('rerunConfirmMsg').textContent=msg;
+  const btn=document.getElementById('rerunConfirmBtn');
+  btn.onclick=()=>{ closeRerunConfirm(); onConfirm(); };
+  document.getElementById('rerunConfirmOverlay').classList.add('open');
+}
+function closeRerunConfirm(){ document.getElementById('rerunConfirmOverlay').classList.remove('open'); }
+
+/* ── Widget run-state tracking ── */
+const runningWidgets=new Set(); /* keys of widgets currently being rerun */
+function widgetKey(w){
+  if(!w) return '';
+  if(w.scope==='goal') return `${w.agentId}::goal::${w.goalId||''}`;
+  if(w.scope==='cron') return `${w.agentId}::cron::${w.cronIndex??''}`;
+  return `${w.agentId}::all`;
+}
+
+/* ── Refresh (no trigger) — just re-read latest output from disk ── */
+async function refreshWidget(idx){
+  const w=currentBoard?.widgets?.[idx];
+  if(!w) return;
+  try{
+    currentBoard = await api(`/api/boards/${currentBoard.id}/refresh`,{method:'POST'});
+    renderWidgets();
+    updateRefreshIndicator();
+    showToast('Refreshed');
+  }catch(e){ showToast('Refresh failed: '+e.message,'error'); }
+}
+
+/* ── Rerun — triggers actual cron/goal execution + polls until output changes ── */
+function rerunWidget(idx){
+  const w=currentBoard.widgets[idx];
+  if(!w) return;
+  if(runningWidgets.has(widgetKey(w))){ showToast('Already running','error'); return; }
+  const name=w.title||w.agentName||w.agentId;
+  confirmRerun(`Rerun "${name}"? This will trigger agent execution.`,()=>doRerunWidget(idx));
+}
+
+async function doRerunWidget(idx){
+  const w=currentBoard.widgets[idx];
+  if(!w) return;
+  const agentId=w.agentId;
+  const key=widgetKey(w);
+  const startTs=w.lastOutput?.ts||'';
+  try{
+    if(w.scope==='goal' && w.goalId){
+      await api(`/api/agents/${agentId}/goals/${w.goalId}/trigger`,{method:'POST'});
+      showToast('Goal triggered: '+w.goalId);
+    }
+    else if(w.scope==='cron' && w.cronIndex!==undefined){
+      await api(`/api/agents/${agentId}/cron/${w.cronIndex}/trigger`,{method:'POST'});
+      showToast('Schedule triggered: #'+(w.cronIndex+1));
+    }
+    else {
+      let triggered=false;
+      try{
+        const agent=await api(`/api/agents/${agentId}`,{},true);
+        if(agent.goals && agent.goals.length>0){
+          await api(`/api/agents/${agentId}/goals/${agent.goals[0].id}/trigger`,{method:'POST'});
+          showToast('Goal triggered for '+agentId);
+          triggered=true;
+        } else if(agent.cron && agent.cron.length>0){
+          await api(`/api/agents/${agentId}/cron/0/trigger`,{method:'POST'});
+          showToast('Schedule triggered for '+agentId);
+          triggered=true;
+        }
+      }catch(e){}
+      if(!triggered){
+        showToast('No goal or schedule to rerun','error');
+        return;
+      }
+    }
+    /* Mark running — renders pulse badge + disables rerun btn */
+    runningWidgets.add(key);
+    renderWidgets();
+    pollWidgetUntilUpdated(key,startTs);
+  }catch(e){
+    runningWidgets.delete(key);
+    renderWidgets();
+    showToast('Rerun failed: '+e.message,'error');
+  }
+}
+
+/* Poll the board refresh endpoint every 5s up to 3min. Clear running state when ts changes. */
+async function pollWidgetUntilUpdated(key,startTs){
+  const maxAttempts=36; /* 36 × 5s = 3 min */
+  for(let attempt=0;attempt<maxAttempts;attempt++){
+    await new Promise(r=>setTimeout(r,5000));
+    if(!runningWidgets.has(key)) return; /* cancelled or completed elsewhere */
+    try{
+      const fresh = await api(`/api/boards/${currentBoard.id}/refresh`,{method:'POST'});
+      const w=fresh.widgets?.find(x=>widgetKey(x)===key);
+      const newTs=w?.lastOutput?.ts||'';
+      currentBoard=fresh;
+      renderWidgets();
+      updateRefreshIndicator();
+      if(newTs && newTs!==startTs){
+        runningWidgets.delete(key);
+        renderWidgets();
+        showToast('Widget updated');
+        return;
+      }
+    }catch(e){ /* keep polling */ }
+  }
+  /* Timed out — drop running flag, let user refresh manually */
+  runningWidgets.delete(key);
+  renderWidgets();
+  showToast('Still running — use refresh (↻) to check','error');
+}
+
+function rerunBoard(){
+  if(!currentBoard || !currentBoard.widgets || currentBoard.widgets.length===0) return;
+  const count=currentBoard.widgets.length;
+  confirmRerun(`Rerun all ${count} widget${count>1?'s':''}? This will trigger ${count} agent execution${count>1?'s':''} and consume tokens for each.`,async()=>{
+    for(let i=0;i<currentBoard.widgets.length;i++){
+      await doRerunWidget(i);
+    }
+  });
+}
+
+/* Refresh all — no trigger, just re-read outputs */
 async function refreshBoard(){
   if(!currentBoard) return;
   try{
     currentBoard = await api(`/api/boards/${currentBoard.id}/refresh`,{method:'POST'});
     renderWidgets();
     updateRefreshIndicator();
-    showToast('Board refreshed');
-  }catch(e){}
-}
-
-async function refreshSingleWidget(agentId){
-  // Just refresh the whole board and re-render
-  await refreshBoard();
+    showToast('Refreshed');
+  }catch(e){ showToast('Refresh failed: '+e.message,'error'); }
 }
 
 function updateRefreshIndicator(){
   const el=document.getElementById('refreshIndicator');
   if(!currentBoard) { el.textContent=''; return; }
   if(currentBoard.lastRefreshedAt){
-    el.textContent='Last refreshed '+timeAgo(currentBoard.lastRefreshedAt);
+    el.textContent='Last run '+timeAgo(currentBoard.lastRefreshedAt);
   } else {
     el.textContent='';
   }
 }
 
 /* ── Expand widget ── */
+let _suppressClick=false;
 function expandWidget(idx){
+  if(dragging && dragging.moved) return; /* suppress expand after drag */
   const w=currentBoard.widgets[idx];
   if(!w) return;
   let name=w.title||w.agentName||w.agentId;
@@ -630,6 +815,8 @@ function expandWidget(idx){
   document.getElementById('expandTitle').textContent=name;
   document.getElementById('expandTs').textContent=w.lastOutput?.ts ? new Date(w.lastOutput.ts).toLocaleString() : '';
   document.getElementById('expandBody').textContent=w.lastOutput?.response || 'No output yet.';
+  document.getElementById('expandRefreshBtn').onclick=async()=>{ await refreshWidget(idx); /* re-open with fresh data */ const w2=currentBoard.widgets[idx]; if(w2) document.getElementById('expandBody').textContent=w2.lastOutput?.response||'No output yet.'; const ts2=w2?.lastOutput?.ts; if(ts2) document.getElementById('expandTs').textContent=new Date(ts2).toLocaleString(); };
+  document.getElementById('expandRerunBtn').onclick=()=>{ closeExpand(); rerunWidget(idx); };
   document.getElementById('expandEditBtn').onclick=()=>{ window.location.href='/org?edit='+w.agentId; };
   document.getElementById('expandRemoveBtn').onclick=async()=>{
     if(!confirm('Remove this widget from the board?')) return;
@@ -645,51 +832,90 @@ function expandWidget(idx){
 }
 function closeExpand(){ document.getElementById('expandOverlay').classList.remove('open'); }
 
-/* ── Resize ── */
+/* ── Free-form drag ── */
+let dragging=null;
+function widgetMouseDown(e,idx){
+  /* ignore clicks on buttons, resize handles */
+  if(e.target.closest('button')||e.target.closest('.resize-right,.resize-bottom,.resize-corner')) return;
+  const card=e.target.closest('.widget-card');
+  if(!card) return;
+  const w=currentBoard.widgets[idx];
+  dragging={el:card,idx,startX:e.clientX,startY:e.clientY,origPx:w.px||0,origPy:w.py||0,moved:false};
+  card.classList.add('dragging');
+  e.preventDefault();
+  document.addEventListener('mousemove',widgetMouseMove);
+  document.addEventListener('mouseup',widgetMouseUp);
+}
+function widgetMouseMove(e){
+  if(!dragging) return;
+  const dx=e.clientX-dragging.startX, dy=e.clientY-dragging.startY;
+  if(Math.abs(dx)>3||Math.abs(dy)>3) dragging.moved=true;
+  let nx=dragging.origPx+dx, ny=dragging.origPy+dy;
+  if(nx<0) nx=0; if(ny<0) ny=0;
+  if(snapEnabled){ nx=Math.round(nx/GRID_SNAP)*GRID_SNAP; ny=Math.round(ny/GRID_SNAP)*GRID_SNAP; }
+  dragging.el.style.left=nx+'px';
+  dragging.el.style.top=ny+'px';
+  dragging.newPx=nx; dragging.newPy=ny;
+}
+async function widgetMouseUp(e){
+  if(!dragging) return;
+  dragging.el.classList.remove('dragging');
+  document.removeEventListener('mousemove',widgetMouseMove);
+  document.removeEventListener('mouseup',widgetMouseUp);
+  if(dragging.moved){
+    const w=currentBoard.widgets[dragging.idx];
+    w.px=dragging.newPx??w.px; w.py=dragging.newPy??w.py;
+    /* update container height */
+    const grid=document.getElementById('widgetGrid');
+    let maxBot=400;
+    currentBoard.widgets.forEach(ww=>{ const b=(ww.py||0)+(ww.ph||DEFAULT_H)+40; if(b>maxBot) maxBot=b; });
+    grid.style.minHeight=maxBot+'px';
+    try{ await api(`/api/boards/${currentBoard.id}/widgets`,{method:'PUT',body:JSON.stringify({widgets:currentBoard.widgets})}); }catch(e){}
+  }
+  const wasMoved=dragging.moved;
+  dragging=null;
+  /* if we moved, suppress the click/expand */
+  if(wasMoved) e.stopPropagation();
+}
+
+/* ── Resize (free-form pixel-based) ── */
 function startResize(e,idx,axis){
   e.preventDefault();
+  e.stopPropagation();
   const card=e.target.closest('.widget-card');
   const w=currentBoard.widgets[idx];
-  const gridEl=document.getElementById('widgetGrid');
-  const gap=parseInt(getComputedStyle(gridEl).gap)||16;
-  const cols=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cols'))||4;
-  const colW=(gridEl.offsetWidth-(cols-1)*gap)/cols;
-  const rowH=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-row-h'))||140;
   card.classList.add('resizing');
-  resizing={el:card,idx,axis,startX:e.clientX,startY:e.clientY,startW:migrateW(w.w),startH:w.h||1,colW,rowH,gap};
+  resizing={el:card,idx,axis,startX:e.clientX,startY:e.clientY,startW:w.pw||DEFAULT_W,startH:w.ph||DEFAULT_H};
   document.addEventListener('mousemove',doResize);
   document.addEventListener('mouseup',stopResize);
 }
 function doResize(e){
   if(!resizing) return;
-  const {axis,startX,startY,startW,startH,colW,rowH,gap,el}=resizing;
-  const dx=e.clientX-startX;
-  const dy=e.clientY-startY;
+  const {axis,startX,startY,startW,startH,el}=resizing;
+  const dx=e.clientX-startX, dy=e.clientY-startY;
   if(axis==='right'||axis==='corner'){
-    const cols=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cols'))||12;
-    const newW=Math.max(1,Math.min(cols,Math.round(startW+dx/(colW+gap))));
-    el.style.gridColumn='span '+newW;
-    resizing.newW=newW;
+    let nw=Math.max(160,startW+dx);
+    if(snapEnabled) nw=Math.round(nw/GRID_SNAP)*GRID_SNAP;
+    el.style.width=nw+'px';
+    resizing.newW=nw;
   }
   if(axis==='bottom'||axis==='corner'){
-    const newH=Math.max(1,Math.round(startH+dy/(rowH+gap)));
-    el.style.gridRow='span '+newH;
-    resizing.newH=newH;
+    let nh=Math.max(100,startH+dy);
+    if(snapEnabled) nh=Math.round(nh/GRID_SNAP)*GRID_SNAP;
+    el.style.height=nh+'px';
+    resizing.newH=nh;
   }
 }
 async function stopResize(){
   if(!resizing) return;
   resizing.el.classList.remove('resizing');
   const w=currentBoard.widgets[resizing.idx];
-  if(resizing.newW) w.w=resizing.newW;
-  if(resizing.newH) w.h=resizing.newH;
+  if(resizing.newW) w.pw=resizing.newW;
+  if(resizing.newH) w.ph=resizing.newH;
   document.removeEventListener('mousemove',doResize);
   document.removeEventListener('mouseup',stopResize);
   resizing=null;
-  // Persist
-  try{
-    await api(`/api/boards/${currentBoard.id}/widgets`,{method:'PUT',body:JSON.stringify({widgets:currentBoard.widgets})});
-  }catch(e){}
+  try{ await api(`/api/boards/${currentBoard.id}/widgets`,{method:'PUT',body:JSON.stringify({widgets:currentBoard.widgets})}); }catch(e){}
 }
 
 /* ── Create board ── */
@@ -738,7 +964,7 @@ function openEditPanel(){
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Auto-Refresh Schedule</label>
+      <label class="form-label">Auto-Rerun Schedule</label>
       <select class="form-select" id="editRefresh">
         <option value=""${!currentBoard.refreshSchedule?' selected':''}>Manual only</option>
         <option value="*/30 * * * *"${currentBoard.refreshSchedule==='*/30 * * * *'?' selected':''}>Every 30 minutes</option>
@@ -775,7 +1001,7 @@ function renderEditWidgetList(){
     return `<div class="widget-list-item">
       ${avatarHtml(w.avatar,22)}
       <span class="widget-list-name">${label}</span>
-      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">${migrateW(w.w)}x${w.h||1}</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">${w.pw||DEFAULT_W}x${w.ph||DEFAULT_H}px</span>
       <button class="widget-list-remove" onclick="removeWidgetByIndex(${i})" title="Remove">&times;</button>
     </div>`;
   }).join('');
@@ -848,8 +1074,8 @@ function selectAgent(agentId,el){
   el.classList.add('selected');
   const agent=boardEnabledAgents.find(a=>a.agentId===agentId);
   if(agent?.boardLayout){
-    const sizeMap={small:'9',medium:'18',large:'24'};
-    document.getElementById('addWidgetSize').value=sizeMap[agent.boardLayout]||'18';
+    const sizeMap={small:'240',medium:'340',large:'500'};
+    document.getElementById('addWidgetSize').value=sizeMap[agent.boardLayout]||'340';
   }
   buildScopePicker(agent);
 }
@@ -911,14 +1137,14 @@ function updateAddBtn(){
 
 async function addWidget(){
   if(!selectedAgentId||!currentBoard) return;
-  const w=parseInt(document.getElementById('addWidgetSize').value)||18;
+  const pw=parseInt(document.getElementById('addWidgetSize').value)||DEFAULT_W;
   const checked=[...document.querySelectorAll('#scopePicker input[type="checkbox"]:checked')];
   if(!checked.length) return;
 
   try{
     for(const cb of checked){
       const scope=cb.dataset.scope;
-      const body={agentId:selectedAgentId,w,h:1,scope};
+      const body={agentId:selectedAgentId,pw,ph:DEFAULT_H,scope};
       if(scope==='goal') body.goalId=cb.dataset.goalId;
       if(scope==='cron') body.cronIndex=parseInt(cb.dataset.cronIndex);
       currentBoard=await api(`/api/boards/${currentBoard.id}/widgets`,{method:'POST',body:JSON.stringify(body)});
@@ -959,8 +1185,8 @@ function openWidgetSettings(idx){
   if(!w) return;
   document.getElementById('widgetSettingsTitle').textContent='Widget: '+(w.title||w.agentName||w.agentId);
   document.getElementById('wsTitle').value=w.title||'';
-  document.getElementById('wsWidth').value=String(migrateW(w.w));
-  document.getElementById('wsHeight').value=String(w.h||1);
+  document.getElementById('wsWidth').value=String(w.pw||DEFAULT_W);
+  document.getElementById('wsHeight').value=String(w.ph||DEFAULT_H);
   document.getElementById('widgetSettingsOverlay').classList.add('open');
 }
 function closeWidgetSettings(){ document.getElementById('widgetSettingsOverlay').classList.remove('open'); editingWidgetIdx=null; }
@@ -970,8 +1196,8 @@ async function saveWidgetSettings(){
   const w=currentBoard.widgets[editingWidgetIdx];
   const title=document.getElementById('wsTitle').value.trim();
   w.title=title||undefined;
-  w.w=parseInt(document.getElementById('wsWidth').value)||6;
-  w.h=parseInt(document.getElementById('wsHeight').value)||1;
+  w.pw=parseInt(document.getElementById('wsWidth').value)||DEFAULT_W;
+  w.ph=parseInt(document.getElementById('wsHeight').value)||DEFAULT_H;
   closeWidgetSettings();
   renderWidgets();
   try{
