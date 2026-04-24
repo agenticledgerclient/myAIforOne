@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
 import { configureLogger, log } from "./logger.js";
 import { resolveRoute, isPairingAttempt, pairSender } from "./router.js";
-import { executeAgent, executeAgentStreaming, setAppConfig } from "./executor.js";
+import { executeAgent, executeAgentStreaming, setAppConfig, initEncryptionSecret } from "./executor.js";
+import { getEncryptionSecret } from "./os-keychain.js";
+import { migrateAllPlaintextKeys } from "./keystore.js";
 import { SlackDriver } from "./channels/slack.js";
 import { WhatsAppDriver } from "./channels/whatsapp.js";
 import { TelegramDriver } from "./channels/telegram.js";
@@ -256,6 +258,20 @@ async function main(): Promise<void> {
   setAppConfig(config);
 
   configureLogger(config.service.logLevel, config.service.logFile);
+
+  // Initialize encryption — resolves keychain secret before any MCP keys are loaded
+  initEncryptionSecret();
+
+  // Auto-migrate plaintext keys to encrypted on first run
+  try {
+    const secret = getEncryptionSecret();
+    const migrated = migrateAllPlaintextKeys(dataDir, secret);
+    if (migrated > 0) {
+      console.log(`[Keystore] Auto-encrypted ${migrated} plaintext key files`);
+    }
+  } catch (err) {
+    console.warn("[Keystore] Auto-migration skipped:", err);
+  }
 
   log.info("channelToAgentToClaude starting...");
 

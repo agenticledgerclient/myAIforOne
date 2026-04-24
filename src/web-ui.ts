@@ -8,7 +8,9 @@ import type { AppConfig } from "./config.js";
 import { getPersonalAgentsDir, getPersonalRegistryDir, getSharedAgentsDir, isServerMode } from "./config.js";
 import type { InboundMessage } from "./channels/types.js";
 import type { ResolvedRoute } from "./router.js";
-import { executeAgent, executeAgentStreaming, handleRelogin } from "./executor.js";
+import { executeAgent, executeAgentStreaming, handleRelogin, initEncryptionSecret } from "./executor.js";
+import { getEncryptionMode, hasMasterPassword, getEncryptionSecret, setMasterPassword as kcSetMasterPassword, clearMasterPassword as kcClearMasterPassword, getOrCreateMachineKey } from "./os-keychain.js";
+import { countKeyFiles, encryptDir, reEncryptDir, createExportBundle, importExportBundle, encryptAuto, decryptAuto } from "./keystore.js";
 import { executeGoal } from "./goals.js";
 import { executeHeartbeat, loadHeartbeatHistory } from "./heartbeat.js";
 import { executeWikiSync, getWikiSyncHistory } from "./wiki-sync.js";
@@ -381,10 +383,14 @@ export function startWebUI(opts: WebUIOptions): void {
   // The TEAM_<ID>_KEY var is kept as an alias so operators can cross-reference the
   // gateway by id in logs/grep without exposing MYAGENT_API_TOKEN directly.
   function writeGatewayKeyFile(id: string, apiKey: string, url: string): void {
-    const baseDir = opts.baseDir;
-    const keysDir = join(baseDir, "data", "mcp-keys");
+    // Write to PersonalAgents/mcp-keys/ (primary) — keys belong in the Drive, not the repo
+    const paDir = getPersonalAgentsDir(opts.config);
+    const resolvedPaDir = paDir.startsWith("~") ? paDir.replace("~", homedir()) : paDir;
+    const keysDir = join(resolvedPaDir, "mcp-keys");
     mkdirSync(keysDir, { recursive: true });
-    const envPath = join(keysDir, `${gatewayMcpName(id)}.env`);
+    const mcpName = gatewayMcpName(id);
+    const envPath = join(keysDir, `${mcpName}.env`);
+    const encPath = envPath + ".enc";
     const envVarName = gatewayEnvVarName(id);
     const trimmedUrl = (url || "").replace(/\/$/, "");
     const contents = [
@@ -394,15 +400,30 @@ export function startWebUI(opts: WebUIOptions): void {
       `${envVarName}=${apiKey}`,
       "",
     ].join("\n");
-    writeFileSync(envPath, contents);
+
+    // Encrypt on write
+    try {
+      const secret = getEncryptionSecret();
+      const encrypted = encryptAuto(contents, secret);
+      writeFileSync(encPath, encrypted);
+      writeFileSync(envPath, `# Encrypted — see ${mcpName}.env.enc\n`);
+    } catch {
+      writeFileSync(envPath, contents);
+    }
   }
 
   // Remove the gateway's key file on disconnect.
   function removeGatewayKeyFile(id: string): void {
-    const baseDir = opts.baseDir;
-    const envPath = join(baseDir, "data", "mcp-keys", `${gatewayMcpName(id)}.env`);
+    const paDir = getPersonalAgentsDir(opts.config);
+    const resolvedPaDir = paDir.startsWith("~") ? paDir.replace("~", homedir()) : paDir;
+    const envPath = join(resolvedPaDir, "mcp-keys", `${gatewayMcpName(id)}.env`);
     if (existsSync(envPath)) {
       try { unlinkSync(envPath); } catch { /* ignore */ }
+    }
+    // Also clean up legacy location
+    const legacyPath = join(opts.baseDir, "data", "mcp-keys", `${gatewayMcpName(id)}.env`);
+    if (existsSync(legacyPath)) {
+      try { unlinkSync(legacyPath); } catch { /* ignore */ }
     }
   }
 
@@ -545,14 +566,8 @@ export function startWebUI(opts: WebUIOptions): void {
     const gw = gws.find(g => g.id === id);
     if (!gw) return res.status(404).json({ error: "Gateway not found" });
 
-    // Read the key back from the .env file to test
-    const envPath = join(opts.baseDir, "data", "mcp-keys", `${gatewayMcpName(id)}.env`);
-    let key = "";
-    if (existsSync(envPath)) {
-      const content = readFileSync(envPath, "utf-8");
-      const m = content.match(new RegExp(`^${gatewayEnvVarName(id)}=(.+)$`, "m"));
-      if (m) key = m[1].trim();
-    }
+    // Read the key back to test the connection
+    const key = readGatewayKey(id);
     if (!key) {
       gw.lastStatus = "error";
       gw.lastStatusMessage = "API key file missing";
@@ -569,21 +584,43 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   // Helper: read the API key back from the mcp-keys .env file for a gateway id.
-  // Returns "" if the file is missing or unreadable.
+  // Checks Drive first, then legacy data/mcp-keys/. Decrypts .enc files if needed.
   function readGatewayKey(id: string): string {
-    const envPath = join(opts.baseDir, "data", "mcp-keys", `${gatewayMcpName(id)}.env`);
-    if (!existsSync(envPath)) return "";
-    try {
-      const content = readFileSync(envPath, "utf-8");
-      // Prefer MYAGENT_API_TOKEN (what the stdio MCP actually uses at spawn time)
-      const m = content.match(/^MYAGENT_API_TOKEN=(.+)$/m);
-      if (m) return m[1].trim();
-      // Fall back to the aliased TEAM_<ID>_KEY for older key files
-      const alias = content.match(new RegExp(`^${gatewayEnvVarName(id)}=(.+)$`, "m"));
-      return alias ? alias[1].trim() : "";
-    } catch {
-      return "";
+    const _pa = getPersonalAgentsDir(opts.config);
+    const _resolvedPa = _pa.startsWith("~") ? _pa.replace("~", homedir()) : _pa;
+    const mcpName = gatewayMcpName(id);
+    const dirs = [
+      join(_resolvedPa, "mcp-keys"),
+      join(opts.baseDir, "data", "mcp-keys"),
+    ];
+    for (const dir of dirs) {
+      // Try encrypted file first
+      const encPath = join(dir, `${mcpName}.env.enc`);
+      if (existsSync(encPath)) {
+        try {
+          const secret = getEncryptionSecret();
+          const data = readFileSync(encPath);
+          const content = decryptAuto(data, secret);
+          const m = content.match(/^MYAGENT_API_TOKEN=(.+)$/m);
+          if (m) return m[1].trim();
+          const alias = content.match(new RegExp(`^${gatewayEnvVarName(id)}=(.+)$`, "m"));
+          if (alias) return alias[1].trim();
+        } catch { /* try next */ }
+      }
+      // Try plaintext
+      const envPath = join(dir, `${mcpName}.env`);
+      if (existsSync(envPath)) {
+        try {
+          const content = readFileSync(envPath, "utf-8");
+          if (content.includes("# Encrypted")) continue;
+          const m = content.match(/^MYAGENT_API_TOKEN=(.+)$/m);
+          if (m) return m[1].trim();
+          const alias = content.match(new RegExp(`^${gatewayEnvVarName(id)}=(.+)$`, "m"));
+          if (alias) return alias[1].trim();
+        } catch { continue; }
+      }
     }
+    return "";
   }
 
   // Helper: list local agent ids whose `mcps` array includes a given MCP name.
@@ -4051,18 +4088,42 @@ export function startWebUI(opts: WebUIOptions): void {
     mkdirSync(keysDir, { recursive: true });
 
     const envFile = join(keysDir, `${mcpName}.env`);
-    // Read existing content and update or append the key
+    const encFile = envFile + ".enc";
+
+    // Read existing content — decrypt if encrypted, skip stubs
     let lines: string[] = [];
-    if (existsSync(envFile)) {
-      lines = readFileSync(envFile, "utf-8").split("\n");
+    if (existsSync(encFile)) {
+      try {
+        const secret = getEncryptionSecret();
+        const data = readFileSync(encFile);
+        const content = decryptAuto(data, secret);
+        lines = content.split("\n");
+      } catch { /* start fresh */ }
+    } else if (existsSync(envFile)) {
+      const content = readFileSync(envFile, "utf-8");
+      if (!content.includes("# Encrypted")) {
+        lines = content.split("\n");
+      }
     }
+
     const idx = lines.findIndex(l => l.startsWith(`${envVar}=`));
     if (idx >= 0) {
       lines[idx] = `${envVar}=${value}`;
     } else {
       lines.push(`${envVar}=${value}`);
     }
-    writeFileSync(envFile, lines.filter(l => l.trim()).join("\n") + "\n");
+    const plaintext = lines.filter(l => l.trim()).join("\n") + "\n";
+
+    // Encrypt on write — never store plaintext
+    try {
+      const secret = getEncryptionSecret();
+      const encrypted = encryptAuto(plaintext, secret);
+      writeFileSync(encFile, encrypted);
+      writeFileSync(envFile, `# Encrypted — see ${mcpName}.env.enc\n`);
+    } catch {
+      // Fallback to plaintext if encryption fails (e.g., no keychain)
+      writeFileSync(envFile, plaintext);
+    }
 
     log.info(`[MCP Keys] Saved ${envVar} for ${req.params.id} → ${mcpName}.env`);
     res.json({ ok: true, mcpName, envVar });
@@ -4079,11 +4140,11 @@ export function startWebUI(opts: WebUIOptions): void {
       ? resolveTilde(agent.agentHome)
       : resolve(opts.baseDir, agent.memoryDir, "..");
     const envFile = join(agentHome, "mcp-keys", `${req.params.mcpName}.env`);
+    const encFile = envFile + ".enc";
 
-    if (existsSync(envFile)) {
-      unlinkSync(envFile);
-      log.info(`[MCP Keys] Deleted ${req.params.mcpName}.env for ${req.params.id}`);
-    }
+    if (existsSync(encFile)) unlinkSync(encFile);
+    if (existsSync(envFile)) unlinkSync(envFile);
+    log.info(`[MCP Keys] Deleted ${req.params.mcpName} key files for ${req.params.id}`);
     res.json({ ok: true });
   });
 
@@ -4134,7 +4195,15 @@ export function startWebUI(opts: WebUIOptions): void {
         : resolve(opts.baseDir, agent.memoryDir, "..");
       const keysDir = join(agentHome, "mcp-keys");
       mkdirSync(keysDir, { recursive: true });
-      writeFileSync(join(keysDir, `${instanceName}.env`), `${envVar}=${value}\n`);
+      const connPlaintext = `${envVar}=${value}\n`;
+      try {
+        const secret = getEncryptionSecret();
+        const encrypted = encryptAuto(connPlaintext, secret);
+        writeFileSync(join(keysDir, `${instanceName}.env.enc`), encrypted);
+        writeFileSync(join(keysDir, `${instanceName}.env`), `# Encrypted — see ${instanceName}.env.enc\n`);
+      } catch {
+        writeFileSync(join(keysDir, `${instanceName}.env`), connPlaintext);
+      }
 
       // Save metadata (label + description) for agent context injection
       const accountsPath = join(agentHome, "mcp-accounts.json");
@@ -4230,6 +4299,165 @@ export function startWebUI(opts: WebUIOptions): void {
       res.json({ ok: true });
     } catch (err) {
       log.error(`Failed to delete MCP connection: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ─── API: Security & Encryption ────────────────────────────────
+
+  // Helper: resolve key directories
+  function getKeyDirs(): string[] {
+    const paDir = getPersonalAgentsDir(opts.config);
+    const resolvedPaDir = paDir.startsWith("~") ? paDir.replace("~", homedir()) : paDir;
+    return [
+      join(resolvedPaDir, "mcp-keys"),
+      join(opts.baseDir, "data", "mcp-keys"),
+    ];
+  }
+
+  app.get("/api/security/status", (_req, res) => {
+    try {
+      const mode = getEncryptionMode();
+
+      let encrypted = 0, plaintext = 0;
+      for (const dir of getKeyDirs()) {
+        const counts = countKeyFiles(dir);
+        encrypted += counts.encrypted;
+        plaintext += counts.plaintext;
+      }
+
+      res.json({
+        mode,
+        hasMasterPassword: hasMasterPassword(),
+        encrypted,
+        plaintext,
+        keychainAvailable: true,
+      });
+    } catch (err) {
+      res.json({
+        mode: process.env.MYAGENT_MASTER_PASSWORD ? "env-var" : "none",
+        hasMasterPassword: false,
+        encrypted: 0,
+        plaintext: 0,
+        keychainAvailable: false,
+        error: String(err),
+      });
+    }
+  });
+
+  app.post("/api/security/master-password", async (req, res) => {
+    try {
+      const { password, confirm } = req.body as { password?: string; confirm?: string };
+      if (!password || !confirm) return res.status(400).json({ error: "Password and confirm required" });
+      if (password !== confirm) return res.status(400).json({ error: "Passwords do not match" });
+      if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+      const oldSecret = getEncryptionSecret();
+
+      // Set the new master password
+      kcSetMasterPassword(password);
+      const newSecret = password;
+
+      // Re-encrypt all existing .env.enc files from old secret to new
+      let reEncrypted = 0;
+      for (const dir of getKeyDirs()) {
+        reEncrypted += reEncryptDir(dir, oldSecret, newSecret);
+      }
+
+      // Re-initialize the executor's encryption secret
+      initEncryptionSecret();
+
+      log.info(`[Security] Master password set, re-encrypted ${reEncrypted} files`);
+      res.json({ ok: true, mode: "master-password", reEncrypted });
+    } catch (err) {
+      log.error(`[Security] Failed to set master password: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.delete("/api/security/master-password", async (_req, res) => {
+    try {
+      const oldSecret = getEncryptionSecret();
+
+      // Ensure machine key exists before removing master password
+      const machineKey = getOrCreateMachineKey();
+
+      // Remove master password
+      kcClearMasterPassword();
+
+      // Re-encrypt all files with machine key
+      let reEncrypted = 0;
+      for (const dir of getKeyDirs()) {
+        reEncrypted += reEncryptDir(dir, oldSecret, machineKey);
+      }
+
+      // Re-initialize to use machine key
+      initEncryptionSecret();
+
+      log.info(`[Security] Master password removed, re-encrypted ${reEncrypted} files with machine key`);
+      res.json({ ok: true, mode: "machine-key", reEncrypted });
+    } catch (err) {
+      log.error(`[Security] Failed to remove master password: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.post("/api/security/encrypt-keys", async (_req, res) => {
+    try {
+      const secret = getEncryptionSecret();
+
+      let total = 0;
+      for (const dir of getKeyDirs()) {
+        if (existsSync(dir)) total += encryptDir(dir, secret);
+      }
+
+      log.info(`[Security] Encrypted ${total} key files`);
+      res.json({ ok: true, encrypted: total });
+    } catch (err) {
+      log.error(`[Security] Failed to encrypt keys: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.post("/api/security/export-keys", async (req, res) => {
+    try {
+      const { password } = req.body as { password?: string };
+      if (!password || password.length < 8) return res.status(400).json({ error: "Export password must be at least 8 characters" });
+
+      const secret = getEncryptionSecret();
+      const bundle = createExportBundle(getKeyDirs(), secret, password);
+
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Disposition", "attachment; filename=myaiforone-keys.keybundle");
+      res.send(bundle);
+    } catch (err) {
+      log.error(`[Security] Failed to export keys: ${err}`);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.post("/api/security/import-keys", async (req, res) => {
+    try {
+      const { password, bundle } = req.body as { password?: string; bundle?: string };
+      if (!password || !bundle) return res.status(400).json({ error: "Password and bundle data required" });
+
+      const localSecret = getEncryptionSecret();
+
+      const paDir = getPersonalAgentsDir(opts.config);
+      const resolvedPaDir = paDir.startsWith("~") ? paDir.replace("~", homedir()) : paDir;
+      const targetDir = join(resolvedPaDir, "mcp-keys");
+      if (!existsSync(targetDir)) mkdirSync(targetDir, { recursive: true });
+
+      const bundleBuffer = Buffer.from(bundle, "base64");
+      const imported = importExportBundle(bundleBuffer, password, localSecret, targetDir);
+
+      // Re-initialize to pick up new keys
+      initEncryptionSecret();
+
+      log.info(`[Security] Imported ${imported} key files`);
+      res.json({ ok: true, imported });
+    } catch (err) {
+      log.error(`[Security] Failed to import keys: ${err}`);
       res.status(500).json({ error: String(err) });
     }
   });

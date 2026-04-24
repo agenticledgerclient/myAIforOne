@@ -167,6 +167,7 @@ export async function executeGoal(
   logGoalExecution(agentHome, goal.id, "executed", {
     cost,
     responseLength: response.length,
+    response,
   });
 
   // Send report to channel(s) if configured

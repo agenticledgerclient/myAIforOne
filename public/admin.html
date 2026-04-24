@@ -707,6 +707,86 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
+      <!-- ── Security & Encryption ── -->
+      <div class="section" id="sectionSecurity">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(74,222,128,0.15);border-color:#4ade80;color:#4ade80">&#128274;</div>
+          <div>
+            <div class="section-title">Security &amp; Encryption</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">API keys are encrypted at rest using your OS keychain</div>
+          </div>
+          <span id="securityStatusBadge" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:6px;font-weight:600"></span>
+        </div>
+        <div class="section-body">
+          <div id="securityContent" style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div style="background:var(--bg-input);border:1px solid var(--border-dim);border-radius:10px;padding:14px 18px;flex:1;min-width:140px">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px">Mode</div>
+                <div id="secMode" style="font-size:15px;font-weight:600;color:var(--text-primary)">—</div>
+              </div>
+              <div style="background:var(--bg-input);border:1px solid var(--border-dim);border-radius:10px;padding:14px 18px;flex:1;min-width:140px">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px">Encrypted</div>
+                <div id="secEncrypted" style="font-size:15px;font-weight:600;color:var(--green)">—</div>
+              </div>
+              <div style="background:var(--bg-input);border:1px solid var(--border-dim);border-radius:10px;padding:14px 18px;flex:1;min-width:140px">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px">Plaintext</div>
+                <div id="secPlaintext" style="font-size:15px;font-weight:600;color:var(--amber)">—</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button id="btnEncryptKeys" class="btn-save" onclick="encryptAllKeys(this)" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:var(--green)">Encrypt All Keys</button>
+              <button id="btnSetMasterPw" class="btn-save" onclick="showMasterPasswordModal()" style="background:transparent;border:1px solid var(--border-glow);color:var(--text-secondary)">Set Master Password</button>
+              <button id="btnRemoveMasterPw" class="btn-save" onclick="removeMasterPassword(this)" style="background:transparent;border:1px solid var(--border-glow);color:var(--text-muted);display:none">Remove Master Password</button>
+              <button class="btn-save" onclick="exportKeys()" style="background:transparent;border:1px solid var(--border-glow);color:var(--text-secondary)">Export Keys</button>
+              <button class="btn-save" onclick="showImportModal()" style="background:transparent;border:1px solid var(--border-glow);color:var(--text-secondary)">Import Keys</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Master Password Modal -->
+      <div id="masterPwModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:none;align-items:center;justify-content:center">
+        <div style="background:var(--bg-card);border:1px solid var(--border-glow);border-radius:14px;padding:28px;max-width:400px;width:90%">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary)">Set Master Password</div>
+          <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">Your master password replaces the auto-generated machine key. All keys will be re-encrypted. The password is stored in your OS keychain for auto-start.</p>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+            <input id="masterPw1" type="password" placeholder="Password (min 8 chars)" style="font-size:13px;padding:10px 14px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);outline:none" />
+            <input id="masterPw2" type="password" placeholder="Confirm password" style="font-size:13px;padding:10px 14px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);outline:none" />
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button onclick="closeMasterPwModal()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:13px">Cancel</button>
+            <button onclick="setMasterPassword(this)" style="padding:8px 16px;border-radius:8px;border:1px solid var(--green);background:rgba(74,222,128,0.1);color:var(--green);cursor:pointer;font-size:13px;font-weight:600">Set Password</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Modal -->
+      <div id="exportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center">
+        <div style="background:var(--bg-card);border:1px solid var(--border-glow);border-radius:14px;padding:28px;max-width:400px;width:90%">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary)">Export Keys</div>
+          <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">Creates an encrypted bundle of all your API keys. Use this to move keys to a new machine.</p>
+          <input id="exportPw" type="password" placeholder="Export password (min 8 chars)" style="width:100%;font-size:13px;padding:10px 14px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);outline:none;margin-bottom:16px;box-sizing:border-box" />
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button onclick="closeExportModal()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:13px">Cancel</button>
+            <button onclick="doExport(this)" style="padding:8px 16px;border-radius:8px;border:1px solid var(--accent);background:rgba(168,85,247,0.1);color:var(--accent);cursor:pointer;font-size:13px;font-weight:600">Download Bundle</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Import Modal -->
+      <div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center">
+        <div style="background:var(--bg-card);border:1px solid var(--border-glow);border-radius:14px;padding:28px;max-width:400px;width:90%">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary)">Import Keys</div>
+          <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">Upload a .keybundle file from another machine and enter the export password.</p>
+          <input id="importFile" type="file" accept=".keybundle" style="font-size:12px;color:var(--text-muted);margin-bottom:10px" />
+          <input id="importPw" type="password" placeholder="Export password" style="width:100%;font-size:13px;padding:10px 14px;border-radius:8px;border:1px solid var(--border-dim);background:var(--bg-input);color:var(--text-primary);outline:none;margin-bottom:16px;box-sizing:border-box" />
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button onclick="closeImportModal()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);cursor:pointer;font-size:13px">Cancel</button>
+            <button onclick="doImport(this)" style="padding:8px 16px;border-radius:8px;border:1px solid var(--green);background:rgba(74,222,128,0.1);color:var(--green);cursor:pointer;font-size:13px;font-weight:600">Import</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Status Indicator (local only) ── -->
       <div class="section" id="sectionStatusIndicator">
         <div class="section-header">
@@ -2266,6 +2346,121 @@ async function serviceRestart() {
     btn.disabled = false; btn.textContent = '↻ Restart Service';
   }
 }
+
+// ─── Security & Encryption ─────────────────────────────────────
+
+async function loadSecurityStatus() {
+  try {
+    const r = await fetch('/api/security/status');
+    const d = await r.json();
+    const badge = document.getElementById('securityStatusBadge');
+    const modeEl = document.getElementById('secMode');
+    const encEl = document.getElementById('secEncrypted');
+    const plainEl = document.getElementById('secPlaintext');
+    const removePwBtn = document.getElementById('btnRemoveMasterPw');
+
+    const modeLabels = { 'machine-key': 'Machine Key', 'master-password': 'Master Password', 'env-var': 'Env Variable', 'none': 'Not Configured' };
+    modeEl.textContent = modeLabels[d.mode] || d.mode;
+    encEl.textContent = d.encrypted;
+    plainEl.textContent = d.plaintext;
+    plainEl.style.color = d.plaintext > 0 ? 'var(--amber)' : 'var(--green)';
+
+    if (d.plaintext === 0 && d.encrypted > 0) {
+      badge.textContent = 'Protected';
+      badge.style.background = 'rgba(74,222,128,0.1)'; badge.style.color = 'var(--green)'; badge.style.border = '1px solid rgba(74,222,128,0.2)';
+    } else if (d.plaintext > 0) {
+      badge.textContent = d.encrypted > 0 ? 'Partial' : 'Unprotected';
+      badge.style.background = 'rgba(251,191,36,0.1)'; badge.style.color = 'var(--amber)'; badge.style.border = '1px solid rgba(251,191,36,0.2)';
+    } else {
+      badge.textContent = 'No Keys';
+      badge.style.background = 'rgba(100,116,139,0.1)'; badge.style.color = 'var(--text-muted)'; badge.style.border = '1px solid var(--border-dim)';
+    }
+
+    removePwBtn.style.display = d.hasMasterPassword ? '' : 'none';
+  } catch(e) { console.warn('Security status failed:', e); }
+}
+
+async function encryptAllKeys(btn) {
+  btn.disabled = true; btn.textContent = 'Encrypting…';
+  try {
+    const r = await fetch('/api/security/encrypt-keys', { method: 'POST' });
+    const d = await r.json();
+    showToast(d.encrypted > 0 ? d.encrypted + ' keys encrypted' : 'All keys already encrypted', 'ok');
+    loadSecurityStatus();
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Encrypt All Keys';
+}
+
+function showMasterPasswordModal() { document.getElementById('masterPwModal').style.display = 'flex'; document.getElementById('masterPw1').focus(); }
+function closeMasterPwModal() { document.getElementById('masterPwModal').style.display = 'none'; document.getElementById('masterPw1').value = ''; document.getElementById('masterPw2').value = ''; }
+
+async function setMasterPassword(btn) {
+  const pw1 = document.getElementById('masterPw1').value;
+  const pw2 = document.getElementById('masterPw2').value;
+  if (!pw1 || pw1.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+  if (pw1 !== pw2) { showToast('Passwords do not match', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Setting…';
+  try {
+    const r = await fetch('/api/security/master-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw1, confirm: pw2 }) });
+    const d = await r.json();
+    if (d.error) { showToast(d.error, 'error'); } else { showToast('Master password set' + (d.reEncrypted ? ', ' + d.reEncrypted + ' keys re-encrypted' : ''), 'ok'); closeMasterPwModal(); loadSecurityStatus(); }
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Set Password';
+}
+
+async function removeMasterPassword(btn) {
+  if (!confirm('Remove master password and revert to machine key? All keys will be re-encrypted.')) return;
+  btn.disabled = true; btn.textContent = 'Removing…';
+  try {
+    const r = await fetch('/api/security/master-password', { method: 'DELETE' });
+    const d = await r.json();
+    if (d.error) { showToast(d.error, 'error'); } else { showToast('Reverted to machine key' + (d.reEncrypted ? ', ' + d.reEncrypted + ' keys re-encrypted' : ''), 'ok'); loadSecurityStatus(); }
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Remove Master Password';
+}
+
+function exportKeys() { document.getElementById('exportModal').style.display = 'flex'; document.getElementById('exportPw').focus(); }
+function closeExportModal() { document.getElementById('exportModal').style.display = 'none'; document.getElementById('exportPw').value = ''; }
+
+async function doExport(btn) {
+  const pw = document.getElementById('exportPw').value;
+  if (!pw || pw.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Exporting…';
+  try {
+    const r = await fetch('/api/security/export-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+    if (!r.ok) { const d = await r.json(); showToast(d.error || 'Export failed', 'error'); btn.disabled = false; btn.textContent = 'Download Bundle'; return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'myaiforone-keys.keybundle'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('Key bundle downloaded', 'ok');
+    closeExportModal();
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Download Bundle';
+}
+
+function showImportModal() { document.getElementById('importModal').style.display = 'flex'; }
+function closeImportModal() { document.getElementById('importModal').style.display = 'none'; document.getElementById('importPw').value = ''; document.getElementById('importFile').value = ''; }
+
+async function doImport(btn) {
+  const pw = document.getElementById('importPw').value;
+  const fileInput = document.getElementById('importFile');
+  if (!pw) { showToast('Enter the export password', 'error'); return; }
+  if (!fileInput.files || !fileInput.files[0]) { showToast('Select a .keybundle file', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Importing…';
+  try {
+    const file = fileInput.files[0];
+    const arrayBuf = await file.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+    const r = await fetch('/api/security/import-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw, bundle: base64 }) });
+    const d = await r.json();
+    if (d.error) { showToast(d.error, 'error'); } else { showToast(d.imported + ' keys imported', 'ok'); closeImportModal(); loadSecurityStatus(); }
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Import';
+}
+
+// Load security status on page load
+if (typeof loadSecurityStatus === 'function') setTimeout(loadSecurityStatus, 500);
 
 async function serviceShutdown() {
   const btn = document.getElementById('btnShutdown');

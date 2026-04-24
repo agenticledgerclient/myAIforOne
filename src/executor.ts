@@ -10,6 +10,7 @@ import type { ResolvedRoute } from "./router.js";
 import { formatMessage } from "./utils/message-formatter.js";
 import { createMemoryManager, type MemoryManager } from "./memory/index.js";
 import { loadMcpKeysWithDecryption } from "./keystore.js";
+import { getEncryptionSecret as kcGetSecret } from "./os-keychain.js";
 import { buildAgentRegistry, buildGroupAgentPrompt } from "./agent-registry.js";
 import { log } from "./logger.js";
 import { checkLicenseForExecution } from "./license.js";
@@ -787,13 +788,26 @@ function resolvePromptTrigger(msg: string, effectivePrompts: string[], baseDir: 
 
 // ─── MCP key loader ──────────────────────────────────────────────────
 // Dual-level: agent-specific keys override shared keys.
-// Supports encrypted .env.enc files (decrypted with MYAGENT_MASTER_PASSWORD).
+// Supports encrypted .env.enc files (decrypted with keychain-managed secret).
 
-const masterPassword = process.env.MYAGENT_MASTER_PASSWORD || undefined;
+let _encryptionSecret: string | undefined;
+
+/**
+ * Initialize the encryption secret from OS keychain (or env var fallback).
+ * Called once at startup before any MCP keys are loaded.
+ */
+export function initEncryptionSecret(): void {
+  try {
+    _encryptionSecret = kcGetSecret();
+  } catch (err) {
+    // Fallback to env var if keychain module fails (e.g., in CI)
+    _encryptionSecret = process.env.MYAGENT_MASTER_PASSWORD || undefined;
+  }
+}
 
 function loadMcpKeys(baseDir: string, mcpName: string, agentMemoryDir?: string): Record<string, string> {
   const sharedDir = join(baseDir, "data", "mcp-keys");
-  return loadMcpKeysWithDecryption(sharedDir, agentMemoryDir || null, mcpName, masterPassword);
+  return loadMcpKeysWithDecryption(sharedDir, agentMemoryDir || null, mcpName, _encryptionSecret);
 }
 
 // ─── MCP config builder ─────────────────────────────────────────────
