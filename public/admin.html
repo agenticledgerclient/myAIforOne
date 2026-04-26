@@ -619,6 +619,60 @@ html,body{width:100%;height:100%;max-width:100vw;background:var(--bg-deep);font-
         </div>
       </div>
 
+      <!-- ── Voice Mode (TTS + STT) ── -->
+      <div class="settings-section">
+        <div class="section-header" style="display:flex;align-items:center;gap:12px">
+          <div>
+            <div class="section-title" style="color:var(--accent)">Voice Mode</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Talk to and listen to your agents — pluggable TTS + STT providers</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field" style="margin-bottom:14px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="checkbox" id="svcVoiceModeEnabled" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" />
+              <span>Enable Voice Mode</span>
+            </label>
+            <div class="hint" style="margin-top:4px">When enabled, the chat UI shows a 🔊 Play button on agent replies and a 🎤 mic button for speaking input. When disabled, voice features are hidden.</div>
+          </div>
+
+          <div id="voiceModeFields" style="opacity:0.4;pointer-events:none">
+            <div class="service-grid">
+              <div class="field">
+                <label>Default Provider</label>
+                <select id="svcVoiceProvider">
+                  <option value="browser">Browser (free, basic quality)</option>
+                  <option value="grok">Grok (xAI) — best price</option>
+                </select>
+                <div class="hint" style="margin-top:4px">Browser uses Web Speech API (no key). Grok requires an xAI API key in AI Models above.</div>
+              </div>
+              <div class="field">
+                <label>Default Voice</label>
+                <select id="svcVoiceDefault">
+                  <option value="">Provider default</option>
+                </select>
+                <button class="btn-save" style="margin-top:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:3px 10px" onclick="testPlatformVoice()">▶ Play sample</button>
+              </div>
+              <div class="field">
+                <label>Max characters per TTS request</label>
+                <input id="svcVoiceMaxChars" type="number" min="100" max="15000" placeholder="2000" />
+                <div class="hint" style="margin-top:4px">Long replies get truncated to this length when read aloud.</div>
+              </div>
+              <div class="field">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                  <input type="checkbox" id="svcVoiceAutoPlay" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" />
+                  <span>Auto-play agent replies</span>
+                </label>
+                <div class="hint" style="margin-top:4px">When ON, the chat reads new agent replies aloud automatically.</div>
+              </div>
+            </div>
+            <div id="voiceProviderStatus" style="margin-top:10px;padding:8px 12px;border-radius:6px;font-size:11px;background:var(--bg-secondary);color:var(--text-muted)"></div>
+          </div>
+
+          <button class="btn-save" onclick="saveVoiceMode()">Save</button>
+        </div>
+      </div>
+
       <!-- ── Deployment (local only — Railway manages its own deployment) ── -->
       <div class="section" id="sectionDeployment">
         <div class="section-header">
@@ -1789,6 +1843,8 @@ async function loadService() {
   // License
   document.getElementById('svcLicenseKey').value = s.licenseKey || '';
   loadLicenseStatus();
+  // Voice Mode
+  await loadVoiceMode(s);
 }
 
 async function saveService() {
@@ -2047,6 +2103,140 @@ async function loadPlatformDefaultExecutorOptions(currentValue, svc) {
   }
   sel.value = currentValue || 'claude';
 }
+
+// ─── Voice Mode ─────────────────────────────────────────────────────
+let _voiceConfigCache = null;
+
+async function loadVoiceMode(s) {
+  document.getElementById('svcVoiceModeEnabled').checked = !!s.voiceModeEnabled;
+  document.getElementById('svcVoiceAutoPlay').checked = !!s.voiceAutoPlay;
+  document.getElementById('svcVoiceMaxChars').value = s.voiceMaxChars || 2000;
+  // Fetch voice catalog
+  try {
+    const r = await fetch('/api/voice-config');
+    if (r.ok) {
+      _voiceConfigCache = await r.json();
+      // Set provider dropdown from snapshot
+      const provSel = document.getElementById('svcVoiceProvider');
+      provSel.innerHTML = '';
+      for (const p of _voiceConfigCache.providers) {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name + (p.serverSide ? '' : ' (client-side)') + (p.configured ? '' : ' — not configured');
+        provSel.appendChild(opt);
+      }
+      provSel.value = _voiceConfigCache.defaultProvider || 'browser';
+      populateVoiceList(provSel.value, _voiceConfigCache.defaultVoiceId);
+      updateVoiceProviderStatus();
+    }
+  } catch (e) { /* voice endpoints may not be available */ }
+  updateVoiceModeFieldsVisibility();
+}
+
+function populateVoiceList(providerId, selectedVoiceId) {
+  const sel = document.getElementById('svcVoiceDefault');
+  sel.innerHTML = '<option value="">Provider default</option>';
+  if (!_voiceConfigCache) return;
+  const p = _voiceConfigCache.providers.find(x => x.id === providerId);
+  if (!p) return;
+  for (const v of (p.voices || [])) {
+    const opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.name + (v.description ? ` — ${v.description}` : '');
+    sel.appendChild(opt);
+  }
+  if (selectedVoiceId) sel.value = selectedVoiceId;
+}
+
+function updateVoiceProviderStatus() {
+  const provSel = document.getElementById('svcVoiceProvider');
+  const status = document.getElementById('voiceProviderStatus');
+  if (!_voiceConfigCache || !status) return;
+  const p = _voiceConfigCache.providers.find(x => x.id === provSel.value);
+  if (!p) { status.textContent = ''; return; }
+  if (!p.serverSide) {
+    status.style.color = 'var(--text-muted)';
+    status.innerHTML = '✓ Browser provider runs in your browser via Web Speech API. No key required.';
+  } else if (p.configured) {
+    status.style.color = 'var(--green)';
+    status.innerHTML = `✓ ${p.name} is configured and ready.`;
+  } else {
+    status.style.color = 'var(--amber)';
+    status.innerHTML = `⚠ ${p.name} requires an API key. Add it under <strong>AI Models → Provider API Keys</strong> above.`;
+  }
+}
+
+function updateVoiceModeFieldsVisibility() {
+  const on = document.getElementById('svcVoiceModeEnabled').checked;
+  const fields = document.getElementById('voiceModeFields');
+  if (fields) {
+    fields.style.opacity = on ? '1' : '0.4';
+    fields.style.pointerEvents = on ? 'auto' : 'none';
+  }
+}
+
+async function saveVoiceMode() {
+  const voiceModeEnabled = document.getElementById('svcVoiceModeEnabled').checked;
+  const provider = document.getElementById('svcVoiceProvider').value || 'browser';
+  const voiceId = document.getElementById('svcVoiceDefault').value;
+  const platformDefaultVoice = voiceId ? `${provider}:${voiceId}` : provider;
+  const voiceAutoPlay = document.getElementById('svcVoiceAutoPlay').checked;
+  const maxCharsRaw = document.getElementById('svcVoiceMaxChars').value;
+  const voiceMaxChars = maxCharsRaw ? Number(maxCharsRaw) : 2000;
+  const res = await fetch('/api/config/service', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ voiceModeEnabled, platformDefaultVoice, voiceAutoPlay, voiceMaxChars })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error, 'err'); return; }
+  showToast('Voice Mode settings saved');
+  // Refresh snapshot so next test reflects new config
+  try { const r = await fetch('/api/voice-config'); if (r.ok) _voiceConfigCache = await r.json(); } catch {}
+}
+
+async function testPlatformVoice() {
+  if (!document.getElementById('svcVoiceModeEnabled').checked) {
+    showToast('Enable Voice Mode and Save first', 'err'); return;
+  }
+  const provider = document.getElementById('svcVoiceProvider').value || 'browser';
+  const voiceId = document.getElementById('svcVoiceDefault').value || undefined;
+  const text = 'Hello, this is a sample of the selected voice.';
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text, providerOverride: provider, voiceOverride: voiceId })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || 'TTS test failed', 'err'); return;
+    }
+    const ct = res.headers.get('Content-Type') || '';
+    if (ct.includes('application/json')) {
+      // Browser provider — use Web Speech API
+      const data = await res.json();
+      if (data.clientSide && window.speechSynthesis) {
+        const u = new SpeechSynthesisUtterance(data.text || text);
+        window.speechSynthesis.speak(u);
+      } else {
+        showToast('Browser TTS not available', 'err');
+      }
+    } else {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play().catch(e => showToast('Audio playback failed: ' + e.message, 'err'));
+    }
+  } catch (e) {
+    showToast('TTS test error: ' + e.message, 'err');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cb = document.getElementById('svcVoiceModeEnabled');
+  if (cb) cb.addEventListener('change', updateVoiceModeFieldsVisibility);
+  const ps = document.getElementById('svcVoiceProvider');
+  if (ps) ps.addEventListener('change', () => { populateVoiceList(ps.value); updateVoiceProviderStatus(); });
+});
 
 async function saveMultiModel() {
   const multiModelEnabled = document.getElementById('svcMultiModelEnabled').checked;

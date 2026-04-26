@@ -19,6 +19,7 @@ import { startActivityDigest } from "./gym/activity-digest.js";
 import type { McpServerConfig } from "./config.js";
 import { log } from "./logger.js";
 import { isSharedAgentsAllowed, filterTemplatesByLicense, isTemplateAccessible, getTemplateAccess } from "./license.js";
+import { buildVoiceRegistry, type VoiceRegistry } from "./voice/registry.js";
 
 interface WebUIOptions {
   config: AppConfig;
@@ -1404,6 +1405,10 @@ export function startWebUI(opts: WebUIOptions): void {
       aibriefingEnabled: (s as any).aibriefingEnabled ?? false,
       gymOnlyMode: (s as any).gymOnlyMode ?? false,
       sharedAgentsEnabled,
+      voiceModeEnabled: (s as any).voiceModeEnabled ?? false,
+      platformDefaultVoice: (s as any).platformDefaultVoice || "browser",
+      voiceAutoPlay: (s as any).voiceAutoPlay ?? false,
+      voiceMaxChars: (s as any).voiceMaxChars ?? 2000,
       licenseKey: (s as any).licenseKey ? `${(s as any).licenseKey.slice(0, 20)}...` : "",
       licenseUrl: (s as any).licenseUrl || "https://ai41license.agenticledger.ai",
     });
@@ -1461,7 +1466,7 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   app.put("/api/config/service", (req, res) => {
-    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode, sharedAgentsEnabled, licenseKey, licenseUrl } = req.body as any;
+    const { personalAgentsDir, personalRegistryDir, webUIPort, logLevel, logFile, pairingCode, webhookSecret, webUIEnabled, deployment, defaultClaudeAccount, multiModelEnabled, platformDefaultExecutor, ollamaBaseUrl, providerKeys, gymEnabled, aibriefingEnabled, gymOnlyMode, sharedAgentsEnabled, licenseKey, licenseUrl, voiceModeEnabled, platformDefaultVoice, voiceAutoPlay, voiceMaxChars } = req.body as any;
     try {
       const raw = JSON.parse(readFileSync(configFilePath(), "utf-8"));
       if (!raw.service) raw.service = {};
@@ -1490,6 +1495,16 @@ export function startWebUI(opts: WebUIOptions): void {
           } else if (key === "") {
             delete raw.service.providerKeys[provider];
           }
+        }
+      }
+      if (voiceModeEnabled !== undefined) { raw.service.voiceModeEnabled = voiceModeEnabled; (opts.config.service as any).voiceModeEnabled = voiceModeEnabled; }
+      if (platformDefaultVoice !== undefined) { raw.service.platformDefaultVoice = platformDefaultVoice || "browser"; (opts.config.service as any).platformDefaultVoice = platformDefaultVoice || "browser"; }
+      if (voiceAutoPlay !== undefined) { raw.service.voiceAutoPlay = voiceAutoPlay; (opts.config.service as any).voiceAutoPlay = voiceAutoPlay; }
+      if (voiceMaxChars !== undefined) {
+        const n = Number(voiceMaxChars);
+        if (Number.isFinite(n) && n > 0) {
+          raw.service.voiceMaxChars = n;
+          (opts.config.service as any).voiceMaxChars = n;
         }
       }
       if (gymEnabled !== undefined) { raw.service.gymEnabled = gymEnabled; (opts.config.service as any).gymEnabled = gymEnabled; }
@@ -1539,6 +1554,136 @@ export function startWebUI(opts: WebUIOptions): void {
       res.status(500).json({ error: e.message });
     }
   });
+
+  // ─── API: Voice Mode (TTS + STT) ─────────────────────────────────────
+  // See docs/voice-mode-plan.md
+
+  const voiceRegistry: VoiceRegistry = buildVoiceRegistry(opts.config);
+
+  // Snapshot of current voice config + provider/voice catalog for UI rendering.
+  app.get("/api/voice-config", (_req, res) => {
+    res.json(voiceRegistry.snapshot());
+  });
+
+  // Voices for a specific provider (or for the agent's resolved provider).
+  app.get("/api/voices", (req, res) => {
+    const providerId = (req.query.provider as string | undefined) || undefined;
+    const agentId = (req.query.agentId as string | undefined) || undefined;
+    if (providerId) {
+      const p = voiceRegistry.get(providerId);
+      if (!p) return res.status(404).json({ error: `Unknown provider: ${providerId}` });
+      return res.json({ provider: p.id, name: p.name, serverSide: p.serverSide, configured: p.isConfigured(), voices: p.listVoices() });
+    }
+    const { provider, voiceId } = voiceRegistry.resolve(agentId);
+    res.json({
+      provider: provider.id,
+      name: provider.name,
+      serverSide: provider.serverSide,
+      configured: provider.isConfigured(),
+      effectiveVoiceId: voiceId || provider.defaultVoice(),
+      voices: provider.listVoices(),
+    });
+  });
+
+  // Synthesize speech for an agent's reply.
+  // Body: { text: string, agentId?: string, providerOverride?: string }
+  // Returns: audio/mpeg bytes, OR { clientSide: true, provider: "browser" } when the
+  // resolved provider is the browser provider (client should use Web Speech API).
+  app.post("/api/tts", async (req, res) => {
+    try {
+      if (!(opts.config.service as any).voiceModeEnabled) {
+        return res.status(403).json({ error: "Voice mode is disabled" });
+      }
+      const { text, agentId, providerOverride, voiceOverride } = req.body as {
+        text?: string; agentId?: string; providerOverride?: string; voiceOverride?: string;
+      };
+      if (!text || !text.trim()) return res.status(400).json({ error: "text is required" });
+
+      // Truncate to platform max
+      const maxChars = (opts.config.service as any).voiceMaxChars ?? 2000;
+      const input = text.length > maxChars ? text.slice(0, maxChars) : text;
+
+      // Resolve provider/voice. providerOverride wins if supplied.
+      let provider, voiceId;
+      if (providerOverride) {
+        const p = voiceRegistry.get(providerOverride);
+        if (!p) return res.status(400).json({ error: `Unknown provider: ${providerOverride}` });
+        provider = p;
+        voiceId = voiceOverride;
+      } else {
+        const resolved = voiceRegistry.resolve(agentId);
+        provider = resolved.provider;
+        voiceId = voiceOverride || resolved.voiceId;
+      }
+
+      if (!provider.serverSide) {
+        // Browser provider — tell client to handle via Web Speech API.
+        return res.json({ clientSide: true, provider: provider.id, voiceId: voiceId || provider.defaultVoice(), text: input });
+      }
+
+      if (!provider.isConfigured()) {
+        return res.status(503).json({ error: `${provider.name} is not configured (missing API key)` });
+      }
+
+      const result = await provider.tts(input, { voiceId });
+      res.setHeader("Content-Type", result.format === "mp3" ? "audio/mpeg" : "audio/wav");
+      res.setHeader("X-Voice-Provider", provider.id);
+      res.setHeader("X-Voice-Voice-Id", voiceId || provider.defaultVoice());
+      res.setHeader("X-Voice-Characters", String(result.characters));
+      res.send(result.audio);
+    } catch (e: any) {
+      log.error(`/api/tts failed: ${e?.message || e}`);
+      res.status(500).json({ error: e?.message || "TTS failed" });
+    }
+  });
+
+  // Transcribe audio.
+  // Request: POST raw audio bytes with Content-Type: audio/<format>
+  //   Optional query: ?providerOverride=grok&language=en&agentId=<id>
+  // Returns: { text, language?, durationSeconds? }
+  app.post(
+    "/api/stt",
+    express.raw({ type: ["audio/*", "application/octet-stream"], limit: "25mb" }),
+    async (req, res) => {
+      try {
+        if (!(opts.config.service as any).voiceModeEnabled) {
+          return res.status(403).json({ error: "Voice mode is disabled" });
+        }
+        const audio = req.body as Buffer;
+        if (!audio || !Buffer.isBuffer(audio) || audio.length === 0) {
+          return res.status(400).json({ error: "audio body is required (POST raw bytes with Content-Type: audio/*)" });
+        }
+
+        const providerOverride = (req.query.providerOverride as string | undefined) || undefined;
+        const agentId = (req.query.agentId as string | undefined) || undefined;
+        const language = (req.query.language as string | undefined) || undefined;
+        const mimeType = (req.headers["content-type"] as string | undefined) || "audio/webm";
+
+        let provider;
+        if (providerOverride) {
+          const p = voiceRegistry.get(providerOverride);
+          if (!p) return res.status(400).json({ error: `Unknown provider: ${providerOverride}` });
+          provider = p;
+        } else {
+          provider = voiceRegistry.resolve(agentId).provider;
+        }
+
+        if (!provider.serverSide) {
+          return res.status(400).json({ error: "Browser provider is client-side; perform STT in the browser via Web Speech API" });
+        }
+
+        if (!provider.isConfigured()) {
+          return res.status(503).json({ error: `${provider.name} is not configured (missing API key)` });
+        }
+
+        const result = await provider.stt(audio, { language, mimeType });
+        res.json({ text: result.text, language: result.language, durationSeconds: result.durationSeconds, provider: provider.id });
+      } catch (e: any) {
+        log.error(`/api/stt failed: ${e?.message || e}`);
+        res.status(500).json({ error: e?.message || "STT failed" });
+      }
+    }
+  );
 
   // ─── API: Profile ────────────────────────────────────────────────────
 

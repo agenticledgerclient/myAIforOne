@@ -1500,6 +1500,46 @@ API keys are stored in `config.json` under `service.providerKeys` (e.g., `{ "ope
 | Proxy Ollama tag list | `GET /api/ollama-proxy?url=<ollamaUrl>/api/tags` | — (internal) |
 | | **Query:** `url` — only `/api/tags` proxy is allowed | N/A — used by the Settings UI to list local Ollama models |
 
+### Voice Mode Section
+- **Section label:** "Voice Mode" (cyan highlight)
+- **Description:** "Speak with agents (TTS) and dictate replies (STT). Browser-only by default; add an xAI key to unlock Grok server-side voices."
+- **Toggle:** Enable Voice Mode — when off, the chat hides 🔊 / 🎤 controls and `/api/tts` + `/api/stt` reject with 503
+- **Settings grid:**
+
+| Field | Description |
+|-------|-------------|
+| **Default Provider** | `browser` (Web Speech API, free, runs in the user's browser) or `grok` (xAI server-side TTS/STT, requires `providerKeys.xai`) |
+| **Default Voice** | Provider-scoped voice id. Browser uses the OS default; Grok exposes `Ara` (default), `Eve`, `Leo`, `Rex`, `Sal` |
+| **Auto-play replies** | When on, agent replies are spoken automatically as they arrive. Off by default to avoid surprise audio |
+| **Max characters** | Hard cap on text sent to TTS per call (default 2000). Grok additionally truncates to 15,000 chars at the provider |
+
+- **Test button** — synthesizes a short sample using the platform default and plays it inline
+- **Per-agent override:** On Org → Agent edit, the **Voice** field lets you override the platform default for a single agent (e.g. set `grok:Eve` for the support agent while everyone else uses browser). Leave blank to inherit. Same dropdown structure as the platform settings, with a **Test** button that synthesizes a sample using the agent override.
+- **Chat surface:**
+  - 🔊 button on agent replies — plays the message via the resolved provider. If the agent's resolved provider is `browser`, the audio is generated client-side via `SpeechSynthesisUtterance`. If it's a server-side provider (Grok), the response is streamed audio bytes.
+  - 🎤 button on the chat input — toggle dictation. Routes to `/api/stt` when the resolved provider is server-side; otherwise uses the browser's `webkitSpeechRecognition`.
+- **Resolution chain:** agent override → platform default → fallback to `browser`. If the chosen provider is unconfigured (e.g. Grok selected but no xAI key), it falls back to browser and the voice id is dropped.
+- **Privacy note:** API keys never appear in `GET /api/voice-config` or `GET /api/voices`. Each provider is exposed with a `configured: boolean` flag instead.
+
+| Action | API | MCP |
+|--------|-----|-----|
+| Get voice config snapshot | `GET /api/voice-config` | `list_voices` |
+| | Returns `{ enabled, defaultProvider, defaultVoiceId?, autoPlay, maxChars, providers: [{ id, configured, serverSide, voices[] }] }` | **Params:** *(optional)* `provider`, `agentId` |
+| List voices for a provider | `GET /api/voices?provider=<id>&agentId=<id>` | `list_voices` |
+| | Returns `{ voices: [{ id, name, language? }] }` for the resolved provider | **Params:** `provider?`, `agentId?` |
+| Synthesize speech (TTS) | `POST /api/tts` | `test_voice` |
+| | **Body:** `{ text, agentId?, provider?, voiceId? }`. For server-side providers, returns audio bytes with `X-Voice-Provider`, `X-Voice-Voice-Id`, `X-Voice-Characters` headers. For browser providers, returns `{ clientSide: true, provider, voiceId? }` JSON so the page can synthesize locally. | **Params:** `text`, `provider?`, `voiceId?`, `agentId?` |
+| Transcribe audio (STT) | `POST /api/stt` | — *(audio uploads are not exposed via MCP)* |
+| | **Content-Type:** raw audio bytes (e.g. `audio/webm`). **Query:** `agentId?`, `provider?`, `language?`. Returns `{ text, language?, durationSeconds? }` | — |
+| Enable voice mode | `PUT /api/config/service` | `set_platform_voice` |
+| | **Body:** `{ voiceModeEnabled: true }` | **Params:** `enable: true` |
+| Set platform default voice | `PUT /api/config/service` | `set_platform_voice` |
+| | **Body:** `{ platformDefaultVoice: "grok:Ara" }` (or `"browser"`) | **Params:** `voice: "grok:Ara"` |
+| Set auto-play / max chars | `PUT /api/config/service` | `set_platform_voice` |
+| | **Body:** `{ voiceAutoPlay: true, voiceMaxChars: 1500 }` | **Params:** `autoPlay`, `maxChars` |
+| Set per-agent voice | `PUT /api/agents/:id` | `set_agent_voice` |
+| | **Body:** `{ voice: "grok:Eve" }` (empty string clears the override) | **Params:** `agentId`, `voice` |
+
 ### Deployment Section
 - **Section label:** "Deployment" (green highlight)
 - **Note:** "Restart required for most changes"
@@ -2598,6 +2638,10 @@ Quick reference — all MCP tools alphabetically:
 | -- | `rotate_team_gateway_key` | Team Gateways |
 | -- | `attach_team_gateway_to_agent` | Team Gateways |
 | -- | `detach_team_gateway_from_agent` | Team Gateways |
+| -- | `list_voices` | Voice |
+| -- | `set_platform_voice` | Voice |
+| -- | `set_agent_voice` | Voice |
+| -- | `test_voice` | Voice |
 
 ---
 

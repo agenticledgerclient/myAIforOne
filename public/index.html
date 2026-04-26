@@ -1007,21 +1007,93 @@ let streamingStatus = '';
 let streamingTools = [];
 
 // ─── Voice read-back mode ─────────────────────────────
-let voiceModeOn = false;
+let voiceModeOn = false;          // user toggled auto-play on this tab
+let voiceServerConfig = null;     // /api/voice-config snapshot (refreshed lazily)
+let currentAudio = null;          // active <Audio> element when playing server-side TTS
+
+async function loadVoiceServerConfig(){
+  try {
+    const r = await fetch('/api/voice-config');
+    if (r.ok) voiceServerConfig = await r.json();
+  } catch {}
+  // If server says auto-play is on, default toggle to on (user can still flip)
+  if (voiceServerConfig && voiceServerConfig.enabled && voiceServerConfig.autoPlay) {
+    voiceModeOn = true;
+    const btn = document.getElementById('voiceModeBtn');
+    if(btn){ btn.textContent = '🔊'; btn.style.color = 'var(--accent)'; }
+  }
+}
+
 function toggleVoiceMode(){
   voiceModeOn = !voiceModeOn;
   const btn = document.getElementById('voiceModeBtn');
   if(btn){ btn.textContent = voiceModeOn ? '🔊' : '🔇'; btn.style.color = voiceModeOn ? 'var(--accent)' : ''; }
-  if(!voiceModeOn) window.speechSynthesis?.cancel();
+  if(!voiceModeOn) stopAllSpeech();
 }
-function speakText(text){
-  if(!voiceModeOn || !window.speechSynthesis) return;
-  const clean = text.replace(/\[via:[^\]]+\]/g,'').replace(/[*_`#>~]/g,'').replace(/\n+/g,' ').trim();
-  if(!clean) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(clean);
-  u.rate = 1.05;
-  window.speechSynthesis.speak(u);
+
+function stopAllSpeech(){
+  try { window.speechSynthesis?.cancel(); } catch {}
+  if (currentAudio) {
+    try { currentAudio.pause(); currentAudio.currentTime = 0; } catch {}
+    currentAudio = null;
+  }
+}
+
+function cleanForSpeech(text){
+  return (text || '').replace(/\[via:[^\]]+\]/g,'').replace(/[*_`#>~]/g,'').replace(/\n+/g,' ').trim();
+}
+
+// Speak via server TTS (Grok or other) when voice mode is enabled & a server-side
+// provider is configured. Falls back to Web Speech API otherwise.
+async function speakText(text, opts){
+  const auto = opts?.auto ?? true;
+  if (auto && !voiceModeOn) return;
+  const clean = cleanForSpeech(text);
+  if (!clean) return;
+  stopAllSpeech();
+  // If voice mode disabled server-side or no config loaded, use browser fallback.
+  const useServer = voiceServerConfig && voiceServerConfig.enabled && voiceServerConfig.defaultProvider !== 'browser';
+  if (!useServer) {
+    if (window.speechSynthesis) {
+      const u = new SpeechSynthesisUtterance(clean);
+      u.rate = 1.05;
+      window.speechSynthesis.speak(u);
+    }
+    return;
+  }
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text: clean, agentId: window.selectedAgent || undefined })
+    });
+    if (!res.ok) {
+      // Fallback to browser if server fails
+      if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(clean));
+      return;
+    }
+    const ct = res.headers.get('Content-Type') || '';
+    if (ct.includes('application/json')) {
+      const data = await res.json();
+      if (data.clientSide && window.speechSynthesis) {
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(data.text || clean));
+      }
+    } else {
+      const blob = await res.blob();
+      currentAudio = new Audio(URL.createObjectURL(blob));
+      currentAudio.play().catch(() => {});
+    }
+  } catch (e) {
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(clean));
+  }
+}
+
+// Play a stored message by index — used by the 🔊 button on each reply card.
+function playMessageByIndex(agentId, tabId, idx){
+  const key = tabKey(agentId, tabId);
+  const arr = chatHistory[key] || [];
+  const m = arr[idx];
+  if (!m) return;
+  speakText(m.text, { auto: false });
 }
 let availableAccounts = [];
 let accountOverrides = {}; // agentId -> account name (in-memory only)
@@ -2168,7 +2240,9 @@ function updateMessages() {
   if (messages.length === 0 && !streamingText && !streamingTools.length && !isThinking) {
     html = `<div class="msg-system">Start a conversation with ${agent.aliases[0] || agent.name}</div>`;
   } else {
-    html = messages.map(m => {
+    const voiceEnabled = !!(voiceServerConfig && voiceServerConfig.enabled);
+    const _curTabId = activeTab[agent.id];
+    html = messages.map((m, idx) => {
       const cls = m.role === 'user' ? 'msg-user' : 'msg-agent';
       const formatted = m.role === 'agent' ? formatMarkdown(m.text) : escapeHtml(m.text);
       const time = formatTime(m.time);
@@ -2176,7 +2250,10 @@ function updateMessages() {
       const toolHtml = (m.tools && m.tools.length) ? renderActivityFeed(m.tools, false) : '';
       const rawText = m.text || '';
       const copyBtn = `<button class="msg-copy" onclick="copyMsg(this, ${JSON.stringify(rawText).replace(/"/g, '&quot;')})" title="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>`;
-      return `${toolHtml}<div class="msg ${cls}">${copyBtn}${formatted}<div class="msg-time">${channelBadge}${time}</div></div>`;
+      const playBtn = (voiceEnabled && m.role === 'agent')
+        ? `<button class="msg-copy msg-play" onclick="playMessageByIndex('${agent.id}','${_curTabId}',${idx})" title="Play aloud" style="right:32px">🔊</button>`
+        : '';
+      return `${toolHtml}<div class="msg ${cls}">${copyBtn}${playBtn}${formatted}<div class="msg-time">${channelBadge}${time}</div></div>`;
     }).join('');
   }
 
@@ -2840,17 +2917,93 @@ async function uploadFiles(agentId) {
 // ─── Voice Input ───────────────────────────────────────────────
 let recognition = null;
 let isRecording = false;
+let mediaRecorder = null;
+let mediaChunks = [];
+let mediaStream = null;
+let usingServerStt = false;
+
+function shouldUseServerStt(){
+  // Use server STT when voice mode is enabled and the resolved provider is server-side.
+  if (!voiceServerConfig || !voiceServerConfig.enabled) return false;
+  if (voiceServerConfig.defaultProvider === 'browser') return false;
+  // Provider must be configured (e.g., Grok needs an xAI key)
+  const p = (voiceServerConfig.providers || []).find(x => x.id === voiceServerConfig.defaultProvider);
+  return !!(p && p.serverSide && p.configured);
+}
 
 function toggleVoice() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    alert('Speech recognition not supported in this browser. Use Chrome or Edge.');
+  if (isRecording) { stopVoice(); return; }
+  if (shouldUseServerStt()) {
+    startServerVoice();
+  } else if (('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window)) {
+    startVoice();
+  } else {
+    alert('Speech recognition not supported. Either enable Voice Mode with a configured STT provider in Admin Settings, or use Chrome/Edge for in-browser recognition.');
+  }
+}
+
+async function startServerVoice() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    alert('Microphone permission denied: ' + e.message);
     return;
   }
+  // Pick a supported audio mime — prefer webm/opus.
+  let mime = 'audio/webm';
+  if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime = 'audio/webm;codecs=opus';
+    else if (MediaRecorder.isTypeSupported('audio/webm')) mime = 'audio/webm';
+    else if (MediaRecorder.isTypeSupported('audio/mp4')) mime = 'audio/mp4';
+  }
+  mediaChunks = [];
+  try {
+    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mime });
+  } catch (e) {
+    mediaRecorder = new MediaRecorder(mediaStream);
+  }
+  mediaRecorder.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) mediaChunks.push(ev.data); };
+  mediaRecorder.onstop = onServerVoiceStop;
+  mediaRecorder.start();
+  isRecording = true;
+  usingServerStt = true;
+  const btn = document.getElementById('micBtn');
+  if (btn) { btn.classList.add('recording'); btn.title = 'Click to stop and transcribe'; }
+}
 
-  if (isRecording) {
-    stopVoice();
-  } else {
-    startVoice();
+async function onServerVoiceStop() {
+  const btn = document.getElementById('micBtn');
+  if (btn) { btn.classList.remove('recording'); btn.title = 'Click to speak'; }
+  isRecording = false;
+  // Release mic
+  try { mediaStream?.getTracks().forEach(t => t.stop()); } catch {}
+  mediaStream = null;
+  if (!mediaChunks.length) { usingServerStt = false; return; }
+  const blob = new Blob(mediaChunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+  mediaChunks = [];
+  // POST raw audio
+  const input = document.getElementById('chatInput');
+  if (input) { input.placeholder = 'Transcribing…'; input.disabled = true; }
+  try {
+    const agentId = window.selectedAgent || '';
+    const url = '/api/stt' + (agentId ? `?agentId=${encodeURIComponent(agentId)}` : '');
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': blob.type || 'audio/webm' }, body: blob });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert('STT failed: ' + (err.error || res.statusText));
+    } else {
+      const data = await res.json();
+      if (input && data.text) {
+        input.value = (input.value ? input.value + ' ' : '') + data.text;
+        autoResize(input);
+        input.focus();
+      }
+    }
+  } catch (e) {
+    alert('STT error: ' + e.message);
+  } finally {
+    if (input) { input.placeholder = ''; input.disabled = false; }
+    usingServerStt = false;
   }
 }
 
@@ -2901,6 +3054,11 @@ function startVoice() {
 }
 
 function stopVoice() {
+  if (usingServerStt) {
+    // Server-side STT path — stop MediaRecorder, the onstop handler completes the flow.
+    try { mediaRecorder?.stop(); } catch {}
+    return;
+  }
   if (recognition) {
     recognition.stop();
     recognition = null;
@@ -3015,6 +3173,9 @@ function toggleSidebar() {
     document.getElementById('sidebarExpandBtn')?.classList.add('visible');
   }
 })();
+
+// Voice config + auto-play
+loadVoiceServerConfig();
 </script>
 
 <!-- Session Picker Modal -->

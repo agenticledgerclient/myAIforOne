@@ -119,6 +119,7 @@ export interface AgentConfig {
   platformAgent?: boolean;     // DEPRECATED — use agentClass instead
   agentClass?: "standard" | "platform" | "builder" | "gym" | "board";  // standard (default), platform (Lab creators), builder (app developer agents), gym (AI Gym agents), board (board-only widget agents)
   executor?: string;  // "claude" (default) or "ollama:modelname" (e.g., "ollama:gemma2")
+  voice?: string;     // override platform default voice — provider id or "provider:voiceId" (e.g., "grok:Eve"). Empty/undef = use platform default
   shared?: boolean;   // true = shared agent (multi-user); agentHome lives under SharedAgents/ root
   conversationLogMode?: "shared" | "per-user";  // "shared" (default) = one log for all users; "per-user" = separate log per sender
   avatar?: string;           // avatar identifier (e.g., "avatar-01" or emoji)
@@ -154,7 +155,12 @@ export interface ServiceConfig {
   multiModelEnabled?: boolean;      // false = claude only, true = enables alternative models
   platformDefaultExecutor?: string; // "claude" (default) or "ollama:gemma2" etc.
   ollamaBaseUrl?: string;           // default: "http://localhost:11434"
-  providerKeys?: Record<string, string>; // provider API keys: { openai: "sk-...", xai: "xai-...", google: "AIza...", groq: "gsk_...", together: "...", mistral: "..." }
+  providerKeys?: Record<string, string>; // provider API keys: { openai: "sk-...", xai: "xai-...", google: "AIza...", groq: "gsk_...", together: "...", mistral: "...", elevenlabs: "..." }
+  // ─── Voice Mode (Phase 1: Web UI TTS + STT) ───
+  voiceModeEnabled?: boolean;        // false (default) = voice features hidden; true = enables TTS/STT in Web UI
+  platformDefaultVoice?: string;     // provider id or "provider:voiceId" — e.g., "browser", "grok", "grok:Ara". Default: "browser"
+  voiceAutoPlay?: boolean;           // false (default) = user clicks Play; true = agent replies auto-play
+  voiceMaxChars?: number;            // truncate TTS input to this many chars (default: 2000)
   gymEnabled?: boolean;                   // false = gym hidden, true = gym active
   aibriefingEnabled?: boolean;            // false = no AI briefing feed, true = weekly AI news via web search
   gymOnlyMode?: boolean;

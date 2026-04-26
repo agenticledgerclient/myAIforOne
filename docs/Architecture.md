@@ -315,6 +315,76 @@ Per-agent override:
 
 When `multiModelEnabled` is `false` (the default), the entire Ollama path is disabled. All agents use `claude -p` regardless of their `executor` field.
 
+## Voice Mode (TTS / STT)
+
+Voice Mode mirrors the multi-model executor pattern: an opt-in service flag, a pluggable provider registry, a platform default with per-agent override, and a hard fallback to a free, always-available baseline (the browser Web Speech API).
+
+### Provider Registry
+
+Providers live under `src/voice/providers/`. Each implements a small interface (`isConfigured()`, `serverSide`, `listVoices()`, `defaultVoice()`, `tts()`, `stt()`). The registry is built from `buildVoiceRegistry(config)` in `src/voice/registry.ts` and re-reads the API key on every call so rotating `providerKeys.xai` flips Grok's `configured` state immediately — no restart.
+
+| Provider | `serverSide` | Configured when | Notes |
+|----------|--------------|-----------------|-------|
+| `browser` | `false` | always | Web Speech API in the user's browser. TTS via `SpeechSynthesisUtterance`, STT via `webkitSpeechRecognition`. The server-side `tts()`/`stt()` methods deliberately throw — the executor must keep this off the wire. |
+| `grok` | `true` | `service.providerKeys.xai` is set | xAI API at `https://api.x.ai/v1/tts` and `/v1/stt`. 5 voices: `ara` (default), `eve`, `leo`, `rex`, `sal`. Voice ids are normalized to lowercase before sending. Text is truncated to 15,000 chars at the provider boundary. |
+
+### Resolution Chain
+
+`registry.resolve(agentId?)` returns `{ provider, voiceId? }` via:
+
+1. **Agent override** — `agent.voice` parsed via `parseVoiceSpec()` (`"grok"` | `"grok:Eve"` | `"browser"`). If the resolved provider isn't configured, the override is dropped.
+2. **Platform default** — `service.platformDefaultVoice`, same parser.
+3. **Hard fallback** — `browser`.
+
+When a fallback crosses provider boundaries (e.g. `grok:Eve` → browser because xAI key is missing), the `voiceId` is dropped — `Eve` is meaningless to the browser provider.
+
+### HTTP Surface
+
+| Endpoint | Behavior |
+|----------|----------|
+| `GET /api/voice-config` | Returns the snapshot: `enabled`, `defaultProvider`, `defaultVoiceId?`, `autoPlay`, `maxChars`, and `providers[]` with `configured`/`serverSide`/`voices`. **Never includes API keys.** |
+| `GET /api/voices` | Lists voices for the resolved provider (optionally scoped by `?provider=` or `?agentId=`). |
+| `POST /api/tts` | If the resolved provider is `serverSide: false`, returns `{ clientSide: true, provider, voiceId? }` JSON so the page synthesizes locally. Otherwise streams audio bytes back with `X-Voice-Provider`, `X-Voice-Voice-Id`, `X-Voice-Characters` response headers. Returns 503 when `voiceModeEnabled` is false. |
+| `POST /api/stt` | Accepts raw audio bytes (Content-Type carries the codec, e.g. `audio/webm`). Forwards to `provider.stt()`. Returns `{ text, language?, durationSeconds? }`. |
+
+### Client Wiring
+
+`public/index.html` lazily loads `/api/voice-config` once on page load and caches it in a `voiceServerConfig` global. The chat surface adds a 🔊 button to each agent reply when `enabled`; clicking it routes through `speakText()` which:
+
+1. POSTs to `/api/tts`. If the response is JSON with `clientSide: true`, falls back to `SpeechSynthesisUtterance`.
+2. Otherwise plays the returned audio bytes via an `Audio` element.
+
+The 🎤 dictation button picks its path via `shouldUseServerStt()`. If the resolved provider is server-side, the page uses `MediaRecorder` to capture a blob and POSTs it to `/api/stt`; otherwise it uses the browser's `webkitSpeechRecognition`.
+
+### MCP Tools
+
+| Tool | Purpose |
+|------|---------|
+| `list_voices` | Snapshot of the voice config or the voice list for a specific provider/agent |
+| `set_platform_voice` | Update `voiceModeEnabled`, `platformDefaultVoice`, `voiceAutoPlay`, `voiceMaxChars` |
+| `set_agent_voice` | Set/clear an agent's `voice` override |
+| `test_voice` | Invoke `/api/tts` and return a result summary (no audio bytes dumped into the tool transcript) |
+
+### Config
+
+Service-level settings:
+```json
+"service": {
+  "voiceModeEnabled": true,
+  "platformDefaultVoice": "grok:Ara",
+  "voiceAutoPlay": false,
+  "voiceMaxChars": 2000,
+  "providerKeys": { "xai": "xai-..." }
+}
+```
+
+Per-agent override:
+```json
+"voice": "grok:Eve"
+```
+
+When `voiceModeEnabled` is `false` (the default), `/api/tts` and `/api/stt` reject with 503 and the chat hides the 🔊 / 🎤 controls.
+
 ## Skills
 
 Skills are markdown instruction files in `~/.claude/commands/`. In an interactive terminal session, Claude loads these via the `Skill` tool. Since `claude -p` doesn't have the `Skill` tool, the gateway uses a workaround:
@@ -765,6 +835,7 @@ channelToAgentToClaude/           # The gateway project
   "advancedMemory": true,
   "perSenderSessions": false,
   "skills": ["opcodereview", "sop_pdf"],
+  "voice": "grok:Eve",
   "mentionAliases": ["@agentmgr"],
   "autoCommit": false,
   "allowedTools": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"],

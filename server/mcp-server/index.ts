@@ -82,6 +82,7 @@ server.tool("create_agent", "Create a new agent with full configuration", {
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
   agentClass: z.enum(["standard", "platform", "builder", "board"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents), board (board-only widget agents)"),
   executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
+  voice: z.string().optional().describe("Voice override: provider id (e.g. 'browser', 'grok') or 'provider:voiceId' (e.g. 'grok:Eve'). Requires voiceModeEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
   shared: z.boolean().optional().describe("Create as a shared agent (multi-user). Agent home is created under SharedAgents/ instead of PersonalAgents/."),
@@ -124,6 +125,7 @@ server.tool("update_agent", "Update an existing agent's configuration", {
   heartbeatInstructions: z.string().optional().describe("Custom heartbeat instructions — saved to heartbeat.md. Defines what the agent does during a heartbeat check."),
   agentClass: z.enum(["standard", "platform", "builder", "board"]).optional().describe("Agent class: standard (default), platform (Lab creators), builder (app developer agents), board (board-only widget agents)"),
   executor: z.string().optional().describe("Executor override: 'claude' (default) or 'ollama:<model>' (e.g. 'ollama:gemma2'). Requires multiModelEnabled in service config."),
+  voice: z.string().optional().describe("Voice override: provider id (e.g. 'browser', 'grok') or 'provider:voiceId' (e.g. 'grok:Eve'). Requires voiceModeEnabled in service config."),
   wiki: z.boolean().optional().describe("Enable wiki knowledge base for this agent"),
   wikiSync: z.object({ enabled: z.boolean().optional(), schedule: z.string().optional() }).optional().describe("Wiki sync config: { enabled, schedule (cron expression, default '0 0 * * *') }"),
   conversationLogMode: z.enum(["shared", "per-user"]).optional().describe("Update conversation log mode: 'shared' (one log for all users) or 'per-user' (separate log per sender)."),
@@ -489,6 +491,10 @@ server.tool("update_service_config", "Update service settings (restart required)
   multiModelEnabled: z.boolean().optional().describe("Enable/disable multi-model support via Ollama"),
   platformDefaultExecutor: z.string().optional().describe("Default executor for all agents (e.g. 'claude' or 'ollama:gemma2')"),
   ollamaBaseUrl: z.string().optional().describe("Ollama API base URL (default: http://localhost:11434)"),
+  voiceModeEnabled: z.boolean().optional().describe("Enable/disable Voice Mode (TTS + STT) features in the Web UI"),
+  platformDefaultVoice: z.string().optional().describe("Default voice spec — provider id (e.g. 'browser', 'grok') or 'provider:voiceId' (e.g. 'grok:Ara')"),
+  voiceAutoPlay: z.boolean().optional().describe("Auto-play agent replies as audio when voice mode is on"),
+  voiceMaxChars: z.number().optional().describe("Truncate TTS input to this many characters (default 2000, max 15000)"),
 }, async (body) => {
   const r = await api.updateServiceConfig(body);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
@@ -500,6 +506,87 @@ server.tool("test_provider", "Test an API key for a cloud provider (OpenAI, Grok
   const r = await api.testProvider(provider);
   return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
 });
+
+// ═══════════════════════════════════════════════════════════════════
+//  VOICE MODE (TTS + STT)
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool(
+  "list_voices",
+  "List available voice providers and voices. Returns full snapshot when no provider specified, or one provider's voices when specified.",
+  {
+    provider: z.string().optional().describe("Filter to one provider: 'browser', 'grok', etc."),
+    agentId: z.string().optional().describe("Resolve effective voice for a specific agent (uses agent override → platform default → fallback)"),
+  },
+  async ({ provider, agentId }) => {
+    if (provider || agentId) {
+      const r = await api.listVoices(provider, agentId);
+      return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+    }
+    const r = await api.getVoiceConfig();
+    return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+  }
+);
+
+server.tool(
+  "set_platform_voice",
+  "Set the platform default voice. Pass provider id ('browser', 'grok') or 'provider:voiceId' (e.g. 'grok:Ara'). Optionally enable voice mode in the same call.",
+  {
+    voice: z.string().describe("Voice spec: 'browser', 'grok', 'grok:Ara', etc."),
+    enable: z.boolean().optional().describe("Also set voiceModeEnabled to true"),
+    autoPlay: z.boolean().optional().describe("Set voiceAutoPlay flag"),
+    maxChars: z.number().optional().describe("Set voiceMaxChars (default 2000)"),
+  },
+  async ({ voice, enable, autoPlay, maxChars }) => {
+    const body: any = { platformDefaultVoice: voice };
+    if (enable !== undefined) body.voiceModeEnabled = enable;
+    if (autoPlay !== undefined) body.voiceAutoPlay = autoPlay;
+    if (maxChars !== undefined) body.voiceMaxChars = maxChars;
+    const r = await api.updateServiceConfig(body);
+    return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+  }
+);
+
+server.tool(
+  "set_agent_voice",
+  "Set a per-agent voice override. Pass empty string to clear and use the platform default.",
+  {
+    agentId: z.string().describe("Agent ID"),
+    voice: z.string().describe("Voice spec: provider id ('grok'), 'provider:voiceId' ('grok:Eve'), or '' to clear"),
+  },
+  async ({ agentId, voice }) => {
+    const r = await api.updateAgent(agentId, { voice: voice || undefined });
+    return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+  }
+);
+
+server.tool(
+  "test_voice",
+  "Synthesize a sample voice line via the configured TTS provider. Returns audio (base64) on success or { clientSide: true } when the resolved provider is the browser.",
+  {
+    text: z.string().optional().describe("Text to speak (default: 'Hello, this is a sample of the selected voice.')"),
+    provider: z.string().optional().describe("Provider override: 'browser', 'grok'. Defaults to platform/agent resolution."),
+    voiceId: z.string().optional().describe("Voice id within the provider (e.g. 'Ara')"),
+    agentId: z.string().optional().describe("Resolve voice as if speaking for this agent"),
+  },
+  async ({ text, provider, voiceId, agentId }) => {
+    const r = await api.ttsTest(text || "Hello, this is a sample of the selected voice.", provider, voiceId, agentId);
+    // Don't dump the full base64 audio in the textual response — summarize.
+    if (r.audioBase64) {
+      const summary = {
+        ok: true,
+        provider: r.provider,
+        voiceId: r.voiceId,
+        characters: r.characters,
+        bytes: r.bytes,
+        contentType: r.contentType,
+        note: "Audio bytes returned (base64) — playback must happen in the client.",
+      };
+      return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+    }
+    return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+  }
+);
 
 // ═══════════════════════════════════════════════════════════════════
 //  PROFILE

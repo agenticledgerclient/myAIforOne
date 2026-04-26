@@ -209,6 +209,46 @@ export const updateServiceConfig = (body: any) =>
 export const testProvider = (provider: string) =>
   api("/api/config/provider-test", { method: "POST", body: { provider } });
 
+// ─── Voice (TTS / STT) ──────────────────────────────────────────────
+export const getVoiceConfig = () => api("/api/voice-config");
+export const listVoices = (provider?: string, agentId?: string) =>
+  api("/api/voices", { query: { provider, agentId } });
+/**
+ * Generate TTS audio. Returns a base64-encoded data URL on success when audio
+ * is produced server-side, or `{ clientSide: true, ... }` for the browser
+ * provider. Used by the `test_voice` MCP tool.
+ */
+export async function ttsTest(text: string, providerOverride?: string, voiceOverride?: string, agentId?: string): Promise<any> {
+  const url = `${getBaseUrl()}/api/tts`;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const apiToken = getApiToken();
+  if (apiToken) headers["Authorization"] = `Bearer ${apiToken}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ text, providerOverride, voiceOverride, agentId }),
+  });
+  const ct = res.headers.get("content-type") || "";
+  if (!res.ok) {
+    const errText = await res.text();
+    try { return { ok: false, error: JSON.parse(errText).error || errText }; }
+    catch { return { ok: false, error: errText }; }
+  }
+  if (ct.includes("application/json")) {
+    return { ok: true, ...(await res.json()) };
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  return {
+    ok: true,
+    bytes: buf.length,
+    contentType: ct,
+    provider: res.headers.get("X-Voice-Provider") || undefined,
+    voiceId: res.headers.get("X-Voice-Voice-Id") || undefined,
+    characters: Number(res.headers.get("X-Voice-Characters") || 0) || undefined,
+    audioBase64: buf.toString("base64"),
+  };
+}
+
 // ─── Profile ────────────────────────────────────────────────────────
 export const getProfile = () => api("/api/profile");
 export const updateProfile = (body: any) => api("/api/profile", { method: "PUT", body });

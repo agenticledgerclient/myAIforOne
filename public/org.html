@@ -1460,6 +1460,21 @@ text-decoration:none;}
         <div class="form-hint">Override the platform default executor. Supports Claude, Ollama, OpenAI, Grok, Gemini, Groq, Together, Mistral. Requires multi-model enabled + API key in Admin → Settings.</div>
       </div>
 
+      <!-- Voice override -->
+      <div class="form-group" id="voice-form-group" style="display:none">
+        <label class="form-label">Voice (override)</label>
+        <div style="display:flex;gap:8px">
+          <select class="form-input" id="f-voice-provider" style="flex:1" onchange="onAgentVoiceProviderChange()">
+            <option value="">Use platform default</option>
+          </select>
+          <select class="form-input" id="f-voice-id" style="flex:1">
+            <option value="">Provider default</option>
+          </select>
+          <button type="button" class="add-entry-btn" style="white-space:nowrap" onclick="testAgentVoice()">▶ Test</button>
+        </div>
+        <div class="form-hint">Override the platform default voice for this agent's TTS. Requires Voice Mode enabled in Admin → Settings.</div>
+      </div>
+
       <!-- Shared Agent (hidden when sharedAgents feature is off) -->
       <div id="sharedAgentSection" style="display:none">
         <div class="form-section" style="color:var(--accent)">Shared Agent</div>
@@ -3264,6 +3279,105 @@ async function loadExecutorOptions(currentValue) {
   sel.value = currentValue || '';
 }
 
+// ── Voice override (per-agent) ──
+let _agentVoiceCache = null;
+
+async function loadAgentVoiceOptions(currentSpec) {
+  const wrap = document.getElementById('voice-form-group');
+  const provSel = document.getElementById('f-voice-provider');
+  const voiceSel = document.getElementById('f-voice-id');
+  if (!wrap || !provSel || !voiceSel) return;
+  try {
+    const r = await fetch('/api/voice-config');
+    if (!r.ok) { wrap.style.display = 'none'; return; }
+    _agentVoiceCache = await r.json();
+    if (!_agentVoiceCache.enabled) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    provSel.innerHTML = '<option value="">Use platform default</option>';
+    for (const p of _agentVoiceCache.providers) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name + (p.configured ? '' : ' (not configured)');
+      provSel.appendChild(opt);
+    }
+    // Parse current spec
+    const parsed = parseVoiceSpec(currentSpec);
+    provSel.value = parsed?.providerId || '';
+    populateAgentVoiceList(provSel.value, parsed?.voiceId);
+  } catch (e) {
+    wrap.style.display = 'none';
+  }
+}
+
+function parseVoiceSpec(spec) {
+  if (!spec) return null;
+  const trimmed = String(spec).trim();
+  if (!trimmed) return null;
+  const idx = trimmed.indexOf(':');
+  if (idx === -1) return { providerId: trimmed };
+  return { providerId: trimmed.slice(0, idx), voiceId: trimmed.slice(idx + 1) || undefined };
+}
+
+function populateAgentVoiceList(providerId, selected) {
+  const sel = document.getElementById('f-voice-id');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Provider default</option>';
+  if (!providerId || !_agentVoiceCache) return;
+  const p = _agentVoiceCache.providers.find(x => x.id === providerId);
+  if (!p) return;
+  for (const v of (p.voices || [])) {
+    const opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.name + (v.description ? ` — ${v.description}` : '');
+    sel.appendChild(opt);
+  }
+  if (selected) sel.value = selected;
+}
+
+function onAgentVoiceProviderChange() {
+  const provSel = document.getElementById('f-voice-provider');
+  populateAgentVoiceList(provSel.value);
+}
+
+function buildAgentVoiceSpec() {
+  const provSel = document.getElementById('f-voice-provider');
+  const voiceSel = document.getElementById('f-voice-id');
+  if (!provSel) return undefined;
+  const provider = (provSel.value || '').trim();
+  if (!provider) return undefined; // use platform default
+  const voiceId = (voiceSel?.value || '').trim();
+  return voiceId ? `${provider}:${voiceId}` : provider;
+}
+
+async function testAgentVoice() {
+  const provSel = document.getElementById('f-voice-provider');
+  const voiceSel = document.getElementById('f-voice-id');
+  const provider = (provSel?.value || '').trim();
+  const voiceId = (voiceSel?.value || '').trim();
+  if (!provider) { alert('Pick a provider first (or leave blank to use platform default — test from Admin Settings instead)'); return; }
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text: 'Hello, this is a sample of the selected voice.', providerOverride: provider, voiceOverride: voiceId || undefined })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'TTS test failed'); return;
+    }
+    const ct = res.headers.get('Content-Type') || '';
+    if (ct.includes('application/json')) {
+      const data = await res.json();
+      if (data.clientSide && window.speechSynthesis) {
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(data.text || 'Test'));
+      }
+    } else {
+      const blob = await res.blob();
+      const audio = new Audio(URL.createObjectURL(blob));
+      audio.play();
+    }
+  } catch (e) { alert('TTS test error: ' + e.message); }
+}
+
 // ── Avatar Picker ──
 function initAvatarGrid() {
   const grid = document.getElementById('avatarGrid');
@@ -3429,6 +3543,9 @@ async function openModal(agentId) {
 
     // Executor
     loadExecutorOptions(a.executor || '');
+
+    // Voice (override)
+    loadAgentVoiceOptions(a.voice || '');
 
     // Auto Commit
     const commitPill = document.getElementById('f-autoCommit');
@@ -4873,6 +4990,7 @@ async function saveAgent() {
   const boardEnabled = document.getElementById('f-boardEnabled')?.checked || false;
   const boardLayout = document.getElementById('f-boardLayout')?.value || undefined;
   const executor = document.getElementById('f-executor')?.value || undefined;
+  const voice = buildAgentVoiceSpec();
   const shared = document.getElementById('f-shared')?.checked || false;
   const conversationLogMode = document.getElementById('f-conversationLogMode')?.value || 'shared';
   const skills = getSelectedSkills();
@@ -4938,7 +5056,7 @@ async function saveAgent() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, heartbeatInstructions, heartbeatCron, heartbeatEnabled, shared: shared || undefined, conversationLogMode: shared ? conversationLogMode : undefined, avatar, boardEnabled: boardEnabled || undefined, boardLayout }),
+      body: JSON.stringify({ agentId, name, description, alias, workspace, persistent, streaming, advancedMemory, wiki, wikiSync, autonomousCapable, autoCommit, timeout, tools, mcps, skills: skills.length > 0 ? skills : undefined, agentSkills: agentSkills.length > 0 ? agentSkills : undefined, routes, org, cron, goals, instructions: instructions || undefined, claudeAccount, agentClass, executor, voice, heartbeatInstructions, heartbeatCron, heartbeatEnabled, shared: shared || undefined, conversationLogMode: shared ? conversationLogMode : undefined, avatar, boardEnabled: boardEnabled || undefined, boardLayout }),
     });
     const data = await res.json();
 
