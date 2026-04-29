@@ -279,6 +279,40 @@
     display: none !important;
   }
 
+  /* ─── Topbar tabs: hide rarely-used routes on mobile ──────── */
+  .tab-btn[href="/library"],
+  .tab-btn[href="/lab"] {
+    display: none !important;
+  }
+
+  /* ─── Chat header actions (home2 + index) ─────────────────── */
+  /* Hide Reset, Files, Canvas on mobile — keep Configure only.
+     Reset is destructive, Files/Canvas are unusable at phone width. */
+  #resetBtn,
+  #fileDrawerBtn,
+  #canvasBtn,
+  .chat-header-actions .canvas-toggle-btn,
+  .chat-header-actions .header-btn.danger {
+    display: none !important;
+  }
+
+  /* ─── Chat input action buttons ───────────────────────────── */
+  /* home2 chat input: hide agents drawer (☰) and raw logs (⌘).
+     Drawer is already reachable via the topbar hamburger; raw logs
+     is a debug feature, not useful on a phone. Keep 📎 🎤 🔇. */
+  .chat-input-home-box .input-action[onclick*="toggleDrawer"],
+  .chat-input-home-box .input-action[onclick*="toggleLogs"] {
+    display: none !important;
+  }
+  /* index.html chat input: hide raw-logs button (⌘) */
+  #rawLogsBtn {
+    display: none !important;
+  }
+  /* Reclaim the freed space for the textarea */
+  .chat-input-home-box, .chat-input-box {
+    gap: 4px !important;
+  }
+
 }
 
 /* ─── Tablet-only: 769px–1024px (modest tweaks) ────────────────── */
