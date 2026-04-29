@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="/canvas.css">
-<link rel="stylesheet" href="/mobile.css">
+<link rel="stylesheet" href="/mobile.css?v=5">
 <script src="/canvas.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1009,6 +1009,30 @@ let isThinking = false;   // kept for non-streaming code paths
 let streamingText = '';
 let streamingStatus = '';
 let streamingTools = [];
+
+// ─── Typewriter (fake streaming) ──────────────────────────────
+const typedMsgKeys = new Set(); // tracks which messages have been typed already
+let typewriterTimer = null;
+
+function typewriteMessage(el, plainText, fullHtml) {
+  if (typewriterTimer) { clearTimeout(typewriterTimer); typewriterTimer = null; }
+  let idx = 0;
+  const CHARS_PER_TICK = 12; // tune: higher = faster
+  const TICK_MS = 16;        // ~60fps
+  function tick() {
+    idx = Math.min(idx + CHARS_PER_TICK, plainText.length);
+    el.firstElementChild.textContent = plainText.slice(0, idx);
+    if (idx < plainText.length) {
+      typewriterTimer = setTimeout(tick, TICK_MS);
+    } else {
+      // Snap to full formatted HTML
+      el.firstElementChild.innerHTML = fullHtml;
+      typewriterTimer = null;
+      scrollChat();
+    }
+  }
+  tick();
+}
 
 // ─── Voice read-back mode ─────────────────────────────
 let voiceModeOn = false;          // user toggled auto-play on this tab
@@ -2281,6 +2305,27 @@ function updateMessages() {
 
   chatEl.innerHTML = html;
 
+  // Typewriter effect on the last agent message if it's new
+  if (messages.length && !streamingText && !isThinking) {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role === 'agent') {
+      const msgKey = key + '|' + (messages.length - 1);
+      if (!typedMsgKeys.has(msgKey)) {
+        typedMsgKeys.add(msgKey);
+        const agentMsgEls = chatEl.querySelectorAll('.msg-agent:not(#streamingMsg)');
+        const lastEl = agentMsgEls[agentMsgEls.length - 1];
+        if (lastEl && lastEl.firstElementChild) {
+          const fullHtml = lastEl.firstElementChild.innerHTML;
+          const plainText = lastEl.firstElementChild.textContent || '';
+          if (plainText.length > 20) { // skip tiny messages
+            lastEl.firstElementChild.textContent = '';
+            typewriteMessage(lastEl, plainText, fullHtml);
+          }
+        }
+      }
+    }
+  }
+
   // Update input buttons (stop/queue) without touching textarea
   updateInputButtons(ss);
 }
@@ -3183,9 +3228,10 @@ function toggleSidebar() {
   if (expandBtn) expandBtn.classList.toggle('visible', isCollapsed);
   localStorage.setItem('sidebarCollapsed', isCollapsed);
 }
-// Restore sidebar state
+// Restore sidebar state (auto-collapse on mobile so it doesn't cover the screen)
 (function() {
-  if (localStorage.getItem('sidebarCollapsed') === 'true') {
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  if (localStorage.getItem('sidebarCollapsed') === 'true' || isMobile) {
     document.querySelector('.sidebar')?.classList.add('collapsed');
     document.getElementById('sidebarExpandBtn')?.classList.add('visible');
   }
