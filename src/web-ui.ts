@@ -2084,9 +2084,9 @@ export function startWebUI(opts: WebUIOptions): void {
         try {
           const stat = statSync(logPath);
           if (stat.size > 0) {
-            // Read only the last 1KB to get the last line instead of the entire file
+            // Read only the last 16KB to get the last line instead of the entire file
             const fd = require("node:fs").openSync(logPath, "r");
-            const readSize = Math.min(stat.size, 1024);
+            const readSize = Math.min(stat.size, 16384);
             const buf = Buffer.alloc(readSize);
             require("node:fs").readSync(fd, buf, 0, readSize, stat.size - readSize);
             require("node:fs").closeSync(fd);

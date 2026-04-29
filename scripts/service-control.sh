@@ -62,7 +62,7 @@ case "$1" in
     ;;
   restart)
     do_stop
-    sleep 1
+    sleep 3
     do_start
     ;;
 esac
