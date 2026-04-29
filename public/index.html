@@ -1735,7 +1735,7 @@ let filtersInitialized = false;
 function buildFilterDropdowns() {
   const orgSet = new Set();
   for (const a of agents) {
-    if ((a.agentClass || 'standard') !== 'standard') continue;
+    if ((a.agentClass || 'standard') === 'board') continue;
     for (const o of (a.org || [])) {
       if (o.organization) orgSet.add(o.organization);
     }
@@ -1755,7 +1755,7 @@ function getFilteredAgents() {
   const query = (document.getElementById('sidebarSearch')?.value || '').toLowerCase().trim();
   const orgFilter = document.getElementById('sidebarOrgFilter')?.value || '';
 
-  let result = agents.filter(a => (a.agentClass || 'standard') === 'standard');
+  let result = agents.filter(a => (a.agentClass || 'standard') !== 'board');
 
   if (query) {
     result = result.filter(a =>
