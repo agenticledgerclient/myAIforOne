@@ -175,7 +175,8 @@ text-decoration:none;}
 }
 .function-box{
   background:var(--bg-card);border:1px solid var(--border-glow);
-  border-radius:16px;padding:0;min-width:280px;max-width:520px;
+  border-radius:16px;padding:0;min-width:320px;max-width:360px;
+  flex:1 1 340px;
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   box-shadow:var(--shadow);overflow:hidden;
   transition:all .3s;
@@ -201,13 +202,34 @@ text-decoration:none;}
   margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
 }
 .function-body{padding:16px}
-.function-body .agent-node{margin-bottom:12px}
+.function-body .agent-node{margin-bottom:12px;width:100% !important}
 .function-body .agent-node:last-child{margin-bottom:0}
 .function-body .agent-node.is-lead{
   border-color:var(--accent);
 }
 .function-body .agent-node.is-lead .node-title::after{
   content:' ★';color:var(--amber);
+}
+
+/* ─── Soft department grouping zones (hierarchy view) ─── */
+.dept-zone{
+  display:flex;gap:20px;flex-wrap:wrap;justify-content:center;
+  position:relative;
+  padding:14px 18px 10px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.015);
+  border:1px solid rgba(255,255,255,0.03);
+}
+[data-theme="light"] .dept-zone{
+  background:rgba(0,0,0,0.015);
+  border-color:rgba(0,0,0,0.04);
+}
+.dept-zone-label{
+  width:100%;text-align:center;
+  font-family:var(--font-mono);font-size:9px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);opacity:0.8;
+  margin-bottom:6px;
 }
 
 /* Connector between function boxes */
@@ -674,6 +696,9 @@ text-decoration:none;}
 .remote-file-name{flex:1;font-size:13px;color:var(--text-primary);font-family:var(--font-mono)}
 .remote-file-size{font-size:11px;color:var(--text-muted)}
 .remote-file-dl{padding:4px 10px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer}
+.remote-file-copy{padding:4px 8px;border-radius:5px;border:1px solid var(--border-dim);background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;opacity:0;transition:opacity .15s}
+.remote-file-item:hover .remote-file-copy{opacity:1}
+.remote-file-copy:hover{color:var(--accent);border-color:var(--accent)}
 
 /* ─── List/Table View ─────────────────────────────────────────── */
 .list-view{padding:20px}
@@ -1856,7 +1881,7 @@ let visibleClasses = (function() {
   try { const s = JSON.parse(localStorage.getItem('orgVisibleClasses')); if (Array.isArray(s)) return new Set(s); } catch {}
   return new Set(['standard', 'platform', 'gym']);
 })();
-let viewMode = localStorage.getItem('orgViewMode') || 'grid'; // 'grid' | 'compact' | 'list'
+let viewMode = localStorage.getItem('orgViewMode') || 'grid'; // 'grid' | 'compact' | 'list' | 'department'
 let orgs = [];
 let availableMcps = [];
 let availableSkills = []; // { id, name, installed, isPlatformDefault }
@@ -2218,6 +2243,36 @@ function renderOrg() {
     return;
   }
 
+  // Department view: group agents by function/department
+  if (viewMode === 'department') {
+    const deptMap = {};
+    for (const a of nodesInOrg) {
+      const dept = a.orgData?.function || 'General';
+      if (!deptMap[dept]) deptMap[dept] = [];
+      deptMap[dept].push(a);
+    }
+    let html = renderOrgBanner(selected, selHidden);
+    html += '<div class="org-grid">';
+    for (const dept of Object.keys(deptMap).sort()) {
+      const members = deptMap[dept].sort((a,b) => (a.name||a.id||'').localeCompare(b.name||b.id||''));
+      const deptInitial = dept.charAt(0).toUpperCase();
+      html += `<div class="function-box">
+        <div class="function-header">
+          <div class="function-header-icon">${escapeHtml(deptInitial)}</div>
+          <div class="function-header-name">${escapeHtml(dept)}</div>
+          <div class="function-header-count">${members.length} agent${members.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="function-body">`;
+      for (const a of members) {
+        html += renderNode(a, false, false, selHidden);
+      }
+      html += '</div></div>';
+    }
+    html += '</div>';
+    canvas.innerHTML = html;
+    return;
+  }
+
   // Grid view: tree hierarchy
   const aliasesInOrg = new Set(nodesInOrg.flatMap(n => n.aliases || []));
   const roots = nodesInOrg.filter(n => !n.orgData.reportsTo || !aliasesInOrg.has(n.orgData.reportsTo));
@@ -2253,9 +2308,34 @@ function renderOrg() {
   html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:0 20px 20px">';
   for (let i = 0; i < levels.length; i++) {
     if (i > 0) html += '<div class="level-connector"></div>';
-    html += '<div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">';
-    for (const node of levels[i]) {
-      html += renderNode(node, false, i === 0, selHidden);
+
+    // Group nodes in this level by department function
+    const levelNodes = levels[i];
+    const deptGroups = {};
+    for (const node of levelNodes) {
+      const dept = node.orgData?.function || '';
+      if (!deptGroups[dept]) deptGroups[dept] = [];
+      deptGroups[dept].push(node);
+    }
+    const deptKeys = Object.keys(deptGroups);
+    const hasDepts = deptKeys.length > 1 || (deptKeys.length === 1 && deptKeys[0] !== '');
+    const showZones = hasDepts && levelNodes.length > 2;
+
+    html += '<div style="display:flex;justify-content:center;gap:' + (showZones ? '16' : '24') + 'px;flex-wrap:wrap">';
+    if (showZones) {
+      for (const dept of deptKeys.sort()) {
+        const nodes = deptGroups[dept];
+        html += '<div class="dept-zone">';
+        if (dept) html += '<div class="dept-zone-label">' + escapeHtml(dept) + '</div>';
+        for (const node of nodes) {
+          html += renderNode(node, false, i === 0, selHidden);
+        }
+        html += '</div>';
+      }
+    } else {
+      for (const node of levelNodes) {
+        html += renderNode(node, false, i === 0, selHidden);
+      }
     }
     html += '</div>';
   }
@@ -2269,6 +2349,7 @@ function renderFlatGrid(canvas) {
   if (viewMode === 'cards') return renderCardsGrid(canvas);
   if (viewMode === 'compact') return renderCompactGrid(canvas);
   if (viewMode === 'list') return renderListView(canvas);
+  if (viewMode === 'department') return renderDepartmentGrid(canvas);
 
   const { orgGroups, noOrg } = getFilteredAgents();
 
@@ -2293,6 +2374,36 @@ function renderFlatGrid(canvas) {
     html += '</div>';
   }
 
+  canvas.innerHTML = html;
+}
+
+function renderDepartmentGrid(canvas) {
+  const { orgGroups, noOrg } = getFilteredAgents();
+  const allAgents = [...Object.values(orgGroups).flat(), ...noOrg];
+  const deptMap = {};
+  for (const a of allAgents) {
+    const orgData = a.orgData || (a.org && a.org[0]);
+    const dept = orgData?.function || 'General';
+    if (!deptMap[dept]) deptMap[dept] = [];
+    deptMap[dept].push(a);
+  }
+  let html = '<div class="org-grid">';
+  for (const dept of Object.keys(deptMap).sort()) {
+    const members = deptMap[dept].sort((a,b) => (a.name||a.id||'').localeCompare(b.name||b.id||''));
+    const deptInitial = dept.charAt(0).toUpperCase();
+    html += `<div class="function-box">
+      <div class="function-header">
+        <div class="function-header-icon">${escapeHtml(deptInitial)}</div>
+        <div class="function-header-name">${escapeHtml(dept)}</div>
+        <div class="function-header-count">${members.length} agent${members.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="function-body">`;
+    for (const a of members) {
+      html += renderNode(a, false, false, false);
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
   canvas.innerHTML = html;
 }
 
@@ -5508,15 +5619,29 @@ async function openRemoteFileBrowser(gatewayId, agentId) {
     listEl.innerHTML = files.map(f => {
       const name = f.name || f.path || 'unknown';
       const size = f.size ? `${(f.size / 1024).toFixed(1)} KB` : '';
+      const fullPath = f.path || name;
       return `<div class="remote-file-item">
         <span class="remote-file-name">${escapeHtml(name)}</span>
         <span class="remote-file-size">${size}</span>
-        <button class="remote-file-dl" onclick="downloadRemoteFile('${escapeHtml(gatewayId)}','${escapeHtml(agentId)}','${escapeHtml(f.path || name)}')">Download</button>
+        <button class="remote-file-copy" onclick="copyRemoteFilePath(this,'${encodeURIComponent(fullPath)}')" title="Copy full path">⧉</button>
+        <button class="remote-file-dl" onclick="downloadRemoteFile('${escapeHtml(gatewayId)}','${escapeHtml(agentId)}','${escapeHtml(fullPath)}')">Download</button>
       </div>`;
     }).join('');
   } catch (err) {
     document.getElementById('remoteFileList').textContent = 'Error: ' + err.message;
   }
+}
+
+function copyRemoteFilePath(btn, encodedPath) {
+  const path = decodeURIComponent(encodedPath);
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(path).then(() => {
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = orig; }, 1000);
+  }).catch(() => {
+    btn.textContent = '✗';
+    setTimeout(() => { btn.textContent = orig; }, 1200);
+  });
 }
 
 function downloadRemoteFile(gatewayId, agentId, filePath) {
@@ -5544,6 +5669,7 @@ const agentsSubNav = `
   <div class="agent-controls" id="agentControlsBar">
     <div class="view-toggle" id="viewToggle">
       <button class="view-toggle-btn${viewMode==='grid'?' active':''}" data-view="grid" onclick="setViewMode('grid')" title="Hierarchy view">&#9638;</button>
+      <button class="view-toggle-btn${viewMode==='department'?' active':''}" data-view="department" onclick="setViewMode('department')" title="Group by Department">&#9881;</button>
       <button class="view-toggle-btn${viewMode==='cards'?' active':''}" data-view="cards" onclick="setViewMode('cards')" title="Cards view">&#9642;&#9642;&#9642;</button>
       <button class="view-toggle-btn${viewMode==='compact'?' active':''}" data-view="compact" onclick="setViewMode('compact')" title="Compact view">&#9642;&#9642;</button>
       <button class="view-toggle-btn${viewMode==='list'?' active':''}" data-view="list" onclick="setViewMode('list')" title="List view">&#9776;</button>

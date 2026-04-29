@@ -688,11 +688,24 @@ function renderFileList() {
         </div>
       </div>
       <div class="file-actions">
+        <button class="file-action-btn" onclick="event.stopPropagation();copyFilePath(this,'${enc}')" title="Copy full path">⧉</button>
         <button class="file-action-btn" onclick="event.stopPropagation();downloadAgentFile('${enc}')" title="Download">⬇</button>
       </div>
     </div>`;
   }
   el.innerHTML = html;
+}
+
+function copyFilePath(btn, encodedPath) {
+  const path = decodeURIComponent(encodedPath);
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(path).then(() => {
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = orig; }, 1000);
+  }).catch(() => {
+    btn.textContent = '✗';
+    setTimeout(() => { btn.textContent = orig; }, 1200);
+  });
 }
 
 function downloadAgentFile(encodedPath) {

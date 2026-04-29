@@ -2062,7 +2062,15 @@ export function startWebUI(opts: WebUIOptions): void {
   });
 
   // ─── API: Dashboard ───────────────────────────────────────────────
+  let _dashboardCache: { data: any; ts: number } | null = null;
+  const DASHBOARD_CACHE_MS = 10_000; // cache for 10 seconds
+
   app.get("/api/dashboard", (_req, res) => {
+    const now = Date.now();
+    if (_dashboardCache && (now - _dashboardCache.ts) < DASHBOARD_CACHE_MS) {
+      return res.json({ ..._dashboardCache.data, uptime: process.uptime() });
+    }
+
     const agents = Object.entries(opts.config.agents)
       .map(([id, agent]) => {
       const memoryDir = agent.memoryDir ? resolve(opts.baseDir, agent.memoryDir) : join(getPersonalAgentsDir(), id, "memory");
@@ -2074,11 +2082,22 @@ export function startWebUI(opts: WebUIOptions): void {
 
       if (existsSync(logPath)) {
         try {
-          const lines = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean);
-          messageCount = lines.length;
-          if (lines.length > 0) {
-            const last = JSON.parse(lines[lines.length - 1]);
-            lastMessage = last.ts;
+          const stat = statSync(logPath);
+          if (stat.size > 0) {
+            // Read only the last 1KB to get the last line instead of the entire file
+            const fd = require("node:fs").openSync(logPath, "r");
+            const readSize = Math.min(stat.size, 1024);
+            const buf = Buffer.alloc(readSize);
+            require("node:fs").readSync(fd, buf, 0, readSize, stat.size - readSize);
+            require("node:fs").closeSync(fd);
+            const chunk = buf.toString("utf-8");
+            const lines = chunk.trim().split("\n").filter(Boolean);
+            if (lines.length > 0) {
+              const last = JSON.parse(lines[lines.length - 1]);
+              lastMessage = last.ts;
+            }
+            // Estimate line count from file size (avg ~200 bytes/line)
+            messageCount = Math.max(1, Math.round(stat.size / 200));
           }
         } catch { /* ignore */ }
       }
@@ -2159,9 +2178,7 @@ export function startWebUI(opts: WebUIOptions): void {
       || Object.entries(opts.config.agents).find(([, a]) => a.subAgents)?.[0]
       || (opts.config.agents["hub"] ? "hub" : null);
 
-    log.info(`[Dashboard] defaultAgent=${(opts.config as any).defaultAgent} agentIds=${Object.keys(opts.config.agents).join(",")} resolved=${defaultGroupAgent}`);
-
-    res.json({
+    const result = {
       status: "running",
       uptime: process.uptime(),
       channels,
@@ -2169,7 +2186,10 @@ export function startWebUI(opts: WebUIOptions): void {
       mcpCount: Object.keys(opts.config.mcps || {}).length,
       claudeAccounts: Object.keys(opts.config.service.claudeAccounts || {}),
       defaultGroupAgent,
-    });
+    };
+
+    _dashboardCache = { data: result, ts: Date.now() };
+    res.json(result);
   });
 
   // ─── Legacy dashboard redirect ────────────────────────────────────

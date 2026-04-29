@@ -790,6 +790,9 @@ text-decoration:none;}
 .file-drawer-source.temp{color:var(--text-muted);background:rgba(255,255,255,0.04)}
 .file-drawer-dl{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0}
 .file-drawer-dl:hover{color:var(--accent)}
+.file-drawer-copy{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.file-drawer-item:hover .file-drawer-copy{opacity:1}
+.file-drawer-copy:hover{color:var(--accent)}
 .file-drawer-empty{padding:24px 14px;text-align:center;font-size:12px;color:var(--text-muted)}
 
 .raw-logs-drawer{
@@ -1440,6 +1443,7 @@ function renderFileDrawer() {
           <span class="file-drawer-source ${f.source}">${f.source}</span>
         </div>
       </div>
+      <button class="file-drawer-copy" onclick="event.stopPropagation();fileDrawerCopyPath(this,'${enc}')" title="Copy full path">⧉</button>
       <button class="file-drawer-dl" onclick="event.stopPropagation();downloadFile('${selectedAgent}','${enc}')" title="Download">⬇</button>
     </div>`;
   }).join('');
@@ -1448,6 +1452,18 @@ function renderFileDrawer() {
 function setFileDrawerFilter(f) {
   fileDrawerFilter = f;
   renderFileDrawer();
+}
+
+function fileDrawerCopyPath(btn, encodedPath) {
+  const path = decodeURIComponent(encodedPath);
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(path).then(() => {
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = orig; }, 1000);
+  }).catch(() => {
+    btn.textContent = '✗';
+    setTimeout(() => { btn.textContent = orig; }, 1200);
+  });
 }
 
 function downloadFile(agentId, encodedPath) {

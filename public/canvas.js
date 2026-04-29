@@ -21,6 +21,11 @@ window.Canvas = (function() {
   let _getAgentId = () => '';
   let _escapeHtml = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+  // Presentation (fullscreen) mode state
+  let presentationActive = false;
+  let presentationFiles = [];
+  let presentationIndex = -1;
+
   // ─── Init ───────────────────────────────────────────────────────
   function init(opts) {
     if (opts.getAgentId) _getAgentId = opts.getAgentId;
@@ -82,6 +87,7 @@ window.Canvas = (function() {
   }
 
   function close() {
+    if (presentationActive) exitPresentation();
     canvasOpen = false;
     canvasFile = null;
     const wrap = document.getElementById('chatBodyWrap');
@@ -156,6 +162,7 @@ window.Canvas = (function() {
           <span class="canvas-file-icon">${getFileIcon(ext)}</span>
           <span class="canvas-filename" title="${_escapeHtml(path)}">${_escapeHtml(name)}</span>
           <button class="canvas-header-btn" onclick="Canvas.download('${encodeURIComponent(path)}')" title="Download">&#x2B07;</button>
+          <button class="canvas-header-btn" onclick="Canvas.enterPresentation()" title="Presentation mode">&#x26F6;</button>
           <button class="canvas-header-btn" onclick="Canvas.close()" title="Close">&#x2715;</button>
         </div>
         <div class="canvas-content" id="canvasContent" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted)">
@@ -319,6 +326,97 @@ window.Canvas = (function() {
       const content = document.getElementById('canvasContent');
       if (content) content.innerHTML = `<div style="padding:20px;color:var(--text-muted)">Failed to load file: ${_escapeHtml(err.message)}</div>`;
     }
+  }
+
+  // ─── Presentation (fullscreen) mode ─────────────────────────────
+  async function enterPresentation() {
+    if (!canvasFile) return;
+    const panel = document.getElementById('canvasPanel');
+    if (!panel) return;
+    presentationActive = true;
+    panel.classList.add('canvas-fullscreen');
+    document.body.classList.add('canvas-fullscreen-active');
+    document.addEventListener('keydown', _presentationKeyHandler);
+
+    // Fetch sibling files in same source + folder for prev/next nav
+    presentationFiles = [];
+    presentationIndex = -1;
+    try {
+      const agentId = _getAgentId();
+      if (agentId) {
+        const r = await fetch(`/api/agents/${agentId}/files`);
+        if (r.ok) {
+          const j = await r.json();
+          const all = (j.files || []);
+          const cur = all.find(f => f.path === canvasFile.path);
+          const sameFolder = cur
+            ? all.filter(f => f.source === cur.source && (f.folder || '') === (cur.folder || ''))
+            : all;
+          sameFolder.sort((a, b) => a.name.localeCompare(b.name));
+          presentationFiles = sameFolder;
+          presentationIndex = sameFolder.findIndex(f => f.path === canvasFile.path);
+        }
+      }
+    } catch { /* ignore */ }
+
+    _renderPresentationNav();
+  }
+
+  function exitPresentation() {
+    presentationActive = false;
+    presentationFiles = [];
+    presentationIndex = -1;
+    const panel = document.getElementById('canvasPanel');
+    if (panel) panel.classList.remove('canvas-fullscreen');
+    document.body.classList.remove('canvas-fullscreen-active');
+    const nav = document.getElementById('canvasPresentationNav');
+    if (nav) nav.remove();
+    document.removeEventListener('keydown', _presentationKeyHandler);
+  }
+
+  function _presentationKeyHandler(e) {
+    if (!presentationActive) return;
+    if (e.key === 'Escape') { e.preventDefault(); exitPresentation(); }
+    else if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); presentationNavigate(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); presentationNavigate(-1); }
+  }
+
+  function _renderPresentationNav() {
+    let nav = document.getElementById('canvasPresentationNav');
+    if (!nav) {
+      nav = document.createElement('div');
+      nav.id = 'canvasPresentationNav';
+      nav.className = 'canvas-presentation-nav';
+      document.body.appendChild(nav);
+    }
+    const total = presentationFiles.length;
+    const cur = presentationIndex;
+    const hasPrev = cur > 0;
+    const hasNext = cur >= 0 && cur < total - 1;
+    const counter = total > 0 && cur >= 0
+      ? `${_escapeHtml(canvasFile?.name || '')} &nbsp;·&nbsp; ${cur + 1} / ${total}`
+      : _escapeHtml(canvasFile?.name || '');
+    nav.innerHTML = `
+      <button class="presentation-nav-btn" onclick="Canvas.presentationNavigate(-1)" ${hasPrev ? '' : 'disabled'} title="Previous file (←)">&#x25C0; Prev</button>
+      <span class="presentation-counter">${counter}</span>
+      <button class="presentation-nav-btn" onclick="Canvas.presentationNavigate(1)" ${hasNext ? '' : 'disabled'} title="Next file (→)">Next &#x25B6;</button>
+      <button class="presentation-nav-btn presentation-exit" onclick="Canvas.exitPresentation()" title="Exit presentation (Esc)">&#x2715;</button>
+    `;
+  }
+
+  function presentationNavigate(dir) {
+    if (!presentationActive || presentationFiles.length === 0) return;
+    let idx = presentationIndex + dir;
+    if (idx < 0 || idx >= presentationFiles.length) return;
+    presentationIndex = idx;
+    const next = presentationFiles[idx];
+    // openFile rebuilds panel innerHTML (header + content) but preserves the
+    // panel element + its classList, so the canvas-fullscreen class persists.
+    // The bottom nav lives on document.body, so it also persists — we just
+    // re-render its label/counter to reflect the new file.
+    openFile(encodeURIComponent(next.path)).then(() => {
+      _renderPresentationNav();
+    });
   }
 
   // ─── Download helper ────────────────────────────────────────────
@@ -539,6 +637,7 @@ window.Canvas = (function() {
           <span class="canvas-file-icon">${getFileIcon(canvasFile.ext)}</span>
           <span class="canvas-filename" title="${_escapeHtml(canvasFile.path)}">${_escapeHtml(canvasFile.name)}</span>
           <button class="canvas-header-btn" onclick="Canvas.download('${encodeURIComponent(canvasFile.path)}')" title="Download">&#x2B07;</button>
+          <button class="canvas-header-btn" onclick="Canvas.enterPresentation()" title="Presentation mode">&#x26F6;</button>
           <button class="canvas-header-btn" onclick="Canvas.close()" title="Close">&#x2715;</button>
         </div>
         <div class="canvas-content" id="canvasContent"></div>
@@ -569,6 +668,9 @@ window.Canvas = (function() {
     currentFile,
     openFile,
     download,
+    enterPresentation,
+    exitPresentation,
+    presentationNavigate,
     navigateSlide,
     sortTable,
     renderSheet: _renderXlsxSheet,
