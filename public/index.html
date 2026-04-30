@@ -2188,7 +2188,7 @@ function renderChat() {
           <div class="chat-header-alias"><span class="${isAgentOrgHidden(agent) ? 'name-blurred' : ''}">${agent.aliases[0] || agent.id}</span> · ${agent._remote ? '<span style="color:#a855f7">☁ '+((agent._gatewayName||'Remote'))+'</span>' : (agent.persistent?'persistent session':'single-shot')}</div>
         </div>
         <div class="chat-header-actions">
-          ${availableAccounts.length > 0 ? `<select class="header-btn" style="padding:2px 6px;font-size:11px;cursor:pointer" onchange="accountOverrides['${agent.id}']=this.value||undefined" title="Claude Account override (in-memory only)">
+          ${availableAccounts.length > 0 ? `<select id="accountSelect" class="header-btn" style="padding:2px 6px;font-size:11px;cursor:pointer" onchange="accountOverrides['${agent.id}']=this.value||undefined" title="Claude Account override (in-memory only)">
             <option value="">${agent.claudeAccount || 'default'}</option>
             ${availableAccounts.filter(a => a !== agent.claudeAccount).map(a => `<option value="${a}" ${accountOverrides[agent.id]===a?'selected':''}>${a}</option>`).join('')}
           </select>` : ''}

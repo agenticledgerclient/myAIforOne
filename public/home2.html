@@ -126,11 +126,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 
 /* ─── Chat State ──────────────────────────────────────── */
 .chat-view{
-  flex:1;display:flex;flex-direction:column;
+  flex:1;display:flex;flex-direction:column;min-height:0;
   opacity:0;pointer-events:none;position:absolute;top:0;left:0;right:0;bottom:0;
-  transition:all 0.5s ease;overflow:hidden;
+  transition:opacity 0.5s ease;overflow:hidden;
 }
-.chat-view.active{opacity:1;pointer-events:all;position:relative}
+.chat-view.active{
+  opacity:1;pointer-events:all;
+  position:relative;top:auto;left:auto;right:auto;bottom:auto;
+}
 
 /* ─── Topbar (matches /ui) ────────────────────────────── */
 .topbar{height:48px;display:flex;align-items:center;padding:0 20px;background:var(--bg-surface);border-bottom:1px solid var(--border-dim);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0;overflow:hidden;max-width:100vw}

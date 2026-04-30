@@ -48,23 +48,24 @@
   .topbar .topbar-hide-mobile { display: none !important; }
 
   /* Hub actions bar (home2): absolute-positioned items would clash.
-     Force single-row layout: avatar + mode toggle + account select. */
+     Allow wrapping so the right cluster (account select) never gets
+     pushed off-screen and clipped by body{overflow-x:hidden}. */
   .hub-actions-bar {
     position: relative !important;
-    flex-wrap: nowrap !important;
+    flex-wrap: wrap !important;
     padding: 4px 6px !important;
     height: auto !important;
     gap: 6px !important;
     align-items: center !important;
+    justify-content: space-between !important;
   }
   .hub-actions-left, .hub-actions-right {
     position: relative !important;
     left: auto !important;
     right: auto !important;
-    flex-shrink: 1 !important;
+    flex-shrink: 0 !important;
     min-width: 0 !important;
   }
-  .hub-actions-right { flex-shrink: 0 !important; }
   /* Hide hub name/sub text (avatar still shows) to save row space */
   .hub-agent-identity > div:not(.hub-agent-avatar) { display: none !important; }
   .hub-agent-name, .hub-agent-sub { display: none !important; }
@@ -76,11 +77,33 @@
     gap: 3px !important;
   }
   .mode-toggle-btn svg { width: 11px !important; height: 11px !important; }
-  /* Compact account select on mobile */
+  /* Compact account select on mobile — applies to both home2
+     (.hub-actions-right) and /ui (chat-header-actions). flex-shrink:0
+     keeps it from being squeezed to 0 width when its row is tight. */
   #accountSelect {
     font-size: 10px !important;
-    max-width: 90px !important;
+    max-width: 110px !important;
     padding: 2px 4px !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+  }
+  /* /ui (index.html): chat-header is a flex row with avatar + info + actions.
+     Without min-width:0 on info, long agent names push the actions
+     cluster (which holds #accountSelect) off-screen where overflow-x:hidden
+     on body silently clips it. */
+  .chat-header { padding: 10px 12px !important; gap: 8px !important; }
+  .chat-header-info { min-width: 0 !important; overflow: hidden !important; }
+  .chat-header-info .chat-header-name,
+  .chat-header-info .chat-header-alias {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .chat-header-actions {
+    flex-shrink: 0 !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
   }
 
   /* ─── Landing input (home2 + index hub) ────────────────────── */
