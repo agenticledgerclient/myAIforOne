@@ -1,0 +1,44 @@
+{
+  "service": {
+    "edition": "lite",
+    "logLevel": "debug",
+    "logFile": "./logs/service.log",
+    "personalAgentsDir": "~/Desktop/MyAIforOne Drive/PersonalAgents",
+    "webUI": {
+      "enabled": true,
+      "port": 4888,
+      "webhookSecret": "CHANGE_ME_random_string"
+    },
+    "claudeAccounts": {
+      "main": "~/.claude"
+    },
+    "maxAgents": 5,
+    "multiModelEnabled": false,
+    "gymEnabled": false,
+    "gymOnlyMode": false,
+    "aibriefingEnabled": false,
+    "sharedAgentsEnabled": false
+  },
+  "channels": {},
+  "mcps": {
+    "myaiforone-lite": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./server/mcp-server-lite/dist/index.js"
+      ],
+      "env": {
+        "MYAGENT_API_URL": "http://localhost:4888",
+        "MYAGENT_REGISTRY_URL": "https://myaiforone.com"
+      }
+    },
+    "myaiforone-registry": {
+      "type": "http",
+      "url": "https://myaiforone.com/mcp/registry"
+    }
+  },
+  "agents": {},
+  "defaultAgent": null,
+  "defaultSkills": [],
+  "defaultMcps": []
+}
