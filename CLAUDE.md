@@ -58,6 +58,16 @@ schtasks /Query /TN MyAIforOneGateway                                           
 powershell -ExecutionPolicy Bypass -File scripts\uninstall-service-windows.ps1  # uninstall
 ```
 
+## MCP Server Connections (IMPORTANT)
+
+Three MCP server connections exist for this gateway. **Always use `myaiforone-local` unless explicitly told otherwise.**
+
+- **`myaiforone-local`** — connects to `localhost:4888`. Has ALL agents (100+). **THIS IS THE DEFAULT. Use this for everything.** All agent queries, message sending, config checks, dashboard reads — always local first.
+- **`myaiforone-remote`** — connects to the Railway remote gateway (~15 agents). **Only use when the user explicitly says "remote".**
+- **`team-agenticledgerhq`** — legacy name, points to Railway (same as remote). **Do NOT use this for local operations.** It exists for backward compatibility but its env is misconfigured for local use.
+
+**Rule:** If you are calling any MCP tool (list_agents, get_agent, send_message, etc.), use the `myaiforone-local` prefixed version. The remote server will return "agent not found" for most agents.
+
 ## Key Architecture
 
 - **Router** (`src/router.ts`): Matches messages by channel + chat ID + mention alias

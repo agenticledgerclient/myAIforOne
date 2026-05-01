@@ -380,29 +380,16 @@
         }
       ]
     },
-    "lightspark-sdk": {
-      "name": "Lightspark SDK",
-      "description": "Lightning Network — Bitcoin payments, invoices, channels, nodes",
-      "category": "crypto",
-      "url": "https://lightsparksdkmcp.agenticledger.ai/mcp",
-      "requiredKeys": [
-        {
-          "env": "LIGHTSPARK_SDK_AUTH",
-          "label": "Lightspark Auth",
-          "hint": "API credentials"
-        }
-      ]
-    },
     "lightspark-grid": {
       "name": "Lightspark Grid",
-      "description": "Lightning Network analytics — network graph, node stats, routing",
+      "description": "Lightning Network — Bitcoin payments, invoices, wallets, nodes, channels, fees, UMA. 29 tools via the official Lightspark Grid MCP.",
       "category": "crypto",
-      "url": "https://lightsparkgridmcp.agenticledger.ai/mcp",
+      "url": "https://grid.lightspark.com/mcp",
       "requiredKeys": [
         {
-          "env": "LIGHTSPARK_GRID_AUTH",
-          "label": "Lightspark Grid Auth",
-          "hint": "API credentials"
+          "env": "LIGHTSPARK_API_KEY",
+          "label": "Lightspark API Key",
+          "hint": "API key from Lightspark dashboard"
         }
       ]
     },

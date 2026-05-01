@@ -25,6 +25,7 @@
     "!agents/platform/*/tasks.json",
     "!agents/platform/*/FileStorage/",
     "config.example.json",
+    "config.lite.json",
     "mcp-catalog.json",
     "mcps/",
     "!mcps/*/node_modules/",
@@ -37,7 +38,7 @@
   "scripts": {
     "postinstall": "node scripts/install-mcps.js",
     "prepublishOnly": "npm run build",
-    "build": "tsc && tsc -p server/mcp-server/tsconfig.json",
+    "build": "tsc && tsc -p server/mcp-server/tsconfig.json && tsc -p server/mcp-server-lite/tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "test-message": "tsx src/test-message.ts",

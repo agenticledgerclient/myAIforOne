@@ -1,11 +1,200 @@
 ---
 name: setup
-description: First-time setup wizard for MyAgent. Detects platform, installs dependencies, generates minimal config, builds, starts the service, and opens the web UI. Channel setup and agent creation happen through the hub agent in the browser.
+description: First-time setup wizard for MyAgent. Detects platform, installs dependencies, generates minimal config, builds, starts the service, and opens the web UI. Edition-aware — detects Pro vs Lite and adjusts the flow accordingly.
 ---
 
 # MyAgent Setup Wizard
 
-Get the user to the web UI as fast as possible. Channel setup and agent creation are handled by the hub agent in the browser — NOT in the terminal.
+Get the user to the web UI as fast as possible.
+
+## Edition Detection (do this FIRST, before showing the plan)
+
+Determine which edition to set up:
+
+1. If `config.json` already exists and contains `"edition": "lite"` — use the **Lite path**
+2. If `config.lite.json` exists in the project root and no `config.json` exists — use the **Lite path** (will copy `config.lite.json` as the base)
+3. Otherwise — use the **Pro path** (default)
+
+Store the result as `EDITION` = `"lite"` or `"pro"` for all subsequent steps.
+
+---
+
+## If EDITION is "lite" → follow the LITE SETUP PATH below
+
+## If EDITION is "pro" → follow the PRO SETUP PATH further below
+
+---
+
+# ========================================
+# LITE SETUP PATH
+# ========================================
+
+Lite setup is simpler and faster — no channels, no creator agents, just the hub-lite agent and the web UI.
+
+## Before You Start (Lite) — Show the Plan
+
+```
+Welcome to MyAIforOne Lite! Here's what we'll do:
+
+  □ 1. Check prerequisites (Node.js, npm)
+  □ 2. Create your MyAIforOne Drive folder
+  □ 3. Generate your config
+  □ 4. Register hub agent
+  □ 5. Build the project
+  □ 6. Start the service & open the web UI
+
+This takes about a minute. Let's go!
+```
+
+## Lite Step 1: Prerequisites & Platform Detection
+
+Same as Pro Step 1 (check Node.js 22+, npm dependencies, detect platform). But do NOT mention iMessage or channel-related notes — Lite has no channels.
+
+After checks pass, print:
+```
+  ✅ 1. Check prerequisites — Node.js [version], [macOS/Windows/Linux]
+  → 2. Create MyAIforOne Drive...
+  □ 3. Generate config
+  □ 4. Register hub agent
+  □ 5. Build the project
+  □ 6. Start the service & open the web UI
+```
+
+## Lite Step 2: Create MyAIforOne Drive
+
+Create a MINIMAL folder structure — only what Lite needs:
+
+### macOS / Linux
+```bash
+mkdir -p "$HOME/Desktop/MyAIforOne Drive/PersonalAgents"
+mkdir -p "$HOME/Desktop/MyAIforOne Drive/PlatformUtilities/hub"/{memory,FileStorage/Temp,FileStorage/Permanent}
+```
+
+### Windows
+```powershell
+@(
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PersonalAgents",
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PlatformUtilities\hub\memory",
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PlatformUtilities\hub\FileStorage\Temp",
+  "$env:USERPROFILE\Desktop\MyAIforOne Drive\PlatformUtilities\hub\FileStorage\Permanent"
+) | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
+```
+
+No PersonalRegistry, no creator agent directories, no gym directory — Lite doesn't use them.
+
+Print progress after completion.
+
+## Lite Step 3: Generate config.json
+
+If `config.json` already exists with `edition: "lite"`, **skip this step** — just generate a fresh webhook secret and update it in place.
+
+If `config.json` does NOT exist, use `config.lite.json` as the base template:
+
+1. Copy `config.lite.json` → `config.json`
+2. Generate a random webhook secret: `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`
+3. Replace the `webhookSecret` value with the generated secret
+4. Ensure these settings are set:
+   - `service.edition`: `"lite"`
+   - `service.webUI.enabled`: `true`, `port`: `4888`
+   - `service.maxAgents`: `5`
+   - `service.gymEnabled`: `false`
+   - `channels`: `{}` (empty — Lite has no channels)
+   - `defaultSkills`: `[]` (empty — Lite doesn't auto-assign skills)
+   - `defaultMcps`: `[]` (empty — Lite doesn't auto-assign MCPs)
+5. Ensure the `myaiforone-lite` MCP entry is present:
+   ```json
+   "myaiforone-lite": {
+     "type": "stdio",
+     "command": "node",
+     "args": ["./server/mcp-server-lite/dist/index.js"],
+     "env": {
+       "MYAGENT_API_URL": "http://localhost:4888",
+       "MYAGENT_REGISTRY_URL": "https://myaiforone.com"
+     }
+   }
+   ```
+6. Do NOT add `myaiforone-local`, `aigym`, `aiforone_computeruse`, or any other Pro MCPs
+7. Write to config.json
+
+**Important:** config.json is in .gitignore — never commit it.
+
+Print progress after completion.
+
+## Lite Step 4: Register Hub-Lite Agent (silent — do NOT ask)
+
+Register ONLY the hub-lite agent in config.json. No creator agents, no gym agent.
+
+- `agentId`: `hub`
+- `name`: `Hub`
+- `description`: "Your AI assistant — chat, discover agents, and install from the Agent Registry."
+- `agentHome`: `~/Desktop/MyAIforOne Drive/PlatformUtilities/hub`
+- `claudeMd`: `agents/platform/hub-lite/CLAUDE.md` (NOTE: hub-**lite**, not hub)
+- `memoryDir`: `~/Desktop/MyAIforOne Drive/PlatformUtilities/hub/memory`
+- `workspace`: `<PROJECT_PATH>`
+- `persistent`: true, `streaming`: true
+- `subAgents`: `"*"` (routes to all agents)
+- `mcps`: `["myaiforone-lite"]` (NOTE: myaiforone-**lite**, not myaiforone-local)
+- `allowedTools`: all tools (Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch)
+- `routes`: web route only
+- `agentClass`: `"platform"`
+
+Set `"defaultAgent": "hub"` at the top level of config.json.
+
+Do NOT register agentcreator, skillcreator, appcreator, promptcreator, or gym agents — Lite doesn't use them. Users install agents from the Agent Registry instead.
+
+Print progress after completion.
+
+## Lite Step 5: Validate & Build
+
+Build the lite MCP server first, then the main project:
+
+```bash
+cd server/mcp-server-lite && npm install && npm run build && cd ../..
+node -e "JSON.parse(require('fs').readFileSync('config.json','utf8')); console.log('Config OK')"
+npm run build
+```
+
+Print progress after completion.
+
+## Lite Step 6: Start the Service & Open Browser
+
+Same as Pro Step 6 (start service, create desktop shortcut, open browser), but the final output is different:
+
+### Final Output (Lite)
+
+```
+  ✅ 1. Check prerequisites
+  ✅ 2. Create MyAIforOne Drive
+  ✅ 3. Generate config
+  ✅ 4. Register hub agent
+  ✅ 5. Build the project
+  ✅ 6. Start the service & open the web UI
+
+Setup complete! (Lite Edition)
+
+  Web UI:  http://localhost:4888
+  Monitor: http://localhost:4888/monitor
+
+The browser should have opened to the Monitor page.
+Chat with the hub agent to discover and install agents
+from the MyAIforOne Agent Registry.
+
+Quick commands:
+  npm start              — start manually
+  npm run dev            — dev mode with auto-reload
+  http://localhost:4888   — web dashboard
+
+To upgrade to Pro (channels, boards, automations, and more),
+visit the Settings page: http://localhost:4888/admin
+```
+
+---
+
+# ========================================
+# PRO SETUP PATH (default)
+# ========================================
+
+Pro setup includes channels, creator agents, gym, and the full feature set. Channel setup and agent creation are handled by the hub agent in the browser — NOT in the terminal.
 
 ## Before You Start — Show the Plan
 

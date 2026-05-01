@@ -1,5 +1,5 @@
 import express from "express";
-import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync, chmodSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, unlinkSync, chmodSync, rmSync, openSync, readSync, closeSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, basename, dirname, extname, relative, isAbsolute } from "node:path";
 import { execSync, spawn as cpSpawn } from "node:child_process";
@@ -1379,6 +1379,8 @@ export function startWebUI(opts: WebUIOptions): void {
       ? true
       : (s as any).sharedAgentsEnabled ?? false;
     res.json({
+      edition: (s as any).edition || "pro",
+      maxAgents: (s as any).maxAgents ?? 0,  // 0 = unlimited
       deploymentMode,
       personalAgentsDir: (s as any).personalAgentsDir || "~/Desktop/MyAIforOne Drive/PersonalAgents",
       personalRegistryDir: (s as any).personalRegistryDir || "~/Desktop/MyAIforOne Drive/PersonalRegistry",
@@ -1552,6 +1554,105 @@ export function startWebUI(opts: WebUIOptions): void {
       res.json({ ok: true, note: "Restart required for port/dir changes to take effect" });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── API: Upgrade Lite → Pro ──────────────────────────────────────────
+
+  app.post("/api/upgrade", (req, res) => {
+    try {
+      const configPath = configFilePath();
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      // Already on Pro?
+      const currentEdition = rawConfig.service?.edition || "pro";
+      if (currentEdition === "pro") {
+        return res.status(400).json({ success: false, error: "Already on Pro edition" });
+      }
+
+      const { licenseKey } = req.body as { licenseKey?: string };
+
+      // 1. Change edition to "pro" and remove agent cap
+      if (!rawConfig.service) rawConfig.service = {};
+      rawConfig.service.edition = "pro";
+      rawConfig.service.maxAgents = 0; // unlimited
+
+      // 2. Swap myaiforone-lite MCP → myaiforone-local
+      if (rawConfig.mcps && rawConfig.mcps["myaiforone-lite"]) {
+        const liteMcp = rawConfig.mcps["myaiforone-lite"];
+        // Update args: swap mcp-server-lite path for mcp-server path
+        if (liteMcp.args && Array.isArray(liteMcp.args)) {
+          liteMcp.args = liteMcp.args.map((arg: string) =>
+            arg.replace(/server\/mcp-server-lite\/dist\/index\.js/, "server/mcp-server/dist/index.js")
+              .replace(/server\\mcp-server-lite\\dist\\index\.js/, "server\\mcp-server\\dist\\index.js")
+          );
+        }
+        rawConfig.mcps["myaiforone-local"] = liteMcp;
+        delete rawConfig.mcps["myaiforone-lite"];
+      }
+
+      // 3. Update all agent MCP references from myaiforone-lite → myaiforone-local
+      if (rawConfig.agents) {
+        for (const agentId of Object.keys(rawConfig.agents)) {
+          const agent = rawConfig.agents[agentId];
+          if (agent.mcps && Array.isArray(agent.mcps)) {
+            agent.mcps = agent.mcps.map((m: string) =>
+              m === "myaiforone-lite" ? "myaiforone-local" : m
+            );
+          }
+        }
+      }
+
+      // 4. Update defaultMcps references
+      if (rawConfig.defaultMcps && Array.isArray(rawConfig.defaultMcps)) {
+        rawConfig.defaultMcps = rawConfig.defaultMcps.map((m: string) =>
+          m === "myaiforone-lite" ? "myaiforone-local" : m
+        );
+      }
+
+      // 5. Swap hub-lite agent → full hub agent
+      //    Find any agent whose claudeMd references hub-lite and update to full hub
+      if (rawConfig.agents) {
+        for (const agentId of Object.keys(rawConfig.agents)) {
+          const agent = rawConfig.agents[agentId];
+          if (agent.claudeMd && typeof agent.claudeMd === "string" &&
+              agent.claudeMd.includes("hub-lite")) {
+            agent.claudeMd = agent.claudeMd.replace(/hub-lite/g, "hub");
+          }
+          // Also update agentHome if it references hub-lite
+          if (agent.agentHome && typeof agent.agentHome === "string" &&
+              agent.agentHome.includes("hub-lite")) {
+            agent.agentHome = agent.agentHome.replace(/hub-lite/g, "hub");
+          }
+          // Also update memoryDir if it references hub-lite
+          if (agent.memoryDir && typeof agent.memoryDir === "string" &&
+              agent.memoryDir.includes("hub-lite")) {
+            agent.memoryDir = agent.memoryDir.replace(/hub-lite/g, "hub");
+          }
+        }
+      }
+
+      // 6. Store license key if provided
+      if (licenseKey) {
+        rawConfig.service.licenseKey = licenseKey;
+      }
+
+      // Write updated config to disk
+      writeFileSync(configPath, JSON.stringify(rawConfig, null, 2));
+
+      // Sync in-memory config
+      (opts.config.service as any).edition = "pro";
+      (opts.config.service as any).maxAgents = 0;
+
+      log.info("Upgrade complete: Lite → Pro");
+      res.json({
+        success: true,
+        edition: "pro",
+        message: "Upgrade complete. Restart to apply changes.",
+      });
+    } catch (e: any) {
+      log.error(`Upgrade failed: ${e.message}`);
+      res.status(500).json({ success: false, error: e.message });
     }
   });
 
@@ -2085,11 +2186,11 @@ export function startWebUI(opts: WebUIOptions): void {
           const stat = statSync(logPath);
           if (stat.size > 0) {
             // Read only the last 16KB to get the last line instead of the entire file
-            const fd = require("node:fs").openSync(logPath, "r");
+            const fd = openSync(logPath, "r");
             const readSize = Math.min(stat.size, 16384);
             const buf = Buffer.alloc(readSize);
-            require("node:fs").readSync(fd, buf, 0, readSize, stat.size - readSize);
-            require("node:fs").closeSync(fd);
+            readSync(fd, buf, 0, readSize, stat.size - readSize);
+            closeSync(fd);
             const chunk = buf.toString("utf-8");
             const lines = chunk.trim().split("\n").filter(Boolean);
             if (lines.length > 0) {
@@ -3761,6 +3862,19 @@ export function startWebUI(opts: WebUIOptions): void {
     // Validate agentId format
     if (!/^[a-z0-9-]+$/.test(agentId)) {
       return res.status(400).json({ error: "agentId must be lowercase alphanumeric with hyphens" });
+    }
+
+    // Enforce agent cap for Lite edition
+    const edition = (opts.config.service as any).edition || "pro";
+    const maxAgents = (opts.config.service as any).maxAgents || 0;
+    if (edition === "lite" && maxAgents > 0) {
+      const currentCount = Object.keys(opts.config.agents).length;
+      if (currentCount >= maxAgents) {
+        return res.status(403).json({
+          error: `Agent limit reached (${maxAgents}). Upgrade to MyAIforOne Pro for unlimited agents.`,
+          upgradeRequired: true,
+        });
+      }
     }
 
     // Check for duplicate

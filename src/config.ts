@@ -143,6 +143,8 @@ export interface WebUIConfig {
 }
 
 export interface ServiceConfig {
+  edition?: "lite" | "pro";          // "lite" = free tier (limited agents, no boards/projects/crons), "pro" = full (default)
+  maxAgents?: number;                // agent install cap (Lite default: 5, Pro: unlimited)
   logLevel: LogLevel;
   logFile?: string;
   pairingCode?: string;

@@ -1875,6 +1875,7 @@ text-decoration:none;}
 
 <script src="/auth.js"></script>
 <script src="/server-mode.js"></script>
+<script src="/lite-mode.js"></script>
 <script>
 let agents = [];
 let orgSubView = 'local'; // 'local' | 'cloud'
@@ -5175,6 +5176,8 @@ async function saveAgent() {
     if (data.ok) {
       closeModal();
       await fetchData();
+    } else if (data.upgradeRequired) {
+      showUpgradePrompt(data.error);
     } else {
       alert('Error: ' + (data.error || 'Unknown error'));
     }
@@ -5184,6 +5187,38 @@ async function saveAgent() {
 
   btn.disabled = false;
   btn.textContent = originalText;
+}
+
+// ─── Upgrade Prompt (Lite edition agent cap) ────────────────────
+function showUpgradePrompt(message) {
+  // Remove any existing prompt
+  var existing = document.getElementById('upgradePromptOverlay');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'upgradePromptOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)';
+  overlay.innerHTML = '<div style="' +
+    'background:var(--bg-surface,#0c1221);border:1px solid var(--border-glow,rgba(56,189,248,0.18));' +
+    'border-radius:16px;padding:36px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);' +
+    'font-family:var(--font-sans,DM Sans,system-ui,sans-serif);text-align:center">' +
+    '<div style="font-size:36px;margin-bottom:12px">&#x1F680;</div>' +
+    '<h2 style="font-size:18px;font-weight:700;color:var(--text-primary,#fff);margin-bottom:8px">Upgrade to Pro</h2>' +
+    '<p style="font-size:13px;color:var(--text-secondary,#94a3b8);line-height:1.6;margin-bottom:20px">' +
+      (message || 'You have reached the agent limit for the Lite edition.') +
+      '<br>Upgrade to <strong style="color:var(--accent,#22d3ee)">MyAIforOne Pro</strong> for unlimited agents, boards, projects, automations, and more.' +
+    '</p>' +
+    '<div style="display:flex;gap:10px;justify-content:center">' +
+      '<button onclick="document.getElementById(\'upgradePromptOverlay\').remove()" style="' +
+        'padding:10px 20px;border-radius:10px;border:1px solid var(--border-dim,rgba(56,189,248,0.08));' +
+        'background:transparent;color:var(--text-secondary,#94a3b8);font-size:13px;font-weight:500;cursor:pointer">Close</button>' +
+      '<a href="/admin?tab=settings" style="' +
+        'padding:10px 20px;border-radius:10px;border:none;' +
+        'background:var(--accent,#22d3ee);color:#000;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block">Go to Settings</a>' +
+    '</div>' +
+  '</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
 
 // Close modal on overlay click
