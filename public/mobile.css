@@ -69,14 +69,8 @@
   /* Hide hub name/sub text (avatar still shows) to save row space */
   .hub-agent-identity > div:not(.hub-agent-avatar) { display: none !important; }
   .hub-agent-name, .hub-agent-sub { display: none !important; }
-  /* Shrink Work / AI Gym mode toggle so account select fits same row */
-  .mode-toggle { padding: 2px !important; }
-  .mode-toggle-btn {
-    padding: 4px 6px !important;
-    font-size: 10px !important;
-    gap: 3px !important;
-  }
-  .mode-toggle-btn svg { width: 11px !important; height: 11px !important; }
+  /* Hide Work / AI Gym mode toggle on mobile (desktop-only feature) */
+  .mode-toggle { display: none !important; }
   /* Compact account select on mobile — applies to both home2
      (.hub-actions-right) and /ui (chat-header-actions). flex-shrink:0
      keeps it from being squeezed to 0 width when its row is tight. */
@@ -324,9 +318,9 @@
     display: none !important;
   }
 
-  /* ─── Topbar tabs: hide rarely-used routes on mobile ──────── */
-  .tab-btn[href="/library"],
-  .tab-btn[href="/lab"] {
+  /* ─── Topbar tabs: hide ALL on mobile ─────────────────────── */
+  /* Pages still reachable via direct URL. Mobile focuses on /ui chat. */
+  .tab-btn {
     display: none !important;
   }
 
