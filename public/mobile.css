@@ -369,6 +369,41 @@
     display: none !important;
   }
 
+  /* ─── Session tabs (home2 + index) ─────────────────────────── */
+  /* Make session context visible on mobile: bigger font, more
+     padding, full-width label so users can see what session they
+     are in. Without this, the desktop 11px monospace font + 120px
+     ellipsis truncation makes it hard to read on a phone. */
+  .session-tabs {
+    min-height: 40px !important;
+    padding: 0 8px !important;
+  }
+  .session-tab {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    min-height: 40px !important;
+  }
+  .session-tab .tab-label {
+    max-width: none !important;       /* let names breathe; bar already scrolls horizontally */
+    font-size: 13px !important;
+  }
+  .session-tab.active {
+    /* louder active state so users instantly see current session */
+    background: rgba(34,211,238,.12) !important;
+    border-bottom-width: 3px !important;
+    font-weight: 600 !important;
+  }
+  .session-tab .tab-close {
+    display: inline !important;       /* always visible on mobile (no hover) */
+    font-size: 16px !important;
+    padding: 2px 6px !important;
+  }
+  .session-tab-add {
+    padding: 8px 12px !important;
+    font-size: 18px !important;
+    min-height: 40px !important;
+  }
+
   /* ═════════════════════════════════════════════════════════════
      Tier 2 — library, lab, monitor, admin
      ═════════════════════════════════════════════════════════════ */
