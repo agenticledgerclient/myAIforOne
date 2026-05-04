@@ -116,9 +116,16 @@ export function startWebUI(opts: WebUIOptions): void {
 
   // ─── Serve pages from public/ ─────────────────────────────────────
   const serverMode = isServerMode();
+  // Mobile UA detection: phones get the mobile chat page unless they pass ?desktop=1
+  const isMobileUA = (ua: string) => /Android.*Mobile|iPhone|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua || "");
+  const maybeRedirectMobile = (req: any, res: any, next: () => void) => {
+    if (req.query?.desktop === "1") return next();
+    if (isMobileUA(req.headers["user-agent"] || "")) return res.redirect("/ui");
+    next();
+  };
   const serveHome = (_req: any, res: any) => servePage(res, "home2.html", "/org");
   // Server mode: landing page is the Library (resource center)
-  app.get("/", serverMode ? (_req: any, res: any) => servePage(res, "library.html") : serveHome);
+  app.get("/", maybeRedirectMobile, serverMode ? (_req: any, res: any) => servePage(res, "library.html") : serveHome);
   app.get("/home", serveHome);
   app.get("/home-legacy", (_req, res) => servePage(res, "home.html", "/org"));
   app.get("/home2", (_req, res) => servePage(res, "home2.html", "/"));
@@ -136,6 +143,7 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/lab", (_req, res) => servePage(res, "lab.html"));
   app.get("/agent-dashboard", (_req, res) => servePage(res, "agent-dashboard.html", "/org"));
   app.get("/mini", (_req, res) => servePage(res, "mini.html"));
+  app.get("/m", (_req, res) => servePage(res, "m.html"));
   app.get("/settings", (_req, res) => res.redirect("/admin?tab=settings"));
   app.get("/mcp-docs", (_req, res) => servePage(res, "mcp-docs.html"));
   app.get("/api-docs", (_req, res) => servePage(res, "api-docs.html"));
