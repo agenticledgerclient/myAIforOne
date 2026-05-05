@@ -12,7 +12,18 @@ const MUSIC_VIDEO_ID = process.env.MUSIC_VIDEO_ID || '3GwjfUFyY6M'; // Kool & th
 // MUSIC_PLAYLIST: comma-separated YouTube video IDs. Falls back to default two-track playlist if not set.
 const MUSIC_PLAYLIST = process.env.MUSIC_PLAYLIST
   ? process.env.MUSIC_PLAYLIST.split(',').map(s => s.trim()).filter(Boolean)
-  : [MUSIC_VIDEO_ID, 'Qwscb3QIVSg']; // Celebration → Happy Birthday (Stevie Wonder)
+  : [
+    MUSIC_VIDEO_ID,    // 1. Kool & the Gang — Celebration
+    'Qwscb3QIVSg',     // 2. Stevie Wonder — Happy Birthday
+    'HNBCVM4KbUM',     // 3. Bob Marley — Three Little Birds
+    'vkrYlEeTF7Y',     // 4. Bob Marley — One Love (4K Remaster)
+    '_4JPM52EXGU',     // 5. Bob Marley — Could You Be Loved (4K Remaster)
+    'Gs069dndIYk',     // 6. Earth, Wind & Fire — September
+    'bEeaS6fuUoA',     // 7. Bill Withers — Lovely Day
+    'ZbZSe6N_BXs',     // 8. Pharrell Williams — Happy
+    'uyGY2NfYpeE',     // 9. Sister Sledge — We Are Family
+    'DOYhayZ9y7k',     // 10. Diana Ross — Ain't No Mountain High Enough
+  ];
 
 // Determine photos directory
 const RAILWAY_PHOTOS_DIR = '/data/photos';
