@@ -1376,8 +1376,9 @@
   window.onYouTubeIframeAPIReady = function() {
     ytPlayer = new YT.Player('ytPlayer', {
       videoId: musicPlaylist[musicTrackIdx],
-      playerVars: { autoplay: 0, controls: 0, disablekb: 1 },
+      playerVars: { autoplay: 1, controls: 0, disablekb: 1 },
       events: {
+        onReady: e => { e.target.playVideo(); },
         onStateChange: e => {
           if (e.data === YT.PlayerState.PLAYING) {
             musicPlaying = true;
