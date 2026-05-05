@@ -9,10 +9,10 @@ const PORT = process.env.PORT || 3000;
 const GALLERY_PASSCODE = process.env.GALLERY_PASSCODE || 'cruise70';
 const UPLOAD_SECRET = process.env.UPLOAD_SECRET || 'changeme';
 const MUSIC_VIDEO_ID = process.env.MUSIC_VIDEO_ID || '3GwjfUFyY6M'; // Kool & the Gang — Celebration
-// MUSIC_PLAYLIST: comma-separated YouTube video IDs. Falls back to MUSIC_VIDEO_ID if not set.
+// MUSIC_PLAYLIST: comma-separated YouTube video IDs. Falls back to default two-track playlist if not set.
 const MUSIC_PLAYLIST = process.env.MUSIC_PLAYLIST
   ? process.env.MUSIC_PLAYLIST.split(',').map(s => s.trim()).filter(Boolean)
-  : [MUSIC_VIDEO_ID];
+  : [MUSIC_VIDEO_ID, 'Qwscb3QIVSg']; // Celebration → Happy Birthday (Stevie Wonder)
 
 // Determine photos directory
 const RAILWAY_PHOTOS_DIR = '/data/photos';
