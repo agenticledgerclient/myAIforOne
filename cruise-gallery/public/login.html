@@ -58,14 +58,14 @@
       position: relative;
       z-index: 1;
       background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(212, 175, 55, 0.3);
+      border: 1px solid rgba(0, 180, 216, 0.3);
       border-radius: 24px;
       padding: 52px 48px 44px;
       width: min(420px, 92vw);
       text-align: center;
       backdrop-filter: blur(12px);
       box-shadow:
-        0 0 60px rgba(212, 175, 55, 0.08),
+        0 0 60px rgba(0, 180, 216, 0.08),
         0 24px 60px rgba(0,0,0,0.5);
     }
 
@@ -79,17 +79,17 @@
     .badge svg {
       width: 100%;
       height: 100%;
-      filter: drop-shadow(0 0 16px rgba(212, 175, 55, 0.6));
+      filter: drop-shadow(0 0 16px rgba(0, 180, 216, 0.6));
     }
 
     .title {
       font-family: 'Playfair Display', Georgia, serif;
       font-size: 2.2rem;
       font-weight: 900;
-      color: #d4af37;
+      color: #00b4d8;
       line-height: 1.1;
       margin-bottom: 8px;
-      text-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+      text-shadow: 0 0 30px rgba(0, 180, 216, 0.4);
     }
 
     .subtitle {
@@ -115,7 +115,7 @@
       width: 100%;
       padding: 14px 20px;
       background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(212, 175, 55, 0.3);
+      border: 1px solid rgba(0, 180, 216, 0.3);
       border-radius: 12px;
       color: white;
       font-size: 1.1rem;
@@ -133,14 +133,14 @@
     }
 
     input[type="password"]:focus {
-      border-color: #d4af37;
-      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+      border-color: #00b4d8;
+      box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
     }
 
     .btn {
       width: 100%;
       padding: 15px 20px;
-      background: linear-gradient(135deg, #d4af37, #b8860b);
+      background: linear-gradient(135deg, #00b4d8, #0077b6);
       border: none;
       border-radius: 12px;
       color: #0a1628;
@@ -156,7 +156,7 @@
 
     .btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+      box-shadow: 0 8px 24px rgba(0, 180, 216, 0.35);
     }
 
     .btn:active {
@@ -201,7 +201,7 @@
 
   <!-- Bottom wave -->
   <svg class="waves" viewBox="0 0 1440 120" preserveAspectRatio="none" height="120">
-    <path fill="rgba(212,175,55,0.06)" d="M0,60 C240,110 480,10 720,60 C960,110 1200,10 1440,60 L1440,120 L0,120 Z"/>
+    <path fill="rgba(0,180,216,0.06)" d="M0,60 C240,110 480,10 720,60 C960,110 1200,10 1440,60 L1440,120 L0,120 Z"/>
     <path fill="rgba(13,71,161,0.15)" d="M0,80 C360,30 720,130 1080,80 C1260,55 1380,70 1440,80 L1440,120 L0,120 Z"/>
   </svg>
 
@@ -220,11 +220,11 @@
         <circle cx="50" cy="55" r="18" fill="none" stroke="#8B6914" stroke-width="1.5"/>
         <circle cx="50" cy="55" r="14" fill="rgba(10,22,40,0.6)"/>
         <!-- 70 text -->
-        <text x="50" y="61" text-anchor="middle" font-family="Georgia, serif" font-weight="bold" font-size="14" fill="#d4af37">70</text>
+        <text x="50" y="61" text-anchor="middle" font-family="Georgia, serif" font-weight="bold" font-size="14" fill="#00b4d8">70</text>
         <defs>
           <linearGradient id="badgeGrad" x1="0" y1="0" x2="100" y2="100">
-            <stop offset="0%" stop-color="#f0d060"/>
-            <stop offset="50%" stop-color="#d4af37"/>
+            <stop offset="0%" stop-color="#90e0ef"/>
+            <stop offset="50%" stop-color="#00b4d8"/>
             <stop offset="100%" stop-color="#8B6914"/>
           </linearGradient>
         </defs>

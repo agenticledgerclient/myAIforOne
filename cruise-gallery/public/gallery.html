@@ -19,7 +19,7 @@
     /* ── Header ── */
     header {
       background: linear-gradient(180deg, #0d2244 0%, #0a1628 100%);
-      border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+      border-bottom: 1px solid rgba(0, 180, 216, 0.2);
       padding: 0 24px;
       position: sticky;
       top: 0;
@@ -34,12 +34,12 @@
       gap: 16px;
       padding: 14px 0;
     }
-    .header-badge svg { width: 44px; height: 44px; filter: drop-shadow(0 0 8px rgba(212,175,55,0.5)); }
-    .header-text h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.35rem; font-weight: 900; color: #d4af37; line-height: 1.1; }
+    .header-badge svg { width: 44px; height: 44px; filter: drop-shadow(0 0 8px rgba(0,180,216,0.5)); }
+    .header-text h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.35rem; font-weight: 900; color: #00b4d8; line-height: 1.1; }
     .header-text p { font-size: 0.72rem; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
     .header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
     .photo-count { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
-    .photo-count span { color: #d4af37; font-weight: 600; }
+    .photo-count span { color: #00b4d8; font-weight: 600; }
     .logout-btn { font-size: 0.8rem; color: rgba(255,255,255,0.4); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; transition: all 0.2s; cursor: pointer; background: none; font-family: 'Inter', sans-serif; }
     .logout-btn:hover { color: white; border-color: rgba(255,255,255,0.3); }
 
@@ -48,9 +48,9 @@
 
     /* ── Hero ── */
     .hero { text-align: center; padding: 32px 0 36px; position: relative; }
-    .hero::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 80px; height: 2px; background: linear-gradient(90deg, transparent, #d4af37, transparent); }
-    .hero-icon { font-size: 2.6rem; margin-bottom: 10px; filter: drop-shadow(0 0 12px rgba(212,175,55,0.6)); }
-    .hero h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.4rem; font-weight: 900; color: #d4af37; text-shadow: 0 0 40px rgba(212,175,55,0.3); margin-bottom: 6px; }
+    .hero::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 80px; height: 2px; background: linear-gradient(90deg, transparent, #00b4d8, transparent); }
+    .hero-icon { font-size: 2.6rem; margin-bottom: 10px; filter: drop-shadow(0 0 12px rgba(0,180,216,0.6)); }
+    .hero h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.4rem; font-weight: 900; color: #00b4d8; text-shadow: 0 0 40px rgba(0,180,216,0.3); margin-bottom: 6px; }
     .hero p { font-size: 0.95rem; color: rgba(255,255,255,0.5); }
 
     /* ── Controls bar ── */
@@ -85,9 +85,9 @@
       white-space: nowrap;
     }
     .view-tab.active {
-      background: rgba(212,175,55,0.15);
-      color: #d4af37;
-      border: 1px solid rgba(212,175,55,0.3);
+      background: rgba(0,180,216,0.15);
+      color: #00b4d8;
+      border: 1px solid rgba(0,180,216,0.3);
     }
     .view-tab:not(.active):hover { color: rgba(255,255,255,0.8); }
 
@@ -111,11 +111,11 @@
       transition: all 0.18s;
       font-family: 'Inter', sans-serif;
     }
-    .tag-chip:hover { border-color: rgba(212,175,55,0.4); color: rgba(212,175,55,0.9); }
+    .tag-chip:hover { border-color: rgba(0,180,216,0.4); color: rgba(0,180,216,0.9); }
     .tag-chip.active {
-      background: rgba(212,175,55,0.15);
-      border-color: rgba(212,175,55,0.5);
-      color: #d4af37;
+      background: rgba(0,180,216,0.15);
+      border-color: rgba(0,180,216,0.5);
+      color: #00b4d8;
     }
     .tag-chip .count {
       display: inline-block;
@@ -131,7 +131,7 @@
       align-items: center;
       gap: 7px;
       padding: 9px 18px;
-      background: linear-gradient(135deg, #d4af37, #b8860b);
+      background: linear-gradient(135deg, #00b4d8, #0077b6);
       border: none;
       border-radius: 10px;
       color: #0a1628;
@@ -143,7 +143,7 @@
       font-family: 'Inter', sans-serif;
       white-space: nowrap;
     }
-    .dl-all-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,175,55,0.3); }
+    .dl-all-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,180,216,0.3); }
 
     /* ── Section / Group header ── */
     .section-header {
@@ -157,14 +157,14 @@
       font-family: 'Playfair Display', Georgia, serif;
       font-size: 1.25rem;
       font-weight: 700;
-      color: #d4af37;
+      color: #00b4d8;
     }
     .section-sub {
       font-size: 0.8rem;
       color: rgba(255,255,255,0.35);
       letter-spacing: 0.04em;
     }
-    .section-line { flex: 1; height: 1px; background: rgba(212,175,55,0.15); }
+    .section-line { flex: 1; height: 1px; background: rgba(0,180,216,0.15); }
 
     /* ── Photo grid ── */
     .grid {
@@ -186,7 +186,7 @@
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .photo-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.3); }
+    .photo-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,180,216,0.3); }
     .photo-card img { width: 100%; display: block; }
     .photo-card .img-wrap { position: relative; }
     .photo-card .img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background 0.2s; }
@@ -195,14 +195,14 @@
     .photo-meta { padding: 9px 11px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .photo-info { min-width: 0; }
     .photo-caption { font-size: 0.8rem; color: rgba(255,255,255,0.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 2px; }
-    .photo-sender { font-size: 0.72rem; color: rgba(212,175,55,0.7); }
+    .photo-sender { font-size: 0.72rem; color: rgba(0,180,216,0.7); }
     .photo-time { font-size: 0.68rem; color: rgba(255,255,255,0.25); }
     .photo-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-    .photo-tag { font-size: 0.66rem; padding: 2px 7px; border-radius: 10px; background: rgba(212,175,55,0.1); color: rgba(212,175,55,0.7); border: 1px solid rgba(212,175,55,0.15); }
+    .photo-tag { font-size: 0.66rem; padding: 2px 7px; border-radius: 10px; background: rgba(0,180,216,0.1); color: rgba(0,180,216,0.7); border: 1px solid rgba(0,180,216,0.15); }
 
     .photo-actions { flex-shrink: 0; display: flex; gap: 5px; }
-    .dl-btn, .share-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); border-radius: 7px; color: #d4af37; text-decoration: none; font-size: 0.85rem; transition: background 0.2s; cursor: pointer; border: 1px solid rgba(212,175,55,0.2); font-family: inherit; }
-    .dl-btn:hover, .share-btn:hover { background: rgba(212,175,55,0.25); }
+    .dl-btn, .share-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(0,180,216,0.1); border: 1px solid rgba(0,180,216,0.2); border-radius: 7px; color: #00b4d8; text-decoration: none; font-size: 0.85rem; transition: background 0.2s; cursor: pointer; border: 1px solid rgba(0,180,216,0.2); font-family: inherit; }
+    .dl-btn:hover, .share-btn:hover { background: rgba(0,180,216,0.25); }
 
     /* ── Share popover (desktop fallback) ── */
     .share-popover {
@@ -211,7 +211,7 @@
       bottom: 38px;
       right: 0;
       background: #0d2244;
-      border: 1px solid rgba(212,175,55,0.3);
+      border: 1px solid rgba(0,180,216,0.3);
       border-radius: 12px;
       padding: 8px;
       z-index: 50;
@@ -252,8 +252,8 @@
     .lightbox-close:hover { background: rgba(255,255,255,0.2); }
     .lightbox-info { text-align: center; }
     .lightbox-caption { font-size: 0.9rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; }
-    .lightbox-meta { font-size: 0.75rem; color: rgba(212,175,55,0.7); }
-    .lightbox-dl { display: inline-flex; align-items: center; gap: 7px; padding: 9px 22px; background: linear-gradient(135deg, #d4af37, #b8860b); border-radius: 10px; color: #0a1628; text-decoration: none; font-weight: 700; font-size: 0.88rem; font-family: 'Inter', sans-serif; }
+    .lightbox-meta { font-size: 0.75rem; color: rgba(0,180,216,0.7); }
+    .lightbox-dl { display: inline-flex; align-items: center; gap: 7px; padding: 9px 22px; background: linear-gradient(135deg, #00b4d8, #0077b6); border-radius: 10px; color: #0a1628; text-decoration: none; font-weight: 700; font-size: 0.88rem; font-family: 'Inter', sans-serif; }
 
     /* ── Empty ── */
     .empty { text-align: center; padding: 80px 20px; color: rgba(255,255,255,0.35); }
@@ -262,10 +262,10 @@
     .empty p { font-size: 0.88rem; }
 
     /* ── Loading ── */
-    .loading { text-align: center; padding: 60px; color: rgba(212,175,55,0.6); font-size: 0.9rem; letter-spacing: 0.05em; }
+    .loading { text-align: center; padding: 60px; color: rgba(0,180,216,0.6); font-size: 0.9rem; letter-spacing: 0.05em; }
 
     /* ── Toast ── */
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1e3a5f; border: 1px solid rgba(212,175,55,0.3); color: white; padding: 12px 24px; border-radius: 12px; font-size: 0.88rem; transition: transform 0.3s; z-index: 300; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1e3a5f; border: 1px solid rgba(0,180,216,0.3); color: white; padding: 12px 24px; border-radius: 12px; font-size: 0.88rem; transition: transform 0.3s; z-index: 300; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
     /* ── Music player button ── */
@@ -279,7 +279,7 @@
       gap: 8px;
       padding: 12px 18px;
       background: rgba(13,34,68,0.92);
-      border: 1px solid rgba(212,175,55,0.35);
+      border: 1px solid rgba(0,180,216,0.35);
       border-radius: 50px;
       color: rgba(255,255,255,0.85);
       font-size: 0.85rem;
@@ -290,8 +290,8 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.4);
       transition: all 0.2s;
     }
-    .music-btn:hover { border-color: rgba(212,175,55,0.6); color: #d4af37; }
-    .music-btn.playing { border-color: rgba(212,175,55,0.6); color: #d4af37; background: rgba(13,34,68,0.97); }
+    .music-btn:hover { border-color: rgba(0,180,216,0.6); color: #00b4d8; }
+    .music-btn.playing { border-color: rgba(0,180,216,0.6); color: #00b4d8; background: rgba(13,34,68,0.97); }
     .music-btn .music-icon { font-size: 1.1rem; }
     .music-equalizer {
       display: none;
@@ -303,7 +303,7 @@
     .music-btn.playing .music-label { display: none; }
     .eq-bar {
       width: 3px;
-      background: #d4af37;
+      background: #00b4d8;
       border-radius: 2px;
       animation: eqBounce 0.6s ease-in-out infinite alternate;
     }
@@ -353,7 +353,7 @@
       min-height: 44px;
     }
     .ss-caption-text { font-size: 0.9rem; color: rgba(255,255,255,0.75); }
-    .ss-caption-sender { font-size: 0.78rem; color: rgba(212,175,55,0.7); margin-top: 2px; }
+    .ss-caption-sender { font-size: 0.78rem; color: rgba(0,180,216,0.7); margin-top: 2px; }
 
     .ss-counter {
       font-size: 0.75rem;
@@ -386,16 +386,16 @@
       font-family: inherit;
     }
     .ss-btn:hover { background: rgba(255,255,255,0.16); }
-    .ss-btn.active { background: rgba(212,175,55,0.2); border-color: rgba(212,175,55,0.4); color: #d4af37; }
+    .ss-btn.active { background: rgba(0,180,216,0.2); border-color: rgba(0,180,216,0.4); color: #00b4d8; }
     .ss-btn-play {
       width: 56px;
       height: 56px;
       font-size: 1.35rem;
-      background: rgba(212,175,55,0.15);
-      border-color: rgba(212,175,55,0.35);
-      color: #d4af37;
+      background: rgba(0,180,216,0.15);
+      border-color: rgba(0,180,216,0.35);
+      color: #00b4d8;
     }
-    .ss-btn-play:hover { background: rgba(212,175,55,0.28); }
+    .ss-btn-play:hover { background: rgba(0,180,216,0.28); }
     .ss-close {
       position: absolute;
       top: 16px;
@@ -433,7 +433,7 @@
       align-items: center;
       gap: 10px;
       padding: 14px 22px;
-      background: linear-gradient(135deg, #d4af37, #b8860b);
+      background: linear-gradient(135deg, #00b4d8, #0077b6);
       border: none;
       border-radius: 50px;
       color: #0a1628;
@@ -441,10 +441,10 @@
       font-weight: 700;
       font-family: 'Inter', sans-serif;
       cursor: pointer;
-      box-shadow: 0 6px 24px rgba(212,175,55,0.45), 0 2px 8px rgba(0,0,0,0.4);
+      box-shadow: 0 6px 24px rgba(0,180,216,0.45), 0 2px 8px rgba(0,0,0,0.4);
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    .upload-fab:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(212,175,55,0.55); }
+    .upload-fab:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(0,180,216,0.55); }
     .upload-fab:active { transform: translateY(0); }
 
     /* ── Upload Modal ── */
@@ -465,7 +465,7 @@
     }
     .upload-sheet {
       background: #0d2244;
-      border: 1px solid rgba(212,175,55,0.25);
+      border: 1px solid rgba(0,180,216,0.25);
       border-radius: 24px 24px 0 0;
       width: 100%;
       max-width: 100%;
@@ -484,7 +484,7 @@
     .upload-sheet h3 {
       font-family: 'Playfair Display', Georgia, serif;
       font-size: 1.4rem;
-      color: #d4af37;
+      color: #00b4d8;
       margin: 0;
       text-align: center;
     }
@@ -492,16 +492,16 @@
     /* Drop zone / file picker */
     .drop-zone {
       position: relative;
-      border: 2px dashed rgba(212,175,55,0.35);
+      border: 2px dashed rgba(0,180,216,0.35);
       border-radius: 16px;
-      background: rgba(212,175,55,0.04);
+      background: rgba(0,180,216,0.04);
       padding: 28px 20px;
       text-align: center;
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
       overflow: hidden;
     }
-    .drop-zone:hover, .drop-zone.hover { border-color: rgba(212,175,55,0.7); background: rgba(212,175,55,0.09); }
+    .drop-zone:hover, .drop-zone.hover { border-color: rgba(0,180,216,0.7); background: rgba(0,180,216,0.09); }
     .drop-zone input[type=file] {
       position: absolute;
       inset: 0;
@@ -570,7 +570,7 @@
       resize: none;
     }
     .upload-field input:focus, .upload-field textarea:focus {
-      border-color: rgba(212,175,55,0.5);
+      border-color: rgba(0,180,216,0.5);
     }
     .upload-field input::placeholder, .upload-field textarea::placeholder {
       color: rgba(255,255,255,0.25);
@@ -580,7 +580,7 @@
     .upload-submit {
       width: 100%;
       padding: 16px;
-      background: linear-gradient(135deg, #d4af37, #b8860b);
+      background: linear-gradient(135deg, #00b4d8, #0077b6);
       border: none;
       border-radius: 14px;
       color: #0a1628;
@@ -605,7 +605,7 @@
     .upload-progress-bar {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #d4af37, #f0d060);
+      background: linear-gradient(90deg, #00b4d8, #90e0ef);
       transition: width 0.3s;
       border-radius: 4px;
     }
@@ -620,10 +620,10 @@
         <polygon points="50,5 61,35 93,35 68,55 78,88 50,68 22,88 32,55 7,35 39,35" fill="url(#hBadge)" stroke="#8B6914" stroke-width="2"/>
         <circle cx="50" cy="55" r="18" fill="none" stroke="#8B6914" stroke-width="1.5"/>
         <circle cx="50" cy="55" r="14" fill="rgba(10,22,40,0.6)"/>
-        <text x="50" y="61" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="14" fill="#d4af37">70</text>
+        <text x="50" y="61" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="14" fill="#00b4d8">70</text>
         <defs>
           <linearGradient id="hBadge" x1="0" y1="0" x2="100" y2="100">
-            <stop offset="0%" stop-color="#f0d060"/><stop offset="50%" stop-color="#d4af37"/><stop offset="100%" stop-color="#8B6914"/>
+            <stop offset="0%" stop-color="#90e0ef"/><stop offset="50%" stop-color="#00b4d8"/><stop offset="100%" stop-color="#8B6914"/>
           </linearGradient>
         </defs>
       </svg>
@@ -646,7 +646,7 @@
     <div class="hero-icon">⚖️</div>
     <h2>70 Years of Excellence</h2>
     <p>Celebrating Sheriff Femi Ifaturoti</p>
-    <p style="margin-top:8px;font-size:0.82rem;color:rgba(212,175,55,0.65);letter-spacing:0.06em">
+    <p style="margin-top:8px;font-size:0.82rem;color:rgba(0,180,216,0.65);letter-spacing:0.06em">
       Lawyer &nbsp;·&nbsp; Statesman &nbsp;·&nbsp; Builder &nbsp;·&nbsp; Husband &nbsp;·&nbsp; Father &nbsp;·&nbsp; Grandfather &nbsp;·&nbsp; Son of Ijesaland &nbsp;·&nbsp; Legend
     </p>
   </div>
@@ -670,7 +670,7 @@
   <div id="emptyState" class="empty" style="display:none">
     <div class="empty-icon">📸</div>
     <h3>No photos yet, partner</h3>
-    <p>Send photos in the WhatsApp group or tap <strong style="color:#d4af37">Add Photo</strong> below to upload directly from your phone.</p>
+    <p>Send photos in the WhatsApp group or tap <strong style="color:#00b4d8">Add Photo</strong> below to upload directly from your phone.</p>
   </div>
   <div id="content"></div>
 </main>
