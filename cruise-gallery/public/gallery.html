@@ -724,6 +724,7 @@
     <button class="ss-btn ss-btn-play" id="ssPlayPause" title="Play/Pause">&#x23F8;</button>
     <button class="ss-btn" id="ssNext" title="Next">&#x25B6;</button>
     <button class="ss-btn" id="ssShuffle" title="Shuffle">&#x21C4;</button>
+    <button class="ss-btn" id="ssNextTrack" title="Next Song" style="display:none">&#x23ED;</button>
     <button class="ss-btn" id="ssSpeed" title="Speed">&#x1F4A8;</button>
   </div>
   <div class="ss-speed-label" id="ssSpeedLabel">4s per photo</div>
@@ -1287,18 +1288,27 @@
 
   let ytPlayer = null;
   let musicPlaying = false;
-  let musicVideoId = '';
+  let musicPlaylist = [];
+  let musicTrackIdx = 0;
   const musicBtn = document.getElementById('musicBtn');
 
-  // Load YT IFrame API only if a video ID is configured
   async function initMusic() {
     try {
       const cfg = await fetch('/api/config').then(r => r.json());
-      musicVideoId = cfg.musicVideoId;
-      if (!musicVideoId) return;
+      musicPlaylist = cfg.playlist || (cfg.musicVideoId ? [cfg.musicVideoId] : []);
+      if (!musicPlaylist.length) return;
       musicBtn.style.display = 'flex';
+      updateMusicBtnLabel();
       loadYTApi();
     } catch (e) { /* no music */ }
+  }
+
+  function updateMusicBtnLabel() {
+    const label = musicBtn.querySelector('.music-label');
+    if (!label) return;
+    if (musicPlaylist.length > 1) {
+      label.textContent = `Tap to play music`;
+    }
   }
 
   function loadYTApi() {
@@ -1309,21 +1319,31 @@
 
   window.onYouTubeIframeAPIReady = function() {
     ytPlayer = new YT.Player('ytPlayer', {
-      videoId: musicVideoId,
-      playerVars: { autoplay: 0, loop: 1, playlist: musicVideoId, controls: 0, disablekb: 1 },
+      videoId: musicPlaylist[musicTrackIdx],
+      playerVars: { autoplay: 0, controls: 0, disablekb: 1 },
       events: {
         onStateChange: e => {
           if (e.data === YT.PlayerState.PLAYING) {
             musicPlaying = true;
             musicBtn.classList.add('playing');
-          } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+          } else if (e.data === YT.PlayerState.PAUSED) {
             musicPlaying = false;
             musicBtn.classList.remove('playing');
+          } else if (e.data === YT.PlayerState.ENDED) {
+            // Auto-advance to next track
+            musicNextTrack();
           }
         }
       }
     });
   };
+
+  function musicNextTrack() {
+    if (!ytPlayer || !musicPlaylist.length) return;
+    musicTrackIdx = (musicTrackIdx + 1) % musicPlaylist.length;
+    ytPlayer.loadVideoById(musicPlaylist[musicTrackIdx]);
+    ytPlayer.playVideo();
+  }
 
   musicBtn.addEventListener('click', () => {
     if (!ytPlayer || typeof ytPlayer.getPlayerState !== 'function') return;
@@ -1393,6 +1413,16 @@
     ssReschedule();
   });
 
+  const ssNextTrackBtn = document.getElementById('ssNextTrack');
+  ssNextTrackBtn.addEventListener('click', () => musicNextTrack());
+
+  // Show ⏭ button once playlist is known to have multiple tracks
+  const _origInitMusic = initMusic;
+  async function initMusicWithPlaylistUI() {
+    await _origInitMusic();
+    if (musicPlaylist.length > 1) ssNextTrackBtn.style.display = 'flex';
+  }
+
   function ssShow(i) {
     const p = ssPhotos[i];
     ssImg.classList.add('fading');
@@ -1441,7 +1471,7 @@
 
   loadPhotos();
   setInterval(loadPhotos, 60000);
-  initMusic();
+  initMusicWithPlaylistUI();
 </script>
 </body>
 </html>
