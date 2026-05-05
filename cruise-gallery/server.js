@@ -7,6 +7,7 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const GALLERY_PASSCODE = process.env.GALLERY_PASSCODE || 'cruise70';
+const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || ('admin_' + GALLERY_PASSCODE);
 const UPLOAD_SECRET = process.env.UPLOAD_SECRET || 'changeme';
 const MUSIC_VIDEO_ID = process.env.MUSIC_VIDEO_ID || '3GwjfUFyY6M'; // Kool & the Gang — Celebration
 // MUSIC_PLAYLIST: comma-separated YouTube video IDs. Falls back to default two-track playlist if not set.
@@ -84,10 +85,14 @@ function readMeta() {
   }
 }
 
+function writeMeta(meta) {
+  fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2));
+}
+
 function appendMeta(entry) {
   const meta = readMeta();
   meta.push(entry);
-  fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2));
+  writeMeta(meta);
 }
 
 function checkUploadSecret(req) {
@@ -100,10 +105,14 @@ function checkUploadSecret(req) {
 }
 
 function requireAuth(req, res, next) {
-  if (req.cookies && req.cookies.cruise_auth === 'ok') {
-    return next();
-  }
+  const c = req.cookies && req.cookies.cruise_auth;
+  if (c === 'ok' || c === 'admin') return next();
   res.redirect('/login');
+}
+
+function requireAdmin(req, res, next) {
+  if (req.cookies && req.cookies.cruise_auth === 'admin') return next();
+  res.status(403).json({ ok: false, error: 'Forbidden' });
 }
 
 // Routes
@@ -120,11 +129,12 @@ app.get('/login', (req, res) => {
 
 app.post('/auth', (req, res) => {
   const { passcode } = req.body;
+  if (passcode === ADMIN_PASSCODE) {
+    res.cookie('cruise_auth', 'admin', { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    return res.redirect('/gallery');
+  }
   if (passcode === GALLERY_PASSCODE) {
-    res.cookie('cruise_auth', 'ok', {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    res.cookie('cruise_auth', 'ok', { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
     return res.redirect('/gallery');
   }
   res.redirect('/login?error=wrong');
@@ -229,6 +239,45 @@ app.get('/api/photos', requireAuth, (req, res) => {
 
 app.get('/api/config', requireAuth, (req, res) => {
   res.json({ musicVideoId: MUSIC_VIDEO_ID, playlist: MUSIC_PLAYLIST });
+});
+
+app.get('/api/me', requireAuth, (req, res) => {
+  res.json({ isAdmin: req.cookies.cruise_auth === 'admin' });
+});
+
+// ── Admin endpoints ──────────────────────────────────────────
+
+app.delete('/admin/photo/:filename', requireAdmin, (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const filepath = path.join(PHOTOS_DIR, filename);
+
+  // Remove from meta
+  const meta = readMeta();
+  const filtered = meta.filter(e => e.filename !== filename);
+  writeMeta(filtered);
+
+  // Delete file (best-effort)
+  try { fs.unlinkSync(filepath); } catch {}
+
+  res.json({ ok: true });
+});
+
+app.put('/admin/photo/:filename', requireAdmin, (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const { caption, sender } = req.body;
+
+  const meta = readMeta();
+  const entry = meta.find(e => e.filename === filename);
+  if (!entry) return res.status(404).json({ ok: false, error: 'Not found' });
+
+  if (caption !== undefined) entry.caption = caption || undefined;
+  if (sender !== undefined) entry.sender = sender || undefined;
+  // Clean up undefined keys
+  if (!entry.caption) delete entry.caption;
+  if (!entry.sender) delete entry.sender;
+
+  writeMeta(meta);
+  res.json({ ok: true, entry });
 });
 
 // Error handler for multer

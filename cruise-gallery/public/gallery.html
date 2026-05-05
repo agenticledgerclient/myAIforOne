@@ -204,6 +204,27 @@
     .dl-btn, .share-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(0,180,216,0.1); border: 1px solid rgba(0,180,216,0.2); border-radius: 7px; color: #00b4d8; text-decoration: none; font-size: 0.85rem; transition: background 0.2s; cursor: pointer; border: 1px solid rgba(0,180,216,0.2); font-family: inherit; }
     .dl-btn:hover, .share-btn:hover { background: rgba(0,180,216,0.25); }
 
+    /* ── Admin controls ── */
+    .admin-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.4); border-radius: 20px; color: #ff6b6b; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    .admin-del-btn, .admin-edit-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 7px; border: 1px solid; font-size: 0.85rem; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+    .admin-del-btn { background: rgba(255,80,80,0.1); border-color: rgba(255,80,80,0.25); color: #ff6b6b; }
+    .admin-del-btn:hover { background: rgba(255,80,80,0.28); }
+    .admin-edit-btn { background: rgba(255,200,50,0.1); border-color: rgba(255,200,50,0.25); color: #ffc832; }
+    .admin-edit-btn:hover { background: rgba(255,200,50,0.28); }
+
+    /* Admin edit modal */
+    .admin-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 500; display: none; align-items: flex-end; justify-content: center; }
+    .admin-modal.open { display: flex; }
+    .admin-modal-inner { background: #0d2244; border: 1px solid rgba(0,180,216,0.25); border-radius: 24px 24px 0 0; width: 100%; max-width: 520px; padding: 28px 24px 36px; }
+    .admin-modal-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #00b4d8; margin-bottom: 18px; }
+    .admin-field { margin-bottom: 14px; }
+    .admin-field label { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.45); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+    .admin-field input, .admin-field textarea { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(0,180,216,0.25); border-radius: 10px; color: white; padding: 10px 13px; font-size: 0.9rem; font-family: 'Inter', sans-serif; outline: none; resize: vertical; }
+    .admin-field input:focus, .admin-field textarea:focus { border-color: rgba(0,180,216,0.5); }
+    .admin-modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .admin-save-btn { flex: 1; padding: 13px; background: linear-gradient(135deg, #00b4d8, #0077b6); border: none; border-radius: 12px; color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .admin-cancel-btn { padding: 13px 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: rgba(255,255,255,0.5); font-size: 0.9rem; cursor: pointer; font-family: 'Inter', sans-serif; }
+
     /* ── Share popover (desktop fallback) ── */
     .share-popover {
       display: none;
@@ -633,6 +654,7 @@
       <p>70th Birthday Celebration &nbsp;·&nbsp; Star of the Seas &nbsp;·&nbsp; 2026</p>
     </div>
     <div class="header-right">
+      <span class="admin-badge" id="adminBadge" style="display:none">&#9881; Admin</span>
       <div class="photo-count" id="photoCount"></div>
       <form method="POST" action="/logout" style="display:inline">
         <button class="logout-btn" type="submit">Sign Out</button>
@@ -692,6 +714,25 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Admin edit modal -->
+<div class="admin-modal" id="adminEditModal">
+  <div class="admin-modal-inner">
+    <div class="admin-modal-title">Edit Photo</div>
+    <div class="admin-field">
+      <label>Caption / Tags</label>
+      <textarea id="adminEditCaption" rows="2" placeholder="Caption or #tags"></textarea>
+    </div>
+    <div class="admin-field">
+      <label>Uploaded by</label>
+      <input type="text" id="adminEditSender" placeholder="Name (optional)" />
+    </div>
+    <div class="admin-modal-actions">
+      <button class="admin-cancel-btn" id="adminEditCancel">Cancel</button>
+      <button class="admin-save-btn" id="adminEditSave">Save Changes</button>
+    </div>
+  </div>
+</div>
 
 <!-- Music player (YouTube IFrame, hidden) -->
 <div id="ytPlayer" style="position:fixed;bottom:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none"></div>
@@ -783,6 +824,7 @@
   let photos = [];
   let activeView = 'date';
   let activeTag = null;
+  let isAdmin = false;
 
   // ── Utility ──────────────────────────────────────────────
 
@@ -841,6 +883,10 @@
       ? `<div class="photo-sender">📍 ${escHtml(photo.sender)}</div>`
       : '';
 
+    const adminBtns = isAdmin ? `
+      <button class="admin-edit-btn" data-filename="${escHtml(photo.filename)}" title="Edit">&#x270F;</button>
+      <button class="admin-del-btn" data-filename="${escHtml(photo.filename)}" title="Delete">&#x1F5D1;</button>` : '';
+
     return `
       <div class="photo-card" data-index="${index}">
         <div class="img-wrap">
@@ -857,6 +903,7 @@
           <div class="photo-actions" style="position:relative">
             <button class="share-btn" data-url="${photo.url}" data-filename="${escHtml(photo.filename)}" data-caption="${escHtml(photo.caption || '')}" title="Share">&#x2197;</button>
             <a href="${photo.downloadUrl}" class="dl-btn" title="Download" download>&#x2B73;</a>
+            ${adminBtns}
           </div>
         </div>
       </div>`;
@@ -965,6 +1012,15 @@
   }
 
   // ── Load & update ─────────────────────────────────────────
+
+  async function initAdmin() {
+    try {
+      const res = await fetch('/api/me');
+      const data = await res.json();
+      isAdmin = data.isAdmin || false;
+      if (isAdmin) document.getElementById('adminBadge').style.display = 'inline-flex';
+    } catch {}
+  }
 
   async function loadPhotos() {
     try {
@@ -1467,10 +1523,92 @@
     document.body.style.overflow = '';
   }
 
+  // ── Admin: delete & edit ──────────────────────────────────
+
+  document.getElementById('content').addEventListener('click', async e => {
+    // Delete button
+    const delBtn = e.target.closest('.admin-del-btn');
+    if (delBtn) {
+      e.stopPropagation();
+      const filename = delBtn.dataset.filename;
+      if (!confirm('Delete this photo? This cannot be undone.')) return;
+      try {
+        const r = await fetch(`/admin/photo/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error('Failed');
+        showToast('Photo deleted.');
+        photos = photos.filter(p => p.filename !== filename);
+        renderTags();
+        render();
+        document.getElementById('photoCount').innerHTML =
+          '<span>' + photos.length + '</span> photo' + (photos.length !== 1 ? 's' : '');
+      } catch { showToast('Delete failed.'); }
+      return;
+    }
+
+    // Edit button
+    const editBtn = e.target.closest('.admin-edit-btn');
+    if (editBtn) {
+      e.stopPropagation();
+      const filename = editBtn.dataset.filename;
+      openAdminEdit(filename);
+    }
+  });
+
+  let adminEditFilename = null;
+
+  function openAdminEdit(filename) {
+    const photo = photos.find(p => p.filename === filename);
+    if (!photo) return;
+    adminEditFilename = filename;
+    document.getElementById('adminEditCaption').value = photo.caption || '';
+    document.getElementById('adminEditSender').value = photo.sender || '';
+    document.getElementById('adminEditModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAdminEdit() {
+    document.getElementById('adminEditModal').classList.remove('open');
+    document.body.style.overflow = '';
+    adminEditFilename = null;
+  }
+
+  document.getElementById('adminEditCancel').addEventListener('click', closeAdminEdit);
+  document.getElementById('adminEditModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('adminEditModal')) closeAdminEdit();
+  });
+
+  document.getElementById('adminEditSave').addEventListener('click', async () => {
+    if (!adminEditFilename) return;
+    const caption = document.getElementById('adminEditCaption').value.trim();
+    const sender = document.getElementById('adminEditSender').value.trim();
+    try {
+      const r = await fetch(`/admin/photo/${encodeURIComponent(adminEditFilename)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption, sender })
+      });
+      const data = await r.json();
+      if (!data.ok) throw new Error('Failed');
+      // Update local array
+      const idx = photos.findIndex(p => p.filename === adminEditFilename);
+      if (idx !== -1) {
+        photos[idx] = { ...photos[idx], caption: caption || undefined, sender: sender || undefined };
+        if (!caption) delete photos[idx].caption;
+        if (!sender) delete photos[idx].sender;
+      }
+      closeAdminEdit();
+      showToast('Saved!');
+      renderTags();
+      render();
+    } catch { showToast('Save failed.'); }
+  });
+
   // ── Boot ──────────────────────────────────────────────────
 
-  loadPhotos();
-  setInterval(loadPhotos, 60000);
+  initAdmin().then(() => {
+    loadPhotos();
+    setInterval(loadPhotos, 60000);
+  });
   initMusicWithPlaylistUI();
 </script>
 </body>
