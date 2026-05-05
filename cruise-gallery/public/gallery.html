@@ -268,6 +268,161 @@
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1e3a5f; border: 1px solid rgba(212,175,55,0.3); color: white; padding: 12px 24px; border-radius: 12px; font-size: 0.88rem; transition: transform 0.3s; z-index: 300; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
+    /* ── Music player button ── */
+    .music-btn {
+      position: fixed;
+      bottom: 28px;
+      left: 24px;
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 18px;
+      background: rgba(13,34,68,0.92);
+      border: 1px solid rgba(212,175,55,0.35);
+      border-radius: 50px;
+      color: rgba(255,255,255,0.85);
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      transition: all 0.2s;
+    }
+    .music-btn:hover { border-color: rgba(212,175,55,0.6); color: #d4af37; }
+    .music-btn.playing { border-color: rgba(212,175,55,0.6); color: #d4af37; background: rgba(13,34,68,0.97); }
+    .music-btn .music-icon { font-size: 1.1rem; }
+    .music-equalizer {
+      display: none;
+      gap: 2px;
+      align-items: flex-end;
+      height: 14px;
+    }
+    .music-btn.playing .music-equalizer { display: flex; }
+    .music-btn.playing .music-label { display: none; }
+    .eq-bar {
+      width: 3px;
+      background: #d4af37;
+      border-radius: 2px;
+      animation: eqBounce 0.6s ease-in-out infinite alternate;
+    }
+    .eq-bar:nth-child(1) { animation-delay: 0s; }
+    .eq-bar:nth-child(2) { animation-delay: 0.15s; }
+    .eq-bar:nth-child(3) { animation-delay: 0.05s; }
+    .eq-bar:nth-child(4) { animation-delay: 0.2s; }
+    @keyframes eqBounce {
+      from { height: 4px; }
+      to   { height: 14px; }
+    }
+
+    /* ── Slideshow mode ── */
+    .slideshow-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 500;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .slideshow-overlay.open { display: flex; }
+
+    .ss-img-wrap {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 20px 0;
+      overflow: hidden;
+    }
+    .ss-img-wrap img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      transition: opacity 0.5s ease;
+    }
+    .ss-img-wrap img.fading { opacity: 0; }
+
+    .ss-caption {
+      text-align: center;
+      padding: 12px 20px 4px;
+      min-height: 44px;
+    }
+    .ss-caption-text { font-size: 0.9rem; color: rgba(255,255,255,0.75); }
+    .ss-caption-sender { font-size: 0.78rem; color: rgba(212,175,55,0.7); margin-top: 2px; }
+
+    .ss-counter {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+    }
+
+    .ss-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 20px 28px;
+      flex-wrap: wrap;
+    }
+    .ss-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .ss-btn:hover { background: rgba(255,255,255,0.16); }
+    .ss-btn.active { background: rgba(212,175,55,0.2); border-color: rgba(212,175,55,0.4); color: #d4af37; }
+    .ss-btn-play {
+      width: 56px;
+      height: 56px;
+      font-size: 1.35rem;
+      background: rgba(212,175,55,0.15);
+      border-color: rgba(212,175,55,0.35);
+      color: #d4af37;
+    }
+    .ss-btn-play:hover { background: rgba(212,175,55,0.28); }
+    .ss-close {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: rgba(255,255,255,0.6);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ss-close:hover { background: rgba(255,255,255,0.16); color: white; }
+
+    .ss-speed-label {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.06em;
+      text-align: center;
+      margin-top: -6px;
+      width: 100%;
+    }
+
     /* ── Upload FAB ── */
     .upload-fab {
       position: fixed;
@@ -503,6 +658,7 @@
       <button class="view-tab" data-view="person">👤 By Person</button>
       <button class="view-tab" data-view="all">🖼 All Photos</button>
     </div>
+    <button class="dl-all-btn" id="slideshowBtn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white;margin-left:0">&#x25B6; Slideshow</button>
     <a href="#" class="dl-all-btn" id="downloadAllBtn">&#x2B73; Download All</a>
   </div>
 
@@ -536,6 +692,42 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Music player (YouTube IFrame, hidden) -->
+<div id="ytPlayer" style="position:fixed;bottom:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none"></div>
+
+<!-- Music toggle button -->
+<button class="music-btn" id="musicBtn" style="display:none">
+  <span class="music-icon">🎵</span>
+  <span class="music-label">Tap to play music</span>
+  <div class="music-equalizer">
+    <div class="eq-bar" style="height:6px"></div>
+    <div class="eq-bar" style="height:10px"></div>
+    <div class="eq-bar" style="height:8px"></div>
+    <div class="eq-bar" style="height:12px"></div>
+  </div>
+</button>
+
+<!-- Slideshow overlay -->
+<div class="slideshow-overlay" id="slideshowOverlay">
+  <button class="ss-close" id="ssClose">✕</button>
+  <div class="ss-img-wrap">
+    <img id="ssImg" src="" alt="" />
+  </div>
+  <div class="ss-caption">
+    <div class="ss-caption-text" id="ssCaptionText"></div>
+    <div class="ss-caption-sender" id="ssCaptionSender"></div>
+    <div class="ss-counter" id="ssCounter"></div>
+  </div>
+  <div class="ss-controls">
+    <button class="ss-btn" id="ssPrev" title="Previous">&#x25C0;</button>
+    <button class="ss-btn ss-btn-play" id="ssPlayPause" title="Play/Pause">&#x23F8;</button>
+    <button class="ss-btn" id="ssNext" title="Next">&#x25B6;</button>
+    <button class="ss-btn" id="ssShuffle" title="Shuffle">&#x21C4;</button>
+    <button class="ss-btn" id="ssSpeed" title="Speed">&#x1F4A8;</button>
+  </div>
+  <div class="ss-speed-label" id="ssSpeedLabel">4s per photo</div>
+</div>
 
 <!-- Upload FAB -->
 <button class="upload-fab" id="uploadFab">
@@ -1091,10 +1283,165 @@
     }
   });
 
+  // ── Music (YouTube IFrame API) ────────────────────────────
+
+  let ytPlayer = null;
+  let musicPlaying = false;
+  let musicVideoId = '';
+  const musicBtn = document.getElementById('musicBtn');
+
+  // Load YT IFrame API only if a video ID is configured
+  async function initMusic() {
+    try {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      musicVideoId = cfg.musicVideoId;
+      if (!musicVideoId) return;
+      musicBtn.style.display = 'flex';
+      loadYTApi();
+    } catch (e) { /* no music */ }
+  }
+
+  function loadYTApi() {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  }
+
+  window.onYouTubeIframeAPIReady = function() {
+    ytPlayer = new YT.Player('ytPlayer', {
+      videoId: musicVideoId,
+      playerVars: { autoplay: 0, loop: 1, playlist: musicVideoId, controls: 0, disablekb: 1 },
+      events: {
+        onStateChange: e => {
+          if (e.data === YT.PlayerState.PLAYING) {
+            musicPlaying = true;
+            musicBtn.classList.add('playing');
+          } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+            musicPlaying = false;
+            musicBtn.classList.remove('playing');
+          }
+        }
+      }
+    });
+  };
+
+  musicBtn.addEventListener('click', () => {
+    if (!ytPlayer || typeof ytPlayer.getPlayerState !== 'function') return;
+    if (musicPlaying) {
+      ytPlayer.pauseVideo();
+    } else {
+      ytPlayer.playVideo();
+    }
+  });
+
+  // ── Slideshow ─────────────────────────────────────────────
+
+  let ssPhotos = [];
+  let ssIndex = 0;
+  let ssPlaying = true;
+  let ssShuffle = false;
+  let ssInterval = null;
+  const ssSpeeds = [2000, 4000, 7000, 10000];
+  const ssSpeedLabels = ['2s per photo', '4s per photo', '7s per photo', '10s per photo'];
+  let ssSpeedIdx = 1; // default 4s
+
+  const ssOverlay   = document.getElementById('slideshowOverlay');
+  const ssImg       = document.getElementById('ssImg');
+  const ssPlayPause = document.getElementById('ssPlayPause');
+  const ssShuffleBtn= document.getElementById('ssShuffle');
+  const ssSpeedBtn  = document.getElementById('ssSpeed');
+  const ssSpeedLabel= document.getElementById('ssSpeedLabel');
+  const ssCounter   = document.getElementById('ssCounter');
+
+  document.getElementById('slideshowBtn').addEventListener('click', () => {
+    if (photos.length === 0) return;
+    ssPhotos = [...visiblePhotos()];
+    ssIndex = 0;
+    ssPlaying = true;
+    ssShuffle = false;
+    ssShuffleBtn.classList.remove('active');
+    ssPlayPause.innerHTML = '&#x23F8;';
+    ssOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    ssShow(ssIndex);
+    ssSchedule();
+    // start music if available
+    if (ytPlayer && !musicPlaying && typeof ytPlayer.playVideo === 'function') {
+      ytPlayer.playVideo();
+    }
+  });
+
+  document.getElementById('ssClose').addEventListener('click', ssClose);
+  document.addEventListener('keydown', e => {
+    if (!ssOverlay.classList.contains('open')) return;
+    if (e.key === 'Escape') ssClose();
+    if (e.key === 'ArrowRight') ssStep(1);
+    if (e.key === 'ArrowLeft') ssStep(-1);
+    if (e.key === ' ') { e.preventDefault(); ssTogglePlay(); }
+  });
+
+  document.getElementById('ssPrev').addEventListener('click', () => { ssStep(-1); ssReschedule(); });
+  document.getElementById('ssNext').addEventListener('click', () => { ssStep(1); ssReschedule(); });
+  ssPlayPause.addEventListener('click', ssTogglePlay);
+  ssShuffleBtn.addEventListener('click', () => {
+    ssShuffle = !ssShuffle;
+    ssShuffleBtn.classList.toggle('active', ssShuffle);
+  });
+  ssSpeedBtn.addEventListener('click', () => {
+    ssSpeedIdx = (ssSpeedIdx + 1) % ssSpeeds.length;
+    ssSpeedLabel.textContent = ssSpeedLabels[ssSpeedIdx];
+    ssReschedule();
+  });
+
+  function ssShow(i) {
+    const p = ssPhotos[i];
+    ssImg.classList.add('fading');
+    setTimeout(() => {
+      ssImg.src = p.url;
+      ssImg.onload = () => ssImg.classList.remove('fading');
+      document.getElementById('ssCaptionText').textContent = p.caption || '';
+      document.getElementById('ssCaptionSender').textContent = p.sender ? '📍 ' + p.sender : '';
+      ssCounter.textContent = (i + 1) + ' / ' + ssPhotos.length;
+    }, 250);
+  }
+
+  function ssStep(dir) {
+    if (ssShuffle) {
+      let next;
+      do { next = Math.floor(Math.random() * ssPhotos.length); } while (ssPhotos.length > 1 && next === ssIndex);
+      ssIndex = next;
+    } else {
+      ssIndex = (ssIndex + dir + ssPhotos.length) % ssPhotos.length;
+    }
+    ssShow(ssIndex);
+  }
+
+  function ssSchedule() {
+    clearInterval(ssInterval);
+    if (ssPlaying) {
+      ssInterval = setInterval(() => ssStep(1), ssSpeeds[ssSpeedIdx]);
+    }
+  }
+
+  function ssReschedule() { ssSchedule(); }
+
+  function ssTogglePlay() {
+    ssPlaying = !ssPlaying;
+    ssPlayPause.innerHTML = ssPlaying ? '&#x23F8;' : '&#x25B6;';
+    ssSchedule();
+  }
+
+  function ssClose() {
+    clearInterval(ssInterval);
+    ssOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
   // ── Boot ──────────────────────────────────────────────────
 
   loadPhotos();
   setInterval(loadPhotos, 60000);
+  initMusic();
 </script>
 </body>
 </html>

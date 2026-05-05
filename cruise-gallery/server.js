@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const GALLERY_PASSCODE = process.env.GALLERY_PASSCODE || 'cruise70';
 const UPLOAD_SECRET = process.env.UPLOAD_SECRET || 'changeme';
+const MUSIC_VIDEO_ID = process.env.MUSIC_VIDEO_ID || '';
 
 // Determine photos directory
 const RAILWAY_PHOTOS_DIR = '/data/photos';
@@ -209,6 +210,10 @@ app.get('/api/photos', requireAuth, (req, res) => {
     .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
 
   res.json(photos);
+});
+
+app.get('/api/config', requireAuth, (req, res) => {
+  res.json({ musicVideoId: MUSIC_VIDEO_ID });
 });
 
 // Error handler for multer
