@@ -200,8 +200,48 @@
     .photo-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
     .photo-tag { font-size: 0.66rem; padding: 2px 7px; border-radius: 10px; background: rgba(212,175,55,0.1); color: rgba(212,175,55,0.7); border: 1px solid rgba(212,175,55,0.15); }
 
-    .dl-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); border-radius: 7px; color: #d4af37; text-decoration: none; font-size: 0.85rem; transition: background 0.2s; }
-    .dl-btn:hover { background: rgba(212,175,55,0.25); }
+    .photo-actions { flex-shrink: 0; display: flex; gap: 5px; }
+    .dl-btn, .share-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); border-radius: 7px; color: #d4af37; text-decoration: none; font-size: 0.85rem; transition: background 0.2s; cursor: pointer; border: 1px solid rgba(212,175,55,0.2); font-family: inherit; }
+    .dl-btn:hover, .share-btn:hover { background: rgba(212,175,55,0.25); }
+
+    /* ── Share popover (desktop fallback) ── */
+    .share-popover {
+      display: none;
+      position: absolute;
+      bottom: 38px;
+      right: 0;
+      background: #0d2244;
+      border: 1px solid rgba(212,175,55,0.3);
+      border-radius: 12px;
+      padding: 8px;
+      z-index: 50;
+      min-width: 160px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .share-popover.open { display: block; }
+    .share-popover a, .share-popover button {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.83rem;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .share-popover a:hover, .share-popover button:hover { background: rgba(255,255,255,0.08); color: white; }
+
+    /* ── Lightbox actions ── */
+    .lightbox-actions { display: flex; gap: 10px; align-items: center; }
+    .lightbox-share { display: inline-flex; align-items: center; gap: 7px; padding: 9px 22px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: white; font-weight: 600; font-size: 0.88rem; font-family: 'Inter', sans-serif; cursor: pointer; transition: background 0.2s; }
+    .lightbox-share:hover { background: rgba(255,255,255,0.14); }
 
     /* ── Lightbox ── */
     .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
@@ -485,7 +525,10 @@
       <div class="lightbox-caption" id="lbCaption"></div>
       <div class="lightbox-meta" id="lbMeta"></div>
     </div>
-    <a id="lbDl" href="#" class="lightbox-dl">&#x2B73; Download</a>
+    <div class="lightbox-actions">
+      <button id="lbShare" class="lightbox-share">&#x2197; Share</button>
+      <a id="lbDl" href="#" class="lightbox-dl">&#x2B73; Download</a>
+    </div>
   </div>
 </div>
 
@@ -615,7 +658,10 @@
             <div class="photo-time">${formatTime(photo.uploadedAt)}</div>
             ${tagsHtml}
           </div>
-          <a href="${photo.downloadUrl}" class="dl-btn" title="Download" download>&#x2B73;</a>
+          <div class="photo-actions" style="position:relative">
+            <button class="share-btn" data-url="${photo.url}" data-filename="${escHtml(photo.filename)}" data-caption="${escHtml(photo.caption || '')}" title="Share">&#x2197;</button>
+            <a href="${photo.downloadUrl}" class="dl-btn" title="Download" download>&#x2B73;</a>
+          </div>
         </div>
       </div>`;
   }
@@ -695,7 +741,7 @@
     // Bind click on cards for lightbox (delegated)
     content.querySelectorAll('.photo-card').forEach(card => {
       card.querySelector('.img-wrap').addEventListener('click', () => {
-        openLightbox(parseInt(card.dataset.index));
+        openLightboxWrapped(parseInt(card.dataset.index));
       });
     });
 
@@ -812,6 +858,109 @@
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // ── Share logic ───────────────────────────────────────────
+
+  // Core share fn — fetches the image and uses native share sheet on mobile,
+  // falls back to a small popover (Facebook + Copy Link) on desktop.
+  async function sharePhoto(url, filename, caption, fallbackAnchor) {
+    const title = caption || 'The Sheriff\'s 70th Cruise';
+
+    // Fetch the image as a blob so we can share the actual file
+    // (required for Instagram/TikTok via the OS share sheet)
+    let fileToShare = null;
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const ext = filename.split('.').pop() || 'jpg';
+      fileToShare = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    } catch (e) { /* ignore — will fall back to URL share */ }
+
+    // Try native Web Share API with file (mobile share sheet)
+    if (navigator.share && navigator.canShare && fileToShare && navigator.canShare({ files: [fileToShare] })) {
+      try {
+        await navigator.share({ files: [fileToShare], title });
+        return;
+      } catch (e) {
+        if (e.name !== 'AbortError') console.warn('File share failed', e);
+        else return; // user cancelled
+      }
+    }
+
+    // Try native share with just URL (some browsers)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url: window.location.origin + url });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
+
+    // Desktop fallback: show popover anchored to the button
+    showSharePopover(window.location.origin + url, title, fallbackAnchor);
+  }
+
+  let openPopover = null;
+
+  function showSharePopover(absUrl, title, anchor) {
+    // Close any existing popover
+    if (openPopover) { openPopover.remove(); openPopover = null; }
+
+    const pop = document.createElement('div');
+    pop.className = 'share-popover open';
+    pop.innerHTML = `
+      <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absUrl)}" target="_blank" rel="noopener">
+        <span style="font-size:1rem">👍</span> Facebook
+      </a>
+      <button class="copy-link-btn">
+        <span style="font-size:1rem">🔗</span> Copy Link
+      </button>`;
+
+    pop.querySelector('.copy-link-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(absUrl).then(() => showToast('Link copied!')).catch(() => showToast('Copy failed'));
+      pop.remove(); openPopover = null;
+    });
+
+    anchor.style.position = 'relative';
+    anchor.appendChild(pop);
+    openPopover = pop;
+
+    const close = (e) => {
+      if (!pop.contains(e.target) && e.target !== anchor) {
+        pop.remove(); openPopover = null;
+        document.removeEventListener('click', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close, true), 0);
+  }
+
+  // Share buttons on photo cards (delegated)
+  document.getElementById('content').addEventListener('click', e => {
+    const btn = e.target.closest('.share-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    const url = btn.dataset.url;
+    const filename = btn.dataset.filename;
+    const caption = btn.dataset.caption;
+    const wrapper = btn.closest('.photo-actions');
+    sharePhoto(url, filename, caption, wrapper);
+  });
+
+  // Share button in lightbox
+  let lbPhotoData = null;
+  document.getElementById('lbShare').addEventListener('click', () => {
+    if (lbPhotoData) {
+      sharePhoto(lbPhotoData.url, lbPhotoData.filename, lbPhotoData.caption, document.getElementById('lbShare'));
+    }
+  });
+
+  // Store photo data when lightbox opens
+  const _origOpenLightbox = openLightbox;
+  function openLightboxWrapped(i) {
+    _origOpenLightbox(i);
+    lbPhotoData = photos[i];
   }
 
   // ── Upload flow ───────────────────────────────────────────
