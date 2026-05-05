@@ -227,6 +227,193 @@
     /* ── Toast ── */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1e3a5f; border: 1px solid rgba(212,175,55,0.3); color: white; padding: 12px 24px; border-radius: 12px; font-size: 0.88rem; transition: transform 0.3s; z-index: 300; }
     .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Upload FAB ── */
+    .upload-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 24px;
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 22px;
+      background: linear-gradient(135deg, #d4af37, #b8860b);
+      border: none;
+      border-radius: 50px;
+      color: #0a1628;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(212,175,55,0.45), 0 2px 8px rgba(0,0,0,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .upload-fab:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(212,175,55,0.55); }
+    .upload-fab:active { transform: translateY(0); }
+
+    /* ── Upload Modal ── */
+    .upload-modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      z-index: 400;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+    .upload-modal-bg.open { display: flex; }
+    @media (min-width: 600px) {
+      .upload-modal-bg { align-items: center; }
+      .upload-sheet { border-radius: 20px !important; max-width: 480px !important; }
+    }
+    .upload-sheet {
+      background: #0d2244;
+      border: 1px solid rgba(212,175,55,0.25);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 100%;
+      padding: 28px 24px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .upload-sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 4px;
+      margin: -12px auto 4px;
+    }
+    .upload-sheet h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.4rem;
+      color: #d4af37;
+      margin: 0;
+      text-align: center;
+    }
+
+    /* Drop zone / file picker */
+    .drop-zone {
+      position: relative;
+      border: 2px dashed rgba(212,175,55,0.35);
+      border-radius: 16px;
+      background: rgba(212,175,55,0.04);
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      overflow: hidden;
+    }
+    .drop-zone:hover, .drop-zone.hover { border-color: rgba(212,175,55,0.7); background: rgba(212,175,55,0.09); }
+    .drop-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      font-size: 0; /* hide any text on iOS */
+    }
+    .drop-zone-icon { font-size: 2.4rem; margin-bottom: 8px; }
+    .drop-zone-label { font-size: 0.95rem; color: rgba(255,255,255,0.7); font-weight: 500; }
+    .drop-zone-sub { font-size: 0.78rem; color: rgba(255,255,255,0.35); margin-top: 4px; }
+
+    /* Preview */
+    .upload-preview {
+      display: none;
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.3);
+    }
+    .upload-preview img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      display: block;
+    }
+    .upload-preview-clear {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Form fields */
+    .upload-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 7px;
+    }
+    .upload-field input, .upload-field textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: white;
+      font-size: 0.95rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: none;
+    }
+    .upload-field input:focus, .upload-field textarea:focus {
+      border-color: rgba(212,175,55,0.5);
+    }
+    .upload-field input::placeholder, .upload-field textarea::placeholder {
+      color: rgba(255,255,255,0.25);
+    }
+
+    /* Submit button */
+    .upload-submit {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #d4af37, #b8860b);
+      border: none;
+      border-radius: 14px;
+      color: #0a1628;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .upload-submit:hover { transform: translateY(-1px); }
+    .upload-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Progress bar */
+    .upload-progress {
+      display: none;
+      height: 5px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: -8px;
+    }
+    .upload-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #d4af37, #f0d060);
+      transition: width 0.3s;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -284,7 +471,7 @@
   <div id="emptyState" class="empty" style="display:none">
     <div class="empty-icon">📸</div>
     <h3>No photos yet, partner</h3>
-    <p>Send photos in the WhatsApp group and they'll appear here automatically.</p>
+    <p>Send photos in the WhatsApp group or tap <strong style="color:#d4af37">Add Photo</strong> below to upload directly.</p>
   </div>
   <div id="content"></div>
 </main>
@@ -303,6 +490,55 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Upload FAB -->
+<button class="upload-fab" id="uploadFab">
+  <span style="font-size:1.2rem">📷</span> Add Photo
+</button>
+
+<!-- Upload Modal -->
+<div class="upload-modal-bg" id="uploadModal">
+  <div class="upload-sheet">
+    <div class="upload-sheet-handle"></div>
+    <h3>📸 Add Your Photo</h3>
+
+    <!-- Drop zone / file picker -->
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="image/*" capture="environment" />
+      <div class="drop-zone-icon">🖼️</div>
+      <div class="drop-zone-label">Tap to pick a photo</div>
+      <div class="drop-zone-sub">Or drag & drop · JPG, PNG, HEIC up to 50MB</div>
+    </div>
+
+    <!-- Preview -->
+    <div class="upload-preview" id="uploadPreview">
+      <img id="previewImg" src="" alt="Preview" />
+      <button class="upload-preview-clear" id="clearPreview" type="button">✕</button>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="upload-progress" id="uploadProgress">
+      <div class="upload-progress-bar" id="uploadProgressBar"></div>
+    </div>
+
+    <!-- Name field -->
+    <div class="upload-field">
+      <label>Your Name <span style="color:rgba(255,255,255,0.25);font-weight:400;text-transform:none">(optional)</span></label>
+      <input type="text" id="uploadName" placeholder="e.g. Maria, Uncle Bob…" maxlength="80" autocomplete="name" />
+    </div>
+
+    <!-- Caption/tags field -->
+    <div class="upload-field">
+      <label>Caption / Tags <span style="color:rgba(255,255,255,0.25);font-weight:400;text-transform:none">(optional)</span></label>
+      <textarea id="uploadCaption" rows="2" placeholder="Add a caption or #tags like #dinner #sheriff"></textarea>
+    </div>
+
+    <!-- Submit -->
+    <button class="upload-submit" id="uploadSubmit" disabled>Upload Photo</button>
+
+    <button type="button" style="background:none;border:none;color:rgba(255,255,255,0.35);font-size:0.85rem;cursor:pointer;font-family:'Inter',sans-serif;padding:4px" id="uploadCancel">Cancel</button>
+  </div>
+</div>
 
 <script>
   let photos = [];
@@ -577,6 +813,131 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2800);
   }
+
+  // ── Upload flow ───────────────────────────────────────────
+
+  const uploadFab      = document.getElementById('uploadFab');
+  const uploadModal    = document.getElementById('uploadModal');
+  const uploadCancel   = document.getElementById('uploadCancel');
+  const fileInput      = document.getElementById('fileInput');
+  const dropZone       = document.getElementById('dropZone');
+  const uploadPreview  = document.getElementById('uploadPreview');
+  const previewImg     = document.getElementById('previewImg');
+  const clearPreview   = document.getElementById('clearPreview');
+  const uploadSubmit   = document.getElementById('uploadSubmit');
+  const uploadProgress = document.getElementById('uploadProgress');
+  const uploadProgressBar = document.getElementById('uploadProgressBar');
+  let selectedFile = null;
+
+  uploadFab.addEventListener('click', () => {
+    uploadModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  });
+
+  function closeUploadModal() {
+    uploadModal.classList.remove('open');
+    document.body.style.overflow = '';
+    resetUploadForm();
+  }
+
+  uploadCancel.addEventListener('click', closeUploadModal);
+  uploadModal.addEventListener('click', e => {
+    if (e.target === uploadModal) closeUploadModal();
+  });
+
+  function resetUploadForm() {
+    selectedFile = null;
+    fileInput.value = '';
+    previewImg.src = '';
+    uploadPreview.style.display = 'none';
+    dropZone.style.display = 'block';
+    uploadSubmit.disabled = true;
+    uploadProgress.style.display = 'none';
+    uploadProgressBar.style.width = '0%';
+    uploadSubmit.textContent = 'Upload Photo';
+    uploadSubmit.disabled = true;
+    document.getElementById('uploadName').value = '';
+    document.getElementById('uploadCaption').value = '';
+  }
+
+  function showPreview(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      uploadPreview.style.display = 'block';
+      dropZone.style.display = 'none';
+      uploadSubmit.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) showPreview(fileInput.files[0]);
+  });
+
+  clearPreview.addEventListener('click', () => {
+    selectedFile = null;
+    fileInput.value = '';
+    previewImg.src = '';
+    uploadPreview.style.display = 'none';
+    dropZone.style.display = 'block';
+    uploadSubmit.disabled = true;
+  });
+
+  // Drag and drop support
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('hover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('hover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) showPreview(f);
+  });
+
+  uploadSubmit.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    uploadSubmit.disabled = true;
+    uploadSubmit.textContent = 'Uploading…';
+    uploadProgress.style.display = 'block';
+
+    let prog = 0;
+    const progInterval = setInterval(() => {
+      prog = Math.min(prog + Math.random() * 15, 85);
+      uploadProgressBar.style.width = prog + '%';
+    }, 200);
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', selectedFile);
+      const name = document.getElementById('uploadName').value.trim();
+      const caption = document.getElementById('uploadCaption').value.trim();
+      if (name) formData.append('name', name);
+      if (caption) formData.append('caption', caption);
+
+      const res = await fetch('/upload-web', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      clearInterval(progInterval);
+      uploadProgressBar.style.width = '100%';
+
+      if (data.ok) {
+        setTimeout(() => {
+          closeUploadModal();
+          showToast('📸 Photo added to the gallery!');
+          loadPhotos();
+        }, 400);
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (err) {
+      clearInterval(progInterval);
+      uploadProgress.style.display = 'none';
+      uploadSubmit.disabled = false;
+      uploadSubmit.textContent = 'Upload Photo';
+      showToast('Upload failed: ' + err.message);
+    }
+  });
 
   // ── Boot ──────────────────────────────────────────────────
 

@@ -174,6 +174,27 @@ app.get('/download/:filename', requireAuth, (req, res) => {
   res.download(filepath);
 });
 
+// Web upload — authenticated via cookie (no secret needed)
+app.post('/upload-web', requireAuth, upload.single('photo'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ ok: false, error: 'No photo provided' });
+  }
+
+  const sender = (req.body.name || '').trim() || null;
+  const caption = (req.body.caption || '').trim() || null;
+
+  const entry = {
+    filename: req.file.filename,
+    uploadedAt: new Date().toISOString(),
+    source: 'web',
+    ...(sender && { sender }),
+    ...(caption && { caption })
+  };
+
+  appendMeta(entry);
+  res.json({ ok: true, filename: req.file.filename });
+});
+
 app.get('/api/photos', requireAuth, (req, res) => {
   const meta = readMeta();
   const photos = meta
