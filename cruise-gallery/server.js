@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const GALLERY_PASSCODE = process.env.GALLERY_PASSCODE || 'cruise70';
 const UPLOAD_SECRET = process.env.UPLOAD_SECRET || 'changeme';
-const MUSIC_VIDEO_ID = process.env.MUSIC_VIDEO_ID || '';
+const MUSIC_VIDEO_ID = process.env.MUSIC_VIDEO_ID || '3GwjfUFyY6M'; // Kool & the Gang — Celebration
 
 // Determine photos directory
 const RAILWAY_PHOTOS_DIR = '/data/photos';
