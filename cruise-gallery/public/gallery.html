@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Sheriff's 70th — Photo Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      background: #0a1628;
+      color: white;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(180deg, #0d2244 0%, #0a1628 100%);
+      border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 0;
+    }
+    .header-badge svg { width: 44px; height: 44px; filter: drop-shadow(0 0 8px rgba(212,175,55,0.5)); }
+    .header-text h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.35rem; font-weight: 900; color: #d4af37; line-height: 1.1; }
+    .header-text p { font-size: 0.72rem; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .photo-count { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
+    .photo-count span { color: #d4af37; font-weight: 600; }
+    .logout-btn { font-size: 0.8rem; color: rgba(255,255,255,0.4); text-decoration: none; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; transition: all 0.2s; cursor: pointer; background: none; font-family: 'Inter', sans-serif; }
+    .logout-btn:hover { color: white; border-color: rgba(255,255,255,0.3); }
+
+    /* ── Main ── */
+    main { max-width: 1400px; margin: 0 auto; padding: 28px 24px 64px; }
+
+    /* ── Hero ── */
+    .hero { text-align: center; padding: 32px 0 36px; position: relative; }
+    .hero::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 80px; height: 2px; background: linear-gradient(90deg, transparent, #d4af37, transparent); }
+    .hero-icon { font-size: 2.6rem; margin-bottom: 10px; filter: drop-shadow(0 0 12px rgba(212,175,55,0.6)); }
+    .hero h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.4rem; font-weight: 900; color: #d4af37; text-shadow: 0 0 40px rgba(212,175,55,0.3); margin-bottom: 6px; }
+    .hero p { font-size: 0.95rem; color: rgba(255,255,255,0.5); }
+
+    /* ── Controls bar ── */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin: 28px 0 8px;
+    }
+
+    /* View mode tabs */
+    .view-tabs {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .view-tab {
+      padding: 7px 16px;
+      border-radius: 7px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 0.18s;
+      border: none;
+      background: none;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+    }
+    .view-tab.active {
+      background: rgba(212,175,55,0.15);
+      color: #d4af37;
+      border: 1px solid rgba(212,175,55,0.3);
+    }
+    .view-tab:not(.active):hover { color: rgba(255,255,255,0.8); }
+
+    /* Tag filter chips */
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin: 4px 0 16px;
+      min-height: 0;
+    }
+    .tag-chip {
+      padding: 5px 13px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: 'Inter', sans-serif;
+    }
+    .tag-chip:hover { border-color: rgba(212,175,55,0.4); color: rgba(212,175,55,0.9); }
+    .tag-chip.active {
+      background: rgba(212,175,55,0.15);
+      border-color: rgba(212,175,55,0.5);
+      color: #d4af37;
+    }
+    .tag-chip .count {
+      display: inline-block;
+      margin-left: 5px;
+      font-size: 0.7rem;
+      opacity: 0.6;
+    }
+
+    /* Download all */
+    .dl-all-btn {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      background: linear-gradient(135deg, #d4af37, #b8860b);
+      border: none;
+      border-radius: 10px;
+      color: #0a1628;
+      font-size: 0.83rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+    }
+    .dl-all-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,175,55,0.3); }
+
+    /* ── Section / Group header ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 32px 0 16px;
+    }
+    .section-header:first-child { margin-top: 0; }
+    .section-label {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #d4af37;
+    }
+    .section-sub {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.04em;
+    }
+    .section-line { flex: 1; height: 1px; background: rgba(212,175,55,0.15); }
+
+    /* ── Photo grid ── */
+    .grid {
+      columns: 4;
+      column-gap: 12px;
+    }
+    @media (max-width: 1100px) { .grid { columns: 3; } }
+    @media (max-width: 740px)  { .grid { columns: 2; } }
+    @media (max-width: 440px)  { .grid { columns: 1; } }
+
+    .photo-card {
+      break-inside: avoid;
+      margin-bottom: 12px;
+      border-radius: 13px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .photo-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.3); }
+    .photo-card img { width: 100%; display: block; }
+    .photo-card .img-wrap { position: relative; }
+    .photo-card .img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background 0.2s; }
+    .photo-card:hover .img-overlay { background: rgba(0,0,0,0.2); }
+
+    .photo-meta { padding: 9px 11px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .photo-info { min-width: 0; }
+    .photo-caption { font-size: 0.8rem; color: rgba(255,255,255,0.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 2px; }
+    .photo-sender { font-size: 0.72rem; color: rgba(212,175,55,0.7); }
+    .photo-time { font-size: 0.68rem; color: rgba(255,255,255,0.25); }
+    .photo-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .photo-tag { font-size: 0.66rem; padding: 2px 7px; border-radius: 10px; background: rgba(212,175,55,0.1); color: rgba(212,175,55,0.7); border: 1px solid rgba(212,175,55,0.15); }
+
+    .dl-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); border-radius: 7px; color: #d4af37; text-decoration: none; font-size: 0.85rem; transition: background 0.2s; }
+    .dl-btn:hover { background: rgba(212,175,55,0.25); }
+
+    /* ── Lightbox ── */
+    .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+    .lightbox.open { display: flex; }
+    .lightbox-inner { position: relative; max-width: min(90vw, 1000px); display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .lightbox-inner img { max-width: 100%; max-height: 80dvh; border-radius: 12px; object-fit: contain; }
+    .lightbox-close { position: fixed; top: 20px; right: 24px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .lightbox-close:hover { background: rgba(255,255,255,0.2); }
+    .lightbox-info { text-align: center; }
+    .lightbox-caption { font-size: 0.9rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; }
+    .lightbox-meta { font-size: 0.75rem; color: rgba(212,175,55,0.7); }
+    .lightbox-dl { display: inline-flex; align-items: center; gap: 7px; padding: 9px 22px; background: linear-gradient(135deg, #d4af37, #b8860b); border-radius: 10px; color: #0a1628; text-decoration: none; font-weight: 700; font-size: 0.88rem; font-family: 'Inter', sans-serif; }
+
+    /* ── Empty ── */
+    .empty { text-align: center; padding: 80px 20px; color: rgba(255,255,255,0.35); }
+    .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+    .empty h3 { font-size: 1.15rem; margin-bottom: 8px; color: rgba(255,255,255,0.5); }
+    .empty p { font-size: 0.88rem; }
+
+    /* ── Loading ── */
+    .loading { text-align: center; padding: 60px; color: rgba(212,175,55,0.6); font-size: 0.9rem; letter-spacing: 0.05em; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1e3a5f; border: 1px solid rgba(212,175,55,0.3); color: white; padding: 12px 24px; border-radius: 12px; font-size: 0.88rem; transition: transform 0.3s; z-index: 300; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="50,5 61,35 93,35 68,55 78,88 50,68 22,88 32,55 7,35 39,35" fill="url(#hBadge)" stroke="#8B6914" stroke-width="2"/>
+        <circle cx="50" cy="55" r="18" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+        <circle cx="50" cy="55" r="14" fill="rgba(10,22,40,0.6)"/>
+        <text x="50" y="61" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="14" fill="#d4af37">70</text>
+        <defs>
+          <linearGradient id="hBadge" x1="0" y1="0" x2="100" y2="100">
+            <stop offset="0%" stop-color="#f0d060"/><stop offset="50%" stop-color="#d4af37"/><stop offset="100%" stop-color="#8B6914"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>The Sheriff's 70th</h1>
+      <p>Star of the Seas &nbsp;·&nbsp; 2026</p>
+    </div>
+    <div class="header-right">
+      <div class="photo-count" id="photoCount"></div>
+      <form method="POST" action="/logout" style="display:inline">
+        <button class="logout-btn" type="submit">Sign Out</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-icon">⭐</div>
+    <h2>Party Photos</h2>
+    <p>Relive every moment from The Sheriff's 70th birthday voyage</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls" id="controls" style="display:none">
+    <div class="view-tabs">
+      <button class="view-tab active" data-view="date">📅 By Date</button>
+      <button class="view-tab" data-view="person">👤 By Person</button>
+      <button class="view-tab" data-view="all">🖼 All Photos</button>
+    </div>
+    <a href="#" class="dl-all-btn" id="downloadAllBtn">&#x2B73; Download All</a>
+  </div>
+
+  <!-- Tag filter chips -->
+  <div class="tag-row" id="tagRow"></div>
+
+  <!-- Content -->
+  <div id="loading" class="loading">Loading photos...</div>
+  <div id="emptyState" class="empty" style="display:none">
+    <div class="empty-icon">📸</div>
+    <h3>No photos yet, partner</h3>
+    <p>Send photos in the WhatsApp group and they'll appear here automatically.</p>
+  </div>
+  <div id="content"></div>
+</main>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lbClose">&times;</button>
+  <div class="lightbox-inner">
+    <img id="lbImg" src="" alt="" />
+    <div class="lightbox-info">
+      <div class="lightbox-caption" id="lbCaption"></div>
+      <div class="lightbox-meta" id="lbMeta"></div>
+    </div>
+    <a id="lbDl" href="#" class="lightbox-dl">&#x2B73; Download</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let photos = [];
+  let activeView = 'date';
+  let activeTag = null;
+
+  // ── Utility ──────────────────────────────────────────────
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function formatDate(iso) {
+    return new Date(iso).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function dateKey(iso) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function friendlyDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
+  function extractTags(caption) {
+    if (!caption) return [];
+    return (caption.match(/#[\w]+/g) || []).map(t => t.toLowerCase());
+  }
+
+  function allTags() {
+    const counts = {};
+    photos.forEach(p => {
+      extractTags(p.caption).forEach(t => {
+        counts[t] = (counts[t] || 0) + 1;
+      });
+    });
+    return Object.entries(counts).sort((a,b) => b[1] - a[1]);
+  }
+
+  function visiblePhotos() {
+    if (!activeTag) return photos;
+    return photos.filter(p => extractTags(p.caption).includes(activeTag));
+  }
+
+  // ── Card HTML ─────────────────────────────────────────────
+
+  function makeCard(photo, index) {
+    const tags = extractTags(photo.caption);
+    const tagsHtml = tags.length
+      ? `<div class="photo-tags">${tags.map(t => `<span class="photo-tag">${escHtml(t)}</span>`).join('')}</div>`
+      : '';
+    const captionHtml = photo.caption
+      ? `<div class="photo-caption">${escHtml(photo.caption)}</div>`
+      : '';
+    const senderHtml = photo.sender
+      ? `<div class="photo-sender">📍 ${escHtml(photo.sender)}</div>`
+      : '';
+
+    return `
+      <div class="photo-card" data-index="${index}">
+        <div class="img-wrap">
+          <img src="${photo.url}" alt="${escHtml(photo.caption || 'Cruise photo')}" loading="lazy" />
+          <div class="img-overlay"></div>
+        </div>
+        <div class="photo-meta">
+          <div class="photo-info">
+            ${captionHtml}
+            ${senderHtml}
+            <div class="photo-time">${formatTime(photo.uploadedAt)}</div>
+            ${tagsHtml}
+          </div>
+          <a href="${photo.downloadUrl}" class="dl-btn" title="Download" download>&#x2B73;</a>
+        </div>
+      </div>`;
+  }
+
+  function makeGrid(subset) {
+    const original = photos; // use global index
+    return `<div class="grid">${subset.map(p => makeCard(p, photos.indexOf(p))).join('')}</div>`;
+  }
+
+  // ── View renderers ────────────────────────────────────────
+
+  function renderByDate(subset) {
+    const groups = {};
+    subset.forEach(p => {
+      const k = dateKey(p.uploadedAt);
+      if (!groups[k]) groups[k] = [];
+      groups[k].push(p);
+    });
+
+    const sorted = Object.keys(groups).sort();
+    return sorted.map((k, i) => {
+      const day = groups[k];
+      const label = `Day ${i + 1}`;
+      const sub = `${friendlyDate(day[0].uploadedAt)} · ${day.length} photo${day.length !== 1 ? 's' : ''}`;
+      return `
+        <div class="section-header">
+          <div>
+            <div class="section-label">${label}</div>
+            <div class="section-sub">${sub}</div>
+          </div>
+          <div class="section-line"></div>
+        </div>
+        ${makeGrid(day)}`;
+    }).join('');
+  }
+
+  function renderByPerson(subset) {
+    const groups = {};
+    subset.forEach(p => {
+      const k = p.sender || 'Unknown';
+      if (!groups[k]) groups[k] = [];
+      groups[k].push(p);
+    });
+
+    return Object.entries(groups)
+      .sort((a,b) => b[1].length - a[1].length)
+      .map(([name, photos]) => `
+        <div class="section-header">
+          <div>
+            <div class="section-label">📍 ${escHtml(name)}</div>
+            <div class="section-sub">${photos.length} photo${photos.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div class="section-line"></div>
+        </div>
+        ${makeGrid(photos)}`)
+      .join('');
+  }
+
+  function renderAll(subset) {
+    return makeGrid(subset);
+  }
+
+  // ── Main render ───────────────────────────────────────────
+
+  function render() {
+    const subset = visiblePhotos();
+    const content = document.getElementById('content');
+
+    if (subset.length === 0) {
+      content.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>No photos match that filter</h3><p>Try a different tag or view.</p></div>`;
+    } else {
+      if (activeView === 'date') content.innerHTML = renderByDate(subset);
+      else if (activeView === 'person') content.innerHTML = renderByPerson(subset);
+      else content.innerHTML = renderAll(subset);
+    }
+
+    // Bind click on cards for lightbox (delegated)
+    content.querySelectorAll('.photo-card').forEach(card => {
+      card.querySelector('.img-wrap').addEventListener('click', () => {
+        openLightbox(parseInt(card.dataset.index));
+      });
+    });
+
+    // Bind download buttons (stop propagation)
+    content.querySelectorAll('.dl-btn').forEach(btn => {
+      btn.addEventListener('click', e => e.stopPropagation());
+    });
+  }
+
+  function renderTags() {
+    const tags = allTags();
+    const row = document.getElementById('tagRow');
+    if (tags.length === 0) { row.style.display = 'none'; return; }
+    row.innerHTML = tags.map(([tag, count]) =>
+      `<button class="tag-chip${activeTag === tag ? ' active' : ''}" data-tag="${escHtml(tag)}">${escHtml(tag)} <span class="count">${count}</span></button>`
+    ).join('');
+    row.querySelectorAll('.tag-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const t = chip.dataset.tag;
+        activeTag = (activeTag === t) ? null : t;
+        renderTags();
+        render();
+      });
+    });
+  }
+
+  // ── Load & update ─────────────────────────────────────────
+
+  async function loadPhotos() {
+    try {
+      const res = await fetch('/api/photos');
+      if (!res.ok) throw new Error('auth');
+      const fresh = await res.json();
+
+      // Only re-render if count changed
+      if (fresh.length !== photos.length) {
+        photos = fresh;
+        document.getElementById('loading').style.display = 'none';
+
+        if (photos.length === 0) {
+          document.getElementById('emptyState').style.display = 'block';
+          document.getElementById('controls').style.display = 'none';
+          return;
+        }
+
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('controls').style.display = 'flex';
+        document.getElementById('photoCount').innerHTML =
+          '<span>' + photos.length + '</span> photo' + (photos.length !== 1 ? 's' : '');
+
+        renderTags();
+        render();
+      }
+    } catch (e) {
+      location.href = '/login';
+    }
+  }
+
+  // ── View tab switching ────────────────────────────────────
+
+  document.addEventListener('click', e => {
+    const tab = e.target.closest('.view-tab');
+    if (tab) {
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeView = tab.dataset.view;
+      render();
+    }
+  });
+
+  // ── Lightbox ──────────────────────────────────────────────
+
+  function openLightbox(i) {
+    const p = photos[i];
+    document.getElementById('lbImg').src = p.url;
+    document.getElementById('lbDl').href = p.downloadUrl;
+    document.getElementById('lbDl').download = p.filename;
+    document.getElementById('lbCaption').textContent = p.caption || '';
+    document.getElementById('lbMeta').textContent =
+      [p.sender, formatDate(p.uploadedAt)].filter(Boolean).join(' · ');
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  document.getElementById('lbClose').addEventListener('click', closeLb);
+  document.getElementById('lightbox').addEventListener('click', e => {
+    if (e.target === document.getElementById('lightbox')) closeLb();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
+  function closeLb() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // ── Download all ──────────────────────────────────────────
+
+  document.getElementById('downloadAllBtn').addEventListener('click', async e => {
+    e.preventDefault();
+    const subset = visiblePhotos();
+    showToast(`Starting ${subset.length} downloads...`);
+    for (let i = 0; i < subset.length; i++) {
+      await new Promise(r => setTimeout(r, 250 * i));
+      const a = document.createElement('a');
+      a.href = subset[i].downloadUrl;
+      a.download = subset[i].filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  });
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // ── Boot ──────────────────────────────────────────────────
+
+  loadPhotos();
+  setInterval(loadPhotos, 60000);
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import {
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   DisconnectReason,
+  downloadMediaMessage,
   type WASocket,
   type BaileysEventMap,
 } from "@whiskeysockets/baileys";
@@ -38,10 +39,22 @@ export class WhatsAppDriver implements ChannelDriver {
   /** Track message IDs sent by this socket so we don't echo agent replies */
   private sentIds = new Set<string>();
 
+  /** Photo gallery upload config (optional) */
+  private photoUploadUrl: string | null = null;
+  private photoUploadSecret: string | null = null;
+  /** Group JIDs to capture photos from (e.g. "120363424846088477@g.us") */
+  private photoGroups: Set<string> = new Set();
+
   constructor(config: Record<string, unknown>) {
     const baseAuthDir = (config.authDir as string) ?? "./data/whatsapp-auth";
     this.authDir = resolve(baseAuthDir);
     mkdirSync(this.authDir, { recursive: true });
+
+    // Optional photo gallery upload config
+    this.photoUploadUrl = (config.photoUploadUrl as string) ?? null;
+    this.photoUploadSecret = (config.photoUploadSecret as string) ?? null;
+    const groups = (config.photoGroups as string[]) ?? [];
+    this.photoGroups = new Set(groups);
   }
 
   async start(): Promise<void> {
@@ -172,6 +185,19 @@ export class WhatsAppDriver implements ChannelDriver {
         continue;
       }
 
+      // Upload photo to gallery if this group is in photoGroups
+      const remoteJidForPhoto = msg.key.remoteJid!;
+      if (
+        this.photoUploadUrl &&
+        this.photoUploadSecret &&
+        msg.message?.imageMessage &&
+        this.photoGroups.has(remoteJidForPhoto)
+      ) {
+        this.uploadPhotoToGallery(msg).catch((err) => {
+          log.warn(`[cruise-gallery] Photo upload failed: ${err}`);
+        });
+      }
+
       // Extract text from various message types
       const text =
         msg.message?.conversation ||
@@ -223,5 +249,51 @@ export class WhatsAppDriver implements ChannelDriver {
         });
       }
     }
+  }
+
+  private async uploadPhotoToGallery(msg: BaileysEventMap["messages.upsert"]["messages"][0]): Promise<void> {
+    if (!this.sock || !this.photoUploadUrl || !this.photoUploadSecret) return;
+
+    const imageMsg = msg.message?.imageMessage;
+    if (!imageMsg) return;
+
+    // Download image buffer from WhatsApp
+    const buffer = await downloadMediaMessage(
+      msg,
+      "buffer",
+      {},
+      { logger: silentLogger as any, reuploadRequest: this.sock.updateMediaMessage }
+    ) as Buffer;
+
+    if (!buffer || buffer.length === 0) {
+      log.warn("[cruise-gallery] Downloaded image buffer is empty, skipping");
+      return;
+    }
+
+    // Build multipart form
+    const mime = imageMsg.mimetype || "image/jpeg";
+    const ext = mime.includes("png") ? ".png" : mime.includes("gif") ? ".gif" : mime.includes("webp") ? ".webp" : ".jpg";
+    const filename = `photo_${Date.now()}${ext}`;
+
+    const formData = new FormData();
+    // Copy to a plain ArrayBuffer to satisfy strict BlobPart typing
+    const ab = new ArrayBuffer(buffer.byteLength);
+    new Uint8Array(ab).set(buffer);
+    formData.append("photo", new Blob([ab], { type: mime }), filename);
+    formData.append("sender", msg.pushName || msg.key.participant || "Guest");
+    if (imageMsg.caption) formData.append("caption", imageMsg.caption);
+
+    const res = await fetch(this.photoUploadUrl, {
+      method: "POST",
+      headers: { "x-upload-secret": this.photoUploadSecret },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Gallery upload returned ${res.status}: ${body}`);
+    }
+
+    log.info(`[cruise-gallery] Photo uploaded: ${filename} from ${msg.pushName || "Guest"}`);
   }
 }
