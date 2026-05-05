@@ -289,12 +289,39 @@
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1e3a5f; border: 1px solid rgba(0,180,216,0.3); color: white; padding: 12px 24px; border-radius: 12px; font-size: 0.88rem; transition: transform 0.3s; z-index: 300; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
-    /* ── Music player button ── */
-    .music-btn {
+    /* ── Music player bar ── */
+    .music-bar {
       position: fixed;
       bottom: 28px;
       left: 24px;
-      z-index: 150;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 200;
+    }
+    .music-track-label {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .music-skip-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      background: rgba(13,34,68,0.92);
+      border: 1px solid rgba(0,180,216,0.35);
+      border-radius: 50px;
+      color: rgba(255,255,255,0.6);
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .music-skip-btn:hover { border-color: rgba(0,180,216,0.6); color: #00b4d8; }
+    .music-btn {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -737,17 +764,21 @@
 <!-- Music player (YouTube IFrame, hidden) -->
 <div id="ytPlayer" style="position:fixed;bottom:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none"></div>
 
-<!-- Music toggle button -->
-<button class="music-btn" id="musicBtn" style="display:none">
-  <span class="music-icon">🎵</span>
-  <span class="music-label">Tap to play music</span>
-  <div class="music-equalizer">
-    <div class="eq-bar" style="height:6px"></div>
-    <div class="eq-bar" style="height:10px"></div>
-    <div class="eq-bar" style="height:8px"></div>
-    <div class="eq-bar" style="height:12px"></div>
-  </div>
-</button>
+<!-- Music player bar -->
+<div class="music-bar" id="musicBar" style="display:none">
+  <button class="music-btn" id="musicBtn">
+    <span class="music-icon">🎵</span>
+    <span class="music-label">Music</span>
+    <div class="music-equalizer">
+      <div class="eq-bar" style="height:6px"></div>
+      <div class="eq-bar" style="height:10px"></div>
+      <div class="eq-bar" style="height:8px"></div>
+      <div class="eq-bar" style="height:12px"></div>
+    </div>
+  </button>
+  <button class="music-skip-btn" id="musicSkipBtn" style="display:none" title="Next track">&#x23ED;</button>
+  <span class="music-track-label" id="musicTrackLabel" style="display:none"></span>
+</div>
 
 <!-- Slideshow overlay -->
 <div class="slideshow-overlay" id="slideshowOverlay">
@@ -1348,23 +1379,27 @@
   let musicTrackIdx = 0;
   const musicBtn = document.getElementById('musicBtn');
 
+  const musicBar       = document.getElementById('musicBar');
+  const musicSkipBtn   = document.getElementById('musicSkipBtn');
+  const musicTrackLabel= document.getElementById('musicTrackLabel');
+
   async function initMusic() {
     try {
       const cfg = await fetch('/api/config').then(r => r.json());
       musicPlaylist = cfg.playlist || (cfg.musicVideoId ? [cfg.musicVideoId] : []);
       if (!musicPlaylist.length) return;
-      musicBtn.style.display = 'flex';
-      updateMusicBtnLabel();
+      musicBar.style.display = 'flex';
+      if (musicPlaylist.length > 1) {
+        musicSkipBtn.style.display = 'flex';
+        musicTrackLabel.style.display = 'inline';
+        updateTrackLabel();
+      }
       loadYTApi();
     } catch (e) { /* no music */ }
   }
 
-  function updateMusicBtnLabel() {
-    const label = musicBtn.querySelector('.music-label');
-    if (!label) return;
-    if (musicPlaylist.length > 1) {
-      label.textContent = `Tap to play music`;
-    }
+  function updateTrackLabel() {
+    musicTrackLabel.textContent = (musicTrackIdx + 1) + ' / ' + musicPlaylist.length;
   }
 
   function loadYTApi() {
@@ -1378,7 +1413,7 @@
       videoId: musicPlaylist[musicTrackIdx],
       playerVars: { autoplay: 1, controls: 0, disablekb: 1 },
       events: {
-        onReady: e => { e.target.playVideo(); },
+        onReady: e => { e.target.playVideo(); updateTrackLabel(); },
         onStateChange: e => {
           if (e.data === YT.PlayerState.PLAYING) {
             musicPlaying = true;
@@ -1400,7 +1435,10 @@
     musicTrackIdx = (musicTrackIdx + 1) % musicPlaylist.length;
     ytPlayer.loadVideoById(musicPlaylist[musicTrackIdx]);
     ytPlayer.playVideo();
+    updateTrackLabel();
   }
+
+  musicSkipBtn.addEventListener('click', () => musicNextTrack());
 
   musicBtn.addEventListener('click', () => {
     if (!ytPlayer || typeof ytPlayer.getPlayerState !== 'function') return;
@@ -1473,7 +1511,7 @@
   const ssNextTrackBtn = document.getElementById('ssNextTrack');
   ssNextTrackBtn.addEventListener('click', () => musicNextTrack());
 
-  // Show ⏭ button once playlist is known to have multiple tracks
+  // Show ⏭ in slideshow once playlist is known to have multiple tracks
   const _origInitMusic = initMusic;
   async function initMusicWithPlaylistUI() {
     await _origInitMusic();
