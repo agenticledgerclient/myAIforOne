@@ -9,8 +9,9 @@ import {
   type BaileysEventMap,
 } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
-import { mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
 import type { ChannelDriver, InboundMessage, OutboundMessage } from "./types.js";
 import { log } from "../logger.js";
 
@@ -39,27 +40,62 @@ export class WhatsAppDriver implements ChannelDriver {
   /** Track message IDs sent by this socket so we don't echo agent replies */
   private sentIds = new Set<string>();
 
-  /** Photo gallery upload config (optional) */
-  private photoUploadUrl: string | null = null;
-  private photoUploadSecret: string | null = null;
-  /** Group JIDs to capture photos from (e.g. "120363424846088477@g.us") */
-  private photoGroups: Set<string> = new Set();
+  /**
+   * Per-group gallery upload config.
+   * New format:  photoGroups: { "jid@g.us": { uploadUrl, secret } }
+   * Legacy compat: photoGroups: string[]  +  photoUploadUrl  +  photoUploadSecret
+   */
+  private photoGroups: Map<string, { uploadUrl: string; secret: string }> = new Map();
 
   constructor(config: Record<string, unknown>) {
     const baseAuthDir = (config.authDir as string) ?? "./data/whatsapp-auth";
     this.authDir = resolve(baseAuthDir);
     mkdirSync(this.authDir, { recursive: true });
 
-    // Optional photo gallery upload config
-    this.photoUploadUrl = (config.photoUploadUrl as string) ?? null;
-    this.photoUploadSecret = (config.photoUploadSecret as string) ?? null;
-    const groups = (config.photoGroups as string[]) ?? [];
-    this.photoGroups = new Set(groups);
+    // Build per-group gallery upload map
+    const rawGroups = config.photoGroups;
+    if (rawGroups && typeof rawGroups === "object" && !Array.isArray(rawGroups)) {
+      // New map format: { "jid": { uploadUrl, secret } }
+      for (const [jid, cfg] of Object.entries(rawGroups as Record<string, any>)) {
+        if (cfg?.uploadUrl && cfg?.secret) {
+          this.photoGroups.set(jid, { uploadUrl: cfg.uploadUrl, secret: cfg.secret });
+        }
+      }
+    } else if (Array.isArray(rawGroups)) {
+      // Legacy array format — pair with top-level photoUploadUrl + photoUploadSecret
+      const url = (config.photoUploadUrl as string) ?? null;
+      const secret = (config.photoUploadSecret as string) ?? null;
+      if (url && secret) {
+        for (const jid of rawGroups as string[]) {
+          this.photoGroups.set(jid, { uploadUrl: url, secret });
+        }
+      }
+    }
   }
 
   async start(): Promise<void> {
     this.stopping = false;
     await this.connect();
+  }
+
+  /** Hot-reload photoGroups from updated config (called by API endpoints) */
+  updatePhotoGroups(groups: Record<string, { uploadUrl: string; secret: string }>): void {
+    this.photoGroups.clear();
+    for (const [jid, cfg] of Object.entries(groups)) {
+      if (cfg?.uploadUrl && cfg?.secret) {
+        this.photoGroups.set(jid, { uploadUrl: cfg.uploadUrl, secret: cfg.secret });
+      }
+    }
+    log.info(`[whatsapp] photoGroups reloaded: ${this.photoGroups.size} group(s)`);
+  }
+
+  /** Return current photoGroups for API reads */
+  getPhotoGroups(): Record<string, { uploadUrl: string; secret: string }> {
+    const result: Record<string, { uploadUrl: string; secret: string }> = {};
+    for (const [jid, cfg] of this.photoGroups) {
+      result[jid] = cfg;
+    }
+    return result;
   }
 
   async stop(): Promise<void> {
@@ -169,7 +205,7 @@ export class WhatsAppDriver implements ChannelDriver {
     await this.connect();
   }
 
-  private handleMessagesUpsert(upsert: BaileysEventMap["messages.upsert"]): void {
+  private async handleMessagesUpsert(upsert: BaileysEventMap["messages.upsert"]): Promise<void> {
     if (upsert.type !== "notify") return;
 
     for (const msg of upsert.messages) {
@@ -185,16 +221,19 @@ export class WhatsAppDriver implements ChannelDriver {
         continue;
       }
 
-      // Upload photo to gallery if this group is in photoGroups
-      const remoteJidForPhoto = msg.key.remoteJid!;
-      if (
-        this.photoUploadUrl &&
-        this.photoUploadSecret &&
-        msg.message?.imageMessage &&
-        this.photoGroups.has(remoteJidForPhoto)
-      ) {
-        this.uploadPhotoToGallery(msg).catch((err) => {
-          log.warn(`[cruise-gallery] Photo upload failed: ${err}`);
+      const remoteJid = msg.key.remoteJid!;
+      const imageMsg = msg.message?.imageMessage;
+      const videoMsg = msg.message?.videoMessage;
+
+      // Gallery sidecar: upload media to configured gallery for this group (fire-and-forget)
+      if (imageMsg && this.photoGroups.has(remoteJid)) {
+        this.uploadMediaToGallery(msg, "image", this.photoGroups.get(remoteJid)!).catch((err) => {
+          log.warn(`[gallery] Photo upload failed for ${remoteJid}: ${err}`);
+        });
+      }
+      if (videoMsg && this.photoGroups.has(remoteJid)) {
+        this.uploadMediaToGallery(msg, "video", this.photoGroups.get(remoteJid)!).catch((err) => {
+          log.warn(`[gallery] Video upload failed for ${remoteJid}: ${err}`);
         });
       }
 
@@ -202,13 +241,13 @@ export class WhatsAppDriver implements ChannelDriver {
       const text =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
-        msg.message?.imageMessage?.caption ||
+        imageMsg?.caption ||
         msg.message?.videoMessage?.caption ||
         null;
 
-      if (!text?.trim()) continue;
+      // Skip messages with no text AND no image
+      if (!text?.trim() && !imageMsg) continue;
 
-      const remoteJid = msg.key.remoteJid!;
       const isGroup = remoteJid.endsWith("@g.us");
       const sender = isGroup
         ? msg.key.participant || remoteJid
@@ -227,6 +266,26 @@ export class WhatsAppDriver implements ChannelDriver {
           }
         : undefined;
 
+      // Download image to temp file so the executor can pass it to Claude as vision
+      let tempImagePath: string | null = null;
+      if (imageMsg && this.sock) {
+        try {
+          const buffer = await downloadMediaMessage(
+            msg, "buffer", {},
+            { logger: silentLogger as any, reuploadRequest: this.sock.updateMediaMessage }
+          ) as Buffer;
+          if (buffer && buffer.length > 0) {
+            const mime = imageMsg.mimetype || "image/jpeg";
+            const ext = mime.includes("png") ? ".png" : mime.includes("gif") ? ".gif" : mime.includes("webp") ? ".webp" : ".jpg";
+            tempImagePath = join(tmpdir(), `wa_img_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+            writeFileSync(tempImagePath, buffer);
+            log.debug(`[whatsapp] Image saved to temp: ${tempImagePath} (${buffer.length} bytes)`);
+          }
+        } catch (err) {
+          log.warn(`[whatsapp] Failed to download image for agent: ${err}`);
+        }
+      }
+
       const inbound: InboundMessage = {
         id: msg.key.id || String(Date.now()),
         channel: this.channelId,
@@ -234,58 +293,72 @@ export class WhatsAppDriver implements ChannelDriver {
         chatType: isGroup ? "group" : "dm",
         sender,
         senderName: msg.pushName || undefined,
-        text,
+        text: text?.trim() || "",
         timestamp: (msg.messageTimestamp as number) * 1000,
         isFromMe: false,
         isGroup,
         groupName: undefined,
         replyTo,
+        ...(tempImagePath ? { attachments: [{ path: tempImagePath, mimeType: imageMsg?.mimetype || "image/jpeg" }] } : {}),
         raw: msg,
       };
 
       if (this.messageHandler) {
-        this.messageHandler(inbound).catch((err) => {
-          log.error(`WhatsApp message handler error: ${err}`);
-        });
+        this.messageHandler(inbound)
+          .catch((err) => { log.error(`WhatsApp message handler error: ${err}`); })
+          .finally(() => {
+            // Clean up temp image after agent is done
+            if (tempImagePath) {
+              try { unlinkSync(tempImagePath); } catch {}
+            }
+          });
       }
     }
   }
 
-  private async uploadPhotoToGallery(msg: BaileysEventMap["messages.upsert"]["messages"][0]): Promise<void> {
-    if (!this.sock || !this.photoUploadUrl || !this.photoUploadSecret) return;
+  private async uploadMediaToGallery(
+    msg: BaileysEventMap["messages.upsert"]["messages"][0],
+    mediaType: "image" | "video",
+    galleryCfg: { uploadUrl: string; secret: string },
+  ): Promise<void> {
+    if (!this.sock) return;
 
-    const imageMsg = msg.message?.imageMessage;
-    if (!imageMsg) return;
+    const mediaMsg = mediaType === "image"
+      ? msg.message?.imageMessage
+      : msg.message?.videoMessage;
+    if (!mediaMsg) return;
 
-    // Download image buffer from WhatsApp
+    // Download media buffer from WhatsApp
     const buffer = await downloadMediaMessage(
-      msg,
-      "buffer",
-      {},
+      msg, "buffer", {},
       { logger: silentLogger as any, reuploadRequest: this.sock.updateMediaMessage }
     ) as Buffer;
 
     if (!buffer || buffer.length === 0) {
-      log.warn("[cruise-gallery] Downloaded image buffer is empty, skipping");
+      log.warn(`[gallery] Downloaded ${mediaType} buffer is empty, skipping`);
       return;
     }
 
     // Build multipart form
-    const mime = imageMsg.mimetype || "image/jpeg";
-    const ext = mime.includes("png") ? ".png" : mime.includes("gif") ? ".gif" : mime.includes("webp") ? ".webp" : ".jpg";
-    const filename = `photo_${Date.now()}${ext}`;
+    const mime = mediaMsg.mimetype || (mediaType === "video" ? "video/mp4" : "image/jpeg");
+    let ext: string;
+    if (mediaType === "video") {
+      ext = mime.includes("mov") ? ".mov" : ".mp4";
+    } else {
+      ext = mime.includes("png") ? ".png" : mime.includes("gif") ? ".gif" : mime.includes("webp") ? ".webp" : ".jpg";
+    }
+    const filename = `${mediaType}_${Date.now()}${ext}`;
 
     const formData = new FormData();
-    // Copy to a plain ArrayBuffer to satisfy strict BlobPart typing
     const ab = new ArrayBuffer(buffer.byteLength);
     new Uint8Array(ab).set(buffer);
     formData.append("photo", new Blob([ab], { type: mime }), filename);
     formData.append("sender", msg.pushName || msg.key.participant || "Guest");
-    if (imageMsg.caption) formData.append("caption", imageMsg.caption);
+    if (mediaMsg.caption) formData.append("caption", mediaMsg.caption);
 
-    const res = await fetch(this.photoUploadUrl, {
+    const res = await fetch(galleryCfg.uploadUrl, {
       method: "POST",
-      headers: { "x-upload-secret": this.photoUploadSecret },
+      headers: { "x-upload-secret": galleryCfg.secret },
       body: formData,
     });
 
@@ -294,6 +367,6 @@ export class WhatsAppDriver implements ChannelDriver {
       throw new Error(`Gallery upload returned ${res.status}: ${body}`);
     }
 
-    log.info(`[cruise-gallery] Photo uploaded: ${filename} from ${msg.pushName || "Guest"}`);
+    log.info(`[gallery] ${mediaType} forwarded: ${filename} from ${msg.pushName || "Guest"}`);
   }
 }
