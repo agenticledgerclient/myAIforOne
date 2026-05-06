@@ -129,36 +129,6 @@ This repo pushes to two remotes. **Always push to both** when committing:
 git push origin main && git push client main
 ```
 
-## Related Projects
-
-- **SaaS version** (`myAI41_saas`) — multi-tenant fork at `~/Desktop/APPs/myAI41_saas`, managed by `@ma41saas`. After significant architectural or API changes here, flag whether the SaaS version may need the same update.
-
-## SaaS Port Workflow
-
-After committing changes to the local install, **ask the user**: "Want me to create a port task for @ma41saas?" Do NOT auto-create tasks.
-
-If yes:
-1. Create a task in `~/Desktop/MyAIforOne Drive/PersonalAgents/AgenticLedger Builds/ma41saas/tasks.json` with status `approved`, owner `@ma41saas`, assignedBy `@myagentdev`
-2. Include commit SHAs, affected files, and what needs adapting for SaaS (Prisma, auth, etc.)
-3. Log the commits as `tasked` in the port tracking file (see below)
-
-If no/skip:
-1. Log the commits as `skipped` with a reason in the port tracking file
-
-### Port Tracking
-
-Track which local install commits have been flagged for SaaS porting in:
-`~/Desktop/MyAIforOne Drive/PersonalAgents/AgenticLedger Builds/ma41saas/tasks/port-tracking.md`
-
-Format:
-```
-| Commit | Date | Summary | Status | Task ID |
-| abc1234 | 2026-04-01 | feat: view toggle | tasked | ma41saas_123 |
-| def5678 | 2026-04-01 | fix: typo | skipped (cosmetic) | — |
-```
-
-When the user asks "what's outstanding?" or "what needs porting?", diff `git log` against this file to find untasked commits.
-
 ## Templates
 - Built-in templates (source: "builtin") are READ-ONLY. Never edit or delete them.
 - User templates (source: "user") can be edited — delegate to @templatemanager.
