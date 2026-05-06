@@ -64,41 +64,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 /* ─── Layout ──────────────────────────────────────────── */
 .home{display:flex;flex-direction:column;height:100vh;position:relative}
 
-/* ─── Landing State (centered) ────────────────────────── */
-.landing{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:all 0.5s ease;padding:20px;
-}
-.landing.hidden{opacity:0;pointer-events:none;position:absolute;top:0;left:0;right:0;bottom:0}
-
-.landing-logo{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--accent);margin-bottom:8px}
-.landing-sub{font-size:14px;color:var(--text-muted);margin-bottom:32px}
-.landing-input-wrap{width:100%;max-width:600px}
-.landing-input-box{
-  display:flex;align-items:center;gap:10px;
-  background:var(--bg-surface);border:1px solid var(--border-glow);
-  border-radius:16px;padding:8px 12px;
-  box-shadow:0 4px 24px rgba(0,0,0,0.3),0 0 40px rgba(34,211,238,0.06);
-  transition:border-color .3s;
-}
-.landing-input-box:focus-within{border-color:var(--border-active)}
-.landing-textarea{
-  flex:1;background:transparent;border:none;outline:none;
-  color:var(--text-primary);font-family:var(--font-sans);font-size:15px;
-  resize:none;max-height:120px;line-height:1.5;padding:8px 4px;
-}
-.landing-textarea::placeholder{color:var(--text-muted)}
-.landing-send{
-  width:44px;height:44px;border-radius:12px;border:none;
-  background:var(--accent);color:#000;cursor:pointer;
-  font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;flex-shrink:0;
-}
-.landing-send:hover{filter:brightness(1.1);transform:scale(1.05)}
-.agent-count{font-size:12px;color:var(--text-muted);margin-top:16px}
-
 /* ─── Agent Tiles ─────────────────────────────────────── */
-.tiles-wrap{margin-top:16px;display:flex;align-items:center;gap:8px;max-width:600px;flex-wrap:wrap;justify-content:center}
 .org-select{
   font-family:var(--font-mono);font-size:11px;padding:4px 10px;border-radius:8px;
   border:1px solid var(--border-glow);background:var(--bg-input);
@@ -127,12 +93,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
 /* ─── Chat State ──────────────────────────────────────── */
 .chat-view{
   flex:1;display:flex;flex-direction:column;min-height:0;
-  opacity:0;pointer-events:none;position:absolute;top:0;left:0;right:0;bottom:0;
-  transition:opacity 0.5s ease;overflow:hidden;
-}
-.chat-view.active{
-  opacity:1;pointer-events:all;
-  position:relative;top:auto;left:auto;right:auto;bottom:auto;
+  overflow:hidden;
 }
 
 /* ─── Topbar (matches /ui) ────────────────────────────── */
@@ -177,10 +138,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);font-
   padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text-muted);transition:all .2s;
 text-decoration:none;}
 .theme-toggle:hover,.gear-btn:hover{border-color:var(--border-glow);color:var(--text-secondary)}
-
-/* Landing needs padding below topbar */
-.landing{padding-top:48px}
-.landing-header .logo{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent)}
 
 .chat-messages-home{
   flex:1;overflow-y:auto;padding:20px;min-height:0;
@@ -913,27 +870,8 @@ text-decoration:none;}
     </div>
   </div>
 
-  <!-- Landing state -->
-  <div class="landing" id="landing">
-    <div class="landing-logo">MyAIforOne</div>
-    <div class="landing-sub">Ask me anything</div>
-    <div class="landing-input-wrap">
-      <div class="landing-input-box">
-        <textarea class="landing-textarea" id="landingInput" placeholder="What do you need?" rows="1"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendFirst()}"
-          oninput="autoResize(this)"></textarea>
-        <button class="landing-send" onclick="sendFirst()">→</button>
-      </div>
-      <div class="agent-count" id="agentCount"></div>
-    </div>
-    <div class="tiles-wrap" id="tilesWrap">
-      <select class="org-select" id="orgFilters" onchange="setOrgFilter(this.value)"></select>
-      <div class="agent-tiles" id="agentTiles"></div>
-    </div>
-  </div>
-
-  <!-- Chat state -->
-  <div class="chat-view" id="chatView">
+  <!-- Chat state (always active — landing removed) -->
+  <div class="chat-view active" id="chatView">
     <div class="hub-actions-bar">
       <div class="hub-actions-left">
         <div class="hub-agent-identity" id="hubIdentity">
@@ -4135,14 +4073,11 @@ async function init() {
       return;
     }
 
-    // Agent count
-    document.getElementById('agentCount').textContent =
-      `Powered by ${agents.length} agents · ${data.mcpCount || 0} integrations`;
-
     // Render recent agent tiles
     renderTiles();
 
-    // Load previous messages from hub's conversation log into the default tab
+    // Load previous messages from hub's conversation log into the default tab.
+    // Chat view is the only view now — render whatever we have (possibly nothing).
     if (hubAgentId) {
       try {
         const msgRes = await fetch(`/api/agents/${hubAgentId}`);
@@ -4152,14 +4087,11 @@ async function init() {
             { role: 'user', text: m.text, time: m.ts },
             { role: 'agent', text: m.response, time: m.ts },
           ])).flat().filter(m => m.text);
-          // Put into default tab if it has no messages yet
           const defId = homeTabs[0]?.id || 'default';
           if (!tabMessages[defId] || !tabMessages[defId].length) {
             tabMessages[defId] = loaded;
           }
           syncFromActiveTab();
-          // Returning user — skip landing, go straight to chat
-          transitionToChat();
           renderMessages();
           scrollChat();
         }
@@ -4208,14 +4140,12 @@ function renderTiles() {
     agents.flatMap(a => (a.org || []).map(o => o.organization).filter(Boolean))
   )].sort();
 
-  // Render filter dropdowns (landing + chat)
+  // Render filter dropdown
   const optionsHtml = [
     `<option value="recent"${activeOrgFilter==='recent'?' selected':''}>Recent</option>`,
     ...orgs.map(org => `<option value="${org.replace(/"/g,'&quot;')}"${activeOrgFilter===org?' selected':''}>${org}</option>`)
   ].join('');
-  const f1 = document.getElementById('orgFilters');
   const f2 = document.getElementById('chatOrgFilters');
-  if (f1) f1.innerHTML = optionsHtml;
   if (f2) f2.innerHTML = optionsHtml;
 
   // Filter agents
@@ -4247,9 +4177,7 @@ function renderTiles() {
     </div>`;
   }).join('') || `<span style="font-size:12px;color:var(--text-muted)">No agents in this org</span>`;
 
-  const t1 = document.getElementById('agentTiles');
   const t2 = document.getElementById('chatTiles');
-  if (t1) t1.innerHTML = html;
   if (t2) t2.innerHTML = html;
 }
 
@@ -4260,9 +4188,6 @@ function setOrgFilter(org) {
 
 // ─── Mention agent from tile ───────────────────────────
 function mentionAgent(alias) {
-  if (!document.getElementById('chatView').classList.contains('active')) {
-    transitionToChat();
-  }
   const input = document.getElementById('chatInput');
   const val = input.value;
   // If input already ends with the alias, just focus
@@ -4279,11 +4204,12 @@ function mentionAgent(alias) {
 }
 
 // ─── Transition ────────────────────────────────────────
+// Landing screen was removed; this is kept as a no-op-ish helper that
+// focuses the chat input and refreshes the tab bar. Several legacy
+// call sites still invoke it.
 function transitionToChat() {
-  document.getElementById('landing').classList.add('hidden');
-  document.getElementById('chatView').classList.add('active');
   setTimeout(() => {
-    document.getElementById('chatInput').focus();
+    document.getElementById('chatInput')?.focus();
     scrollChat();
     renderHomeTabBar();
   }, 100);
@@ -4297,25 +4223,6 @@ function parseDirectAgent(text) {
   const agent = agents.find(a => (a.aliases || []).some(al => al.toLowerCase() === alias.toLowerCase()));
   if (!agent) return null;
   return { agentId: agent.id, message: match[2].trim(), agent };
-}
-
-// ─── Send first message (from landing) ─────────────────
-function sendFirst() {
-  const input = document.getElementById('landingInput');
-  const text = input.value.trim();
-  if (!text || !hubAgentId) return;
-  input.value = '';
-  transitionToChat();
-  addMessage('user', text);
-  syncToActiveTab();
-  const direct = parseDirectAgent(text);
-  if (direct && direct.agent._remote) {
-    executeRemoteAgent(direct.agent._gatewayId, direct.agentId, direct.message, homeActiveTabId);
-  } else if (direct) {
-    executeDirectAgent(direct.agentId, direct.message, homeActiveTabId);
-  } else {
-    executeHub(text, homeActiveTabId);
-  }
 }
 
 // ─── Send message (from chat) ──────────────────────────
@@ -4493,7 +4400,7 @@ function selectAutocomplete(idx) {
   const agent = acFiltered[idx];
   if (!agent) return;
   const alias = agent.aliases?.[0] || '@' + agent.id;
-  const input = document.getElementById('chatInput') || document.getElementById('landingInput');
+  const input = document.getElementById('chatInput');
   if (!input) return;
 
   // Replace the @partial with the full alias
@@ -5179,7 +5086,7 @@ function startHomeVoice() {
   homeRecognition.lang = 'en-US';
 
   let finalTranscript = '';
-  const input = document.getElementById('chatInput') || document.getElementById('landingInput');
+  const input = document.getElementById('chatInput');
   const existing = input ? input.value : '';
 
   homeRecognition.onresult = (event) => {
@@ -5418,7 +5325,11 @@ window.addEventListener('message', (e) => {
 });
 
 init();
-setTimeout(() => document.getElementById('landingInput')?.focus(), 100);
+// Focus the chat input on load (only on non-touch devices to avoid popping the mobile keyboard)
+setTimeout(() => {
+  const isTouch = matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (!isTouch) document.getElementById('chatInput')?.focus();
+}, 100);
 </script>
 
 <!-- Config Overlay -->
