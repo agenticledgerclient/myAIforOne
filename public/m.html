@@ -152,26 +152,29 @@ html,body{
   content:'▍';opacity:.5;animation:blink 1s infinite;
 }
 .bubble-copy{
-  position:absolute;
-  bottom:-6px;
-  width:24px;height:24px;border-radius:12px;
-  border:1px solid var(--border);
-  background:var(--bg-card);
-  color:var(--text-muted);
-  display:flex;align-items:center;justify-content:center;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:11px;
+  border:1px solid currentColor;
+  background:transparent;
+  color:currentColor;
+  margin-left:6px;
+  vertical-align:middle;
+  opacity:.55;
   cursor:pointer;font-family:inherit;
-  opacity:.7;transition:opacity .15s, transform .15s, color .15s, background .15s;
   padding:0;
+  transition:opacity .15s, transform .15s, color .15s, border-color .15s;
+  flex-shrink:0;
 }
-.bubble.user .bubble-copy{right:-6px}
-.bubble.agent .bubble-copy{left:-6px}
-.bubble-copy:active{transform:scale(0.9)}
+.bubble-copy:hover,
+.bubble-copy:active{opacity:.95}
+.bubble-copy:active{transform:scale(0.92)}
 .bubble-copy.copied{
   color:var(--green);
   border-color:var(--green);
   opacity:1;
 }
-.bubble-copy svg{width:12px;height:12px}
+.bubble-copy svg{width:11px;height:11px;display:block}
+.bubble.streaming .bubble-copy{display:none}
 @keyframes blink{50%{opacity:0}}
 
 .bubble-meta{
