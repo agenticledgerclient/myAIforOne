@@ -7094,6 +7094,94 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
     }
   });
 
+  // ─── WhatsApp Gallery (photoGroups) ──────────────────────────────
+  // GET /api/channels/whatsapp/gallery — list all gallery-linked groups
+  app.get("/api/channels/whatsapp/gallery", (_req, res) => {
+    if (!opts.config.channels.whatsapp) return res.status(404).json({ error: "WhatsApp channel not found" });
+    const waConfig = (opts.config.channels.whatsapp.config || {}) as Record<string, any>;
+    const photoGroups = waConfig.photoGroups || {};
+    res.json({ photoGroups });
+  });
+
+  // POST /api/channels/whatsapp/gallery — add/update a gallery-linked group
+  app.post("/api/channels/whatsapp/gallery", (req, res) => {
+    if (!opts.config.channels.whatsapp) return res.status(404).json({ error: "WhatsApp channel not found" });
+    const { groupJid, uploadUrl, secret } = req.body as { groupJid?: string; uploadUrl?: string; secret?: string };
+    if (!groupJid || !uploadUrl || !secret) {
+      return res.status(400).json({ error: "Missing required fields: groupJid, uploadUrl, secret" });
+    }
+
+    try {
+      const configPath = configFilePath();
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      if (!rawConfig.channels?.whatsapp?.config) {
+        rawConfig.channels.whatsapp.config = {};
+      }
+      if (!rawConfig.channels.whatsapp.config.photoGroups) {
+        rawConfig.channels.whatsapp.config.photoGroups = {};
+      }
+      rawConfig.channels.whatsapp.config.photoGroups[groupJid] = { uploadUrl, secret };
+
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json); // validate
+      writeFileSync(configPath, json);
+
+      // Update in-memory config
+      if (!(opts.config.channels.whatsapp.config as any).photoGroups) {
+        (opts.config.channels.whatsapp.config as any).photoGroups = {};
+      }
+      (opts.config.channels.whatsapp.config as any).photoGroups[groupJid] = { uploadUrl, secret };
+
+      // Hot-reload the WhatsApp driver's photoGroups map
+      const waDriver = opts.driverMap?.get("whatsapp") as any;
+      if (waDriver?.updatePhotoGroups) {
+        waDriver.updatePhotoGroups((opts.config.channels.whatsapp.config as any).photoGroups);
+      }
+
+      log.info(`[Gallery] Added gallery link: ${groupJid} → ${uploadUrl}`);
+      res.json({ ok: true, groupJid, uploadUrl });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // DELETE /api/channels/whatsapp/gallery — remove a gallery-linked group
+  app.delete("/api/channels/whatsapp/gallery", (req, res) => {
+    if (!opts.config.channels.whatsapp) return res.status(404).json({ error: "WhatsApp channel not found" });
+    const { groupJid } = req.body as { groupJid?: string };
+    if (!groupJid) return res.status(400).json({ error: "Missing required field: groupJid" });
+
+    try {
+      const configPath = configFilePath();
+      const rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+
+      if (rawConfig.channels?.whatsapp?.config?.photoGroups) {
+        delete rawConfig.channels.whatsapp.config.photoGroups[groupJid];
+      }
+
+      const json = JSON.stringify(rawConfig, null, 2);
+      JSON.parse(json); // validate
+      writeFileSync(configPath, json);
+
+      // Update in-memory config
+      if ((opts.config.channels.whatsapp.config as any)?.photoGroups) {
+        delete (opts.config.channels.whatsapp.config as any).photoGroups[groupJid];
+      }
+
+      // Hot-reload the WhatsApp driver's photoGroups map
+      const waDriver = opts.driverMap?.get("whatsapp") as any;
+      if (waDriver?.updatePhotoGroups) {
+        waDriver.updatePhotoGroups((opts.config.channels.whatsapp.config as any).photoGroups || {});
+      }
+
+      log.info(`[Gallery] Removed gallery link: ${groupJid}`);
+      res.json({ ok: true, removed: groupJid });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // ─── Webhook endpoint ─────────────────────────────────────────────
   app.post("/webhook/:agentId", async (req, res) => {
     if (opts.webhookSecret) {
@@ -8130,6 +8218,10 @@ Project context and credentials are at: ${projectDir}/context.md and ${projectDi
         channels: {
           description: "Configure messaging channels and agent routing",
           actions: ["list_channels", "update_channel", "add_agent_route", "remove_agent_route", "add_monitored_chat", "remove_monitored_chat", "get_sticky_routing"]
+        },
+        gallery: {
+          description: "WhatsApp photo gallery integration — auto-upload images from groups to galleries",
+          actions: ["list_gallery_groups", "add_gallery_group", "remove_gallery_group"]
         },
         memory: {
           description: "Read, search, write, and clear agent memory",

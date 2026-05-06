@@ -1028,6 +1028,31 @@ server.tool("get_sticky_routing", "Get sticky routing config for all channels", 
 });
 
 // ═══════════════════════════════════════════════════════════════════
+//  WHATSAPP GALLERY (photoGroups)
+// ═══════════════════════════════════════════════════════════════════
+
+server.tool("list_gallery_groups", "List WhatsApp groups linked to photo galleries", {}, async () => {
+  const r = await api.listGalleryGroups();
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("add_gallery_group", "Link a WhatsApp group to a photo gallery for auto-upload", {
+  groupJid: z.string().describe("WhatsApp group JID (e.g. 120363123456789@g.us)"),
+  uploadUrl: z.string().describe("Gallery upload endpoint URL"),
+  secret: z.string().describe("Upload secret/API key for the gallery"),
+}, async ({ groupJid, uploadUrl, secret }) => {
+  const r = await api.addGalleryGroup(groupJid, uploadUrl, secret);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+server.tool("remove_gallery_group", "Unlink a WhatsApp group from its photo gallery", {
+  groupJid: z.string().describe("WhatsApp group JID to unlink"),
+}, async ({ groupJid }) => {
+  const r = await api.removeGalleryGroup(groupJid);
+  return { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] };
+});
+
+// ═══════════════════════════════════════════════════════════════════
 //  ADDITIONAL REGISTRY
 // ═══════════════════════════════════════════════════════════════════
 

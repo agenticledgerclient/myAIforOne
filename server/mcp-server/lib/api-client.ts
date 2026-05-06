@@ -301,6 +301,12 @@ export const addMonitoredChat = (channelName: string, chatId: string) =>
   api(`/api/channels/${channelName}/monitored`, { method: "POST", body: { chatId: Number(chatId) } });
 export const removeMonitoredChat = (channelName: string, chatId: string) =>
   api(`/api/channels/${channelName}/monitored`, { method: "DELETE", body: { chatId: Number(chatId) } });
+export const listGalleryGroups = () =>
+  api("/api/channels/whatsapp/gallery");
+export const addGalleryGroup = (groupJid: string, uploadUrl: string, secret: string) =>
+  api("/api/channels/whatsapp/gallery", { method: "POST", body: { groupJid, uploadUrl, secret } });
+export const removeGalleryGroup = (groupJid: string) =>
+  api("/api/channels/whatsapp/gallery", { method: "DELETE", body: { groupJid } });
 export const scanSkills = (dir?: string) =>
   api("/api/marketplace/scan-skills", { query: { dir } });
 export const createPrompt = (id: string, name: string, content: string) =>
