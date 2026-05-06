@@ -1272,7 +1272,7 @@ Rules:
   }
 
   // ── Build stdin payload ──
-  const hasImages = msg.attachments && msg.attachments.length > 0;
+  const hasImages = msg.attachments && msg.attachments.length > 0 && agentConfig.imageSupport !== false;
   let stdinPayload: string;
 
   if (hasImages) {
@@ -1984,7 +1984,7 @@ This is a hard rule. Do not modify files in the MyAIforOne platform installation
     );
   }
 
-  const hasImages = msg.attachments && msg.attachments.length > 0;
+  const hasImages = msg.attachments && msg.attachments.length > 0 && agentConfig.imageSupport !== false;
   let stdinPayload: string;
   if (hasImages) {
     const contentBlocks: ContentBlock[] = [{ type: "text", text: formattedMessage }];

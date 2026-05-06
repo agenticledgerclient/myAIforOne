@@ -126,6 +126,7 @@ export interface AgentConfig {
   boardEnabled?: boolean;    // opt-in: allow this agent's output to appear on boards
   boardLayout?: "small" | "medium" | "large";  // default widget size when added to a board
   deployedFrom?: string;     // template ID this agent was deployed from
+  imageSupport?: boolean;    // false = strip image attachments before passing to agent (default: true — images pass through)
 }
 
 export interface ChannelConfig {

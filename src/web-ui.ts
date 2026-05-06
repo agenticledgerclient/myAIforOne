@@ -2274,6 +2274,7 @@ export function startWebUI(opts: WebUIOptions): void {
         wikiSync: agent.wikiSync || null,
         shared: (agent as any).shared || false,
         conversationLogMode: (agent as any).conversationLogMode || "shared",
+        imageSupport: (agent as any).imageSupport !== false,
       };
     });
 
@@ -4043,7 +4044,7 @@ export function startWebUI(opts: WebUIOptions): void {
       return res.status(404).json({ error: `Agent "${agentId}" not found` });
     }
 
-    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, conversationLogMode, avatar, boardEnabled, boardLayout } = req.body as {
+    const { name, description, alias, workspace, persistent, streaming, advancedMemory, autonomousCapable, autoCommit, autoCommitBranch, timeout, skills, agentSkills, prompts, tools, mcps, routes, org, cron, goals, instructions, claudeAccount, subAgents, heartbeatInstructions, heartbeatCron, heartbeatEnabled, agentClass, executor, wiki, wikiSync, conversationLogMode, avatar, boardEnabled, boardLayout, imageSupport } = req.body as {
       name?: string; description?: string; alias?: string;
       workspace?: string; persistent?: boolean; streaming?: boolean; advancedMemory?: boolean;
       autonomousCapable?: boolean; autoCommit?: boolean; autoCommitBranch?: string; timeout?: number;
@@ -4067,6 +4068,7 @@ export function startWebUI(opts: WebUIOptions): void {
       avatar?: string;
       boardEnabled?: boolean;
       boardLayout?: "small" | "medium" | "large";
+      imageSupport?: boolean;
     };
 
     if (!name || !alias) {
@@ -4117,6 +4119,7 @@ export function startWebUI(opts: WebUIOptions): void {
       if (avatar !== undefined) existing.avatar = avatar || undefined;
       if (boardEnabled !== undefined) existing.boardEnabled = boardEnabled || undefined;
       if (boardLayout !== undefined) existing.boardLayout = boardLayout || undefined;
+      if (imageSupport !== undefined) existing.imageSupport = imageSupport === false ? false : undefined; // omit when true (true is default)
       // Board class agents are always board-enabled
       if (agentClass === "board") existing.boardEnabled = true;
       // Note: `shared` and `agentHome` cannot be changed after creation to prevent orphaning data.
