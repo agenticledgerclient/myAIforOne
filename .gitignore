@@ -1,7 +1,7 @@
 node_modules/
 mcps/*/node_modules/
 dist/
-logs/*.log
+logs/
 *.tsbuildinfo
 config.json
 data/
@@ -34,3 +34,17 @@ mcp-test-report.md
 
 # Symlink artifacts
 ~/
+
+# Local screenshots (dev/debug artifacts at repo root)
+/*.png
+
+# Per-account runtime state
+account-2/
+
+# Playwright runtime cache
+.playwright-mcp/
+
+# Scrape outputs (intermediate data, not source)
+canton-prospects.json
+canton-scrape-progress.json
+scrape-log.txt
