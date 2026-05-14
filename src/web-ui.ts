@@ -147,6 +147,8 @@ export function startWebUI(opts: WebUIOptions): void {
   app.get("/settings", (_req, res) => res.redirect("/admin?tab=settings"));
   app.get("/mcp-docs", (_req, res) => servePage(res, "mcp-docs.html"));
   app.get("/api-docs", (_req, res) => servePage(res, "api-docs.html"));
+  // Individual agent pages — serves the same chat UI; client JS switches to "resume sidebar" mode.
+  app.get("/a/:agentId", (_req, res) => servePage(res, "index.html"));
 
   // ─── Auth System — API Keys ──────────────────────────────────────────
   // Auth is only active when service.auth.enabled is true (default: false).

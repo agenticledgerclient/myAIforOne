@@ -2511,6 +2511,8 @@ function renderCompactNode(a, blurNames) {
     <button class="compact-menu" onclick="event.stopPropagation();toggleCompactMenu(this)" title="Actions">&#8943;</button>
     <div class="compact-ctx">
       <a onclick="event.stopPropagation();window.location='/ui#${a.id}'">Chat</a>
+      <a onclick="event.stopPropagation();window.location='/a/${a.id}'">Open page</a>
+      <a onclick="event.stopPropagation();copyAgentLink(this,'${a.id}')">Copy link</a>
       <a onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">Dashboard</a>
       <a onclick="event.stopPropagation();openModal('${a.id}')">Config</a>
     </div>
@@ -2714,7 +2716,7 @@ function renderListView(canvas) {
     html += `<td><span class="row-status ${isActive ? 'active' : 'inactive'}"></span> ${isActive ? 'Active' : 'Idle'}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${formatRelativeTime(a.lastMessage)}</td>`;
     html += `<td style="font-family:var(--font-mono);font-size:11px">${a.messageCount||0}</td>`;
-    html += `<td style="position:relative"><button class="compact-menu" onclick="event.stopPropagation();toggleListRowMenu(this)" title="Actions" style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px">&#8943;</button><div class="card-ctx"><a onclick="event.stopPropagation();window.location='/ui#${a.id}'">&#128172; Chat</a><a onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">&#128202; Dashboard</a><a onclick="event.stopPropagation();openModal('${a.id}')">&#9881; Config</a></div></td>`;
+    html += `<td style="position:relative"><button class="compact-menu" onclick="event.stopPropagation();toggleListRowMenu(this)" title="Actions" style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px">&#8943;</button><div class="card-ctx"><a onclick="event.stopPropagation();window.location='/ui#${a.id}'">&#128172; Chat</a><a onclick="event.stopPropagation();window.location='/a/${a.id}'">&#128279; Open page</a><a onclick="event.stopPropagation();copyAgentLink(this,'${a.id}')">&#128203; Copy link</a><a onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">&#128202; Dashboard</a><a onclick="event.stopPropagation();openModal('${a.id}')">&#9881; Config</a></div></td>`;
     html += '</tr>';
   }
   html += '</tbody></table></div>';
@@ -2778,6 +2780,8 @@ function renderCardNode(a, blurNames) {
     <button class="card-gear" onclick="event.stopPropagation();toggleCardMenu(this)" title="Actions">&#9881;</button>
     <div class="card-ctx">
       <a onclick="event.stopPropagation();window.location='/ui#${a.id}'">&#128172; Chat</a>
+      <a onclick="event.stopPropagation();window.location='/a/${a.id}'">&#128279; Open page</a>
+      <a onclick="event.stopPropagation();copyAgentLink(this,'${a.id}')">&#128203; Copy link</a>
       <a onclick="event.stopPropagation();window.location='/agent-dashboard?id=${a.id}'">&#128202; Dashboard</a>
       <a onclick="event.stopPropagation();openModal('${a.id}')">&#9881; Config</a>
     </div>
@@ -5665,6 +5669,36 @@ async function openRemoteFileBrowser(gatewayId, agentId) {
     }).join('');
   } catch (err) {
     document.getElementById('remoteFileList').textContent = 'Error: ' + err.message;
+  }
+}
+
+// Copy direct /a/:id page link from the card menu — brief check-mark feedback inline
+function copyAgentLink(el, agentId) {
+  const url = location.origin + '/a/' + encodeURIComponent(agentId);
+  const orig = el.innerHTML;
+  const done = () => {
+    el.innerHTML = '\u2705 Copied';
+    setTimeout(() => { el.innerHTML = orig; }, 1200);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(done).catch(() => {
+      // Fallback for non-secure contexts
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { /* silent */ }
+      document.body.removeChild(ta);
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* silent */ }
+    document.body.removeChild(ta);
   }
 }
 
