@@ -372,11 +372,7 @@ export function loadConfig(configPath: string): AppConfig {
   // Ensures existing users who update via git pull get new bundled MCPs
   // without manually editing config.json.  Only injects if not already present.
   const bundledMcps: Record<string, McpServerStdio> = {
-    aiforone_computeruse: {
-      type: "stdio",
-      command: "node",
-      args: [`${packageRoot}/mcps/aiforone_computeruse/server.js`],
-    },
+    // aiforone_computeruse removed — replaced by peekaboo MCP
   };
   if (!config.mcps) config.mcps = {};
   for (const [id, def] of Object.entries(bundledMcps)) {

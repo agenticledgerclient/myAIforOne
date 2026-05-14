@@ -463,6 +463,7 @@ function toggleTheme(){
 let agents = [];
 let orgs = [];
 let accounts = [];
+let accountOverrides = {}; // agentId -> account name (in-memory, matches desktop /ui)
 let selectedOrg = PREFS.get('org', '__all__');
 let selectedAgentId = PREFS.get('agent', '');
 let isListening = PREFS.get('mic', false);
@@ -645,11 +646,12 @@ function renderAccountPicker(){
 
   const agent          = agents.find(a => a.id === selectedAgentId);
   const agentAccount   = agent?.claudeAccount || '';      // '' = no explicit account set
+  const currentOverride = accountOverrides[selectedAgentId] || '';
   const currentLabel   = agentAccount || 'default';
 
   // Match desktop /ui pattern:
   //   - First option: agent's configured account (label "<name>" or "default"), value = ""
-  //   - Then every OTHER account
+  //   - Then every OTHER account, with current override pre-selected
   function fill(target){
     if (!target) return;
     target.innerHTML = '';
@@ -662,23 +664,15 @@ function renderAccountPicker(){
       const opt = document.createElement('option');
       opt.value = name;
       opt.textContent = name;
+      if (currentOverride === name) opt.selected = true;
       target.appendChild(opt);
     }
   }
 
-  async function applyAccountChange(newAccount){
-    // Empty value = the "default" / current option — no change needed
-    if (!newAccount) return;
-    try{
-      await fetch('/api/agents/'+selectedAgentId, {
-        method:'PUT', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ claudeAccount: newAccount })
-      });
-      const ag = agents.find(a => a.id === selectedAgentId);
-      if (ag) ag.claudeAccount = newAccount;
-      // Re-render so the new account becomes the first/"default" option
-      renderAccountPicker();
-    } catch{ /* ignore */ }
+  // In-memory override, mirrors desktop /ui. Passed in send body as `accountOverride`
+  // so the server can detect account changes and force a new session.
+  function applyAccountChange(newAccount){
+    accountOverrides[selectedAgentId] = newAccount || undefined;
   }
 
   sel.classList.remove('hidden');
@@ -916,7 +910,7 @@ async function send(){
   try{
     const startRes = await fetch('/api/chat/'+selectedAgentId+'/stream', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ text, channel: 'web', chatId: CHAT_ID })
+      body: JSON.stringify({ text, channel: 'web', chatId: CHAT_ID, accountOverride: accountOverrides[selectedAgentId] })
     });
     if (!startRes.ok) throw new Error('Failed to start');
     const startData = await startRes.json();
