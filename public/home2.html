@@ -5046,6 +5046,29 @@ function handleHomeFiles(e) {
   e.target.value = '';
 }
 
+// Ctrl+V / Cmd+V paste of images (e.g. screenshots) — mirrors /ui behavior
+document.addEventListener('paste', function(e) {
+  // Don't hijack pastes inside non-chat editable fields (e.g. canvas / settings inputs)
+  const target = e.target;
+  if (target && target.tagName === 'INPUT' && target.type !== 'text' && target.type !== 'search') return;
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  const imageFiles = [];
+  for (const item of items) {
+    if (item.type && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) imageFiles.push(file);
+    }
+  }
+  if (imageFiles.length > 0) {
+    e.preventDefault();
+    for (const f of imageFiles) homeFiles.push(f);
+    const zone = document.getElementById('homeFileDropZone');
+    if (zone) zone.classList.add('visible');
+    renderHomeFiles();
+  }
+});
+
 function renderHomeFiles() {
   const area = document.getElementById('homeFileListArea');
   const btn = document.getElementById('homeClipBtn');
