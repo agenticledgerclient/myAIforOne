@@ -1025,6 +1025,28 @@ function handleFileDrop(e){
   renderFileList();
 }
 
+// Ctrl+V / Cmd+V paste of images (e.g. screenshots) — mirrors /ui behavior
+document.addEventListener('paste', function(e){
+  const target=e.target;
+  if(target&&target.tagName==='INPUT'&&target.type!=='text'&&target.type!=='search')return;
+  const items=e.clipboardData?.items;
+  if(!items)return;
+  const imageFiles=[];
+  for(const item of items){
+    if(item.type&&item.type.startsWith('image/')){
+      const file=item.getAsFile();
+      if(file)imageFiles.push(file);
+    }
+  }
+  if(imageFiles.length>0){
+    e.preventDefault();
+    for(const f of imageFiles)pendingFiles.push(f);
+    const zone=document.getElementById('fileDropZone');
+    if(zone)zone.classList.remove('hidden');
+    renderFileList();
+  }
+});
+
 function renderFileList(){
   const area=document.getElementById('fileListArea');
   if(!pendingFiles.length){area.innerHTML='<span>Drop files here or click to browse</span>';return}
